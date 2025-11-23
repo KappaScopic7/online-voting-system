@@ -1,32 +1,41 @@
 {
-    "java.compile.nullAnalysis.mode": "disabled",
-
+    // 共通
     "editor.tabSize": 4,
     "editor.insertSpaces": true,
     "editor.detectIndentation": false,
-    
+
+    // Java → 4スペース
     "[java]": {
         "editor.tabSize": 4,
         "editor.insertSpaces": true
     },
 
+    // YAML → 2スペース
+    "[yml]": {
+        "editor.tabSize": 2,
+        "editor.insertSpaces": true
+    },
     "[yaml]": {
         "editor.tabSize": 2,
         "editor.insertSpaces": true
     },
 
+    // JSON → 4スペース
     "[json]": {
         "editor.tabSize": 4,
         "editor.insertSpaces": true
     },
 
+    // Gradle → 4スペース
     "[gradle]": {
         "editor.tabSize": 4,
         "editor.insertSpaces": true
     },
 
+    // Markdown → 4スペース
     "[markdown]": {
         "editor.tabSize": 4,
         "editor.insertSpaces": true
-    }
+    },
+    "java.compile.nullAnalysis.mode": "disabled"
 }

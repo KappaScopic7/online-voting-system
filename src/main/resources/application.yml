@@ -1,12 +1,13 @@
 spring:
-    datasource:
-        url: jdbc:postgresql://localhost:5432/ovs
-        username: ovs
-        password: ovs
-    jpa:
-        hibernate:
-            ddl-auto: update
-        properties:
-            hibernate:
-                "[format_sql]": true
-                "[show_sql]": true
+  datasource:
+    url: jdbc:postgresql://localhost:5432/ovs
+    username: ovs
+    password: ovs
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
