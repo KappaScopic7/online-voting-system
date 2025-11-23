@@ -1,8 +1,11 @@
-package com.bteam.ovs.voter;
+package com.bteam.ovs.web;
 
 import java.util.List;
 
 import org.springframework.web.bind.annotation.*;
+
+import com.bteam.ovs.voter.Voter;
+import com.bteam.ovs.voter.VoterRepository;
 
 @RestController
 @RequestMapping("/voters")
