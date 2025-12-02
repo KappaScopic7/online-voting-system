@@ -1,5 +1,6 @@
 package com.bteam.ovs.citizen.domain;
 
+import com.bteam.ovs.election.domain.District;
 import com.bteam.ovs.voter.domain.VoterAccount;
 import jakarta.persistence.*;
 import lombok.*;
@@ -19,9 +20,6 @@ public class Citizen {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    /**
-     * 疑似マイナンバー（テスト用）
-     */
     @Column(name = "pseudo_my_number", nullable = false, unique = true, length = 32)
     private String pseudoMyNumber;
 
@@ -44,8 +42,12 @@ public class Citizen {
     private LocalDate dateOfBirth;
 
     /**
-     * 1:1 で VoterAccount と紐付く想定
+     * 所属選挙区
      */
+    @ManyToOne
+    @JoinColumn(name = "district_id")
+    private District district;
+
     @OneToOne(mappedBy = "citizen")
     private VoterAccount voterAccount;
 }

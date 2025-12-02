@@ -2,20 +2,26 @@ package com.bteam.ovs.voter.service;
 
 import com.bteam.ovs.citizen.domain.Citizen;
 import com.bteam.ovs.citizen.repository.CitizenRepository;
+import com.bteam.ovs.config.JwtProvider;
 import com.bteam.ovs.voter.domain.VoterAccount;
 import com.bteam.ovs.voter.domain.VoterStatus;
 import com.bteam.ovs.voter.dto.VoterActivateRequest;
 import com.bteam.ovs.voter.dto.VoterLoginRequest;
+import com.bteam.ovs.voter.dto.VoterLoginResponse;
 import com.bteam.ovs.voter.repository.VoterAccountRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
+import com.bteam.ovs.voter.dto.VoterMeResponse;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.time.LocalDateTime;
 
 import static org.springframework.http.HttpStatus.*;
+
 
 @Service
 @RequiredArgsConstructor
@@ -24,10 +30,8 @@ public class VoterAuthService {
     private final CitizenRepository citizenRepository;
     private final VoterAccountRepository voterAccountRepository;
     private final PasswordEncoder passwordEncoder;
+    private final JwtProvider jwtProvider;
 
-    /**
-     * 疑似マイナンバーで本人特定し、メール＆パスワードを登録して ACTIVE にする。
-     */
     @Transactional
     public void activate(VoterActivateRequest request) {
         Citizen citizen = citizenRepository.findByPseudoMyNumber(request.pseudoMyNumber())
@@ -51,12 +55,8 @@ public class VoterAuthService {
         voterAccountRepository.save(account);
     }
 
-    /**
-     * メール＆パスワードでログイン。
-     * ひとまず認証だけ行い、JWTなどは後で実装。
-     */
-    @Transactional
-    public void login(VoterLoginRequest request) {
+@Transactional
+    public VoterLoginResponse login(VoterLoginRequest request) {
         VoterAccount account = voterAccountRepository.findByEmail(request.email())
                 .orElseThrow(() -> new ResponseStatusException(UNAUTHORIZED, "メールアドレスまたはパスワードが不正です。"));
 
@@ -71,6 +71,32 @@ public class VoterAuthService {
         account.setLastLoginAt(LocalDateTime.now());
         voterAccountRepository.save(account);
 
-        // TODO: JWT 発行して返すのはあとで
+        String token = jwtProvider.generateToken(account);
+        return new VoterLoginResponse(token);
+    }
+
+@Transactional(readOnly = true)
+    public VoterMeResponse getMe() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || auth.getName() == null) {
+            throw new ResponseStatusException(UNAUTHORIZED, "認証情報が見つかりません。");
+        }
+
+        String email = auth.getName();
+
+        VoterAccount account = voterAccountRepository.findByEmail(email)
+                .orElseThrow(() -> new ResponseStatusException(UNAUTHORIZED, "アカウントが見つかりません。"));
+
+        var citizen = account.getCitizen();
+
+        return new VoterMeResponse(
+                account.getEmail(),
+                account.getStatus(),
+                citizen.getFamilyName(),
+                citizen.getGivenName(),
+                citizen.getPrefecture(),
+                citizen.getCity(),
+                citizen.getAddressLine()
+        );
     }
 }
