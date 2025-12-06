@@ -2,120 +2,120 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
-  fetchElectionDetail,
-  fetchElectionResult,
+    fetchElectionDetail,
+    fetchElectionResult,
 } from "../api/authClient";
 import type {
-  ElectionDetail,
-  ElectionResultItem,
+    ElectionDetail,
+    ElectionResultItem,
 } from "../api/authClient";
 
 export function ElectionResultPage() {
-  const { id } = useParams<{ id: string }>();
-  const [detail, setDetail] = useState<ElectionDetail | null>(null);
-  const [results, setResults] = useState<ElectionResultItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const navigate = useNavigate();
+    const { id } = useParams<{ id: string }>();
+    const [detail, setDetail] = useState<ElectionDetail | null>(null);
+    const [results, setResults] = useState<ElectionResultItem[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    const navigate = useNavigate();
 
-  useEffect(() => {
-    const token = localStorage.getItem("accessToken");
-    if (!token) {
-      navigate("/login");
-      return;
+    useEffect(() => {
+        const token = localStorage.getItem("accessToken");
+        if (!token) {
+            navigate("/login");
+            return;
+        }
+
+        if (!id) {
+            setError("選挙IDが不正です。");
+            setLoading(false);
+            return;
+        }
+
+        const electionId = Number(id);
+
+        const load = async () => {
+            try {
+                const [d, r] = await Promise.all([
+                    fetchElectionDetail(token, electionId),
+                    fetchElectionResult(token, electionId),
+                ]);
+                setDetail(d);
+                setResults(r);
+            } catch (err: any) {
+                setError(err.message ?? "選挙結果の取得に失敗しました");
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        load();
+    }, [id, navigate]);
+
+    if (loading) {
+        return <p>読み込み中...</p>;
     }
 
-    if (!id) {
-      setError("選挙IDが不正です。");
-      setLoading(false);
-      return;
+    if (error) {
+        return <p style={{ color: "red" }}>{error}</p>;
     }
 
-    const electionId = Number(id);
+    if (!detail) {
+        return <p>選挙が見つかりません。</p>;
+    }
 
-    const load = async () => {
-      try {
-        const [d, r] = await Promise.all([
-          fetchElectionDetail(token, electionId),
-          fetchElectionResult(token, electionId),
-        ]);
-        setDetail(d);
-        setResults(r);
-      } catch (err: any) {
-        setError(err.message ?? "選挙結果の取得に失敗しました");
-      } finally {
-        setLoading(false);
-      }
-    };
+    const totalVotes =
+        results.reduce((sum, r) => sum + r.voteCount, 0) || 0;
 
-    load();
-  }, [id, navigate]);
+    return (
+        <main>
+            <h1>{detail.name} の結果</h1>
+            <p>{detail.districtName}</p>
 
-  if (loading) {
-    return <p>読み込み中...</p>;
-  }
+            {totalVotes === 0 ? (
+                <p>有効票がまだありません。</p>
+            ) : (
+                <table style={{ borderCollapse: "collapse", width: "100%", marginTop: 16 }}>
+                    <thead>
+                        <tr>
+                            <th style={th}>候補者</th>
+                            <th style={th}>政党</th>
+                            <th style={th}>得票数</th>
+                            <th style={th}>得票率</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {results.map((r) => {
+                            const rate =
+                                totalVotes > 0
+                                    ? ((r.voteCount / totalVotes) * 100).toFixed(1)
+                                    : "-";
+                            return (
+                                <tr key={r.candidateId}>
+                                    <td style={td}>{r.candidateName}</td>
+                                    <td style={td}>{r.partyName ?? "無所属"}</td>
+                                    <td style={td}>{r.voteCount}</td>
+                                    <td style={td}>{rate}%</td>
+                                </tr>
+                            );
+                        })}
+                    </tbody>
+                </table>
+            )}
 
-  if (error) {
-    return <p style={{ color: "red" }}>{error}</p>;
-  }
-
-  if (!detail) {
-    return <p>選挙が見つかりません。</p>;
-  }
-
-  const totalVotes =
-    results.reduce((sum, r) => sum + r.voteCount, 0) || 0;
-
-  return (
-    <main>
-      <h1>{detail.name} の結果</h1>
-      <p>{detail.districtName}</p>
-
-      {totalVotes === 0 ? (
-        <p>有効票がまだありません。</p>
-      ) : (
-        <table style={{ borderCollapse: "collapse", width: "100%", marginTop: 16 }}>
-          <thead>
-            <tr>
-              <th style={th}>候補者</th>
-              <th style={th}>政党</th>
-              <th style={th}>得票数</th>
-              <th style={th}>得票率</th>
-            </tr>
-          </thead>
-          <tbody>
-            {results.map((r) => {
-              const rate =
-                totalVotes > 0
-                  ? ((r.voteCount / totalVotes) * 100).toFixed(1)
-                  : "-";
-              return (
-                <tr key={r.candidateId}>
-                  <td style={td}>{r.candidateName}</td>
-                  <td style={td}>{r.partyName ?? "無所属"}</td>
-                  <td style={td}>{r.voteCount}</td>
-                  <td style={td}>{rate}%</td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      )}
-
-      <button style={{ marginTop: 16 }} onClick={() => navigate(-1)}>
-        戻る
-      </button>
-    </main>
-  );
+            <button style={{ marginTop: 16 }} onClick={() => navigate(-1)}>
+                戻る
+            </button>
+        </main>
+    );
 }
 
 const th = {
-  borderBottom: "1px solid #ccc",
-  padding: "4px 8px",
-  textAlign: "left" as const,
+    borderBottom: "1px solid #ccc",
+    padding: "4px 8px",
+    textAlign: "left" as const,
 };
 
 const td = {
-  borderBottom: "1px solid #eee",
-  padding: "4px 8px",
+    borderBottom: "1px solid #eee",
+    padding: "4px 8px",
 };
