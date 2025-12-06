@@ -1,8 +1,8 @@
 // frontend/src/pages/MyElectionsPage.tsx
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import type { MyElection } from "../api/authClient";
+import { Link, useNavigate } from "react-router-dom";           // ★ Link 追加
 import { fetchMyElections } from "../api/authClient";
+import type { MyElection } from "../api/authClient";
 
 export function MyElectionsPage() {
   const [elections, setElections] = useState<MyElection[]>([]);
@@ -23,11 +23,6 @@ export function MyElectionsPage() {
         const data = await fetchMyElections(token);
         setElections(data);
       } catch (err: any) {
-        if (err.message === "unauthorized") {
-          localStorage.removeItem("accessToken");
-          navigate("/login");
-          return;
-        }
         setError(err.message ?? "My選挙一覧の取得に失敗しました");
       } finally {
         setLoading(false);
@@ -63,16 +58,18 @@ export function MyElectionsPage() {
           </tr>
         </thead>
         <tbody>
-          {elections.map((e) => (
-            <tr key={e.electionId}>
-              <td style={td}>{e.name}</td>
-              <td style={td}>{e.districtName}</td>
-              <td style={td}>{e.status}</td>
-              <td style={td}>{formatDateTime(e.startsAt)}</td>
-              <td style={td}>{formatDateTime(e.endsAt)}</td>
-            </tr>
-          ))}
-        </tbody>
+            {elections.map((e) => (
+                <tr key={e.electionId}>
+                <td style={td}>
+                    <Link to={`/elections/${e.electionId}`}>{e.name}</Link>
+                </td>
+                <td style={td}>{e.districtName}</td>
+                <td style={td}>{e.status}</td>
+                <td style={td}>{formatDateTime(e.startsAt)}</td>
+                <td style={td}>{formatDateTime(e.endsAt)}</td>
+                </tr>
+            ))}
+            </tbody>
       </table>
     </main>
   );

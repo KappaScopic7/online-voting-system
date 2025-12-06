@@ -1,6 +1,8 @@
 import { Routes, Route, Link, useNavigate } from "react-router-dom";
 import { LoginPage } from "./pages/LoginPage";
 import { MyElectionsPage } from "./pages/MyElectionsPage";
+import { ElectionDetailPage } from "./pages/ElectionDetailPage";
+import { VotePage } from "./pages/VotePage";
 
 export default function App() {
   return (
@@ -10,7 +12,9 @@ export default function App() {
         <Route path="/" element={<HomePage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/my-elections" element={<MyElectionsPage />} />
-      </Routes>
+        <Route path="/elections/:id" element={<ElectionDetailPage />} />
+        <Route path="/elections/:id/vote" element={<VotePage />} />
+        </Routes>
     </div>
   );
 }

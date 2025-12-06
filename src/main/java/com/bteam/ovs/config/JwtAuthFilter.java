@@ -39,7 +39,6 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 VoterAccount account = voterAccountRepository.findByEmail(email).orElse(null);
 
                 if (account != null && account.getStatus() == VoterStatus.ACTIVE) {
-                    // 権限は後でロール制御を入れるまで空のリスト
                     UsernamePasswordAuthenticationToken authentication =
                             new UsernamePasswordAuthenticationToken(
                                     email,
@@ -49,7 +48,6 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                     SecurityContextHolder.getContext().setAuthentication(authentication);
                 }
             } catch (Exception e) {
-                // トークン不正時は認証なしで続行（401はController側の認可で返させる）
                 SecurityContextHolder.clearContext();
             }
         }
