@@ -27,7 +27,6 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String path = request.getServletPath();
 
-        // ★ ログイン／アクティベーション／公開APIは JWT チェックしない
         return path.equals("/api/voters/login")
                 || path.equals("/api/voters/activate")
                 || path.startsWith("/api/public/");

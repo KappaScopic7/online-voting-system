@@ -36,7 +36,6 @@ public class ElectionQueryService {
         Election election = electionRepository.findById(electionId)
                 .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "選挙が見つかりません。"));
 
-        // 自分の選挙区の選挙以外は見せない
         if (account.getCitizen().getDistrict() == null
                 || election.getDistrict() == null
                 || !election.getDistrict().getId().equals(account.getCitizen().getDistrict().getId())) {

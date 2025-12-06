@@ -43,14 +43,12 @@ public class VoterElectionService {
             return List.of();
         }
 
-        // ★ PUBLISHED / OPEN / CLOSED を My選挙として扱う
         List<ElectionStatus> statuses = List.copyOf(EnumSet.of(
                 ElectionStatus.PUBLISHED,
                 ElectionStatus.OPEN,
                 ElectionStatus.CLOSED
         ));
 
-        // ★ 終了済みも含めて全件取得
         List<Election> elections = electionRepository
                 .findByDistrictOrderByStartsAtAsc(district);
 

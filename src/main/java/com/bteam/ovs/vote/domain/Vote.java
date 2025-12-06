@@ -26,23 +26,14 @@ public class Vote {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    /**
-     * どの選挙への投票か
-     */
     @ManyToOne(optional = false)
     @JoinColumn(name = "election_id", nullable = false)
     private Election election;
 
-    /**
-     * どの有権者の投票か
-     */
     @ManyToOne(optional = false)
     @JoinColumn(name = "voter_account_id", nullable = false)
     private VoterAccount voterAccount;
 
-    /**
-     * 選択された候補者
-     */
     @ManyToOne(optional = false)
     @JoinColumn(name = "candidate_id", nullable = false)
     private Candidate candidate;

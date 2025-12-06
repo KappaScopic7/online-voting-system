@@ -41,9 +41,6 @@ public class Citizen {
     @Column(name = "date_of_birth", nullable = false)
     private LocalDate dateOfBirth;
 
-    /**
-     * 所属選挙区
-     */
     @ManyToOne
     @JoinColumn(name = "district_id")
     private District district;

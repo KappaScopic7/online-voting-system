@@ -18,15 +18,9 @@ public class Election {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    /**
-     * 内部コード（例: SANGIIN-2025-TOKYO-MACHIDA）
-     */
     @Column(name = "code", nullable = false, unique = true, length = 100)
     private String code;
 
-    /**
-     * 選挙名（例: 第26回参議院議員通常選挙）
-     */
     @Column(name = "name", nullable = false, length = 255)
     private String name;
 

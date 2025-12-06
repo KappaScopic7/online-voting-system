@@ -19,22 +19,13 @@ public class VoterAccount {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    /**
-     * 1 Citizen : 1 VoterAccount
-     */
     @OneToOne(optional = false)
     @JoinColumn(name = "citizen_id", nullable = false, unique = true)
     private Citizen citizen;
 
-    /**
-     * 初期状態は null。本人認証後に登録。
-     */
     @Column(name = "email", unique = true, length = 255)
     private String email;
 
-    /**
-     * 初期状態は null。本人認証後に登録。
-     */
     @Column(name = "password_hash", length = 255)
     private String passwordHash;
 

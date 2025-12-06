@@ -36,26 +36,22 @@ public class DemoDataInitializer implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
-        // すでに Citizen や Election が入っているなら何もしない（本番データ汚さない）
         if (citizenRepository.count() > 0 || electionRepository.count() > 0) {
             return;
         }
 
-        // --- District（町田1区） ---
         District machida1 = districtRepository.findByCode("TOKYO-MACHIDA-01")
             .orElseGet(() -> {
                 District d = new District();
                 d.setCode("TOKYO-MACHIDA-01");
                 d.setName("東京都町田市第1区");
 
-                // ★ 必須カラムをちゃんと埋める
-                d.setPrefecture("東京都");   // Districtにprefectureフィールドがある想定
-                d.setCity("町田市");        // Districtにcityフィールドがある想定
+                d.setPrefecture("東京都");
+                d.setCity("町田市");
 
                 return districtRepository.save(d);
             });
 
-        // --- Citizen を複数作成 ---
         List<Citizen> citizens = new ArrayList<>();
         for (int i = 1; i <= 30; i++) {
             String pseudoMyNumber = "CITIZEN-%06d".formatted(i);
@@ -75,23 +71,19 @@ public class DemoDataInitializer implements CommandLineRunner {
         }
         citizens = citizenRepository.saveAll(citizens);
 
-        // --- Citizen ごとに 1 VoterAccount 作成 ---
         List<VoterAccount> accounts = new ArrayList<>();
-        VoterAccount demoVoter = null; // CITIZEN-000001 用
+        VoterAccount demoVoter = null;
 
         for (int idx = 0; idx < citizens.size(); idx++) {
             Citizen citizen = citizens.get(idx);
 
             VoterAccount va = VoterAccount.builder()
                     .citizen(citizen)
-                    // email/passwordHash/status は null → @PrePersist で PENDING になる
                     .build();
 
-            // 双方向関連を維持しておく（必須ではないがきれいにしておく）
             citizen.setVoterAccount(va);
 
             if (idx == 0) {
-                // 最初の Citizen (CITIZEN-000001) をデモ用ユーザーとする
                 demoVoter = va;
             }
 
@@ -101,7 +93,6 @@ public class DemoDataInitializer implements CommandLineRunner {
 
         LocalDateTime now = LocalDateTime.now();
 
-        // --- ① OPEN 選挙（今投票できる） ---
         Election openElection = Election.builder()
                 .code("SHUGIIN-TEST-OPEN-TOKYO-MACHIDA")
                 .name("【テスト】オンライン投票テスト用選挙（OPEN）")
@@ -112,7 +103,6 @@ public class DemoDataInitializer implements CommandLineRunner {
                 .status(ElectionStatus.OPEN)
                 .build();
 
-        // --- ② CLOSED 選挙（結果確認用） ---
         Election closedElection = Election.builder()
                 .code("SANGIIN-TEST-CLOSED-TOKYO-MACHIDA")
                 .name("【テスト】集計結果確認用選挙（CLOSED）")
@@ -126,10 +116,8 @@ public class DemoDataInitializer implements CommandLineRunner {
         openElection = electionRepository.save(openElection);
         closedElection = electionRepository.save(closedElection);
 
-        // --- 候補者 ---
         List<Candidate> candidates = new ArrayList<>();
 
-        // OPEN 用候補者
         candidates.add(Candidate.builder()
                 .name("山田 一郎")
                 .partyName("テスト党A")
@@ -154,7 +142,6 @@ public class DemoDataInitializer implements CommandLineRunner {
                 .election(openElection)
                 .build());
 
-        // CLOSED 用候補者
         Candidate rc1 = Candidate.builder()
                 .name("結果 太郎")
                 .partyName("結果確認党")
@@ -183,7 +170,6 @@ public class DemoDataInitializer implements CommandLineRunner {
 
         candidateRepository.saveAll(candidates);
 
-        // --- CLOSED 選挙にダミー投票を投入 ---
         List<VoterAccount> voters = accounts;
         if (voters.isEmpty() || demoVoter == null) {
             return;
@@ -191,7 +177,6 @@ public class DemoDataInitializer implements CommandLineRunner {
 
         LocalDateTime baseTime = now.minusDays(1);
 
-        // 1) デモ用有権者（CITIZEN-000001 相当）に履歴3件
         Vote v1 = Vote.builder()
                 .election(closedElection)
                 .voterAccount(demoVoter)
@@ -219,11 +204,10 @@ public class DemoDataInitializer implements CommandLineRunner {
                 .build();
         voteRepository.save(v3);
 
-        // 2) 残りの有権者にも1票ずつ入れて、結果をそれっぽくする
         int idx = 0;
         for (VoterAccount voter : voters) {
             if (voter.getId().equals(demoVoter.getId())) {
-                continue; // さっき履歴入れた人はスキップ
+                continue;
             }
 
             Candidate chosen;
@@ -248,7 +232,7 @@ public class DemoDataInitializer implements CommandLineRunner {
             idx++;
 
             if (idx >= 50) {
-                break; // テスト用なので50票で打ち切り
+                break;
             }
         }
     }

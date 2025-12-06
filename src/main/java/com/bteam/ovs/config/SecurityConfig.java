@@ -26,7 +26,6 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                // ★ CORS を有効化
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -43,31 +42,24 @@ public class SecurityConfig {
         return http.build();
     }
 
-    // パスワードエンコーダ
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 
-    // ★ CORS 設定（フロント localhost:5173 を許可）
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
 
-        // Vite のデフォルトポート
         config.setAllowedOrigins(List.of("http://localhost:5173"));
 
-        // 必要な HTTP メソッドを許可
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
 
-        // フロントから送るヘッダ（Authorization, Content-Type）を許可
         config.setAllowedHeaders(List.of("Authorization", "Content-Type"));
 
-        // 認証情報付き（Authorization ヘッダ）を許可
         config.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        // 全パスにこの CORS 設定を適用
         source.registerCorsConfiguration("/**", config);
         return source;
     }

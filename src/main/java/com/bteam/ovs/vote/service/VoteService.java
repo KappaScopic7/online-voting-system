@@ -52,7 +52,6 @@ public class VoteService {
             Election election = electionRepository.findById(electionId)
                     .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "選挙が見つかりません。"));
 
-            // 自分の選挙区チェック
             if (!hasAccessToElection(voter, election)) {
                 throw new ResponseStatusException(FORBIDDEN, "この選挙にはアクセスできません。");
             }
@@ -67,7 +66,7 @@ public class VoteService {
                             v.getCandidate().getPartyName()
                     ))
                     .orElseThrow(() ->
-                            new ResponseStatusException(NOT_FOUND, "まだ投票はありません。")   // ★ 404 を返す
+                            new ResponseStatusException(NOT_FOUND, "まだ投票はありません。")
                     );
         }
 
@@ -77,17 +76,14 @@ public class VoteService {
         Election election = electionRepository.findById(electionId)
                 .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "選挙が見つかりません。"));
 
-        // 選挙区チェック
         if (!hasAccessToElection(voter, election)) {
             throw new ResponseStatusException(FORBIDDEN, "この選挙にはアクセスできません。");
         }
 
-        // 状態チェック（OPENのみ投票可）
         if (election.getStatus() != ElectionStatus.OPEN) {
             throw new ResponseStatusException(BAD_REQUEST, "投票受付期間外です。");
         }
 
-        // 開始・終了日時チェック
         LocalDateTime now = LocalDateTime.now();
         if (now.isBefore(election.getStartsAt()) || now.isAfter(election.getEndsAt())) {
             throw new ResponseStatusException(BAD_REQUEST, "投票受付期間外です。");
@@ -100,7 +96,6 @@ public class VoteService {
             throw new ResponseStatusException(BAD_REQUEST, "この選挙に属さない候補者です。");
         }
 
-        // 既存のACTIVE票をCANCELEDに
         List<Vote> existing = voteRepository.findByVoterAccountAndElectionAndStatus(
                 voter, election, VoteStatus.ACTIVE
         );
@@ -109,7 +104,6 @@ public class VoteService {
         }
         voteRepository.saveAll(existing);
 
-        // 新しい票を作成
         Vote vote = Vote.builder()
                 .election(election)
                 .voterAccount(voter)
@@ -127,12 +121,9 @@ public class VoteService {
         Election election = electionRepository.findById(electionId)
                 .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "選挙が見つかりません。"));
 
-        // 自分の選挙区チェック
         if (!hasAccessToElection(voter, election)) {
             throw new ResponseStatusException(FORBIDDEN, "この選挙にはアクセスできません。");
         }
-
-        // 投票期間終了後のみ閲覧可（必要に応じて status も見る）
         LocalDateTime now = LocalDateTime.now();
         if (now.isBefore(election.getEndsAt())) {
             throw new ResponseStatusException(FORBIDDEN, "投票期間終了後に結果を閲覧できます。");

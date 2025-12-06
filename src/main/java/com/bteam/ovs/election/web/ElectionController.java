@@ -30,7 +30,7 @@ public class ElectionController {
     private final ElectionRepository electionRepository;
     private final CandidateRepository candidateRepository;
     private final VoterAccountRepository voterAccountRepository;
-    private final VoteService voteService;   // ★ 追加
+    private final VoteService voteService;
 
     @GetMapping("/{id}")
     public ElectionDetailResponse getElection(@PathVariable Long id) {
@@ -63,7 +63,6 @@ public class ElectionController {
                 .toList();
     }
 
-    // ★ 追加：集計結果取得
     @GetMapping("/{id}/results")
     public List<ElectionResultItemResponse> getResults(@PathVariable Long id) {
         return voteService.getElectionResult(id);

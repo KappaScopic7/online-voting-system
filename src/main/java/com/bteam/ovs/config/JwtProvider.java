@@ -30,9 +30,6 @@ public class JwtProvider {
         return Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
     }
 
-    /**
-     * VoterAccount から JWT を発行（subject = email）
-     */
     public String generateToken(VoterAccount account) {
         Date now = new Date();
         Date expiry = new Date(now.getTime() + expirationMinutes * 60 * 1000);
@@ -45,9 +42,6 @@ public class JwtProvider {
                 .compact();
     }
 
-    /**
-     * JWT から email(subject) を取り出す
-     */
     public String getEmailFromToken(String token) {
         Claims claims = Jwts.parserBuilder()
                 .setSigningKey(getSigningKey())

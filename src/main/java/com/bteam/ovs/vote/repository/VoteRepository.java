@@ -31,6 +31,5 @@ public interface VoteRepository extends JpaRepository<Vote, Long> {
             VoteStatus status
     );
 
-    // ★ 追加：CLOSED選挙に対する票が1件でもあるか？
     boolean existsByElection_Status(ElectionStatus status);
 }
