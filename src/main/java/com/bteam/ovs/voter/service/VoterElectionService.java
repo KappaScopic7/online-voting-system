@@ -14,7 +14,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.time.LocalDateTime;
 import java.util.EnumSet;
 import java.util.List;
 
@@ -41,21 +40,19 @@ public class VoterElectionService {
 
         District district = account.getCitizen().getDistrict();
         if (district == null) {
-            // 選挙区が紐付いていない場合は空リスト
             return List.of();
         }
 
-        // 今回は「公開済み or 投票受付中」の選挙だけをMy選挙として返す例
+        // ★ PUBLISHED / OPEN / CLOSED を My選挙として扱う
         List<ElectionStatus> statuses = List.copyOf(EnumSet.of(
                 ElectionStatus.PUBLISHED,
-                ElectionStatus.OPEN
+                ElectionStatus.OPEN,
+                ElectionStatus.CLOSED
         ));
 
-        LocalDateTime now = LocalDateTime.now();
-
-        // 例: まだ終了していない選挙だけに絞る場合はこちら
+        // ★ 終了済みも含めて全件取得
         List<Election> elections = electionRepository
-                .findByDistrictAndEndsAtAfterOrderByStartsAtAsc(district, now);
+                .findByDistrictOrderByStartsAtAsc(district);
 
         return elections.stream()
                 .filter(e -> statuses.contains(e.getStatus()))

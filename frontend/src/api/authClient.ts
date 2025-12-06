@@ -177,3 +177,40 @@ export async function castVote(
     throw new Error(text || "投票に失敗しました");
   }
 }
+
+export type ElectionResultItem = {
+  candidateId: number;
+  candidateName: string;
+  partyName: string | null;
+  voteCount: number;
+};
+
+export async function fetchElectionResult(
+  token: string,
+  electionId: number
+): Promise<ElectionResultItem[]> {
+  const res = await fetch(`${API_BASE}/api/elections/${electionId}/results`, {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (res.status === 401) {
+    throw new Error("unauthorized");
+  }
+
+  if (res.status === 403) {
+    const text = await res.text();
+    throw new Error(
+      text || "この選挙の結果はまだ閲覧できません。"
+    );
+  }
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || "選挙結果の取得に失敗しました");
+  }
+
+  return res.json();
+}

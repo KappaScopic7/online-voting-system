@@ -3,17 +3,19 @@ import { LoginPage } from "./pages/LoginPage";
 import { MyElectionsPage } from "./pages/MyElectionsPage";
 import { ElectionDetailPage } from "./pages/ElectionDetailPage";
 import { VotePage } from "./pages/VotePage";
+import { ElectionResultPage } from "./pages/ElectionResultPage";
 
 export default function App() {
   return (
     <div style={{ maxWidth: 800, margin: "0 auto", padding: 16 }}>
       <Header />
-      <Routes>
-        <Route path="/" element={<HomePage />} />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/my-elections" element={<MyElectionsPage />} />
-        <Route path="/elections/:id" element={<ElectionDetailPage />} />
-        <Route path="/elections/:id/vote" element={<VotePage />} />
+        <Routes>
+            <Route path="/" element={<HomePage />} />
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/my-elections" element={<MyElectionsPage />} />
+            <Route path="/elections/:id" element={<ElectionDetailPage />} />
+            <Route path="/elections/:id/vote" element={<VotePage />} />
+            <Route path="/elections/:id/result" element={<ElectionResultPage />} /> {/* ★追加 */}
         </Routes>
     </div>
   );

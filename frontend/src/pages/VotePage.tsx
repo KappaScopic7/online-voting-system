@@ -2,19 +2,19 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
+  fetchElectionDetail,
   fetchCandidates,
   fetchMyVote,
   castVote,
 } from "../api/authClient";
-import type { Candidate, MyVote } from "../api/authClient";
+import type { Candidate, MyVote, ElectionDetail } from "../api/authClient";
 
 export function VotePage() {
   const { id } = useParams<{ id: string }>();
+  const [election, setElection] = useState<ElectionDetail | null>(null);
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [myVote, setMyVote] = useState<MyVote | null>(null);
-  const [selectedCandidateId, setSelectedCandidateId] = useState<number | null>(
-    null
-  );
+  const [selectedCandidateId, setSelectedCandidateId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -39,6 +39,17 @@ export function VotePage() {
 
     const load = async () => {
       try {
+        // ① まず選挙情報を取得してステータスを見る
+        const detail = await fetchElectionDetail(token, electionId);
+        setElection(detail);
+
+        if (detail.status !== "OPEN") {
+          // 受付期間外 → 投票UIは出さず、メッセージだけ表示
+          setError("この選挙はオンライン投票の受付期間外です。");
+          return;
+        }
+
+        // ② OPEN のときだけ候補者・自分の投票情報を取得
         const [cands, my] = await Promise.all([
           fetchCandidates(token, electionId),
           fetchMyVote(token, electionId),
@@ -69,7 +80,18 @@ export function VotePage() {
       return;
     }
 
-    if (!id || selectedCandidateId == null) {
+    if (!id) {
+      setError("選挙IDが不正です。");
+      return;
+    }
+
+    // ★ 二重ガード：OPEN 以外では投票処理自体を行わない
+    if (!election || election.status !== "OPEN") {
+      setError("この選挙はオンライン投票の受付期間外です。");
+      return;
+    }
+
+    if (selectedCandidateId == null) {
       setError("候補者を選択してください。");
       return;
     }
@@ -81,18 +103,23 @@ export function VotePage() {
       const my = await fetchMyVote(token, Number(id));
       setMyVote(my);
     } catch (err: any) {
-        setError(err.message ?? "投票に失敗しました");
+      setError(err.message ?? "投票に失敗しました");
     } finally {
-        setSubmitting(false);
+      setSubmitting(false);
     }
-};
+  };
 
   if (loading) {
     return <p>読み込み中...</p>;
   }
 
   if (error) {
+    // CLOSED などもここで表示される
     return <p style={{ color: "red" }}>{error}</p>;
+  }
+
+  if (!election) {
+    return <p>選挙が見つかりません。</p>;
   }
 
   if (candidates.length === 0) {
@@ -101,7 +128,7 @@ export function VotePage() {
 
   return (
     <main>
-      <h1>投票</h1>
+      <h1>{election.name} に投票</h1>
 
       {myVote && (
         <p style={{ marginBottom: 8 }}>

@@ -1,6 +1,8 @@
 package com.bteam.ovs.vote.repository;
 
+import com.bteam.ovs.election.domain.Candidate;
 import com.bteam.ovs.election.domain.Election;
+import com.bteam.ovs.election.domain.ElectionStatus;
 import com.bteam.ovs.vote.domain.Vote;
 import com.bteam.ovs.vote.domain.VoteStatus;
 import com.bteam.ovs.voter.domain.VoterAccount;
@@ -22,4 +24,13 @@ public interface VoteRepository extends JpaRepository<Vote, Long> {
             Election election,
             VoteStatus status
     );
+
+    long countByElectionAndCandidateAndStatus(
+            Election election,
+            Candidate candidate,
+            VoteStatus status
+    );
+
+    // ★ 追加：CLOSED選挙に対する票が1件でもあるか？
+    boolean existsByElection_Status(ElectionStatus status);
 }

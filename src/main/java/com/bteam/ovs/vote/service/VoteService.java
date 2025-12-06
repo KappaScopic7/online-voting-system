@@ -9,6 +9,7 @@ import com.bteam.ovs.vote.domain.Vote;
 import com.bteam.ovs.vote.domain.VoteStatus;
 import com.bteam.ovs.vote.dto.MyVoteResponse;
 import com.bteam.ovs.vote.dto.CastVoteRequest;
+import com.bteam.ovs.vote.dto.ElectionResultItemResponse;
 import com.bteam.ovs.vote.repository.VoteRepository;
 import com.bteam.ovs.voter.domain.VoterAccount;
 import com.bteam.ovs.voter.repository.VoterAccountRepository;
@@ -118,6 +119,39 @@ public class VoteService {
                 .build();
 
         voteRepository.save(vote);
+    }
+
+    @Transactional(readOnly = true)
+    public List<ElectionResultItemResponse> getElectionResult(Long electionId) {
+        VoterAccount voter = getCurrentVoter();
+        Election election = electionRepository.findById(electionId)
+                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "選挙が見つかりません。"));
+
+        // 自分の選挙区チェック
+        if (!hasAccessToElection(voter, election)) {
+            throw new ResponseStatusException(FORBIDDEN, "この選挙にはアクセスできません。");
+        }
+
+        // 投票期間終了後のみ閲覧可（必要に応じて status も見る）
+        LocalDateTime now = LocalDateTime.now();
+        if (now.isBefore(election.getEndsAt())) {
+            throw new ResponseStatusException(FORBIDDEN, "投票期間終了後に結果を閲覧できます。");
+        }
+
+        List<Candidate> candidates = candidateRepository.findByElectionOrderByDisplayOrderAsc(election);
+
+        return candidates.stream()
+                .map(c -> {
+                    long count = voteRepository.countByElectionAndCandidateAndStatus(
+                            election, c, VoteStatus.ACTIVE);
+                    return new ElectionResultItemResponse(
+                            c.getId(),
+                            c.getName(),
+                            c.getPartyName(),
+                            count
+                    );
+                })
+                .toList();
     }
 
     private boolean hasAccessToElection(VoterAccount voter, Election election) {

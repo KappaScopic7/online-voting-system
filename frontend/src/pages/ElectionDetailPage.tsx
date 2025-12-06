@@ -29,6 +29,11 @@ export function ElectionDetailPage() {
         const data = await fetchElectionDetail(token, Number(id));
         setDetail(data);
       } catch (err: any) {
+        if (err.message === "unauthorized") {
+          localStorage.removeItem("accessToken");
+          navigate("/login");
+          return;
+        }
         setError(err.message ?? "選挙詳細の取得に失敗しました");
       } finally {
         setLoading(false);
@@ -46,18 +51,19 @@ export function ElectionDetailPage() {
     return <p style={{ color: "red" }}>{error}</p>;
   }
 
-    if (!detail) {
+  if (!detail) {
     return <p>選挙が見つかりません。</p>;
-    }
+  }
 
-    const canVote = detail.status === "OPEN";
+  const isClosed = detail.status === "CLOSED";
+  const isOpen = detail.status === "OPEN";
 
-    return (
+  return (
     <main>
-        <h1>{detail.name}</h1>
-        {detail.description && <p>{detail.description}</p>}
+      <h1>{detail.name}</h1>
+      {detail.description && <p>{detail.description}</p>}
 
-        <dl style={{ display: "grid", gridTemplateColumns: "max-content 1fr", gap: 8 }}>
+      <dl style={{ display: "grid", gridTemplateColumns: "max-content 1fr", gap: 8 }}>
         <dt>コード</dt>
         <dd>{detail.code}</dd>
 
@@ -72,22 +78,25 @@ export function ElectionDetailPage() {
 
         <dt>終了日時</dt>
         <dd>{formatDateTime(detail.endsAt)}</dd>
-        </dl>
+      </dl>
 
-        {canVote ? (
+      {/* ★ 状態に応じて表示を変える */}
+      {isOpen && (
         <button
-            style={{ marginTop: 16 }}
-            onClick={() => navigate(`/elections/${detail.id}/vote`)}
+          style={{ marginTop: 16 }}
+          onClick={() => navigate(`/elections/${detail.id}/vote`)}
         >
-            この選挙で投票する
+          この選挙で投票する
         </button>
-        ) : (
-        <p style={{ marginTop: 16, color: "#666" }}>
-            この選挙では現在オンライン投票を受け付けていません。
+      )}
+
+      {isClosed && (
+        <p style={{ marginTop: 16, color: "red" }}>
+          この選挙はすでに終了しているため、オンライン投票はできません。
         </p>
-        )}
+      )}
     </main>
-    );
+  );
 }
 
 function formatDateTime(value: string): string {

@@ -10,7 +10,7 @@ import java.util.List;
 
 public interface ElectionRepository extends JpaRepository<Election, Long> {
 
-    List<Election> findByDistrictOrderByStartsAtDesc(District district);
+    List<Election> findByDistrictOrderByStartsAtAsc(District district);
 
     List<Election> findByDistrictAndStatusInOrderByStartsAtDesc(
             District district,

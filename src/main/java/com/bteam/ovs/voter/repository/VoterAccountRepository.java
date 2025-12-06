@@ -12,5 +12,7 @@ public interface VoterAccountRepository extends JpaRepository<VoterAccount, Long
 
     Optional<VoterAccount> findByEmail(String email);
 
+    Optional<VoterAccount> findByCitizen_PseudoMyNumber(String pseudoMyNumber);
+
     boolean existsByEmail(String email);
 }

@@ -7,6 +7,8 @@ import com.bteam.ovs.election.dto.ElectionDetailResponse;
 import com.bteam.ovs.election.repository.CandidateRepository;
 import com.bteam.ovs.election.repository.ElectionRepository;
 import com.bteam.ovs.election.service.ElectionQueryService;
+import com.bteam.ovs.vote.dto.ElectionResultItemResponse;
+import com.bteam.ovs.vote.service.VoteService;
 import com.bteam.ovs.voter.domain.VoterAccount;
 import com.bteam.ovs.voter.repository.VoterAccountRepository;
 import lombok.RequiredArgsConstructor;
@@ -28,6 +30,7 @@ public class ElectionController {
     private final ElectionRepository electionRepository;
     private final CandidateRepository candidateRepository;
     private final VoterAccountRepository voterAccountRepository;
+    private final VoteService voteService;   // ★ 追加
 
     @GetMapping("/{id}")
     public ElectionDetailResponse getElection(@PathVariable Long id) {
@@ -41,7 +44,6 @@ public class ElectionController {
         Election election = electionRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "選挙が見つかりません。"));
 
-        // 自分の選挙区チェック（ElectionQueryServiceのロジックと揃える）
         if (voter.getCitizen() == null
                 || voter.getCitizen().getDistrict() == null
                 || election.getDistrict() == null
@@ -59,6 +61,12 @@ public class ElectionController {
                         c.getProfile()
                 ))
                 .toList();
+    }
+
+    // ★ 追加：集計結果取得
+    @GetMapping("/{id}/results")
+    public List<ElectionResultItemResponse> getResults(@PathVariable Long id) {
+        return voteService.getElectionResult(id);
     }
 
     private VoterAccount getCurrentVoter() {

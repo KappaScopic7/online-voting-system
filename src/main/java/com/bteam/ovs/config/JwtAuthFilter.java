@@ -24,6 +24,16 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     private final VoterAccountRepository voterAccountRepository;
 
     @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+        String path = request.getServletPath();
+
+        // ★ ログイン／アクティベーション／公開APIは JWT チェックしない
+        return path.equals("/api/voters/login")
+                || path.equals("/api/voters/activate")
+                || path.startsWith("/api/public/");
+    }
+
+    @Override
     protected void doFilterInternal(HttpServletRequest request,
                                     HttpServletResponse response,
                                     FilterChain filterChain)
@@ -46,6 +56,8 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                                     List.of()
                             );
                     SecurityContextHolder.getContext().setAuthentication(authentication);
+                } else {
+                    SecurityContextHolder.clearContext();
                 }
             } catch (Exception e) {
                 SecurityContextHolder.clearContext();
