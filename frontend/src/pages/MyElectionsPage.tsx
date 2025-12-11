@@ -40,7 +40,6 @@ export function MyElectionsPage() {
     const renderAction = (election: MyElection) => {
         return (
             <div style={{ display: "flex", gap: 8 }}>
-                {/* ▼ 追加：詳細ボタン */}
                 <button
                     type="button"
                     onClick={() => navigate(`/elections/${election.electionId}`)}
@@ -48,7 +47,6 @@ export function MyElectionsPage() {
                     詳細
                 </button>
 
-                {/* ▼ 元々のステータス別操作 */}
                 {election.status === "OPEN" && (
                     <button
                         type="button"

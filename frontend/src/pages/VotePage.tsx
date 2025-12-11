@@ -19,7 +19,7 @@ export function VotePage() {
     const [submitting, setSubmitting] = useState(false);
     const [message, setMessage] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
-    const [confirmStep, setConfirmStep] = useState(false); // ★ 確認ステップ
+    const [confirmStep, setConfirmStep] = useState(false);
 
     const navigate = useNavigate();
 
@@ -40,17 +40,14 @@ export function VotePage() {
 
         const load = async () => {
             try {
-                // ① まず選挙情報を取得してステータスを見る
                 const detail = await fetchElectionDetail(token, electionId);
                 setElection(detail);
 
-                // CLOSED / PUBLISHED / DRAFT のときはここで止める（投票UIは出さない）
                 if (detail.status !== "OPEN") {
                     setLoading(false);
                     return;
                 }
 
-                // ② OPEN のときだけ候補者・自分の投票情報を取得
                 const [cands, my] = await Promise.all([
                     fetchCandidates(token, electionId),
                     fetchMyVote(token, electionId),
@@ -74,7 +71,6 @@ export function VotePage() {
     const selectedCandidate =
         candidates.find((c) => c.id === selectedCandidateId) ?? null;
 
-    // 「投票内容を確認する」ボタン
     const handleOpenConfirm = () => {
         setMessage(null);
         setError(null);
@@ -93,14 +89,11 @@ export function VotePage() {
         setMessage("投票内容を確認してください。");
     };
 
-    // 「修正する」ボタン
     const handleCancelConfirm = () => {
         setConfirmStep(false);
         setMessage(null);
-        // 選択は残したまま
     };
 
-    // 実際の投票確定（確認ステップの「この内容で投票する」）
     const handleSubmit = async () => {
         setMessage(null);
         setError(null);
@@ -145,7 +138,6 @@ export function VotePage() {
         return <p>読み込み中...</p>;
     }
 
-    // 致命的なロードエラー（選挙情報すら取れてない）
     if (!election) {
         if (error) {
             return <p style={{ color: "red" }}>{error}</p>;
@@ -153,7 +145,6 @@ export function VotePage() {
         return <p>選挙が見つかりません。</p>;
     }
 
-    // OPEN 以外はここで終了（履歴や結果確認専用）
     if (election.status !== "OPEN") {
         return (
             <main>
@@ -214,7 +205,7 @@ export function VotePage() {
                                 checked={selectedCandidateId === c.id}
                                 onChange={() => {
                                     setSelectedCandidateId(c.id);
-                                    setConfirmStep(false); // 別候補選んだら確認ステップリセット
+                                    setConfirmStep(false);
                                     setMessage(null);
                                     setError(null);
                                 }}
@@ -242,7 +233,6 @@ export function VotePage() {
                 ))}
             </ul>
 
-            {/* 確認前 */}
             {!confirmStep && (
                 <button
                     onClick={handleOpenConfirm}
@@ -255,7 +245,6 @@ export function VotePage() {
                 </button>
             )}
 
-            {/* 確認ステップ */}
             {confirmStep && selectedCandidate && (
                 <section
                     style={{
