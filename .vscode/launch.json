@@ -1,0 +1,33 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "java",
+            "name": "Backend: Spring Boot (OnlineVotingSystemApplication)",
+            "request": "launch",
+            "cwd": "${workspaceFolder}/backend",
+            "mainClass": "com.bteam.ovs.OnlineVotingSystemApplication",
+            "args": "",
+            "envFile": "${workspaceFolder}/backend/.env"
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Frontend: Vite Dev Server",
+            "cwd": "${workspaceFolder}/frontend",
+            "program": "${workspaceFolder}/frontend/node_modules/vite/bin/vite.js",
+            "args": ["--port", "5173"],
+            "console": "integratedTerminal"
+        }
+    ],
+
+    "compounds": [
+        {
+            "name": "Run All (Backend + Frontend)",
+            "configurations": [
+                "Backend: Spring Boot (OnlineVotingSystemApplication)",
+                "Frontend: Vite Dev Server"
+            ]
+        }
+    ]
+}
