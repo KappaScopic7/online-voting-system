@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 public interface ElectionRepository extends JpaRepository<Election, Long> {
 
@@ -21,4 +22,8 @@ public interface ElectionRepository extends JpaRepository<Election, Long> {
             District district,
             LocalDateTime now
     );
+
+    Optional<Election> findByCode(String code);
+
+    List<Election> findByDistrictOrderByStartsAtDesc(District district);
 }

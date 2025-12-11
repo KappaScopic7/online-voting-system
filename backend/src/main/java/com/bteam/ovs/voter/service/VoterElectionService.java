@@ -49,8 +49,7 @@ public class VoterElectionService {
                 ElectionStatus.CLOSED
         ));
 
-        List<Election> elections = electionRepository
-                .findByDistrictOrderByStartsAtAsc(district);
+        List<Election> elections = electionRepository.findByDistrictOrderByStartsAtDesc(district);
 
         return elections.stream()
                 .filter(e -> statuses.contains(e.getStatus()))

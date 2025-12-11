@@ -84,8 +84,6 @@ export async function fetchElectionDetail(
     return res.json();
 }
 
-// すでにある export type, login, fetchMyElections, fetchElectionDetail の下あたりに追記
-
 export type Candidate = {
     id: number;
     name: string;
@@ -134,16 +132,16 @@ export async function fetchMyVote(
     });
 
     if (res.status === 404) {
-        return null; // まだ投票していない
+        return null;
     }
 
     if (res.status === 401) {
-        throw new Error("unauthorized"); // ← 本当の認証エラー
+        throw new Error("unauthorized");
     }
 
     if (res.status === 403) {
         const text = await res.text();
-        throw new Error(text || "この選挙では投票できません。"); // ← 業務エラー
+        throw new Error(text || "この選挙では投票できません。");
     }
 
     if (!res.ok) {
@@ -210,6 +208,38 @@ export async function fetchElectionResult(
     if (!res.ok) {
         const text = await res.text();
         throw new Error(text || "選挙結果の取得に失敗しました");
+    }
+
+    return res.json();
+}
+
+export type VoteHistoryRow = {
+    electionId: number;
+    electionName: string;
+    electionStatus: "DRAFT" | "PUBLISHED" | "OPEN" | "CLOSED";
+    votedAt: string;
+    candidateName: string;
+    partyName: string | null;
+};
+
+export async function fetchVoteHistory(
+    token: string
+): Promise<VoteHistoryRow[]> {
+    const res = await fetch(`${API_BASE}/api/voters/my-votes`, {
+        method: "GET",
+        headers: {
+            Authorization: `Bearer ${token}`,
+            "Accept": "application/json",
+        },
+    });
+
+    if (res.status === 401 || res.status === 403) {
+        throw new Error("unauthorized");
+    }
+
+    if (!res.ok) {
+        const text = await res.text().catch(() => "");
+        throw new Error(text || "投票履歴の取得に失敗しました");
     }
 
     return res.json();

@@ -5,8 +5,8 @@ import { useNavigate } from "react-router-dom";
 import { login } from "../api/authClient";
 
 export function LoginPage() {
-    const [email, setEmail] = useState("taro@example.com");
-    const [password, setPassword] = useState("Passw0rd!");
+    const [email, setEmail] = useState("");
+    const [password, setPassword] = useState("");
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -41,24 +41,24 @@ export function LoginPage() {
                 }}
             >
                 <label>
-                    メールアドレス
-                    <input
-                        type="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        required
-                        style={{ width: "100%" }}
-                    />
+メールアドレス
+<input
+    type="email"
+    value={email}
+    onChange={(e) => setEmail(e.target.value)}
+    required
+    style={{ width: "100%" }}
+/>
                 </label>
                 <label>
-                    パスワード
-                    <input
-                        type="password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        required
-                        style={{ width: "100%" }}
-                    />
+パスワード
+<input
+    type="password"
+    value={password}
+    onChange={(e) => setPassword(e.target.value)}
+    required
+    style={{ width: "100%" }}
+/>
                 </label>
                 <button type="submit" disabled={loading} style={{ marginTop: 8 }}>
                     {loading ? "ログイン中..." : "ログイン"}

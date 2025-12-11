@@ -19,6 +19,7 @@ export function VotePage() {
     const [submitting, setSubmitting] = useState(false);
     const [message, setMessage] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const [confirmStep, setConfirmStep] = useState(false); // ★ 確認ステップ
 
     const navigate = useNavigate();
 
@@ -43,9 +44,9 @@ export function VotePage() {
                 const detail = await fetchElectionDetail(token, electionId);
                 setElection(detail);
 
+                // CLOSED / PUBLISHED / DRAFT のときはここで止める（投票UIは出さない）
                 if (detail.status !== "OPEN") {
-                    // 受付期間外 → 投票UIは出さず、メッセージだけ表示
-                    setError("この選挙はオンライン投票の受付期間外です。");
+                    setLoading(false);
                     return;
                 }
 
@@ -70,6 +71,36 @@ export function VotePage() {
         load();
     }, [id, navigate]);
 
+    const selectedCandidate =
+        candidates.find((c) => c.id === selectedCandidateId) ?? null;
+
+    // 「投票内容を確認する」ボタン
+    const handleOpenConfirm = () => {
+        setMessage(null);
+        setError(null);
+
+        if (!election || election.status !== "OPEN") {
+            setError("この選挙はオンライン投票の受付期間外です。");
+            return;
+        }
+
+        if (selectedCandidateId == null || !selectedCandidate) {
+            setError("候補者を選択してください。");
+            return;
+        }
+
+        setConfirmStep(true);
+        setMessage("投票内容を確認してください。");
+    };
+
+    // 「修正する」ボタン
+    const handleCancelConfirm = () => {
+        setConfirmStep(false);
+        setMessage(null);
+        // 選択は残したまま
+    };
+
+    // 実際の投票確定（確認ステップの「この内容で投票する」）
     const handleSubmit = async () => {
         setMessage(null);
         setError(null);
@@ -85,7 +116,6 @@ export function VotePage() {
             return;
         }
 
-        // ★ 二重ガード：OPEN 以外では投票処理自体を行わない
         if (!election || election.status !== "OPEN") {
             setError("この選挙はオンライン投票の受付期間外です。");
             return;
@@ -100,6 +130,8 @@ export function VotePage() {
         try {
             await castVote(token, Number(id), selectedCandidateId);
             setMessage("投票が完了しました。（再投票すると最後の票のみ有効になります）");
+            setConfirmStep(false);
+
             const my = await fetchMyVote(token, Number(id));
             setMyVote(my);
         } catch (err: any) {
@@ -113,17 +145,33 @@ export function VotePage() {
         return <p>読み込み中...</p>;
     }
 
-    if (error) {
-        // CLOSED などもここで表示される
-        return <p style={{ color: "red" }}>{error}</p>;
-    }
-
+    // 致命的なロードエラー（選挙情報すら取れてない）
     if (!election) {
+        if (error) {
+            return <p style={{ color: "red" }}>{error}</p>;
+        }
         return <p>選挙が見つかりません。</p>;
     }
 
+    // OPEN 以外はここで終了（履歴や結果確認専用）
+    if (election.status !== "OPEN") {
+        return (
+            <main>
+                <h1>{election.name}</h1>
+                <p style={{ color: "red", marginTop: 8 }}>
+                    この選挙はオンライン投票の受付期間外です。
+                </p>
+            </main>
+        );
+    }
+
     if (candidates.length === 0) {
-        return <p>候補者が登録されていません。</p>;
+        return (
+            <main>
+                <h1>{election.name} に投票</h1>
+                <p>候補者が登録されていません。</p>
+            </main>
+        );
     }
 
     return (
@@ -132,7 +180,8 @@ export function VotePage() {
 
             {myVote && (
                 <p style={{ marginBottom: 8 }}>
-                    現在の投票先：{myVote.candidateName}（{myVote.partyName ?? "無所属"}）
+                    現在の投票先：{myVote.candidateName}（
+                    {myVote.partyName ?? "無所属"}）
                 </p>
             )}
 
@@ -145,15 +194,30 @@ export function VotePage() {
                             borderRadius: 4,
                             padding: 8,
                             marginBottom: 8,
+                            background:
+                                selectedCandidateId === c.id
+                                    ? "#f0f8ff"
+                                    : "transparent",
                         }}
                     >
-                        <label style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
+                        <label
+                            style={{
+                                display: "flex",
+                                gap: 8,
+                                alignItems: "flex-start",
+                            }}
+                        >
                             <input
                                 type="radio"
                                 name="candidate"
                                 value={c.id}
                                 checked={selectedCandidateId === c.id}
-                                onChange={() => setSelectedCandidateId(c.id)}
+                                onChange={() => {
+                                    setSelectedCandidateId(c.id);
+                                    setConfirmStep(false); // 別候補選んだら確認ステップリセット
+                                    setMessage(null);
+                                    setError(null);
+                                }}
                             />
                             <div>
                                 <div>
@@ -163,7 +227,12 @@ export function VotePage() {
                                     </span>
                                 </div>
                                 {c.profile && (
-                                    <div style={{ fontSize: "0.9rem", marginTop: 4 }}>
+                                    <div
+                                        style={{
+                                            fontSize: "0.9rem",
+                                            marginTop: 4,
+                                        }}
+                                    >
                                         {c.profile}
                                     </div>
                                 )}
@@ -173,12 +242,81 @@ export function VotePage() {
                 ))}
             </ul>
 
-            <button onClick={handleSubmit} disabled={submitting}>
-                {submitting ? "送信中..." : "この候補者に投票する"}
-            </button>
+            {/* 確認前 */}
+            {!confirmStep && (
+                <button
+                    onClick={handleOpenConfirm}
+                    disabled={submitting || selectedCandidateId == null}
+                    style={{ marginTop: 8 }}
+                >
+                    {selectedCandidateId == null
+                        ? "候補者を選択してください"
+                        : "投票内容を確認する"}
+                </button>
+            )}
 
-            {message && <p style={{ color: "green", marginTop: 8 }}>{message}</p>}
-            {error && <p style={{ color: "red", marginTop: 8 }}>{error}</p>}
+            {/* 確認ステップ */}
+            {confirmStep && selectedCandidate && (
+                <section
+                    style={{
+                        marginTop: 16,
+                        padding: 12,
+                        border: "1px solid #f0ad4e",
+                        borderRadius: 4,
+                        background: "#fff8e1",
+                    }}
+                >
+                    <h2 style={{ marginTop: 0 }}>投票内容の確認</h2>
+                    <p>以下の候補者に投票します。よろしいですか？</p>
+                    <p
+                        style={{
+                            fontSize: "1.1rem",
+                            fontWeight: "bold",
+                            marginBottom: 4,
+                        }}
+                    >
+                        {selectedCandidate.name}（
+                        {selectedCandidate.partyName ?? "無所属"}）
+                    </p>
+                    <p style={{ fontSize: "0.9rem", color: "#555" }}>
+                        ※再投票した場合は、最後に投票した候補者のみが有効票となります。
+                    </p>
+
+                    <div
+                        style={{
+                            marginTop: 12,
+                            display: "flex",
+                            gap: 8,
+                        }}
+                    >
+                        <button
+                            type="button"
+                            onClick={handleCancelConfirm}
+                            disabled={submitting}
+                        >
+                            修正する
+                        </button>
+                        <button
+                            type="button"
+                            onClick={handleSubmit}
+                            disabled={submitting}
+                        >
+                            {submitting ? "送信中..." : "この内容で投票する"}
+                        </button>
+                    </div>
+                </section>
+            )}
+
+            {message && (
+                <p style={{ color: "green", marginTop: 8 }}>
+                    {message}
+                </p>
+            )}
+            {error && (
+                <p style={{ color: "red", marginTop: 8 }}>
+                    {error}
+                </p>
+            )}
         </main>
     );
 }

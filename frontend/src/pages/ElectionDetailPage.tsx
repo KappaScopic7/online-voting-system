@@ -80,7 +80,6 @@ export function ElectionDetailPage() {
                 <dd>{formatDateTime(detail.endsAt)}</dd>
             </dl>
 
-            {/* ★ 状態に応じて表示を変える */}
             {isOpen && (
                 <button
                     style={{ marginTop: 16 }}
@@ -91,10 +90,19 @@ export function ElectionDetailPage() {
             )}
 
             {isClosed && (
-                <p style={{ marginTop: 16, color: "red" }}>
-                    この選挙はすでに終了しているため、オンライン投票はできません。
-                </p>
+                <>
+                    <p style={{ marginTop: 16, color: "red" }}>
+                        この選挙はすでに終了しているため、オンライン投票はできません。
+                    </p>
+                    <button
+                        style={{ marginTop: 8 }}
+                        onClick={() => navigate(`/elections/${detail.id}/result`)}
+                    >
+                        集計結果を見る
+                    </button>
+                </>
             )}
+
         </main>
     );
 }
