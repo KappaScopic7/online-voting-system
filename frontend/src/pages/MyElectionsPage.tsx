@@ -39,12 +39,13 @@ export function MyElectionsPage() {
 
     const renderAction = (election: MyElection) => {
         return (
-            <div style={{ display: "flex", gap: 8 }}>
+            <div>
                 <button
                     type="button"
                     onClick={() => navigate(`/elections/${election.electionId}`)}
+                    style={{ marginRight: 4 }}
                 >
-                    詳細
+                    選挙詳細
                 </button>
 
                 {election.status === "OPEN" && (
@@ -53,8 +54,9 @@ export function MyElectionsPage() {
                         onClick={() =>
                             navigate(`/elections/${election.electionId}/vote`)
                         }
+                        style={{ marginRight: 4 }}
                     >
-                        投票
+                        投票する
                     </button>
                 )}
 
@@ -65,7 +67,7 @@ export function MyElectionsPage() {
                             navigate(`/elections/${election.electionId}/result`)
                         }
                     >
-                        結果
+                        選挙結果
                     </button>
                 )}
 
@@ -80,36 +82,42 @@ export function MyElectionsPage() {
     }
 
     if (error) {
-        return <p>{error}</p>;
+        return <p style={{ color: "red" }}>{error}</p>;
     }
 
     if (elections.length === 0) {
-        return <p>現在、対象の選挙はありません。</p>;
+        return (
+            <main>
+                <h1>My選挙一覧</h1>
+                <p>現在、対象の選挙はありません。</p>
+            </main>
+        );
     }
 
     return (
         <main>
             <h1>My選挙一覧</h1>
-            <table>
+
+            <table style={{ borderCollapse: "collapse", width: "100%", marginTop: 8 }}>
                 <thead>
                     <tr>
-                        <th>選挙名</th>
-                        <th>選挙区</th>
-                        <th>状態</th>
-                        <th>開始</th>
-                        <th>終了</th>
-                        <th>操作</th>
+                        <th style={th}>選挙名</th>
+                        <th style={th}>選挙区</th>
+                        <th style={th}>状態</th>
+                        <th style={th}>開始</th>
+                        <th style={th}>終了</th>
+                        <th style={th}>操作</th>
                     </tr>
                 </thead>
                 <tbody>
                     {elections.map((e) => (
                         <tr key={e.electionId}>
-                            <td>{e.name}</td>
-                            <td>{e.districtName}</td>
-                            <td>{statusLabel(e.status)}</td>
-                            <td>{formatDateTime(e.startsAt)}</td>
-                            <td>{formatDateTime(e.endsAt)}</td>
-                            <td>{renderAction(e)}</td>
+                            <td style={td}>{e.name}</td>
+                            <td style={td}>{e.districtName}</td>
+                            <td style={td}>{statusLabel(e.status)}</td>
+                            <td style={td}>{formatDateTime(e.startsAt)}</td>
+                            <td style={td}>{formatDateTime(e.endsAt)}</td>
+                            <td style={td}>{renderAction(e)}</td>
                         </tr>
                     ))}
                 </tbody>
@@ -132,6 +140,17 @@ function statusLabel(status: MyElection["status"]): string {
             return status;
     }
 }
+
+const th: React.CSSProperties = {
+    borderBottom: "1px solid #ccc",
+    padding: "4px 8px",
+    textAlign: "left",
+};
+
+const td: React.CSSProperties = {
+    borderBottom: "1px solid #eee",
+    padding: "4px 8px",
+};
 
 function formatDateTime(value: string): string {
     const d = new Date(value);

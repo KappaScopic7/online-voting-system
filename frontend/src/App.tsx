@@ -5,6 +5,7 @@ import { ElectionDetailPage } from "./pages/ElectionDetailPage";
 import { VotePage } from "./pages/VotePage";
 import { ElectionResultPage } from "./pages/ElectionResultPage";
 import { VoteHistoryPage } from "./pages/VoteHistoryPage";
+import { MyPage } from "./pages/MyPage";
 
 export default function App() {
     return (
@@ -13,6 +14,7 @@ export default function App() {
             <Routes>
                 <Route path="/" element={<HomePage />} />
                 <Route path="/login" element={<LoginPage />} />
+                <Route path="/my" element={<MyPage />} />
                 <Route path="/my-elections" element={<MyElectionsPage />} />
                 <Route path="/elections/:id" element={<ElectionDetailPage />} />
                 <Route path="/elections/:id/vote" element={<VotePage />} />
@@ -44,8 +46,9 @@ function Header() {
         >
             <nav style={{ display: "flex", gap: 8 }}>
                 <Link to="/">ホーム</Link>
-                <Link to="/my-elections">My選挙一覧</Link>
+                {<Link to="/my-elections">My選挙一覧</Link>}
                 {token && <Link to="/my/votes">投票履歴</Link>}
+                {token && <Link to="/my">Myページ</Link>}
             </nav>
             <div>
                 {token ? (
@@ -64,21 +67,14 @@ function HomePage() {
 
     return (
         <main>
-            <h1>オンライン投票システム（デモ）</h1>
+            <h1>オンライン投票システム</h1>
 
             {token ? (
                 <>
-                    <p>ログイン中です。以下の機能を利用できます。</p>
-
-                    <div style={{ marginTop: 16, display: "flex", gap: 12 }}>
-                        <button onClick={() => navigate("/my-elections")}>
-                            My選挙一覧を見る
-                        </button>
-
-                        <button onClick={() => navigate("/my/votes")}>
-                            投票履歴を見る
-                        </button>
-                    </div>
+                    <p>ログイン中です。Myページから各機能を利用できます。</p>
+                    <button style={{ marginTop: 16 }} onClick={() => navigate("/my")}>
+                        Myページへ
+                    </button>
                 </>
             ) : (
                 <>

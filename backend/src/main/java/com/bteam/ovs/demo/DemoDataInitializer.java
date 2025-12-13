@@ -35,7 +35,7 @@ public class DemoDataInitializer implements CommandLineRunner {
     private final ElectionRepository electionRepository;
     private final CandidateRepository candidateRepository;
     private final VoteRepository voteRepository;
-    private final PasswordEncoder passwordEncoder;   // ★ 追加
+    private final PasswordEncoder passwordEncoder;
 
     @Override
     public void run(String... args) {
@@ -44,21 +44,15 @@ public class DemoDataInitializer implements CommandLineRunner {
         long citizenCount = citizenRepository.count();
         long electionCount = electionRepository.count();
 
-        // ★ 初回（DB空）のときだけフルデータ投入
         if (citizenCount == 0 && electionCount == 0) {
             createAllDemoData(now);
         } else {
-            // ★ 2回目以降はテスト選挙の時間帯・ステータスだけをリフレッシュ
             refreshDemoElectionWindows(now);
         }
     }
 
-    /**
-     * 初回起動時に実行する、デモデータ一式投入。
-     */
     private void createAllDemoData(LocalDateTime now) {
 
-        // --- District（町田1区：選挙あり） ---
         District machida1 = districtRepository.findByCode("TOKYO-MACHIDA-01")
             .orElseGet(() -> {
                 District d = new District();
@@ -69,7 +63,6 @@ public class DemoDataInitializer implements CommandLineRunner {
                 return districtRepository.save(d);
             });
 
-        // --- District（テスト用別地区：今回のテスト選挙なし） ---
         District otherDistrict = districtRepository.findByCode("TOKYO-OTHER-01")
             .orElseGet(() -> {
                 District d = new District();
@@ -80,13 +73,10 @@ public class DemoDataInitializer implements CommandLineRunner {
                 return districtRepository.save(d);
             });
 
-        // --- Citizen を複数作成 ---
         List<Citizen> citizens = new ArrayList<>();
         for (int i = 1; i <= 30; i++) {
             String pseudoMyNumber = "CITIZEN-%06d".formatted(i);
 
-            // CITIZEN-000001 → 町田1区（選挙あり）
-            // CITIZEN-000002 → 別地区（今回の選挙なし）
             District districtForCitizen =
                     (i == 2) ? otherDistrict : machida1;
 
@@ -105,26 +95,22 @@ public class DemoDataInitializer implements CommandLineRunner {
         }
         citizens = citizenRepository.saveAll(citizens);
 
-        // --- Citizen ごとに 1 VoterAccount 作成 ---
         List<VoterAccount> accounts = new ArrayList<>();
-        VoterAccount demoVoterHasElection = null;  // CITIZEN-000001 用
-        VoterAccount demoVoterNoElection = null;   // CITIZEN-000002 用
+        VoterAccount demoVoterHasElection = null;
+        VoterAccount demoVoterNoElection = null;
 
         for (int idx = 0; idx < citizens.size(); idx++) {
             Citizen citizen = citizens.get(idx);
 
             VoterAccount va = VoterAccount.builder()
                     .citizen(citizen)
-                    // email/passwordHash/status は null → @PrePersist で PENDING
                     .build();
 
             citizen.setVoterAccount(va);
 
             if (idx == 0) {
-                // 最初の Citizen (CITIZEN-000001) を「選挙ありのデモ有権者」
                 demoVoterHasElection = va;
             } else if (idx == 1) {
-                // 2番目 (CITIZEN-000002) を「選挙なしのデモ有権者」
                 demoVoterNoElection = va;
             }
 
@@ -132,7 +118,6 @@ public class DemoDataInitializer implements CommandLineRunner {
         }
         accounts = voterAccountRepository.saveAll(accounts);
 
-        // --- デモ用アカウントのメール/パスワード/ステータス設定 ---
         if (demoVoterHasElection != null) {
             demoVoterHasElection.setEmail("demo-has-election@example.com");
             demoVoterHasElection.setPasswordHash(passwordEncoder.encode("Passw0rd!"));
@@ -147,13 +132,6 @@ public class DemoDataInitializer implements CommandLineRunner {
             voterAccountRepository.save(demoVoterNoElection);
         }
 
-        // ===============================
-        //  選挙3本：
-        //   1) OPEN（未投票）
-        //   2) CLOSED（自分は投票済み）
-        //   3) CLOSED（自分は未投票）
-        // ===============================
-        // 1) OPEN 選挙（いま投票できる）
         Election openElection = Election.builder()
                 .code("SHUGIIN-TEST-OPEN-TOKYO-MACHIDA")
                 .name("【テスト】オンライン投票テスト用選挙（OPEN）")
@@ -164,7 +142,6 @@ public class DemoDataInitializer implements CommandLineRunner {
                 .status(ElectionStatus.OPEN)
                 .build();
 
-        // 2) CLOSED 選挙（自分は投票済み）
         Election closedElectionVoted = Election.builder()
                 .code("SANGIIN-TEST-CLOSED-TOKYO-MACHIDA")
                 .name("【テスト】集計結果確認用選挙（CLOSED・自分は投票済み）")
@@ -175,7 +152,6 @@ public class DemoDataInitializer implements CommandLineRunner {
                 .status(ElectionStatus.CLOSED)
                 .build();
 
-        // 3) CLOSED 選挙（自分は未投票）
         Election closedElectionNoVote = Election.builder()
                 .code("SANGIIN-TEST-CLOSED-NOVOTE-TOKYO-MACHIDA")
                 .name("【テスト】未投票パターン確認用選挙（CLOSED・自分は未投票）")
@@ -190,10 +166,8 @@ public class DemoDataInitializer implements CommandLineRunner {
         closedElectionVoted    = electionRepository.save(closedElectionVoted);
         closedElectionNoVote   = electionRepository.save(closedElectionNoVote);
 
-        // --- 候補者 ---
         List<Candidate> candidates = new ArrayList<>();
 
-        // OPEN 用候補者（未投票パターン）
         candidates.add(Candidate.builder()
                 .name("山田 一郎")
                 .partyName("テスト党A")
@@ -218,7 +192,6 @@ public class DemoDataInitializer implements CommandLineRunner {
                 .election(openElection)
                 .build());
 
-        // CLOSED(自分投票済) 用候補者
         Candidate rc1 = Candidate.builder()
                 .name("結果 太郎")
                 .partyName("結果確認党")
@@ -245,7 +218,6 @@ public class DemoDataInitializer implements CommandLineRunner {
         candidates.add(rc2);
         candidates.add(rc3);
 
-        // CLOSED(自分未投票) 用候補者
         Candidate nv1 = Candidate.builder()
                 .name("未投票 太郎")
                 .partyName("未投票確認党")
@@ -274,7 +246,6 @@ public class DemoDataInitializer implements CommandLineRunner {
 
         candidateRepository.saveAll(candidates);
 
-        // --- 投票データ投入 ---
         List<VoterAccount> voters = accounts;
         if (voters.isEmpty() || demoVoterHasElection == null) {
             return;
@@ -282,7 +253,6 @@ public class DemoDataInitializer implements CommandLineRunner {
 
         LocalDateTime baseTime = now.minusDays(1);
 
-        // ① CLOSED(自分投票済) に demoVoterHasElection の履歴を3件
         Vote v1 = Vote.builder()
                 .election(closedElectionVoted)
                 .voterAccount(demoVoterHasElection)
@@ -310,11 +280,10 @@ public class DemoDataInitializer implements CommandLineRunner {
                 .build();
         voteRepository.save(v3);
 
-        // ② CLOSED(自分投票済) に他の有権者の票をばらまく
         int idx = 0;
         for (VoterAccount voter : voters) {
             if (voter.getId().equals(demoVoterHasElection.getId())) {
-                continue; // demoVoter は上で入れたのでスキップ
+                continue;
             }
 
             Candidate chosen;
@@ -339,15 +308,14 @@ public class DemoDataInitializer implements CommandLineRunner {
             idx++;
 
             if (idx >= 50) {
-                break; // テスト用なので50票で打ち切り
+                break;
             }
         }
 
-        // ③ CLOSED(自分未投票) にも「他の有権者だけ」票を入れる
         int idxNoVote = 0;
         for (VoterAccount voter : voters) {
             if (voter.getId().equals(demoVoterHasElection.getId())) {
-                continue; // ★ ここがポイント：demoVoterHasElection は一切投票させない
+                continue;
             }
 
             Candidate chosen;
@@ -377,13 +345,8 @@ public class DemoDataInitializer implements CommandLineRunner {
         }
     }
 
-    /**
-     * 2回目以降の起動時に、テスト選挙の時間帯・ステータスだけを
-     * 「常にテストしやすい状態」に調整する。
-     */
     private void refreshDemoElectionWindows(LocalDateTime now) {
 
-        // OPEN テスト選挙を「今投票できる」状態にリセット
         electionRepository.findByCode("SHUGIIN-TEST-OPEN-TOKYO-MACHIDA")
                 .ifPresent(e -> {
                     e.setStartsAt(now.minusHours(1));
@@ -392,7 +355,6 @@ public class DemoDataInitializer implements CommandLineRunner {
                     electionRepository.save(e);
                 });
 
-        // CLOSED(自分投票済) を「締め切り済み」状態にリセット
         electionRepository.findByCode("SANGIIN-TEST-CLOSED-TOKYO-MACHIDA")
                 .ifPresent(e -> {
                     e.setStartsAt(now.minusDays(3));
@@ -401,7 +363,6 @@ public class DemoDataInitializer implements CommandLineRunner {
                     electionRepository.save(e);
                 });
 
-        // CLOSED(自分未投票) も「締め切り済み」状態にリセット
         electionRepository.findByCode("SANGIIN-TEST-CLOSED-NOVOTE-TOKYO-MACHIDA")
                 .ifPresent(e -> {
                     e.setStartsAt(now.minusDays(5));
