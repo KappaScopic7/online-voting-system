@@ -4,6 +4,15 @@
     "editor.insertSpaces": true,
     "editor.detectIndentation": false,
 
+    // 保存時に Prettier で自動整形
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+
+    // ESLint の自動修正は保存時に実行しない（手動 or CI で実行する方針）
+    "editor.codeActionsOnSave": {
+        "source.fixAll.eslint": false
+    },
+
     // Java → 4スペース
     "[java]": {
         "editor.tabSize": 4,
@@ -20,10 +29,11 @@
         "editor.insertSpaces": true
     },
 
-    // JSON → 4スペース
+    // JSON → 4スペース + Prettier
     "[json]": {
         "editor.tabSize": 4,
-        "editor.insertSpaces": true
+        "editor.insertSpaces": true,
+        "editor.defaultFormatter": "esbenp.prettier-vscode"
     },
 
     // Gradle → 4スペース
@@ -32,11 +42,29 @@
         "editor.insertSpaces": true
     },
 
-    // Markdown → 4スペース
+    // Markdown → 4スペース + Prettier
     "[markdown]": {
+        "editor.tabSize": 4,
+        "editor.insertSpaces": true,
+        "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+
+    // JS/TS で Prettier を既定フォーマッタにする
+    "[javascript]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+    "[javascriptreact]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+    "[typescript]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+    "[typescriptreact]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
         "editor.tabSize": 4,
         "editor.insertSpaces": true
     },
+
     "java.compile.nullAnalysis.mode": "disabled",
     "java.configuration.updateBuildConfiguration": "interactive"
 }
