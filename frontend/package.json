@@ -7,6 +7,8 @@
         "dev": "vite",
         "build": "tsc -b && vite build",
         "lint": "eslint .",
+        "lint:fix": "eslint . --ext .ts,.tsx --fix",
+        "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json,css,md}\"",
         "preview": "vite preview",
         "dev:backend": "cd .. && gradlew bootRun",
         "dev-all": "concurrently \"npm run dev\" \"npm run dev:backend\""
@@ -29,6 +31,11 @@
         "typescript": "~5.9.3",
         "typescript-eslint": "^8.46.4",
         "vite": "^7.2.4",
-        "concurrently": "^8.2.0"
+        "concurrently": "^8.2.0",
+        "prettier": "^2.8.8",
+        "eslint-config-prettier": "^8.8.0",
+        "eslint-plugin-react": "^7.32.2",
+        "@typescript-eslint/parser": "^6.7.0",
+        "@typescript-eslint/eslint-plugin": "^6.7.0"
     }
 }

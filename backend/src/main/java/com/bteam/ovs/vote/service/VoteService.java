@@ -13,6 +13,7 @@ import com.bteam.ovs.vote.dto.ElectionResultItemResponse;
 import com.bteam.ovs.vote.repository.VoteRepository;
 import com.bteam.ovs.voter.domain.VoterAccount;
 import com.bteam.ovs.voter.repository.VoterAccountRepository;
+import com.bteam.ovs.voter.repository.VoterVerificationRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -33,6 +34,7 @@ public class VoteService {
     private final ElectionRepository electionRepository;
     private final CandidateRepository candidateRepository;
     private final VoteRepository voteRepository;
+    private final VoterVerificationRepository voterVerificationRepository;
 
     private VoterAccount getCurrentVoter() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -78,6 +80,13 @@ public class VoteService {
 
         if (!hasAccessToElection(voter, election)) {
             throw new ResponseStatusException(FORBIDDEN, "この選挙にはアクセスできません。");
+        }
+
+        boolean verified = voterVerificationRepository
+        .existsByVoterAccountAndElectionAndVerifiedTrue(voter, election);
+
+        if (!verified) {
+            throw new ResponseStatusException(FORBIDDEN, "本人認証が完了していません。");
         }
 
         if (election.getStatus() != ElectionStatus.OPEN) {
