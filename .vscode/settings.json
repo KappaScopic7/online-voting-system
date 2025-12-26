@@ -10,7 +10,7 @@
 
     // ESLint の自動修正は保存時に実行しない（手動 or CI で実行する方針）
     "editor.codeActionsOnSave": {
-        "source.fixAll.eslint": false
+        "source.fixAll.eslint": "never"
     },
 
     // Java → 4スペース
@@ -31,7 +31,7 @@
 
     // JSON → 4スペース + Prettier
     "[json]": {
-        "editor.tabSize": 4,
+        "editor.tabSize": 2,
         "editor.insertSpaces": true,
         "editor.defaultFormatter": "esbenp.prettier-vscode"
     },

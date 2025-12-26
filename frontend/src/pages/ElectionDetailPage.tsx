@@ -1,15 +1,28 @@
 // frontend/src/pages/ElectionDetailPage.tsx
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { fetchElectionDetail } from '../api/authClient';
 import type { ElectionDetail } from '../api/authClient';
+import { formatDateTimeJa } from '../utils/date';
+import { statusLabel } from '../domain/election';
+
+type PageState =
+    | { kind: 'loading' }
+    | { kind: 'error'; message: string }
+    | { kind: 'ready'; detail: ElectionDetail };
 
 export function ElectionDetailPage() {
     const { id } = useParams<{ id: string }>();
-    const [detail, setDetail] = useState<ElectionDetail | null>(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
     const navigate = useNavigate();
+
+    const electionId = useMemo(() => {
+        if (!id) return null;
+        const n = Number(id);
+        if (!Number.isInteger(n) || n <= 0) return null;
+        return n;
+    }, [id]);
+
+    const [state, setState] = useState<PageState>({ kind: 'loading' });
 
     useEffect(() => {
         const token = localStorage.getItem('accessToken');
@@ -17,44 +30,43 @@ export function ElectionDetailPage() {
             navigate('/login');
             return;
         }
-
-        if (!id) {
-            setError('選挙IDが不正です。');
-            setLoading(false);
+        if (electionId === null) {
+            setState({ kind: 'error', message: '選挙IDが不正です。' });
             return;
         }
 
-        const load = async () => {
+        let cancelled = false;
+
+        (async () => {
             try {
-                const data = await fetchElectionDetail(token, Number(id));
-                setDetail(data);
-            } catch (err: any) {
-                if (err.message === 'unauthorized') {
+                const data = await fetchElectionDetail(token, electionId);
+                if (cancelled) return;
+                setState({ kind: 'ready', detail: data });
+            } catch (e: unknown) {
+                if (cancelled) return;
+
+                const message = e instanceof Error ? e.message : '選挙詳細の取得に失敗しました';
+
+                // 暫定：authClientの実装次第でここはstatus判定に置換する
+                if (message === 'unauthorized') {
                     localStorage.removeItem('accessToken');
                     navigate('/login');
                     return;
                 }
-                setError(err.message ?? '選挙詳細の取得に失敗しました');
-            } finally {
-                setLoading(false);
+
+                setState({ kind: 'error', message });
             }
+        })();
+
+        return () => {
+            cancelled = true;
         };
+    }, [electionId, navigate]);
 
-        load();
-    }, [id, navigate]);
+    if (state.kind === 'loading') return <p>読み込み中...</p>;
+    if (state.kind === 'error') return <p style={{ color: 'red' }}>{state.message}</p>;
 
-    if (loading) {
-        return <p>読み込み中...</p>;
-    }
-
-    if (error) {
-        return <p style={{ color: 'red' }}>{error}</p>;
-    }
-
-    if (!detail) {
-        return <p>選挙が見つかりません。</p>;
-    }
-
+    const detail = state.detail;
     const isClosed = detail.status === 'CLOSED';
     const isOpen = detail.status === 'OPEN';
 
@@ -71,13 +83,13 @@ export function ElectionDetailPage() {
                 <dd>{detail.districtName}</dd>
 
                 <dt>状態</dt>
-                <dd>{detail.status}</dd>
+                <dd>{statusLabel(detail.status)}</dd>
 
                 <dt>開始日時</dt>
-                <dd>{formatDateTime(detail.startsAt)}</dd>
+                <dd>{formatDateTimeJa(detail.startsAt)}</dd>
 
                 <dt>終了日時</dt>
-                <dd>{formatDateTime(detail.endsAt)}</dd>
+                <dd>{formatDateTimeJa(detail.endsAt)}</dd>
             </dl>
 
             {isOpen && (
@@ -104,10 +116,4 @@ export function ElectionDetailPage() {
             )}
         </main>
     );
-}
-
-function formatDateTime(value: string): string {
-    const d = new Date(value);
-    if (Number.isNaN(d.getTime())) return value;
-    return d.toLocaleString('ja-JP');
 }

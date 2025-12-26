@@ -2,7 +2,7 @@
 import type { FormEvent } from 'react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { login } from '../api/authClient';
+import { login, ApiError } from '../api/authClient';
 
 export function LoginPage() {
     const [email, setEmail] = useState('');
@@ -14,15 +14,25 @@ export function LoginPage() {
 
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
+        if (loading) return;
+
         setError(null);
         setLoading(true);
 
         try {
             const res = await login(email, password);
             localStorage.setItem('accessToken', res.accessToken);
-            navigate('/my-elections');
-        } catch (err: any) {
-            setError(err.message ?? 'ログインに失敗しました');
+            navigate('/my-elections', { replace: true });
+        } catch (e: unknown) {
+            if (e instanceof ApiError) {
+                if (e.status === 401) {
+                    setError('メールアドレスまたはパスワードが正しくありません。');
+                } else {
+                    setError(e.message);
+                }
+            } else {
+                setError('ログインに失敗しました。');
+            }
         } finally {
             setLoading(false);
         }
@@ -47,6 +57,7 @@ export function LoginPage() {
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         required
+                        autoComplete="email"
                         style={{ width: '100%' }}
                     />
                 </label>
@@ -57,6 +68,7 @@ export function LoginPage() {
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         required
+                        autoComplete="current-password"
                         style={{ width: '100%' }}
                     />
                 </label>

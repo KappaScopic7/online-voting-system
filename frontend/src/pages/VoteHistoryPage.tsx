@@ -1,7 +1,9 @@
 // frontend/src/pages/VoteHistoryPage.tsx
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { fetchVoteHistory, type VoteHistoryRow } from '../api/authClient';
+import { fetchVoteHistory, type VoteHistoryRow, ApiError } from '../api/authClient';
+import { formatDateTimeJa } from '../utils/date';
+import { statusLabel } from '../domain/election';
 
 export function VoteHistoryPage() {
     const [items, setItems] = useState<VoteHistoryRow[]>([]);
@@ -11,108 +13,109 @@ export function VoteHistoryPage() {
     const navigate = useNavigate();
 
     useEffect(() => {
-        const token = localStorage.getItem('accessToken');
-        if (!token) {
-            navigate('/login');
-            return;
-        }
+        let cancelled = false;
 
-        const load = async () => {
+        (async () => {
             try {
-                const data = await fetchVoteHistory(token);
-                setItems(data);
-            } catch (err: any) {
-                if (err.message === 'unauthorized') {
-                    localStorage.removeItem('accessToken');
-                    navigate('/login');
+                const token = localStorage.getItem('accessToken');
+                if (!token) {
+                    navigate('/login', { replace: true });
                     return;
                 }
-                setError(err.message ?? '投票履歴の取得に失敗しました');
-            } finally {
-                setLoading(false);
-            }
-        };
 
-        load();
+                const data = await fetchVoteHistory(token);
+                if (cancelled) return;
+
+                setItems(data);
+            } catch (e: unknown) {
+                if (cancelled) return;
+
+                if (e instanceof ApiError && (e.status === 401 || e.status === 403)) {
+                    localStorage.removeItem('accessToken');
+                    navigate('/login', { replace: true });
+                    return;
+                }
+
+                setError(e instanceof Error ? e.message : '投票履歴の取得に失敗しました');
+            } finally {
+                if (!cancelled) setLoading(false);
+            }
+        })();
+
+        return () => {
+            cancelled = true;
+        };
     }, [navigate]);
 
-    if (loading) {
-        return <p>読み込み中...</p>;
-    }
-
-    if (error) {
-        return <p style={{ color: 'red' }}>{error}</p>;
-    }
-
-    if (items.length === 0) {
-        return (
-            <main>
-                <h1>投票履歴</h1>
-                <p>まだ投票履歴がありません。</p>
-            </main>
-        );
-    }
+    if (loading) return <p>読み込み中...</p>;
+    if (error) return <p style={{ color: 'red' }}>{error}</p>;
 
     return (
         <main>
             <h1>投票履歴</h1>
 
-            <table style={{ borderCollapse: 'collapse', width: '100%', marginTop: 8 }}>
-                <thead>
-                    <tr>
-                        <th style={th}>選挙名</th>
-                        <th style={th}>状態</th>
-                        <th style={th}>投票日時</th>
-                        <th style={th}>候補者</th>
-                        <th style={th}>操作</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {items.map((item, idx) => {
-                        const isClosed = item.electionStatus === 'CLOSED';
-                        const isOpen = item.electionStatus === 'OPEN';
+            {items.length === 0 ? (
+                <p>まだ投票履歴がありません。</p>
+            ) : (
+                <table style={{ borderCollapse: 'collapse', width: '100%', marginTop: 8 }}>
+                    <thead>
+                        <tr>
+                            <th style={th}>選挙名</th>
+                            <th style={th}>状態</th>
+                            <th style={th}>投票日時</th>
+                            <th style={th}>候補者</th>
+                            <th style={th}>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {items.map((item) => {
+                            const isClosed = item.electionStatus === 'CLOSED';
+                            const isOpen = item.electionStatus === 'OPEN';
 
-                        return (
-                            <tr key={`${item.electionId}-${idx}`}>
-                                <td style={td}>{item.electionName}</td>
-                                <td style={td}>{item.electionStatus}</td>
-                                <td style={td}>{formatDateTime(item.votedAt)}</td>
-                                <td style={td}>
-                                    {item.candidateName}（{item.partyName ?? '無所属'}）
-                                </td>
-                                <td style={td}>
-                                    <button
-                                        onClick={() => navigate(`/elections/${item.electionId}`)}
-                                        style={{ marginRight: 4 }}
-                                    >
-                                        選挙詳細
-                                    </button>
-
-                                    {isOpen && (
+                            return (
+                                <tr key={`${item.electionId}-${item.votedAt}`}>
+                                    <td style={td}>{item.electionName}</td>
+                                    <td style={td}>{statusLabel(item.electionStatus)}</td>
+                                    <td style={td}>{formatDateTimeJa(item.votedAt)}</td>
+                                    <td style={td}>
+                                        {item.candidateName}（{item.partyName ?? '無所属'}）
+                                    </td>
+                                    <td style={td}>
                                         <button
                                             onClick={() =>
-                                                navigate(`/elections/${item.electionId}/vote`)
+                                                navigate(`/elections/${item.electionId}`)
                                             }
+                                            style={{ marginRight: 4 }}
                                         >
-                                            投票する
+                                            選挙詳細
                                         </button>
-                                    )}
 
-                                    {isClosed && (
-                                        <button
-                                            onClick={() =>
-                                                navigate(`/elections/${item.electionId}/result`)
-                                            }
-                                        >
-                                            結果を見る
-                                        </button>
-                                    )}
-                                </td>
-                            </tr>
-                        );
-                    })}
-                </tbody>
-            </table>
+                                        {isOpen && (
+                                            <button
+                                                onClick={() =>
+                                                    navigate(`/elections/${item.electionId}/vote`)
+                                                }
+                                            >
+                                                投票する
+                                            </button>
+                                        )}
+
+                                        {isClosed && (
+                                            <button
+                                                onClick={() =>
+                                                    navigate(`/elections/${item.electionId}/result`)
+                                                }
+                                            >
+                                                結果を見る
+                                            </button>
+                                        )}
+                                    </td>
+                                </tr>
+                            );
+                        })}
+                    </tbody>
+                </table>
+            )}
         </main>
     );
 }
@@ -127,9 +130,3 @@ const td: React.CSSProperties = {
     borderBottom: '1px solid #eee',
     padding: '4px 8px',
 };
-
-function formatDateTime(value: string): string {
-    const d = new Date(value);
-    if (Number.isNaN(d.getTime())) return value;
-    return d.toLocaleString('ja-JP');
-}

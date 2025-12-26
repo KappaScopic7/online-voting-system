@@ -1,66 +1,100 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { fetchElectionDetail, fetchElectionResult } from '../api/authClient';
+import { fetchElectionDetail, fetchElectionResult, ApiError } from '../api/authClient';
 import type { ElectionDetail, ElectionResultItem } from '../api/authClient';
+import { statusLabel } from '../domain/election';
 
 export function ElectionResultPage() {
     const { id } = useParams<{ id: string }>();
+    const navigate = useNavigate();
+
+    const token = useMemo(() => localStorage.getItem('accessToken'), []);
+    const electionId = useMemo(() => {
+        if (!id) return null;
+        const n = Number(id);
+        if (!Number.isInteger(n) || n <= 0) return null;
+        return n;
+    }, [id]);
+
     const [detail, setDetail] = useState<ElectionDetail | null>(null);
     const [results, setResults] = useState<ElectionResultItem[]>([]);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
 
-    const navigate = useNavigate();
+    const [fatalError, setFatalError] = useState<string | null>(null);
+    const [notice, setNotice] = useState<string | null>(null);
 
     useEffect(() => {
-        const token = localStorage.getItem('accessToken');
         if (!token) {
-            navigate('/login');
+            navigate('/login', { replace: true });
             return;
         }
-
-        if (!id) {
-            setError('選挙IDが不正です。');
+        if (electionId == null) {
+            setFatalError('選挙IDが不正です。');
             setLoading(false);
             return;
         }
 
-        const electionId = Number(id);
+        let cancelled = false;
 
-        const load = async () => {
+        (async () => {
             try {
                 const [d, r] = await Promise.all([
                     fetchElectionDetail(token, electionId),
                     fetchElectionResult(token, electionId),
                 ]);
+                if (cancelled) return;
 
                 setDetail(d);
                 setResults(r);
-            } catch (err: any) {
-                if (err.message === 'unauthorized') {
-                    localStorage.removeItem('accessToken');
-                    navigate('/login');
+            } catch (e: unknown) {
+                if (cancelled) return;
+
+                if (e instanceof ApiError) {
+                    if (e.status === 401 || e.status === 403) {
+                        // 403は「まだ見れない」パターンがあるので、ログアウトさせない
+                        if (e.status === 401) {
+                            localStorage.removeItem('accessToken');
+                            navigate('/login', { replace: true });
+                            return;
+                        }
+                        setNotice(e.message || 'この選挙の結果はまだ閲覧できません。');
+                        return;
+                    }
+                    setFatalError(e.message);
                     return;
                 }
-                setError(err.message ?? '選挙結果の取得に失敗しました');
+
+                setFatalError(e instanceof Error ? e.message : '選挙結果の取得に失敗しました');
             } finally {
-                setLoading(false);
+                if (!cancelled) setLoading(false);
             }
+        })();
+
+        return () => {
+            cancelled = true;
         };
+    }, [token, electionId, navigate]);
 
-        load();
-    }, [id, navigate]);
+    if (loading) return <p>読み込み中...</p>;
+    if (fatalError) return <p style={{ color: 'red' }}>{fatalError}</p>;
+    if (!detail) return <p>選挙が見つかりません。</p>;
 
-    if (loading) {
-        return <p>読み込み中...</p>;
-    }
+    if (notice) {
+        return (
+            <main>
+                <h1>{detail.name} 集計結果</h1>
+                <p style={{ color: 'red' }}>{notice}</p>
 
-    if (error) {
-        return <p style={{ color: 'red' }}>{error}</p>;
-    }
-
-    if (!detail) {
-        return <p>選挙が見つかりません。</p>;
+                <div style={{ marginTop: 12, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    <button type="button" onClick={() => navigate(`/elections/${detail.id}`)}>
+                        選挙詳細に戻る
+                    </button>
+                    <button type="button" onClick={() => navigate('/my-elections')}>
+                        My選挙一覧へ
+                    </button>
+                </div>
+            </main>
+        );
     }
 
     const totalVotes = results.reduce((sum, r) => sum + r.voteCount, 0);
@@ -69,7 +103,7 @@ export function ElectionResultPage() {
         <main>
             <h1>{detail.name} 集計結果</h1>
             <p style={{ color: '#666' }}>
-                状態: {detail.status} / 選挙区: {detail.districtName}
+                状態: {statusLabel(detail.status)} / 選挙区: {detail.districtName}
             </p>
 
             {totalVotes === 0 ? (
