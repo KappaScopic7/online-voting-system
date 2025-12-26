@@ -1,3 +1,4 @@
+// frontend/src/pages/ElectionResultPage.tsx
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { fetchElectionDetail, fetchElectionResult, ApiError } from '../api/authClient';
@@ -8,7 +9,6 @@ export function ElectionResultPage() {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
 
-    const token = useMemo(() => localStorage.getItem('accessToken'), []);
     const electionId = useMemo(() => {
         if (!id) return null;
         const n = Number(id);
@@ -24,10 +24,6 @@ export function ElectionResultPage() {
     const [notice, setNotice] = useState<string | null>(null);
 
     useEffect(() => {
-        if (!token) {
-            navigate('/login', { replace: true });
-            return;
-        }
         if (electionId == null) {
             setFatalError('選挙IDが不正です。');
             setLoading(false);
@@ -39,8 +35,8 @@ export function ElectionResultPage() {
         (async () => {
             try {
                 const [d, r] = await Promise.all([
-                    fetchElectionDetail(token, electionId),
-                    fetchElectionResult(token, electionId),
+                    fetchElectionDetail(electionId),
+                    fetchElectionResult(electionId),
                 ]);
                 if (cancelled) return;
 
@@ -50,13 +46,8 @@ export function ElectionResultPage() {
                 if (cancelled) return;
 
                 if (e instanceof ApiError) {
-                    if (e.status === 401 || e.status === 403) {
-                        // 403は「まだ見れない」パターンがあるので、ログアウトさせない
-                        if (e.status === 401) {
-                            localStorage.removeItem('accessToken');
-                            navigate('/login', { replace: true });
-                            return;
-                        }
+                    // 401は認証切れ。ページでは処理しない（ProtectedRouteが吸う）
+                    if (e.status === 403) {
                         setNotice(e.message || 'この選挙の結果はまだ閲覧できません。');
                         return;
                     }
@@ -73,7 +64,7 @@ export function ElectionResultPage() {
         return () => {
             cancelled = true;
         };
-    }, [token, electionId, navigate]);
+    }, [electionId]);
 
     if (loading) return <p>読み込み中...</p>;
     if (fatalError) return <p style={{ color: 'red' }}>{fatalError}</p>;

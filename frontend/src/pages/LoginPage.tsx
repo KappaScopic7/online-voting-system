@@ -3,12 +3,15 @@ import type { FormEvent } from 'react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { login, ApiError } from '../api/authClient';
+import { useAuth } from '../auth/AuthContext';
+import { setAccessToken } from '../auth/tokenStore';
 
 export function LoginPage() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const { refresh } = useAuth();
 
     const navigate = useNavigate();
 
@@ -21,7 +24,8 @@ export function LoginPage() {
 
         try {
             const res = await login(email, password);
-            localStorage.setItem('accessToken', res.accessToken);
+            setAccessToken(res.accessToken);
+            refresh();
             navigate('/my-elections', { replace: true });
         } catch (e: unknown) {
             if (e instanceof ApiError) {

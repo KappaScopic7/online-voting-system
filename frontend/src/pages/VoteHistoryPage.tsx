@@ -17,22 +17,15 @@ export function VoteHistoryPage() {
 
         (async () => {
             try {
-                const token = localStorage.getItem('accessToken');
-                if (!token) {
-                    navigate('/login', { replace: true });
-                    return;
-                }
-
-                const data = await fetchVoteHistory(token);
+                const data = await fetchVoteHistory();
                 if (cancelled) return;
-
                 setItems(data);
             } catch (e: unknown) {
                 if (cancelled) return;
 
-                if (e instanceof ApiError && (e.status === 401 || e.status === 403)) {
-                    localStorage.removeItem('accessToken');
-                    navigate('/login', { replace: true });
+                // 401は認証切れ。ページでは処理しない（ProtectedRouteが吸う）
+                if (e instanceof ApiError && e.status === 403) {
+                    setError(e.message || '投票履歴を表示できません。');
                     return;
                 }
 
@@ -45,7 +38,7 @@ export function VoteHistoryPage() {
         return () => {
             cancelled = true;
         };
-    }, [navigate]);
+    }, []);
 
     if (loading) return <p>読み込み中...</p>;
     if (error) return <p style={{ color: 'red' }}>{error}</p>;

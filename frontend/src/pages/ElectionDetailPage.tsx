@@ -1,7 +1,7 @@
 // frontend/src/pages/ElectionDetailPage.tsx
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { fetchElectionDetail } from '../api/authClient';
+import { fetchElectionDetail, ApiError } from '../api/authClient';
 import type { ElectionDetail } from '../api/authClient';
 import { formatDateTimeJa } from '../utils/date';
 import { statusLabel } from '../domain/election';
@@ -25,11 +25,6 @@ export function ElectionDetailPage() {
     const [state, setState] = useState<PageState>({ kind: 'loading' });
 
     useEffect(() => {
-        const token = localStorage.getItem('accessToken');
-        if (!token) {
-            navigate('/login');
-            return;
-        }
         if (electionId === null) {
             setState({ kind: 'error', message: '選挙IDが不正です。' });
             return;
@@ -39,21 +34,19 @@ export function ElectionDetailPage() {
 
         (async () => {
             try {
-                const data = await fetchElectionDetail(token, electionId);
+                const data = await fetchElectionDetail(electionId);
                 if (cancelled) return;
                 setState({ kind: 'ready', detail: data });
             } catch (e: unknown) {
                 if (cancelled) return;
 
-                const message = e instanceof Error ? e.message : '選挙詳細の取得に失敗しました';
-
-                // 暫定：authClientの実装次第でここはstatus判定に置換する
-                if (message === 'unauthorized') {
-                    localStorage.removeItem('accessToken');
-                    navigate('/login');
+                // 401はProtectedRouteが吸う想定。ここで/login遷移しない。
+                if (e instanceof ApiError && e.status === 403) {
+                    setState({ kind: 'error', message: e.message });
                     return;
                 }
 
+                const message = e instanceof Error ? e.message : '選挙詳細の取得に失敗しました';
                 setState({ kind: 'error', message });
             }
         })();
@@ -61,7 +54,7 @@ export function ElectionDetailPage() {
         return () => {
             cancelled = true;
         };
-    }, [electionId, navigate]);
+    }, [electionId]);
 
     if (state.kind === 'loading') return <p>読み込み中...</p>;
     if (state.kind === 'error') return <p style={{ color: 'red' }}>{state.message}</p>;

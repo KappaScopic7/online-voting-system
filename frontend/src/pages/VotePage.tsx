@@ -17,7 +17,6 @@ export function VotePage() {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
 
-    const token = useMemo(() => localStorage.getItem('accessToken'), []);
     const electionId = useMemo(() => {
         if (!id) return null;
         const n = Number(id);
@@ -53,34 +52,20 @@ export function VotePage() {
         return candidates.find((c) => c.id === selectedCandidateId) ?? null;
     }, [selectedCandidateId, candidates]);
 
-    const handleUnauthorized = useCallback(() => {
-        localStorage.removeItem('accessToken');
-        navigate('/login', { replace: true });
-    }, [navigate]);
-
     const reloadVoteUI = useCallback(async () => {
-        if (!token) {
-            handleUnauthorized();
-            return;
-        }
         if (electionId == null) return;
 
         const [cands, my] = await Promise.all([
-            fetchCandidates(token, electionId),
-            fetchMyVote(token, electionId),
+            fetchCandidates(electionId),
+            fetchMyVote(electionId),
         ]);
-
         setCandidates(cands);
         setMyVote(my);
         if (my) setSelectedCandidateId(my.candidateId);
-    }, [token, electionId, handleUnauthorized]);
+    }, [electionId]);
 
     // 初期ロード
     useEffect(() => {
-        if (!token) {
-            navigate('/login', { replace: true });
-            return;
-        }
         if (electionId == null) {
             setFatalError('選挙IDが不正です。');
             setLoading(false);
@@ -91,7 +76,7 @@ export function VotePage() {
 
         (async () => {
             try {
-                const detail = await fetchElectionDetail(token, electionId);
+                const detail = await fetchElectionDetail(electionId);
                 if (cancelled) return;
 
                 setElection(detail);
@@ -101,7 +86,7 @@ export function VotePage() {
                     return;
                 }
 
-                const ok = await fetchMyVerification(token, electionId);
+                const ok = await fetchMyVerification(electionId);
                 if (cancelled) return;
 
                 setVerified(ok);
@@ -112,8 +97,13 @@ export function VotePage() {
             } catch (e: unknown) {
                 if (cancelled) return;
 
-                if (e instanceof ApiError && (e.status === 401 || e.status === 403)) {
-                    handleUnauthorized();
+                if (e instanceof ApiError) {
+                    // 401は認証切れ。ページでは処理しない（ProtectedRouteが吸う）
+                    if (e.status === 403) {
+                        setFatalError(e.message || 'この選挙では投票できません。');
+                        return;
+                    }
+                    setFatalError(e.message);
                     return;
                 }
 
@@ -126,16 +116,12 @@ export function VotePage() {
         return () => {
             cancelled = true;
         };
-    }, [token, electionId, navigate, reloadVoteUI, handleUnauthorized]);
+    }, [electionId, reloadVoteUI]);
 
     const handleVerify = async () => {
         setMessage(null);
         setActionError(null);
 
-        if (!token) {
-            handleUnauthorized();
-            return;
-        }
         if (electionId == null) {
             setFatalError('選挙IDが不正です。');
             return;
@@ -156,9 +142,9 @@ export function VotePage() {
 
         setVerifying(true);
         try {
-            await verifyIdentity(token, electionId, { cardId: cardId.trim(), pin: pin.trim() });
+            await verifyIdentity(electionId, { cardId: cardId.trim(), pin: pin.trim() });
 
-            const ok = await fetchMyVerification(token, electionId);
+            const ok = await fetchMyVerification(electionId);
             setVerified(ok);
 
             if (!ok) {
@@ -171,8 +157,12 @@ export function VotePage() {
             setPin('');
             await reloadVoteUI();
         } catch (e: unknown) {
-            if (e instanceof ApiError && (e.status === 401 || e.status === 403)) {
-                handleUnauthorized();
+            if (e instanceof ApiError) {
+                if (e.status === 403) {
+                    setActionError(e.message || '本人認証を完了できません。');
+                    return;
+                }
+                setActionError(e.message);
                 return;
             }
             setActionError(e instanceof Error ? e.message : '本人認証に失敗しました');
@@ -207,10 +197,6 @@ export function VotePage() {
 
         if (submitting) return;
 
-        if (!token) {
-            handleUnauthorized();
-            return;
-        }
         if (electionId == null) {
             setFatalError('選挙IDが不正です。');
             return;
@@ -230,16 +216,20 @@ export function VotePage() {
 
         setSubmitting(true);
         try {
-            await castVote(token, electionId, selectedCandidateId);
+            await castVote(electionId, selectedCandidateId);
             setStep('DONE');
 
-            const my = await fetchMyVote(token, electionId);
+            const my = await fetchMyVote(electionId);
             setMyVote(my);
 
             setMessage('投票が完了しました。（再投票すると最後の票のみ有効になります）');
         } catch (e: unknown) {
-            if (e instanceof ApiError && (e.status === 401 || e.status === 403)) {
-                handleUnauthorized();
+            if (e instanceof ApiError) {
+                if (e.status === 403) {
+                    setActionError(e.message || 'この選挙では投票できません。');
+                    return;
+                }
+                setActionError(e.message);
                 return;
             }
             setActionError(e instanceof Error ? e.message : '投票に失敗しました');

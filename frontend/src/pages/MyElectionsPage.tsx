@@ -18,23 +18,15 @@ export function MyElectionsPage() {
 
         (async () => {
             try {
-                // ProtectedRoute前提なら token は authClient 内s
-                // 現状はfetchMyElections(token)なので、token取得は将来 authClient に寄せるのが正解。
-                const token = localStorage.getItem('accessToken');
-                if (!token) {
-                    navigate('/login', { replace: true });
-                    return;
-                }
-
-                const data = await fetchMyElections(token);
+                const data = await fetchMyElections();
                 if (cancelled) return;
                 setElections(data);
             } catch (e: unknown) {
                 if (cancelled) return;
 
-                if (e instanceof ApiError && (e.status === 401 || e.status === 403)) {
-                    localStorage.removeItem('accessToken');
-                    navigate('/login', { replace: true });
+                // 401は認証切れ。ページでは処理しない（ProtectedRouteが吸う）
+                if (e instanceof ApiError && e.status === 403) {
+                    setError(e.message || 'My選挙一覧を表示できません。');
                     return;
                 }
 
@@ -47,7 +39,7 @@ export function MyElectionsPage() {
         return () => {
             cancelled = true;
         };
-    }, [navigate]);
+    }, []);
 
     const renderAction = (election: MyElection) => (
         <div>

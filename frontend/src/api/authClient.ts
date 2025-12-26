@@ -1,7 +1,10 @@
-const API_BASE = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080';
-
+// frontend/src/api/authClient.ts
+import { getAccessToken } from '../auth/tokenStore';
 import type { ElectionStatus } from '../domain/election';
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080';
+
+// ---- types ----
 export type LoginResponse = {
     accessToken: string;
     tokenType: string;
@@ -80,12 +83,7 @@ export class ApiError extends Error {
     }
 }
 
-function isApiError(e: unknown): e is ApiError {
-    return e instanceof ApiError;
-}
-
 async function readErrorMessage(res: Response): Promise<string> {
-    // APIが text/plain を返す想定を維持しつつ、JSONにも一応対応
     const contentType = res.headers.get('content-type') ?? '';
     try {
         if (contentType.includes('application/json')) {
@@ -109,9 +107,8 @@ async function readErrorMessage(res: Response): Promise<string> {
 type RequestOptions = {
     method: 'GET' | 'POST';
     path: string;
-    token?: string;
     body?: unknown;
-    acceptJson?: boolean;
+    auth?: boolean; // default true
     expectedStatus?: number | number[];
 };
 
@@ -120,12 +117,36 @@ function normalizeExpected(expected?: number | number[]): number[] | null {
     return Array.isArray(expected) ? expected : [expected];
 }
 
+function buildHeaders(opt: RequestOptions): Record<string, string> {
+    const headers: Record<string, string> = {
+        Accept: 'application/json',
+    };
+
+    const needAuth = opt.auth !== false;
+    if (needAuth) {
+        const token = getAccessToken();
+        if (!token) {
+            // 呼び出し元はApiError(401)として扱える
+            // 実際のHTTPは飛ばさない（無駄＆ログ汚し防止）
+            throw new ApiError({
+                status: 401,
+                message: 'unauthorized',
+                url: `${API_BASE}${opt.path}`,
+            });
+        }
+        headers.Authorization = `Bearer ${token}`;
+    }
+
+    if (opt.body !== undefined) {
+        headers['Content-Type'] = 'application/json';
+    }
+
+    return headers;
+}
+
 async function requestJson<T>(opt: RequestOptions): Promise<T> {
     const url = `${API_BASE}${opt.path}`;
-    const headers: Record<string, string> = {};
-    if (opt.token) headers.Authorization = `Bearer ${opt.token}`;
-    headers.Accept = 'application/json';
-    if (opt.body !== undefined) headers['Content-Type'] = 'application/json';
+    const headers = buildHeaders(opt);
 
     const res = await fetch(url, {
         method: opt.method,
@@ -149,9 +170,7 @@ async function requestJson<T>(opt: RequestOptions): Promise<T> {
 
 async function requestVoid(opt: RequestOptions): Promise<void> {
     const url = `${API_BASE}${opt.path}`;
-    const headers: Record<string, string> = {};
-    if (opt.token) headers.Authorization = `Bearer ${opt.token}`;
-    if (opt.body !== undefined) headers['Content-Type'] = 'application/json';
+    const headers = buildHeaders(opt);
 
     const res = await fetch(url, {
         method: opt.method,
@@ -171,127 +190,104 @@ async function requestVoid(opt: RequestOptions): Promise<void> {
     }
 }
 
-// ---- public APIs ----
+// ---- public APIs (token引数なし) ----
 
 export async function login(email: string, password: string): Promise<LoginResponse> {
     return requestJson<LoginResponse>({
         method: 'POST',
         path: '/api/voters/login',
         body: { email, password },
+        auth: false,
         expectedStatus: 200,
     });
 }
 
-export async function fetchMyElections(token: string): Promise<MyElection[]> {
+export async function fetchMyElections(): Promise<MyElection[]> {
     return requestJson<MyElection[]>({
         method: 'GET',
         path: '/api/voters/my-elections',
-        token,
         expectedStatus: 200,
     });
 }
 
-export async function fetchElectionDetail(
-    token: string,
-    electionId: number,
-): Promise<ElectionDetail> {
+export async function fetchElectionDetail(electionId: number): Promise<ElectionDetail> {
     return requestJson<ElectionDetail>({
         method: 'GET',
         path: `/api/elections/${electionId}`,
-        token,
         expectedStatus: 200,
     });
 }
 
-export async function fetchCandidates(token: string, electionId: number): Promise<Candidate[]> {
+export async function fetchCandidates(electionId: number): Promise<Candidate[]> {
     return requestJson<Candidate[]>({
         method: 'GET',
         path: `/api/elections/${electionId}/candidates`,
-        token,
         expectedStatus: 200,
     });
 }
 
-export async function fetchMyVote(token: string, electionId: number): Promise<MyVote | null> {
+export async function fetchMyVote(electionId: number): Promise<MyVote | null> {
     try {
         return await requestJson<MyVote>({
             method: 'GET',
             path: `/api/elections/${electionId}/votes/me`,
-            token,
             expectedStatus: [200, 404],
         });
     } catch (e: unknown) {
-        if (isApiError(e) && e.status === 404) return null;
+        if (e instanceof ApiError && e.status === 404) return null;
         throw e;
     }
 }
 
-export async function castVote(
-    token: string,
-    electionId: number,
-    candidateId: number,
-): Promise<void> {
+export async function castVote(electionId: number, candidateId: number): Promise<void> {
     await requestVoid({
         method: 'POST',
         path: `/api/elections/${electionId}/votes`,
-        token,
         body: { candidateId },
         expectedStatus: [204, 200],
     });
 }
 
-export async function fetchElectionResult(
-    token: string,
-    electionId: number,
-): Promise<ElectionResultItem[]> {
+export async function fetchElectionResult(electionId: number): Promise<ElectionResultItem[]> {
     return requestJson<ElectionResultItem[]>({
         method: 'GET',
         path: `/api/elections/${electionId}/results`,
-        token,
         expectedStatus: 200,
     });
 }
 
-export async function fetchVoteHistory(token: string): Promise<VoteHistoryRow[]> {
+export async function fetchVoteHistory(): Promise<VoteHistoryRow[]> {
     return requestJson<VoteHistoryRow[]>({
         method: 'GET',
         path: '/api/voters/my-votes',
-        token,
         expectedStatus: 200,
     });
 }
 
-export async function fetchIdentityStatus(
-    token: string,
-    electionId: number,
-): Promise<IdentityStatus> {
+export async function fetchIdentityStatus(electionId: number): Promise<IdentityStatus> {
     return requestJson<IdentityStatus>({
         method: 'GET',
         path: `/api/voters/identity/status?electionId=${electionId}`,
-        token,
         expectedStatus: 200,
     });
 }
 
 export async function verifyIdentity(
-    token: string,
     electionId: number,
     req: VerifyIdentityRequest,
 ): Promise<void> {
     await requestVoid({
         method: 'POST',
         path: `/api/elections/${electionId}/verification`,
-        token,
         body: req,
         expectedStatus: [204, 200],
     });
 }
 
-export async function fetchMyVerification(token: string, electionId: number): Promise<boolean> {
+export async function fetchMyVerification(electionId: number): Promise<boolean> {
     return requestJson<boolean>({
         method: 'GET',
         path: `/api/elections/${electionId}/verification/me`,
-        token,
         expectedStatus: 200,
     });
 }
