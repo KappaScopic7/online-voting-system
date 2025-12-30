@@ -1,19 +1,37 @@
-// frontend/src/pages/LoginPage.tsx
 import type { FormEvent } from 'react';
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useMemo, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { login, ApiError } from '../api/authClient';
-import { useAuth } from '../auth/AuthContext';
 import { setAccessToken } from '../auth/tokenStore';
+import { useAuth } from '../auth/AuthContext';
 
 export function LoginPage() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const { refresh } = useAuth();
 
     const navigate = useNavigate();
+    const location = useLocation();
+    const { isAuthenticated } = useAuth();
+
+    const nextPath = useMemo(() => {
+        const params = new URLSearchParams(location.search);
+        const next = params.get('next');
+        if (!next) return '/my-elections';
+
+        // 外部URL対策
+        if (!next.startsWith('/')) return '/my-elections';
+
+        return next;
+    }, [location.search]);
+
+    // ★ すでにログイン済みなら即リダイレクト
+    useEffect(() => {
+        if (isAuthenticated) {
+            navigate(nextPath, { replace: true });
+        }
+    }, [isAuthenticated, nextPath, navigate]);
 
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
@@ -25,8 +43,9 @@ export function LoginPage() {
         try {
             const res = await login(email, password);
             setAccessToken(res.accessToken);
-            refresh();
-            navigate('/my-elections', { replace: true });
+
+            // next があれば元のページ、なければ My選挙一覧
+            navigate(nextPath, { replace: true });
         } catch (e: unknown) {
             if (e instanceof ApiError) {
                 if (e.status === 401) {
@@ -65,6 +84,7 @@ export function LoginPage() {
                         style={{ width: '100%' }}
                     />
                 </label>
+
                 <label>
                     パスワード
                     <input
@@ -76,9 +96,11 @@ export function LoginPage() {
                         style={{ width: '100%' }}
                     />
                 </label>
+
                 <button type="submit" disabled={loading} style={{ marginTop: 8 }}>
                     {loading ? 'ログイン中...' : 'ログイン'}
                 </button>
+
                 {error && <p style={{ color: 'red' }}>{error}</p>}
             </form>
         </main>

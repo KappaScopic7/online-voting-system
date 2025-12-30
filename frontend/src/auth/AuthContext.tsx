@@ -1,6 +1,6 @@
 // frontend/src/auth/AuthContext.tsx
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
-import { getAccessToken, clearAccessToken } from './tokenStore';
+import { getAccessToken, clearAccessToken, onTokenChanged } from './tokenStore';
 
 type AuthContextValue = {
     token: string | null;
@@ -14,19 +14,25 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [token, setToken] = useState<string | null>(() => getAccessToken());
 
-    // 他タブログアウト対応
-    useEffect(() => {
-        const onStorage = (e: StorageEvent) => {
-            if (e.key === 'accessToken') {
-                setToken(e.newValue);
-            }
-        };
-        window.addEventListener('storage', onStorage);
-        return () => window.removeEventListener('storage', onStorage);
-    }, []);
-
     const refresh = useCallback(() => {
         setToken(getAccessToken());
+    }, []);
+
+    // 他タブ + 同一タブ（tokenStoreイベント）対応
+    useEffect(() => {
+        const onStorage = (e: StorageEvent) => {
+            if (e.key === 'accessToken') setToken(e.newValue);
+        };
+
+        const offTokenChanged = onTokenChanged(() => {
+            setToken(getAccessToken());
+        });
+
+        window.addEventListener('storage', onStorage);
+        return () => {
+            window.removeEventListener('storage', onStorage);
+            offTokenChanged();
+        };
     }, []);
 
     const logout = useCallback(() => {
@@ -35,14 +41,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }, []);
 
     return (
-        <AuthContext.Provider
-            value={{
-                token,
-                isAuthenticated: !!token,
-                logout,
-                refresh,
-            }}
-        >
+        <AuthContext.Provider value={{ token, isAuthenticated: !!token, logout, refresh }}>
             {children}
         </AuthContext.Provider>
     );
@@ -50,8 +49,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
 export function useAuth(): AuthContextValue {
     const ctx = useContext(AuthContext);
-    if (!ctx) {
-        throw new Error('useAuth must be used within AuthProvider');
-    }
+    if (!ctx) throw new Error('useAuth must be used within AuthProvider');
     return ctx;
 }

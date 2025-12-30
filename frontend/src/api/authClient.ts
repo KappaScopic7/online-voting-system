@@ -1,5 +1,5 @@
 // frontend/src/api/authClient.ts
-import { getAccessToken } from '../auth/tokenStore';
+import { getAccessToken, clearAccessToken } from '../auth/tokenStore';
 import type { ElectionStatus } from '../domain/election';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080';
@@ -154,6 +154,11 @@ async function requestJson<T>(opt: RequestOptions): Promise<T> {
         body: opt.body !== undefined ? JSON.stringify(opt.body) : undefined,
     });
 
+    // ★401は必ずtoken破棄（同一タブもtokenStoreが通知する）
+    if (res.status === 401) {
+        clearAccessToken();
+    }
+
     const expected = normalizeExpected(opt.expectedStatus);
     if (expected && !expected.includes(res.status)) {
         const msg = await readErrorMessage(res);
@@ -177,6 +182,11 @@ async function requestVoid(opt: RequestOptions): Promise<void> {
         headers,
         body: opt.body !== undefined ? JSON.stringify(opt.body) : undefined,
     });
+
+    // ★401は必ずtoken破棄
+    if (res.status === 401) {
+        clearAccessToken();
+    }
 
     const expected = normalizeExpected(opt.expectedStatus);
     if (expected && !expected.includes(res.status)) {
