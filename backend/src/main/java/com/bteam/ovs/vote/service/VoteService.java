@@ -160,4 +160,19 @@ public class VoteService {
                 && election.getDistrict() != null
                 && voter.getCitizen().getDistrict().getId().equals(election.getDistrict().getId());
     }
+
+    @Transactional(readOnly = true)
+    public boolean getMyVerification(Long electionId) {
+        VoterAccount voter = getCurrentVoter();
+
+        Election election = electionRepository.findById(electionId)
+                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "選挙が見つかりません。"));
+
+        if (!hasAccessToElection(voter, election)) {
+            throw new ResponseStatusException(FORBIDDEN, "この選挙にはアクセスできません。");
+        }
+
+        return voterVerificationRepository
+                .existsByVoterAccountAndElectionAndVerifiedTrue(voter, election);
+    }
 }

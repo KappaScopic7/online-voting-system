@@ -294,8 +294,8 @@ export async function verifyIdentity(
     });
 }
 
-export async function fetchMyVerification(electionId: number): Promise<boolean> {
-    return requestJson<boolean>({
+export async function fetchMyVerification(electionId: number): Promise<IdentityStatus> {
+    return requestJson<IdentityStatus>({
         method: 'GET',
         path: `/api/elections/${electionId}/verification/me`,
         expectedStatus: 200,

@@ -5,11 +5,14 @@ import { fetchMyElections, ApiError } from '../api/authClient';
 import type { MyElection } from '../api/authClient';
 import { formatDateTimeJa } from '../utils/date';
 import { statusLabel } from '../domain/election';
+import { PageState } from '../components/PageState';
 
 export function MyElectionsPage() {
     const [elections, setElections] = useState<MyElection[]>([]);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+
+    const [fatalError, setFatalError] = useState<string | null>(null);
+    const [notice, setNotice] = useState<string | null>(null);
 
     const navigate = useNavigate();
 
@@ -24,13 +27,20 @@ export function MyElectionsPage() {
             } catch (e: unknown) {
                 if (cancelled) return;
 
-                // 401は認証切れ。ページでは処理しない（ProtectedRouteが吸う）
-                if (e instanceof ApiError && e.status === 403) {
-                    setError(e.message || 'My選挙一覧を表示できません。');
+                if (e instanceof ApiError) {
+                    // 401は本来ここに来ない想定（ProtectedRoute内だから）
+                    if (e.status === 401) throw e;
+
+                    if (e.status === 403) {
+                        setNotice(e.message || 'My選挙一覧を表示できません。');
+                        return;
+                    }
+
+                    setFatalError(e.message);
                     return;
                 }
 
-                setError(e instanceof Error ? e.message : 'My選挙一覧の取得に失敗しました');
+                setFatalError(e instanceof Error ? e.message : 'My選挙一覧の取得に失敗しました');
             } finally {
                 if (!cancelled) setLoading(false);
             }
@@ -75,41 +85,54 @@ export function MyElectionsPage() {
         </div>
     );
 
-    if (loading) return <p>読み込み中...</p>;
-    if (error) return <p style={{ color: 'red' }}>{error}</p>;
-
     return (
         <main>
             <h1>My選挙一覧</h1>
 
-            {elections.length === 0 ? (
-                <p>現在、対象の選挙はありません。</p>
-            ) : (
-                <table style={{ borderCollapse: 'collapse', width: '100%', marginTop: 8 }}>
-                    <thead>
-                        <tr>
-                            <th style={th}>選挙名</th>
-                            <th style={th}>選挙区</th>
-                            <th style={th}>状態</th>
-                            <th style={th}>開始</th>
-                            <th style={th}>終了</th>
-                            <th style={th}>操作</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {elections.map((e) => (
-                            <tr key={e.electionId}>
-                                <td style={td}>{e.name}</td>
-                                <td style={td}>{e.districtName}</td>
-                                <td style={td}>{statusLabel(e.status)}</td>
-                                <td style={td}>{formatDateTimeJa(e.startsAt)}</td>
-                                <td style={td}>{formatDateTimeJa(e.endsAt)}</td>
-                                <td style={td}>{renderAction(e)}</td>
+            <PageState
+                loading={loading}
+                fatalError={fatalError}
+                notice={notice}
+                noticeActions={
+                    <div style={{ marginTop: 12, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                        <button type="button" onClick={() => navigate('/')}>
+                            ホームへ
+                        </button>
+                        <button type="button" onClick={() => navigate('/my/votes')}>
+                            投票履歴へ
+                        </button>
+                    </div>
+                }
+            >
+                {elections.length === 0 ? (
+                    <p>現在、対象の選挙はありません。</p>
+                ) : (
+                    <table style={{ borderCollapse: 'collapse', width: '100%', marginTop: 8 }}>
+                        <thead>
+                            <tr>
+                                <th style={th}>選挙名</th>
+                                <th style={th}>選挙区</th>
+                                <th style={th}>状態</th>
+                                <th style={th}>開始</th>
+                                <th style={th}>終了</th>
+                                <th style={th}>操作</th>
                             </tr>
-                        ))}
-                    </tbody>
-                </table>
-            )}
+                        </thead>
+                        <tbody>
+                            {elections.map((e) => (
+                                <tr key={e.electionId}>
+                                    <td style={td}>{e.name}</td>
+                                    <td style={td}>{e.districtName}</td>
+                                    <td style={td}>{statusLabel(e.status)}</td>
+                                    <td style={td}>{formatDateTimeJa(e.startsAt)}</td>
+                                    <td style={td}>{formatDateTimeJa(e.endsAt)}</td>
+                                    <td style={td}>{renderAction(e)}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                )}
+            </PageState>
         </main>
     );
 }

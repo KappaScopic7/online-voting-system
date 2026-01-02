@@ -55,13 +55,37 @@ export function VotePage() {
     const reloadVoteUI = useCallback(async () => {
         if (electionId == null) return;
 
-        const [cands, my] = await Promise.all([
-            fetchCandidates(electionId),
-            fetchMyVote(electionId),
-        ]);
-        setCandidates(cands);
-        setMyVote(my);
-        if (my) setSelectedCandidateId(my.candidateId);
+        try {
+            const [candidates, myVote] = await Promise.all([
+                fetchCandidates(electionId),
+                fetchMyVote(electionId),
+            ]);
+
+            // 成功時は必ず操作エラーをクリア
+            setActionError(null);
+
+            setCandidates(candidates);
+            setMyVote(myVote);
+
+            if (myVote) {
+                setSelectedCandidateId(myVote.candidateId);
+            }
+        } catch (e: unknown) {
+            // 401 は認証切れ → ProtectedRoute に委譲
+            if (e instanceof ApiError) {
+                if (e.status === 401) return;
+
+                if (e.status === 403) {
+                    setActionError(e.message || '候補者情報を取得できません。');
+                    return;
+                }
+
+                setActionError(e.message);
+                return;
+            }
+
+            setActionError(e instanceof Error ? e.message : '候補者情報の取得に失敗しました');
+        }
     }, [electionId]);
 
     // 初期ロード
@@ -86,12 +110,13 @@ export function VotePage() {
                     return;
                 }
 
-                const ok = await fetchMyVerification(electionId);
+                const status = await fetchMyVerification(electionId);
+
                 if (cancelled) return;
 
-                setVerified(ok);
+                setVerified(status.verified);
 
-                if (ok) {
+                if (status.verified) {
                     await reloadVoteUI();
                 }
             } catch (e: unknown) {
@@ -144,10 +169,10 @@ export function VotePage() {
         try {
             await verifyIdentity(electionId, { cardId: cardId.trim(), pin: pin.trim() });
 
-            const ok = await fetchMyVerification(electionId);
-            setVerified(ok);
+            const status = await fetchMyVerification(electionId);
+            setVerified(status.verified);
 
-            if (!ok) {
+            if (!status.verified) {
                 setActionError('本人認証に失敗しました。');
                 return;
             }
@@ -158,6 +183,7 @@ export function VotePage() {
             await reloadVoteUI();
         } catch (e: unknown) {
             if (e instanceof ApiError) {
+                if (e.status === 401) return;
                 if (e.status === 403) {
                     setActionError(e.message || '本人認証を完了できません。');
                     return;
@@ -225,6 +251,7 @@ export function VotePage() {
             setMessage('投票が完了しました。（再投票すると最後の票のみ有効になります）');
         } catch (e: unknown) {
             if (e instanceof ApiError) {
+                if (e.status === 401) return;
                 if (e.status === 403) {
                     setActionError(e.message || 'この選挙では投票できません。');
                     return;

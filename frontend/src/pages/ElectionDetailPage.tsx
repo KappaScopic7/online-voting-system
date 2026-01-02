@@ -5,11 +5,7 @@ import { fetchElectionDetail, ApiError } from '../api/authClient';
 import type { ElectionDetail } from '../api/authClient';
 import { formatDateTimeJa } from '../utils/date';
 import { statusLabel } from '../domain/election';
-
-type PageState =
-    | { kind: 'loading' }
-    | { kind: 'error'; message: string }
-    | { kind: 'ready'; detail: ElectionDetail };
+import { PageState } from '../components/PageState';
 
 export function ElectionDetailPage() {
     const { id } = useParams<{ id: string }>();
@@ -22,11 +18,14 @@ export function ElectionDetailPage() {
         return n;
     }, [id]);
 
-    const [state, setState] = useState<PageState>({ kind: 'loading' });
+    const [detail, setDetail] = useState<ElectionDetail | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [fatalError, setFatalError] = useState<string | null>(null);
 
     useEffect(() => {
-        if (electionId === null) {
-            setState({ kind: 'error', message: '選挙IDが不正です。' });
+        if (electionId == null) {
+            setFatalError('選挙IDが不正です。');
+            setLoading(false);
             return;
         }
 
@@ -36,18 +35,23 @@ export function ElectionDetailPage() {
             try {
                 const data = await fetchElectionDetail(electionId);
                 if (cancelled) return;
-                setState({ kind: 'ready', detail: data });
+                setDetail(data);
             } catch (e: unknown) {
                 if (cancelled) return;
 
-                // 401はProtectedRouteが吸う想定。ここで/login遷移しない。
-                if (e instanceof ApiError && e.status === 403) {
-                    setState({ kind: 'error', message: e.message });
-                    return;
+                let msg = '選挙詳細の取得に失敗しました';
+
+                if (e instanceof ApiError) {
+                    if (e.status === 404) msg = '指定された選挙は存在しません。';
+                    else if (e.status === 403) msg = e.message || '閲覧権限がありません。';
+                    else msg = e.message;
+                } else if (e instanceof Error) {
+                    msg = e.message;
                 }
 
-                const message = e instanceof Error ? e.message : '選挙詳細の取得に失敗しました';
-                setState({ kind: 'error', message });
+                setFatalError(msg);
+            } finally {
+                if (!cancelled) setLoading(false);
             }
         })();
 
@@ -56,57 +60,67 @@ export function ElectionDetailPage() {
         };
     }, [electionId]);
 
-    if (state.kind === 'loading') return <p>読み込み中...</p>;
-    if (state.kind === 'error') return <p style={{ color: 'red' }}>{state.message}</p>;
-
-    const detail = state.detail;
-    const isClosed = detail.status === 'CLOSED';
-    const isOpen = detail.status === 'OPEN';
+    const isOpen = detail?.status === 'OPEN';
+    const isClosed = detail?.status === 'CLOSED';
 
     return (
         <main>
-            <h1>{detail.name}</h1>
-            {detail.description && <p>{detail.description}</p>}
+            <PageState loading={loading} fatalError={fatalError} notice={null}>
+                {!detail ? (
+                    <p>選挙が見つかりません。</p>
+                ) : (
+                    <>
+                        <h1>{detail.name}</h1>
+                        {detail.description && <p>{detail.description}</p>}
 
-            <dl style={{ display: 'grid', gridTemplateColumns: 'max-content 1fr', gap: 8 }}>
-                <dt>コード</dt>
-                <dd>{detail.code}</dd>
+                        <dl
+                            style={{
+                                display: 'grid',
+                                gridTemplateColumns: 'max-content 1fr',
+                                gap: 8,
+                            }}
+                        >
+                            <dt>コード</dt>
+                            <dd>{detail.code}</dd>
 
-                <dt>選挙区</dt>
-                <dd>{detail.districtName}</dd>
+                            <dt>選挙区</dt>
+                            <dd>{detail.districtName}</dd>
 
-                <dt>状態</dt>
-                <dd>{statusLabel(detail.status)}</dd>
+                            <dt>状態</dt>
+                            <dd>{statusLabel(detail.status)}</dd>
 
-                <dt>開始日時</dt>
-                <dd>{formatDateTimeJa(detail.startsAt)}</dd>
+                            <dt>開始日時</dt>
+                            <dd>{formatDateTimeJa(detail.startsAt)}</dd>
 
-                <dt>終了日時</dt>
-                <dd>{formatDateTimeJa(detail.endsAt)}</dd>
-            </dl>
+                            <dt>終了日時</dt>
+                            <dd>{formatDateTimeJa(detail.endsAt)}</dd>
+                        </dl>
 
-            {isOpen && (
-                <button
-                    style={{ marginTop: 16 }}
-                    onClick={() => navigate(`/elections/${detail.id}/vote`)}
-                >
-                    この選挙で投票する
-                </button>
-            )}
+                        {isOpen && (
+                            <button
+                                style={{ marginTop: 16 }}
+                                onClick={() => navigate(`/elections/${detail.id}/vote`)}
+                            >
+                                この選挙で投票する
+                            </button>
+                        )}
 
-            {isClosed && (
-                <>
-                    <p style={{ marginTop: 16, color: 'red' }}>
-                        この選挙はすでに終了しているため、オンライン投票はできません。
-                    </p>
-                    <button
-                        style={{ marginTop: 8 }}
-                        onClick={() => navigate(`/elections/${detail.id}/result`)}
-                    >
-                        集計結果を見る
-                    </button>
-                </>
-            )}
+                        {isClosed && (
+                            <>
+                                <p style={{ marginTop: 16, color: 'red' }}>
+                                    この選挙はすでに終了しているため、オンライン投票はできません。
+                                </p>
+                                <button
+                                    style={{ marginTop: 8 }}
+                                    onClick={() => navigate(`/elections/${detail.id}/result`)}
+                                >
+                                    集計結果を見る
+                                </button>
+                            </>
+                        )}
+                    </>
+                )}
+            </PageState>
         </main>
     );
 }

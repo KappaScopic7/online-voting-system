@@ -38,9 +38,9 @@ public class DemoDataInitializer implements CommandLineRunner {
     private final PasswordEncoder passwordEncoder;
 
     // --- 固定ログイン（開発用） ---
-    private static final String PASS = "Passw0rd!";
-    private static final String DEMO_HAS_EMAIL = "demo-has-election@example.com";
-    private static final String DEMO_NO_EMAIL  = "demo-no-election@example.com";
+    private static final String PASS = "Password123";
+    private static final String HAS_EMAIL = "has@email.com";
+    private static final String NO_EMAIL  = "no@email.com";
 
     // --- District codes ---
     private static final String D_MACHIDA = "TOKYO-MACHIDA-01";
@@ -137,13 +137,13 @@ public class DemoDataInitializer implements CommandLineRunner {
 
         // 固定ログイン用（開発効率）
         if (demoVoterHasElection != null) {
-            demoVoterHasElection.setEmail(DEMO_HAS_EMAIL);
+            demoVoterHasElection.setEmail(HAS_EMAIL);
             demoVoterHasElection.setPasswordHash(passwordEncoder.encode(PASS));
             demoVoterHasElection.setStatus(VoterStatus.ACTIVE);
             voterAccountRepository.save(demoVoterHasElection);
         }
         if (demoVoterNoElection != null) {
-            demoVoterNoElection.setEmail(DEMO_NO_EMAIL);
+            demoVoterNoElection.setEmail(NO_EMAIL);
             demoVoterNoElection.setPasswordHash(passwordEncoder.encode(PASS));
             demoVoterNoElection.setStatus(VoterStatus.ACTIVE);
             voterAccountRepository.save(demoVoterNoElection);
