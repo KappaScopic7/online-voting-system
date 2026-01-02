@@ -35,7 +35,6 @@ export function ElectionResultPage() {
 
         (async () => {
             try {
-                // 先に詳細を確定させる（403 notice時もボタンが出せる）
                 const d = await fetchElectionDetail(electionId);
                 if (cancelled) return;
                 setDetail(d);
@@ -48,7 +47,6 @@ export function ElectionResultPage() {
                     if (cancelled) return;
 
                     if (e instanceof ApiError) {
-                        // 401はProtectedRouteが吸う想定
                         if (e.status === 403) {
                             setNotice(e.message || 'この選挙の結果はまだ閲覧できません。');
                             return;

@@ -4,7 +4,6 @@ import type { ElectionStatus } from '../domain/election';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080';
 
-// ---- types ----
 export type LoginResponse = {
     accessToken: string;
     tokenType: string;
@@ -70,7 +69,6 @@ export type VerifyIdentityRequest = {
     pin: string;
 };
 
-// ---- error model ----
 export class ApiError extends Error {
     readonly status: number;
     readonly url: string;
@@ -81,6 +79,15 @@ export class ApiError extends Error {
         this.status = args.status;
         this.url = args.url;
     }
+}
+
+function normalizeExpected(expected?: number | number[]): number[] | null {
+    if (!expected) return null;
+    return Array.isArray(expected) ? expected : [expected];
+}
+
+function shouldClearToken(status: number): boolean {
+    return status === 401 || status === 403;
 }
 
 async function readErrorMessage(res: Response): Promise<string> {
@@ -104,18 +111,15 @@ async function readErrorMessage(res: Response): Promise<string> {
     }
 }
 
+type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
+
 type RequestOptions = {
-    method: 'GET' | 'POST';
+    method: HttpMethod;
     path: string;
     body?: unknown;
-    auth?: boolean; // default true
+    auth?: boolean;
     expectedStatus?: number | number[];
 };
-
-function normalizeExpected(expected?: number | number[]): number[] | null {
-    if (!expected) return null;
-    return Array.isArray(expected) ? expected : [expected];
-}
 
 function buildHeaders(opt: RequestOptions): Record<string, string> {
     const headers: Record<string, string> = {
@@ -126,8 +130,6 @@ function buildHeaders(opt: RequestOptions): Record<string, string> {
     if (needAuth) {
         const token = getAccessToken();
         if (!token) {
-            // 呼び出し元はApiError(401)として扱える
-            // 実際のHTTPは飛ばさない（無駄＆ログ汚し防止）
             throw new ApiError({
                 status: 401,
                 message: 'unauthorized',
@@ -154,8 +156,7 @@ async function requestJson<T>(opt: RequestOptions): Promise<T> {
         body: opt.body !== undefined ? JSON.stringify(opt.body) : undefined,
     });
 
-    // ★401は必ずtoken破棄（同一タブもtokenStoreが通知する）
-    if (res.status === 401) {
+    if (shouldClearToken(res.status)) {
         clearAccessToken();
     }
 
@@ -170,7 +171,13 @@ async function requestJson<T>(opt: RequestOptions): Promise<T> {
         throw new ApiError({ status: res.status, message: msg, url });
     }
 
-    return res.json();
+    if (res.status === 204) return undefined as T;
+
+    const ct = res.headers.get('content-type') ?? '';
+    if (!ct.includes('application/json')) return undefined as T;
+
+    const data = await res.json().catch(() => undefined);
+    return data as T;
 }
 
 async function requestVoid(opt: RequestOptions): Promise<void> {
@@ -183,8 +190,7 @@ async function requestVoid(opt: RequestOptions): Promise<void> {
         body: opt.body !== undefined ? JSON.stringify(opt.body) : undefined,
     });
 
-    // ★401は必ずtoken破棄
-    if (res.status === 401) {
+    if (shouldClearToken(res.status)) {
         clearAccessToken();
     }
 
@@ -199,8 +205,6 @@ async function requestVoid(opt: RequestOptions): Promise<void> {
         throw new ApiError({ status: res.status, message: msg, url });
     }
 }
-
-// ---- public APIs (token引数なし) ----
 
 export async function login(email: string, password: string): Promise<LoginResponse> {
     return requestJson<LoginResponse>({
@@ -298,6 +302,20 @@ export async function fetchMyVerification(electionId: number): Promise<IdentityS
     return requestJson<IdentityStatus>({
         method: 'GET',
         path: `/api/elections/${electionId}/verification/me`,
+        expectedStatus: 200,
+    });
+}
+
+export type Me = {
+    voterId: number;
+    email: string;
+    name?: string | null;
+};
+
+export async function fetchMe(): Promise<Me> {
+    return requestJson<Me>({
+        method: 'GET',
+        path: '/api/voters/me',
         expectedStatus: 200,
     });
 }

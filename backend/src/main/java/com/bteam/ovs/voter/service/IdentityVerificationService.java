@@ -49,13 +49,11 @@ public class IdentityVerificationService {
         Election election = electionRepository.findById(electionId)
             .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "選挙が見つかりません。"));
 
-        // 投票権チェック（例：同じdistrict）
         if (account.getCitizen() == null || account.getCitizen().getDistrict() == null ||
             !account.getCitizen().getDistrict().getId().equals(election.getDistrict().getId())) {
             throw new ResponseStatusException(FORBIDDEN, "この選挙では投票できません。");
         }
 
-        // 擬似NFC照合
         NfcCredential cred = nfcCredentialRepository.findByCardId(cardId)
             .orElseThrow(() -> new ResponseStatusException(UNAUTHORIZED, "カード情報が不正です。"));
 
@@ -67,7 +65,6 @@ public class IdentityVerificationService {
             throw new ResponseStatusException(UNAUTHORIZED, "暗証番号が不正です。");
         }
 
-        // すでに認証済みならそのまま返す（冪等）
         var existing = voterElectionIdentityRepository.findByVoterAccountAndElection(account, election);
         if (existing.isPresent()) {
             return new IdentityStatusResponse(true, existing.get().getVerifiedAt());

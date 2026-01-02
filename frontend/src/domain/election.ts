@@ -12,7 +12,6 @@ export function statusLabel(status: ElectionStatus): string {
         case 'CLOSED':
             return '終了';
         default:
-            // 型的には来ない想定だが、保険
             return status;
     }
 }

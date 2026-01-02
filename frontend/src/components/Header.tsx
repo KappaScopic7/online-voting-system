@@ -1,3 +1,4 @@
+// frontend/src/components/Header.tsx
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 

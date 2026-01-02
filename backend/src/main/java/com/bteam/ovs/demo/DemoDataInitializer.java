@@ -37,16 +37,13 @@ public class DemoDataInitializer implements CommandLineRunner {
     private final VoteRepository voteRepository;
     private final PasswordEncoder passwordEncoder;
 
-    // --- 固定ログイン（開発用） ---
     private static final String PASS = "Password123";
     private static final String HAS_EMAIL = "has@email.com";
     private static final String NO_EMAIL  = "no@email.com";
 
-    // --- District codes ---
     private static final String D_MACHIDA = "TOKYO-MACHIDA-01";
     private static final String D_OTHER   = "TOKYO-OTHER-01";
 
-    // --- Election codes ---
     private static final String E_OPEN_CODE          = "SHUGIIN-OPEN-TOKYO-MACHIDA";
     private static final String E_CLOSED_VOTED_CODE  = "SANGIIN-CLOSED-TOKYO-MACHIDA";
     private static final String E_CLOSED_NOVOTE_CODE = "SANGIIN-CLOSED-TOKYO-MACHIDA-PAST";
@@ -67,7 +64,6 @@ public class DemoDataInitializer implements CommandLineRunner {
 
     private void createAllDemoData(LocalDateTime now) {
 
-        // --- Districts ---
         District machida1 = districtRepository.findByCode(D_MACHIDA)
                 .orElseGet(() -> {
                     District d = new District();
@@ -88,8 +84,6 @@ public class DemoDataInitializer implements CommandLineRunner {
                     return districtRepository.save(d);
                 });
 
-        // --- Citizens ---
-        // 30人作る（2人目だけ別地区にして「選挙なし」アカウントを再現）
         List<Citizen> citizens = new ArrayList<>();
         for (int i = 1; i <= 30; i++) {
             String pseudoMyNumber = "CIT-%08d".formatted(i);
@@ -111,10 +105,9 @@ public class DemoDataInitializer implements CommandLineRunner {
         }
         citizens = citizenRepository.saveAll(citizens);
 
-        // --- VoterAccounts ---
         List<VoterAccount> accounts = new ArrayList<>();
-        VoterAccount demoVoterHasElection = null; // 町田1区
-        VoterAccount demoVoterNoElection  = null; // 別地区
+        VoterAccount demoVoterHasElection = null;
+        VoterAccount demoVoterNoElection  = null;
 
         for (int idx = 0; idx < citizens.size(); idx++) {
             Citizen citizen = citizens.get(idx);
@@ -135,7 +128,6 @@ public class DemoDataInitializer implements CommandLineRunner {
         }
         accounts = voterAccountRepository.saveAll(accounts);
 
-        // 固定ログイン用（開発効率）
         if (demoVoterHasElection != null) {
             demoVoterHasElection.setEmail(HAS_EMAIL);
             demoVoterHasElection.setPasswordHash(passwordEncoder.encode(PASS));
@@ -149,7 +141,6 @@ public class DemoDataInitializer implements CommandLineRunner {
             voterAccountRepository.save(demoVoterNoElection);
         }
 
-        // --- Elections (3本) ---
         Election openElection = Election.builder()
                 .code(E_OPEN_CODE)
                 .name("衆議院 議員総選挙（町田市 第1区）")
@@ -184,10 +175,8 @@ public class DemoDataInitializer implements CommandLineRunner {
         closedElectionVoted = electionRepository.save(closedElectionVoted);
         closedElectionNoVote = electionRepository.save(closedElectionNoVote);
 
-        // --- Candidates ---
         List<Candidate> candidates = new ArrayList<>();
 
-        // OPEN（3名）
         candidates.add(Candidate.builder()
                 .name("朝倉 恒一")
                 .partyName("未来連合")
@@ -206,13 +195,12 @@ public class DemoDataInitializer implements CommandLineRunner {
 
         candidates.add(Candidate.builder()
                 .name("成瀬 恒一")
-                .partyName(null) // 無所属
+                .partyName(null) 
                 .profile("防災・防犯と地域コミュニティ支援を中心に活動。")
                 .displayOrder(3)
                 .election(openElection)
                 .build());
 
-        // CLOSED（投票済み）3名
         Candidate rc1 = Candidate.builder()
                 .name("桐生 恒一")
                 .partyName("公正フォーラム")
@@ -238,7 +226,6 @@ public class DemoDataInitializer implements CommandLineRunner {
         candidates.add(rc2);
         candidates.add(rc3);
 
-        // CLOSED（未投票）3名
         Candidate nv1 = Candidate.builder()
                 .name("三上 恒一")
                 .partyName("市民連帯")
@@ -266,17 +253,10 @@ public class DemoDataInitializer implements CommandLineRunner {
 
         candidateRepository.saveAll(candidates);
 
-        // --- Votes ---
-        // 方針：
-        //  - CLOSED(投票済み) は demoVoterHasElection が3回投票（最後の票だけACTIVEになる想定）
-        //  - CLOSED(未投票) は demoVoterHasElection は投票しない、他の有権者のみ投票
         if (accounts.isEmpty() || demoVoterHasElection == null) return;
 
         LocalDateTime baseTime = now.minusDays(8);
 
-        // demo（3回投票：最後がACTIVEになってほしいが、今の仕様は「古いのをCANCELEDにする」のはcastVote時だけ）
-        // ここでは履歴用に3件すべてACTIVEで入れている。
-        // もし「最後だけACTIVE」にしたいなら v1,v2 を CANCELED にする。
         Vote v1 = Vote.builder()
                 .election(closedElectionVoted)
                 .voterAccount(demoVoterHasElection)
@@ -299,12 +279,11 @@ public class DemoDataInitializer implements CommandLineRunner {
                 .election(closedElectionVoted)
                 .voterAccount(demoVoterHasElection)
                 .candidate(rc3)
-                .status(VoteStatus.ACTIVE) // 最終票だけ有効
+                .status(VoteStatus.ACTIVE)
                 .votedAt(baseTime.plusHours(3))
                 .build();
         voteRepository.save(v3);
 
-        // 他の有権者の票（CLOSED投票済み）
         int idx = 0;
         for (VoterAccount voter : accounts) {
             if (voter.getId().equals(demoVoterHasElection.getId())) continue;
@@ -327,7 +306,6 @@ public class DemoDataInitializer implements CommandLineRunner {
             if (idx >= 80) break;
         }
 
-        // CLOSED（未投票）：demoVoterHasElection は投票させない
         LocalDateTime baseTime2 = now.minusDays(18);
         int idxNoVote = 0;
         for (VoterAccount voter : accounts) {
@@ -354,7 +332,6 @@ public class DemoDataInitializer implements CommandLineRunner {
 
     private void refreshDemoElectionWindows(LocalDateTime now) {
 
-        // OPENは「常に今投票できる」状態に調整
         electionRepository.findByCode(E_OPEN_CODE)
                 .ifPresent(e -> {
                     e.setStartsAt(now.minusHours(2));
@@ -363,7 +340,6 @@ public class DemoDataInitializer implements CommandLineRunner {
                     electionRepository.save(e);
                 });
 
-        // CLOSED（投票済み）/（未投票）は締切済みに固定
         electionRepository.findByCode(E_CLOSED_VOTED_CODE)
                 .ifPresent(e -> {
                     e.setStartsAt(now.minusDays(10));
@@ -381,8 +357,6 @@ public class DemoDataInitializer implements CommandLineRunner {
                 });
     }
 
-    // ====== “それっぽい”個人情報ジェネレータ（完全架空） ======
-
     private static String fakeFamilyName(int i) {
         String[] names = {"佐々木", "高橋", "伊藤", "田中", "小林", "斎藤", "森", "山本", "石井", "阿部"};
         return names[(i - 1) % names.length];
@@ -390,11 +364,10 @@ public class DemoDataInitializer implements CommandLineRunner {
 
     private static String fakeGivenName(int i) {
         String[] names = {"健太", "結衣", "陽菜", "翔太", "美咲", "直樹", "葵", "航", "真由", "大輝"};
-        return names[(i - 1) % names.length] + i; // 同名回避で末尾に番号
+        return names[(i - 1) % names.length] + i;
     }
 
     private static String fakeAddress(int i) {
-        // 町丁名っぽくする（実在住所の再現は避ける）
         int chome = ((i - 1) % 5) + 1;
         int ban = ((i * 7) % 20) + 1;
         return "緑町" + chome + "-" + ban;

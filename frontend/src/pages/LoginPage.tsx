@@ -1,3 +1,4 @@
+// frontend/src/pages/LoginPage.tsx
 import type { FormEvent } from 'react';
 import { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -20,13 +21,11 @@ export function LoginPage() {
         const next = params.get('next');
         if (!next) return '/my-elections';
 
-        // 外部URL対策
         if (!next.startsWith('/')) return '/my-elections';
 
         return next;
     }, [location.search]);
 
-    // ★ すでにログイン済みなら即リダイレクト
     useEffect(() => {
         if (isAuthenticated) {
             navigate(nextPath, { replace: true });
@@ -44,7 +43,6 @@ export function LoginPage() {
             const res = await login(email, password);
             setAccessToken(res.accessToken);
 
-            // next があれば元のページ、なければ My選挙一覧
             navigate(nextPath, { replace: true });
         } catch (e: unknown) {
             if (e instanceof ApiError) {

@@ -1,3 +1,4 @@
+// frontend/src/pages/VotePage.tsx
 import { useEffect, useMemo, useState, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
@@ -42,9 +43,7 @@ export function VotePage() {
 
     const [message, setMessage] = useState<string | null>(null);
 
-    // ページ成立しない系（ID不正、期間外など）
     const [fatalError, setFatalError] = useState<string | null>(null);
-    // 操作で起きる系（本人認証失敗、投票失敗など）
     const [actionError, setActionError] = useState<string | null>(null);
 
     const selectedCandidate = useMemo(() => {
@@ -61,7 +60,6 @@ export function VotePage() {
                 fetchMyVote(electionId),
             ]);
 
-            // 成功時は必ず操作エラーをクリア
             setActionError(null);
 
             setCandidates(candidates);
@@ -71,7 +69,6 @@ export function VotePage() {
                 setSelectedCandidateId(myVote.candidateId);
             }
         } catch (e: unknown) {
-            // 401 は認証切れ → ProtectedRoute に委譲
             if (e instanceof ApiError) {
                 if (e.status === 401) return;
 
@@ -88,7 +85,6 @@ export function VotePage() {
         }
     }, [electionId]);
 
-    // 初期ロード
     useEffect(() => {
         if (electionId == null) {
             setFatalError('選挙IDが不正です。');
@@ -123,7 +119,6 @@ export function VotePage() {
                 if (cancelled) return;
 
                 if (e instanceof ApiError) {
-                    // 401は認証切れ。ページでは処理しない（ProtectedRouteが吸う）
                     if (e.status === 403) {
                         setFatalError(e.message || 'この選挙では投票できません。');
                         return;

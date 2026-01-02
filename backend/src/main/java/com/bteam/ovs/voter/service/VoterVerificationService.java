@@ -39,12 +39,10 @@ public class VoterVerificationService {
         Election election = electionRepository.findById(electionId)
                 .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "選挙が見つかりません。"));
 
-        // デモ仕様：PINは固定 "1234" を正とする（後でDB照合に置換）
         if (!"1234".equals(pin)) {
             throw new ResponseStatusException(BAD_REQUEST, "暗証番号が一致しません。");
         }
 
-        // cardIdはログに残すと危険なのでマスク
         String masked = mask(cardId);
 
         VoterVerification vv = voterVerificationRepository

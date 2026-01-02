@@ -27,7 +27,6 @@ export function VoteHistoryPage() {
                 let msg = '投票履歴の取得に失敗しました';
 
                 if (e instanceof ApiError) {
-                    // 401はProtectedRouteが吸う想定（ここでは扱わない）
                     if (e.status === 403) msg = e.message || '投票履歴を表示できません。';
                     else msg = e.message;
                 } else if (e instanceof Error) {
