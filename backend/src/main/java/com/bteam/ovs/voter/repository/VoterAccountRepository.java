@@ -1,18 +1,12 @@
 package com.bteam.ovs.voter.repository;
 
-import com.bteam.ovs.citizen.domain.Citizen;
-import com.bteam.ovs.voter.domain.VoterAccount;
+import java.util.Optional;
+import java.util.UUID;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 
-import java.util.Optional;
+import com.bteam.ovs.voter.domain.VoterAccount;
 
-public interface VoterAccountRepository extends JpaRepository<VoterAccount, Long> {
-
-    Optional<VoterAccount> findByCitizen(Citizen citizen);
-
-    Optional<VoterAccount> findByEmail(String email);
-
-    Optional<VoterAccount> findByCitizen_PseudoMyNumber(String pseudoMyNumber);
-
-    boolean existsByEmail(String email);
+public interface VoterAccountRepository extends JpaRepository<VoterAccount, UUID> {
+    Optional<VoterAccount> findByVoterId(Long voterId);
 }

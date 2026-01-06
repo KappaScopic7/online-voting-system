@@ -1,59 +1,26 @@
 package com.bteam.ovs.voter.domain;
 
-import com.bteam.ovs.citizen.domain.Citizen;
-import jakarta.persistence.*;
-import lombok.*;
+import java.util.UUID;
 
-import java.time.LocalDateTime;
+import org.hibernate.annotations.UuidGenerator;
+
+import jakarta.persistence.*;
 
 @Entity
-@Table(name = "voter_account")
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
+@Table(name = "voter_account", indexes = {
+    @Index(name = "ix_voter_account_voter_id", columnList = "voter_id", unique = true)
+})
 public class VoterAccount {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @GeneratedValue
+    @UuidGenerator
+    private UUID id;
 
-    @OneToOne(optional = false)
-    @JoinColumn(name = "citizen_id", nullable = false, unique = true)
-    private Citizen citizen;
+    @Column(name="voter_id", nullable=false, unique=true)
+    private Long voterId;
 
-    @Column(name = "email", unique = true, length = 255)
-    private String email;
-
-    @Column(name = "password_hash", length = 255)
-    private String passwordHash;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "status", nullable = false, length = 20)
-    private VoterStatus status;
-
-    @Column(name = "last_login_at")
-    private LocalDateTime lastLoginAt;
-
-    @Column(name = "created_at", nullable = false)
-    private LocalDateTime createdAt;
-
-    @Column(name = "updated_at", nullable = false)
-    private LocalDateTime updatedAt;
-
-    @PrePersist
-    public void onCreate() {
-        LocalDateTime now = LocalDateTime.now();
-        this.createdAt = now;
-        this.updatedAt = now;
-        if (this.status == null) {
-            this.status = VoterStatus.PENDING;
-        }
-    }
-
-    @PreUpdate
-    public void onUpdate() {
-        this.updatedAt = LocalDateTime.now();
-    }
+    public UUID getId() { return id; }
+    public Long getVoterId() { return voterId; }
+    public void setVoterId(Long voterId) { this.voterId = voterId; }
 }
