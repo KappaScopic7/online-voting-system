@@ -11,21 +11,10 @@ import com.bteam.ovs.elections.repo.CandidateRepository;
 import com.bteam.ovs.elections.repo.ElectionRepository;
 
 import java.time.Instant;
-import java.util.UUID;
 
 @Profile("demo")
 @Configuration
 public class ElectionSeedData {
-
-    // 固定ID（毎回同じものを使う）
-    private static final UUID DEMO_ELECTION_ID =
-            UUID.fromString("11111111-1111-1111-1111-111111111111");
-
-    private static final UUID CANDIDATE_A_ID =
-            UUID.fromString("22222222-2222-2222-2222-222222222222");
-
-    private static final UUID CANDIDATE_B_ID =
-            UUID.fromString("33333333-3333-3333-3333-333333333333");
 
     @Bean
     CommandLineRunner seedElection(
@@ -33,44 +22,31 @@ public class ElectionSeedData {
             CandidateRepository candidateRepo
     ) {
         return args -> {
-
-            // ===== Election upsert =====
             var now = Instant.now();
 
-            var election = electionRepo.findById(DEMO_ELECTION_ID)
-                    .orElseGet(() -> {
-                        var e = new ElectionEntity();
-                        e.setId(DEMO_ELECTION_ID);
-                        return e;
-                    });
+            String title = "デモ選挙 " + java.time.LocalDate.now();
 
-            election.setTitle("デモ選挙");
-            election.setStartsAt(now.minusSeconds(3600));          // 1時間前から開始
-            election.setEndsAt(now.plusSeconds(3600 * 24));        // 24時間後まで
+            // 既に今日のデモ選挙があれば何もしない
+            var electionOpt = electionRepo.findByTitle(title);
+            if (electionOpt.isPresent()) {
+                return;
+            }
 
+            // ===== Election create =====
+            var election = new ElectionEntity();
+            election.setTitle(title);
+            election.setStartsAt(now.minusSeconds(3600));
+            election.setEndsAt(now.plusSeconds(3600 * 24));
             electionRepo.save(election);
 
-            // ===== Candidate A upsert =====
-            var c1 = candidateRepo.findById(CANDIDATE_A_ID)
-                    .orElseGet(() -> {
-                        var c = new CandidateEntity();
-                        c.setId(CANDIDATE_A_ID);
-                        return c;
-                    });
-
-            c1.setElectionId(DEMO_ELECTION_ID);
+            // ===== Candidates =====
+            var c1 = new CandidateEntity();
+            c1.setElectionId(election.getId());
             c1.setName("候補A");
             candidateRepo.save(c1);
 
-            // ===== Candidate B upsert =====
-            var c2 = candidateRepo.findById(CANDIDATE_B_ID)
-                    .orElseGet(() -> {
-                        var c = new CandidateEntity();
-                        c.setId(CANDIDATE_B_ID);
-                        return c;
-                    });
-
-            c2.setElectionId(DEMO_ELECTION_ID);
+            var c2 = new CandidateEntity();
+            c2.setElectionId(election.getId());
             c2.setName("候補B");
             candidateRepo.save(c2);
         };

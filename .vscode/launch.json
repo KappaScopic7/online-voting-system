@@ -2,26 +2,22 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "OVS Backend (demo)",
             "type": "java",
-            "name": "Backend: Spring Boot",
             "request": "launch",
+            "mainClass": "com.bteam.ovs.OnlineVotingSystemApplication",
             "cwd": "${workspaceFolder}/backend",
-            "mainClass": "com.bteam.ovs.OnlineVotingSystemApplication"
-        },
-        {
-            "type": "node",
-            "request": "launch",
-            "name": "Frontend: Vite",
-            "cwd": "${workspaceFolder}/frontend",
-            "program": "${workspaceFolder}/frontend/node_modules/vite/bin/vite.js",
-            "args": ["--port", "5173"],
-            "console": "integratedTerminal"
+            "preLaunchTask": "ovs: db up",
+            "env": {
+                "SPRING_PROFILES_ACTIVE": "demo"
+            }
         }
     ],
     "compounds": [
         {
-            "name": "Run All (Backend + Frontend)",
-            "configurations": ["Backend: Spring Boot", "Frontend: Vite"]
+            "name": "OVS ALL (demo)",
+            "configurations": ["OVS Backend (demo)"],
+            "preLaunchTask": "ovs: frontend dev"
         }
     ]
 }

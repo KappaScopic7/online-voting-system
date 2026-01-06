@@ -6,4 +6,6 @@ import com.bteam.ovs.elections.model.ElectionEntity;
 
 import java.util.UUID;
 
-public interface ElectionRepository extends JpaRepository<ElectionEntity, UUID> {}
+public interface ElectionRepository extends JpaRepository<ElectionEntity, UUID> {
+    java.util.Optional<ElectionEntity> findByTitle(String title);
+}
