@@ -6,9 +6,7 @@
             "name": "Backend: Spring Boot",
             "request": "launch",
             "cwd": "${workspaceFolder}/backend",
-            "mainClass": "com.bteam.ovs.OnlineVotingSystemApplication",
-            "args": "",
-            "envFile": "${workspaceFolder}/backend/.env"
+            "mainClass": "com.bteam.ovs.OnlineVotingSystemApplication"
         },
         {
             "type": "node",
@@ -20,14 +18,10 @@
             "console": "integratedTerminal"
         }
     ],
-
     "compounds": [
         {
             "name": "Run All (Backend + Frontend)",
-            "configurations": [
-                "Backend: Spring Boot",
-                "Frontend: Vite"
-            ]
+            "configurations": ["Backend: Spring Boot", "Frontend: Vite"]
         }
     ]
 }

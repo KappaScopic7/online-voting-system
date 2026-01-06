@@ -1,98 +1,60 @@
-// frontend/src/auth/AuthContext.tsx
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { clearAccessToken, getAccessToken, onTokenChanged } from './tokenStore';
-import { ApiError, fetchMe, type Me } from '../api/authClient';
+import React from 'react';
+import { apiMe } from '../api/client';
+import { clearToken } from './tokenStore';
+import type { MeResponse } from '../api/types';
 
 type AuthStatus = 'checking' | 'authenticated' | 'unauthenticated';
 
-type AuthContextValue = {
-    token: string | null;
+type AuthState = {
     status: AuthStatus;
-    isAuthenticated: boolean;
-    me: Me | null;
+    me: MeResponse | null;
+    refresh: () => Promise<void>;
     logout: () => void;
-    refresh: () => void;
 };
 
-const AuthContext = createContext<AuthContextValue | null>(null);
+const AuthContext = React.createContext<AuthState | null>(null);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-    const [token, setToken] = useState<string | null>(() => getAccessToken());
-    const [status, setStatus] = useState<AuthStatus>(() =>
-        token ? 'checking' : 'unauthenticated',
-    );
-    const [me, setMe] = useState<Me | null>(null);
+    const [status, setStatus] = React.useState<AuthStatus>('checking');
+    const [me, setMe] = React.useState<MeResponse | null>(null);
 
-    const verify = useCallback(async () => {
-        const t = getAccessToken();
-        setToken(t);
-
-        if (!t) {
-            setMe(null);
-            setStatus('unauthenticated');
-            return;
-        }
-
+    const refresh = React.useCallback(async () => {
         setStatus('checking');
         try {
-            const meData = await fetchMe();
-            setMe(meData);
-            setStatus('authenticated');
-        } catch (e: unknown) {
-            if (e instanceof ApiError && (e.status === 401 || e.status === 403)) {
-                clearAccessToken();
+            const r = await apiMe();
+            // ここは方針：本人未リンクなら unauthenticated 扱い（リンク画面は後回し）
+            if (!r.identityLinked) {
+                setMe(r);
+                setStatus('unauthenticated');
+                return;
             }
+            setMe(r);
+            setStatus('authenticated');
+        } catch {
             setMe(null);
             setStatus('unauthenticated');
         }
     }, []);
 
-    const refresh = useCallback(() => {
-        void verify();
-    }, [verify]);
+    React.useEffect(() => {
+        refresh();
+    }, [refresh]);
 
-    useEffect(() => {
-        void verify();
-
-        const off = onTokenChanged(() => {
-            void verify();
-        });
-
-        const onStorage = (e: StorageEvent) => {
-            if (e.key === 'accessToken') void verify();
-        };
-
-        window.addEventListener('storage', onStorage);
-        return () => {
-            off();
-            window.removeEventListener('storage', onStorage);
-        };
-    }, [verify]);
-
-    const logout = useCallback(() => {
-        clearAccessToken();
-        setToken(null);
+    const logout = React.useCallback(() => {
+        clearToken();
         setMe(null);
         setStatus('unauthenticated');
     }, []);
 
-    const value = useMemo<AuthContextValue>(
-        () => ({
-            token,
-            status,
-            isAuthenticated: status === 'authenticated',
-            me,
-            logout,
-            refresh,
-        }),
-        [token, status, me, logout, refresh],
+    return (
+        <AuthContext.Provider value={{ status, me, refresh, logout }}>
+            {children}
+        </AuthContext.Provider>
     );
-
-    return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
-export function useAuth(): AuthContextValue {
-    const ctx = useContext(AuthContext);
+export function useAuth() {
+    const ctx = React.useContext(AuthContext);
     if (!ctx) throw new Error('useAuth must be used within AuthProvider');
     return ctx;
 }

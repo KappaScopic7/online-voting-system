@@ -1,106 +1,61 @@
-// frontend/src/pages/LoginPage.tsx
-import type { FormEvent } from 'react';
-import { useEffect, useMemo, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
-import { login, ApiError } from '../api/authClient';
-import { setAccessToken } from '../auth/tokenStore';
+import React from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { apiLogin } from '../api/client';
+import type { ApiError } from '../api/types';
 import { useAuth } from '../auth/AuthContext';
 
-export function LoginPage() {
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+export default function LoginPage() {
+    const nav = useNavigate();
+    const [sp] = useSearchParams();
+    const { refresh } = useAuth();
 
-    const navigate = useNavigate();
-    const location = useLocation();
-    const { isAuthenticated } = useAuth();
+    const [email, setEmail] = React.useState('test@example.com');
+    const [password, setPassword] = React.useState('Passw0rd!!');
+    const [busy, setBusy] = React.useState(false);
+    const [err, setErr] = React.useState<string | null>(null);
 
-    const nextPath = useMemo(() => {
-        const params = new URLSearchParams(location.search);
-        const next = params.get('next');
-        if (!next) return '/my-elections';
-
-        if (!next.startsWith('/')) return '/my-elections';
-
-        return next;
-    }, [location.search]);
-
-    useEffect(() => {
-        if (isAuthenticated) {
-            navigate(nextPath, { replace: true });
-        }
-    }, [isAuthenticated, nextPath, navigate]);
-
-    const handleSubmit = async (e: FormEvent) => {
+    async function onSubmit(e: React.FormEvent) {
         e.preventDefault();
-        if (loading) return;
-
-        setError(null);
-        setLoading(true);
-
+        setBusy(true);
+        setErr(null);
         try {
-            const res = await login(email, password);
-            setAccessToken(res.accessToken);
-
-            navigate(nextPath, { replace: true });
-        } catch (e: unknown) {
-            if (e instanceof ApiError) {
-                if (e.status === 401) {
-                    setError('メールアドレスまたはパスワードが正しくありません。');
-                } else {
-                    setError(e.message);
-                }
-            } else {
-                setError('ログインに失敗しました。');
-            }
+            await apiLogin(email, password);
+            await refresh();
+            nav(sp.get('next') || '/elections');
+        } catch (e: any) {
+            const ae = e as ApiError;
+            setErr(`${ae.code}: ${ae.message}`);
         } finally {
-            setLoading(false);
+            setBusy(false);
         }
-    };
+    }
 
     return (
-        <main>
-            <h1>ログイン</h1>
-            <form
-                onSubmit={handleSubmit}
-                style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: 8,
-                    maxWidth: 400,
-                }}
-            >
-                <label>
-                    メールアドレス
+        <div style={{ padding: 24, maxWidth: 420 }}>
+            <h2>ログイン</h2>
+            <form onSubmit={onSubmit}>
+                <div style={{ marginBottom: 12 }}>
+                    <label>メール</label>
                     <input
-                        type="email"
+                        style={{ width: '100%' }}
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        required
-                        autoComplete="email"
-                        style={{ width: '100%' }}
                     />
-                </label>
-
-                <label>
-                    パスワード
+                </div>
+                <div style={{ marginBottom: 12 }}>
+                    <label>パスワード</label>
                     <input
+                        style={{ width: '100%' }}
                         type="password"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        required
-                        autoComplete="current-password"
-                        style={{ width: '100%' }}
                     />
-                </label>
-
-                <button type="submit" disabled={loading} style={{ marginTop: 8 }}>
-                    {loading ? 'ログイン中...' : 'ログイン'}
+                </div>
+                {err && <div style={{ color: 'crimson', marginBottom: 12 }}>{err}</div>}
+                <button disabled={busy} type="submit">
+                    {busy ? 'ログイン中...' : 'ログイン'}
                 </button>
-
-                {error && <p style={{ color: 'red' }}>{error}</p>}
             </form>
-        </main>
+        </div>
     );
 }
