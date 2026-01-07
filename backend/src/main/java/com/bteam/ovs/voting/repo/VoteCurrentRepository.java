@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -28,4 +29,9 @@ public interface VoteCurrentRepository extends JpaRepository<VoteCurrent, VoteCu
         UUID getCandidateId();
         long getCnt();
     }
+
+    List<com.bteam.ovs.voting.model.VoteCurrent> findByCitizenIdAndElectionIdIn(
+        UUID citizenId,
+        Collection<UUID> electionIds
+);
 }

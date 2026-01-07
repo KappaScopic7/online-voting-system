@@ -36,7 +36,15 @@ public class PublicElectionController {
     @GetMapping
     public List<PublicElectionListItem> list() {
         var now = Instant.now();
+
         var elections = electionRepo.findAllByOrderByStartsAtDesc();
+        var electionIds = elections.stream().map(e -> e.getId()).toList();
+
+        var countMap = candidateRepo.countByElectionIdIn(electionIds).stream()
+                .collect(java.util.stream.Collectors.toMap(
+                        CandidateRepository.ElectionCandidateCount::getElectionId,
+                        CandidateRepository.ElectionCandidateCount::getCnt
+                ));
 
         return elections.stream()
                 .map(e -> {
@@ -47,7 +55,7 @@ public class PublicElectionController {
 
                     boolean hasResult = "ENDED".equals(status);
 
-                    int candidateCount = candidateRepo.findByElectionId(e.getId()).size();
+                    int candidateCount = Math.toIntExact(countMap.getOrDefault(e.getId(), 0L));
 
                     return new PublicElectionListItem(
                             e.getId(),
@@ -61,6 +69,7 @@ public class PublicElectionController {
                 })
                 .toList();
     }
+
 
     @GetMapping("/{electionId}/candidates")
     public List<PublicCandidateItem> candidates(@PathVariable UUID electionId) {

@@ -3,6 +3,7 @@ package com.bteam.ovs.voting.web;
 import com.bteam.ovs.shared.errors.ApiException;
 import com.bteam.ovs.voting.service.VotingService;
 import com.bteam.ovs.voting.web.dto.VoteConfirmRequest;
+import com.bteam.ovs.voting.web.dto.VoteHistoryItem;
 import com.bteam.ovs.voting.web.dto.VoteStartResponse;
 
 import jakarta.validation.Valid;
@@ -31,13 +32,14 @@ public class VotingController {
         return votingService.start(auth.getName(), eid);
     }
 
+    // ★ ここを変更：VoteHistoryItem を返す（200 OK）
     @PostMapping("/confirm")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void confirm(@Valid @RequestBody VoteConfirmRequest req, Authentication auth) {
+    public VoteHistoryItem confirm(@Valid @RequestBody VoteConfirmRequest req, Authentication auth) {
         if (auth == null || auth.getName() == null) {
             throw new ApiException(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "未ログインです");
         }
-        votingService.confirm(
+
+        return votingService.confirm(
                 auth.getName(),
                 UUID.fromString(req.electionId()),
                 UUID.fromString(req.candidateId())

@@ -1,6 +1,7 @@
 package com.bteam.ovs.elections.web;
 
 import com.bteam.ovs.auth.repo.PortalAccountRepository;
+import com.bteam.ovs.elections.repo.CandidateRepository;
 import com.bteam.ovs.elections.repo.ElectionRepository;
 import com.bteam.ovs.elections.web.dto.VoterElectionListItem;
 import com.bteam.ovs.shared.errors.ApiException;
@@ -11,7 +12,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.Instant;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/voter/elections")
@@ -20,15 +22,18 @@ public class VoterElectionController {
     private final PortalAccountRepository portalRepo;
     private final ElectionRepository electionRepo;
     private final VoteCurrentRepository voteCurrentRepo;
+    private final CandidateRepository candidateRepo;
 
     public VoterElectionController(
             PortalAccountRepository portalRepo,
             ElectionRepository electionRepo,
-            VoteCurrentRepository voteCurrentRepo
+            VoteCurrentRepository voteCurrentRepo,
+            CandidateRepository candidateRepo
     ) {
         this.portalRepo = portalRepo;
         this.electionRepo = electionRepo;
         this.voteCurrentRepo = voteCurrentRepo;
+        this.candidateRepo = candidateRepo;
     }
 
     @GetMapping
@@ -44,27 +49,46 @@ public class VoterElectionController {
         boolean identityLinked = (citizenId != null);
 
         var now = Instant.now();
+        var elections = electionRepo.findAllByOrderByStartsAtDesc();
 
-        return electionRepo.findAllByOrderByStartsAtDesc().stream()
+        // ★ 候補名Map（candidateId -> name）
+        // electionsが0件の時の無駄クエリ回避もしておく
+        Map<UUID, String> candidateNameById = Collections.emptyMap();
+        if (!elections.isEmpty()) {
+            var electionIds = elections.stream().map(e -> e.getId()).toList();
+
+            candidateNameById = candidateRepo.findByElectionIdIn(electionIds).stream()
+                    .collect(Collectors.toMap(
+                            c -> c.getId(),
+                            c -> c.getName(),
+                            (a, b) -> a
+                    ));
+
+            // デバッグしたいなら一時的にログ（必要なら）
+            System.out.println("[DEMO] candidateNameById size=" + candidateNameById.size());
+        }
+
+        Map<UUID, String> finalCandidateNameById = candidateNameById;
+
+        return elections.stream()
                 .map(e -> {
-                    // status
                     String status;
                     if (now.isBefore(e.getStartsAt())) status = "UPCOMING";
                     else if (now.isAfter(e.getEndsAt())) status = "ENDED";
                     else status = "ONGOING";
 
-                    // canCast（再投票OK）
                     boolean canCast = identityLinked && "ONGOING".equals(status);
 
-                    // currentVote（未本人認証なら常にnull）
                     VoterElectionListItem.CurrentVote currentVote = null;
                     if (identityLinked) {
                         var curOpt = voteCurrentRepo.findByElectionIdAndCitizenId(e.getId(), citizenId);
                         if (curOpt.isPresent()) {
                             var cur = curOpt.get();
+                            var cid = cur.getCandidateId();
+
                             currentVote = new VoterElectionListItem.CurrentVote(
-                                    cur.getCandidateId(),
-                                    null,               // joinしない方針
+                                    cid,
+                                    finalCandidateNameById.get(cid), // ★ここで埋める
                                     cur.getCastedAt()
                             );
                         }

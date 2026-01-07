@@ -8,8 +8,8 @@ import org.springframework.data.repository.query.Param;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
-
 public interface ElectionRepository extends JpaRepository<Election, UUID> {
+    int deleteByTitleStartingWith(String prefix);
 
     @Query("""
         select (count(e) > 0)

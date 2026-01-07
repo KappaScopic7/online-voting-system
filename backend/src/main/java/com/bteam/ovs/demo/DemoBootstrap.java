@@ -6,11 +6,12 @@ import com.bteam.ovs.elections.repo.CandidateRepository;
 import com.bteam.ovs.elections.repo.ElectionRepository;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.*;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.UUID;
 
 @Profile("demo")
 @Configuration
@@ -19,14 +20,13 @@ public class DemoBootstrap {
     @Bean
     CommandLineRunner demoInit(
             ElectionRepository electionRepo,
-            CandidateRepository candidateRepo
+            CandidateRepository candidateRepo,
+            TransactionTemplate tx
     ) {
-        return args -> init(electionRepo, candidateRepo);
+        return args -> tx.executeWithoutResult(status -> init(electionRepo, candidateRepo));
     }
 
-    @Transactional
     void init(ElectionRepository electionRepo, CandidateRepository candidateRepo) {
-        // ここが「生成の全体像」になるようにログを置く（実務向け）
         System.out.println("""
             [DEMO] Bootstrap start
             - DB server: docker-compose (postgres)
@@ -36,43 +36,26 @@ public class DemoBootstrap {
 
         var now = Instant.now();
 
-        // 「投票可能(ONGOING)が1件も無ければ作る」
-        boolean hasOngoing = electionRepo.existsOngoing(now);
-        if (!hasOngoing) {
-            String title = "デモ選挙 " + LocalDate.now();
+        // ★デモ選挙だけ掃除（本物のデータを消さない）
+        int deleted = electionRepo.deleteByTitleStartingWith("デモ選挙 ");
+        System.out.println("[DEMO] Deleted demo elections: " + deleted);
 
-            var e = new Election();
-            e.setTitle(title);
-            e.setStartsAt(now.minusSeconds(3600));        // 1時間前
-            e.setEndsAt(now.plusSeconds(3600 * 24));      // 24時間後
-            electionRepo.save(e);
+        // ★毎回新規作成
+        String title = "デモ選挙 " + LocalDate.now() + " " + now.toString();
 
-            upsertCandidates(candidateRepo, e.getId(), List.of("候補A", "候補B"));
-            System.out.println("[DEMO] Created election: " + e.getId() + " " + title);
-        } else {
-            System.out.println("[DEMO] Ongoing election exists. Skip creation.");
-        }
+        var e = new Election();
+        e.setTitle(title);
+        e.setStartsAt(now.minusSeconds(60));          // 1分前開始
+        e.setEndsAt(now.plusSeconds(3600 * 24));      // 24時間後
+        electionRepo.save(e);
+
+        createCandidates(candidateRepo, e.getId(), List.of("候補A", "候補B"));
+        System.out.println("[DEMO] Created election: " + e.getId() + " " + title);
 
         System.out.println("[DEMO] Bootstrap end");
-
-        System.out.println("[DEMO] now=" + now);
-
-        var ongoing = electionRepo.findOngoing(now); // これ作る（下）
-        System.out.println("[DEMO] ongoing count=" + ongoing.size());
-        ongoing.forEach(e ->
-            System.out.println("[DEMO] ongoing: id=" + e.getId()
-                + " startsAt=" + e.getStartsAt()
-                + " endsAt=" + e.getEndsAt())
-        );
-
-
     }
 
-    private void upsertCandidates(CandidateRepository candidateRepo, java.util.UUID electionId, List<String> names) {
-        // 「同じ選挙IDに候補が存在しないなら作る」くらいでOK
-        var existing = candidateRepo.findByElectionId(electionId);
-        if (!existing.isEmpty()) return;
-
+    private void createCandidates(CandidateRepository candidateRepo, UUID electionId, List<String> names) {
         for (var name : names) {
             var c = new Candidate();
             c.setElectionId(electionId);
