@@ -28,6 +28,7 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 // login/register は開放
                 .requestMatchers("/api/auth/voter/register", "/api/auth/voter/login").permitAll()
+                .requestMatchers("/api/public/**").permitAll()
 
                 // voter APIはVOTER必須
                 .requestMatchers("/api/voter/**").hasRole("VOTER")

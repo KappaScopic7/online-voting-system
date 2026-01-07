@@ -4,7 +4,7 @@ import com.bteam.ovs.auth.repo.PortalAccountRepository;
 import com.bteam.ovs.elections.repo.ElectionRepository;
 import com.bteam.ovs.elections.web.dto.ElectionListItem;
 import com.bteam.ovs.shared.errors.ApiException;
-import com.bteam.ovs.voting.repo.VoteRepository;
+import com.bteam.ovs.voting.repo.VoteCurrentRepository;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
@@ -19,16 +19,16 @@ public class VoterElectionController {
 
     private final PortalAccountRepository portalRepo;
     private final ElectionRepository electionRepo;
-    private final VoteRepository voteRepo;
+    private final VoteCurrentRepository voteCurrentRepo;
 
     public VoterElectionController(
             PortalAccountRepository portalRepo,
             ElectionRepository electionRepo,
-            VoteRepository voteRepo
+            VoteCurrentRepository voteCurrentRepo
     ) {
         this.portalRepo = portalRepo;
         this.electionRepo = electionRepo;
-        this.voteRepo = voteRepo;
+        this.voteCurrentRepo = voteCurrentRepo;
     }
 
     @GetMapping
@@ -40,17 +40,30 @@ public class VoterElectionController {
         var acc = portalRepo.findByEmail(auth.getName())
                 .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "未ログインです"));
 
-        if (acc.getCitizenId() == null) {
-            throw new ApiException(HttpStatus.FORBIDDEN, "IDENTITY_NOT_LINKED", "本人認証が完了していません");
-        }
+        boolean identityLinked = (acc.getCitizenId() != null);
 
         var now = Instant.now();
-        return electionRepo.findAll().stream()
+        return electionRepo.findAllByOrderByStartsAtDesc().stream()
                 .map(e -> {
                     boolean withinPeriod = !now.isBefore(e.getStartsAt()) && now.isBefore(e.getEndsAt());
-                    boolean alreadyVoted = voteRepo.findByElectionIdAndCitizenId(e.getId(), acc.getCitizenId()).isPresent();
-                    boolean canVote = withinPeriod && !alreadyVoted;
-                    return new ElectionListItem(e.getId(), e.getTitle(), e.getStartsAt(), e.getEndsAt(), canVote, alreadyVoted);
+
+                    // VoteCurrent がある = 現在票が存在する（再投票モデル）
+                    boolean hasCurrentVote = false;
+                    if (identityLinked) {
+                        hasCurrentVote = voteCurrentRepo.existsByElectionIdAndCitizenId(e.getId(), acc.getCitizenId());
+                    }
+
+                    // 再投票OK：本人認証済み & 期間内なら投票(変更)可能
+                    boolean canCast = identityLinked && withinPeriod;
+
+                    return new ElectionListItem(
+                            e.getId(),
+                            e.getTitle(),
+                            e.getStartsAt(),
+                            e.getEndsAt(),
+                            canCast,
+                            hasCurrentVote
+                    );
                 })
                 .toList();
     }

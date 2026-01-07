@@ -6,17 +6,14 @@ import java.util.UUID;
 
 @Entity
 @Table(
-    name = "vote",
-    uniqueConstraints = @UniqueConstraint(
-        name = "uk_vote_election_citizen",
-        columnNames = {"election_id", "citizen_id"}
-    ),
+    name = "vote_cast",
     indexes = {
-        @Index(name = "ix_vote_election_id", columnList = "election_id"),
-        @Index(name = "ix_vote_citizen_id", columnList = "citizen_id")
+        @Index(name = "ix_vote_cast_election_id", columnList = "election_id"),
+        @Index(name = "ix_vote_cast_citizen_id", columnList = "citizen_id"),
+        @Index(name = "ix_vote_cast_election_citizen", columnList = "election_id, citizen_id")
     }
 )
-public class Vote {
+public class VoteCast {
 
     @Id
     @Column(columnDefinition = "uuid")

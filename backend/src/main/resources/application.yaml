@@ -20,3 +20,8 @@ security:
     jwt:
         secret: "change-this-to-a-long-random-secret-key-1234567890"
         expiration-minutes: 120
+
+logging:
+    level:
+        "[org.springframework.security]": DEBUG
+        "[com.bteam.ovs.auth.security.JwtAuthenticationFilter]": DEBUG

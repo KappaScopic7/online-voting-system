@@ -6,19 +6,19 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "election")
-public class ElectionEntity {
+public class Election {
 
     @Id
     @Column(columnDefinition = "uuid")
     private UUID id;
 
-    @Column(nullable = false, length = 200)
+    @Column(nullable = false)
     private String title;
 
-    @Column(name = "starts_at", nullable = false)
+    @Column(name = "starts_at", nullable = false, columnDefinition = "timestamptz")
     private Instant startsAt;
 
-    @Column(name = "ends_at", nullable = false)
+    @Column(name = "ends_at", nullable = false, columnDefinition = "timestamptz")
     private Instant endsAt;
 
     @PrePersist

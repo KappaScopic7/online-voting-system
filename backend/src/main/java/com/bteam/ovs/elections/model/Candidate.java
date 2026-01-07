@@ -6,7 +6,7 @@ import java.util.UUID;
 @Entity
 @Table(name = "candidate",
         indexes = @Index(name = "ix_candidate_election_id", columnList = "election_id"))
-public class CandidateEntity {
+public class Candidate {
 
     @Id
     @Column(columnDefinition = "uuid")

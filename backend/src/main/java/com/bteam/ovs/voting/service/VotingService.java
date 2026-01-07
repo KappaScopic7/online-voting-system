@@ -4,8 +4,10 @@ import com.bteam.ovs.auth.repo.PortalAccountRepository;
 import com.bteam.ovs.elections.repo.CandidateRepository;
 import com.bteam.ovs.elections.repo.ElectionRepository;
 import com.bteam.ovs.shared.errors.ApiException;
-import com.bteam.ovs.voting.model.Vote;
-import com.bteam.ovs.voting.repo.VoteRepository;
+import com.bteam.ovs.voting.model.VoteCast;
+import com.bteam.ovs.voting.model.VoteCurrent;
+import com.bteam.ovs.voting.repo.VoteCastRepository;
+import com.bteam.ovs.voting.repo.VoteCurrentRepository;
 import com.bteam.ovs.voting.web.dto.VoteHistoryItem;
 import com.bteam.ovs.voting.web.dto.VoteStartResponse;
 
@@ -13,12 +15,11 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
-import java.util.function.Function;
-import java.util.stream.Collectors;
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
-
-import java.time.Instant;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 public class VotingService {
@@ -26,18 +27,21 @@ public class VotingService {
     private final PortalAccountRepository portalRepo;
     private final ElectionRepository electionRepo;
     private final CandidateRepository candidateRepo;
-    private final VoteRepository voteRepo;
+    private final VoteCastRepository voteCastRepo;
+    private final VoteCurrentRepository voteCurrentRepo;
 
     public VotingService(
             PortalAccountRepository portalRepo,
             ElectionRepository electionRepo,
             CandidateRepository candidateRepo,
-            VoteRepository voteRepo
+            VoteCastRepository voteCastRepo,
+            VoteCurrentRepository voteCurrentRepo
     ) {
         this.portalRepo = portalRepo;
         this.electionRepo = electionRepo;
         this.candidateRepo = candidateRepo;
-        this.voteRepo = voteRepo;
+        this.voteCastRepo = voteCastRepo;
+        this.voteCurrentRepo = voteCurrentRepo;
     }
 
     public VoteStartResponse start(String voterEmail, UUID electionId) {
@@ -58,6 +62,7 @@ public class VotingService {
         return new VoteStartResponse(election.getId(), election.getTitle(), candidates);
     }
 
+    @org.springframework.transaction.annotation.Transactional
     public VoteHistoryItem confirm(String voterEmail, UUID electionId, UUID candidateId) {
         var acc = portalRepo.findByEmail(voterEmail)
                 .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "未ログインです"));
@@ -66,45 +71,63 @@ public class VotingService {
             throw new ApiException(HttpStatus.FORBIDDEN, "IDENTITY_NOT_LINKED", "本人認証が完了していません");
         }
 
-        // 選挙存在
         var election = electionRepo.findById(electionId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "ELECTION_NOT_FOUND", "選挙が存在しません"));
 
-        // 候補がその選挙の候補かチェック（重要）
+        var now = Instant.now();
+        boolean withinPeriod = !now.isBefore(election.getStartsAt()) && now.isBefore(election.getEndsAt());
+        if (!withinPeriod) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "ELECTION_NOT_ONGOING", "投票可能期間外です");
+        }
+
         if (!candidateRepo.existsByIdAndElectionId(candidateId, electionId)) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_CANDIDATE", "候補が不正です");
         }
 
-        // 候補情報（完了画面用に名前が必要）
         var candidate = candidateRepo.findById(candidateId)
                 .orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST, "INVALID_CANDIDATE", "候補が不正です"));
 
-        // 二重投票チェック
-        if (voteRepo.findByElectionIdAndCitizenId(electionId, acc.getCitizenId()).isPresent()) {
-            throw new ApiException(HttpStatus.CONFLICT, "ALREADY_VOTED", "既に投票済みです");
-        }
+        // ===== 1) 履歴：追記 =====
+        var cast = new VoteCast();
+        cast.setElectionId(electionId);
+        cast.setCitizenId(acc.getCitizenId());
+        cast.setCandidateId(candidateId);
+        cast.setCastedAt(now);
+        voteCastRepo.save(cast);
 
-        var v = new Vote();
-        v.setElectionId(electionId);
-        v.setCitizenId(acc.getCitizenId());
-        v.setCandidateId(candidateId);
-        v.setCastedAt(Instant.now());
+        // ===== 2) 最新：upsert =====
+        var current = voteCurrentRepo.findByElectionIdAndCitizenId(electionId, acc.getCitizenId())
+                .orElseGet(() -> {
+                    var v = new VoteCurrent();
+                    v.setElectionId(electionId);
+                    v.setCitizenId(acc.getCitizenId());
+                    return v;
+                });
+
+        current.setCandidateId(candidateId);
+        current.setCastedAt(now);
 
         try {
-            var saved = voteRepo.save(v);
-
-            return new VoteHistoryItem(
-                    saved.getId(),
-                    election.getId(),
-                    election.getTitle(),
-                    candidate.getId(),
-                    candidate.getName(),
-                    saved.getCastedAt()
-            );
-
+            voteCurrentRepo.save(current);
         } catch (DataIntegrityViolationException ex) {
-            throw new ApiException(HttpStatus.CONFLICT, "ALREADY_VOTED", "既に投票済みです");
+            // 同時リクエスト等で insert がPK衝突する可能性があるため、取り直して update
+            var retry = voteCurrentRepo.findByElectionIdAndCitizenId(electionId, acc.getCitizenId())
+                    .orElseThrow(() -> ex);
+
+            retry.setCandidateId(candidateId);
+            retry.setCastedAt(now);
+            voteCurrentRepo.save(retry);
         }
+
+        // 完了画面：履歴側のIDで返す（cast）
+        return new VoteHistoryItem(
+                cast.getId(),
+                election.getId(),
+                election.getTitle(),
+                candidate.getId(),
+                candidate.getName(),
+                now
+        );
     }
 
     public List<VoteHistoryItem> history(String voterEmail) {
@@ -115,12 +138,11 @@ public class VotingService {
             throw new ApiException(HttpStatus.FORBIDDEN, "IDENTITY_NOT_LINKED", "本人認証が完了していません");
         }
 
-        var votes = voteRepo.findByCitizenIdOrderByCastedAtDesc(acc.getCitizenId());
+        var votes = voteCastRepo.findByCitizenIdOrderByCastedAtDesc(acc.getCitizenId());
         if (votes.isEmpty()) return List.of();
 
-        // N+1回避：IDをまとめて引く
-        var electionIds = votes.stream().map(Vote::getElectionId).collect(Collectors.toSet());
-        var candidateIds = votes.stream().map(Vote::getCandidateId).collect(Collectors.toSet());
+        var electionIds = votes.stream().map(VoteCast::getElectionId).collect(Collectors.toSet());
+        var candidateIds = votes.stream().map(VoteCast::getCandidateId).collect(Collectors.toSet());
 
         var elections = electionRepo.findAllById(electionIds).stream()
                 .collect(Collectors.toMap(e -> e.getId(), Function.identity()));
