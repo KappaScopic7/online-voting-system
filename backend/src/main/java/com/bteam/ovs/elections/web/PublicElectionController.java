@@ -36,7 +36,6 @@ public class PublicElectionController {
     @GetMapping
     public List<PublicElectionListItem> list() {
         var now = Instant.now();
-
         var elections = electionRepo.findAllByOrderByStartsAtDesc();
 
         return elections.stream()
@@ -48,13 +47,16 @@ public class PublicElectionController {
 
                     boolean hasResult = "ENDED".equals(status);
 
+                    int candidateCount = candidateRepo.findByElectionId(e.getId()).size();
+
                     return new PublicElectionListItem(
                             e.getId(),
                             e.getTitle(),
                             e.getStartsAt(),
                             e.getEndsAt(),
                             status,
-                            hasResult
+                            hasResult,
+                            candidateCount
                     );
                 })
                 .toList();
@@ -99,7 +101,15 @@ public class PublicElectionController {
                 ))
                 .sorted((a, b) -> Long.compare(b.votes(), a.votes()))
                 .toList();
+        var talliedAt = Instant.now();
 
-        return new PublicElectionResultResponse(election.getId(), election.getTitle(), totalVotes, results);
+        return new PublicElectionResultResponse(
+                election.getId(),
+                election.getTitle(),
+                "CURRENT",
+                totalVotes,
+                talliedAt,
+                results
+        );
     }
 }

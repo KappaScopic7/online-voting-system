@@ -4,10 +4,11 @@ import java.time.Instant;
 import java.util.UUID;
 
 public record PublicElectionListItem(
-        UUID electionId,
-        String title,
-        Instant startsAt,
-        Instant endsAt,
-        String status,   // "UPCOMING" | "ONGOING" | "ENDED"
-        boolean hasResult
+    UUID electionId,
+    String title,
+    Instant startsAt,
+    Instant endsAt,
+    String status,
+    boolean hasResult,
+    int candidateCount
 ) {}
