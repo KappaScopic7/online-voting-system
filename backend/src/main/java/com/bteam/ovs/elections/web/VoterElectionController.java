@@ -16,7 +16,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 @RestController
-@RequestMapping("/api/voter/elections")
+@RequestMapping("/api/elections")
 public class VoterElectionController {
 
     private final PortalAccountRepository portalRepo;

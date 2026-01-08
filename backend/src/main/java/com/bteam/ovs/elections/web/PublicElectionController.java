@@ -16,7 +16,7 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/public/elections")
+@RequestMapping("/api/elections")
 public class PublicElectionController {
 
     private final ElectionRepository electionRepo;
