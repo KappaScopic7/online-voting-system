@@ -32,7 +32,6 @@ public class VotingController {
         return votingService.start(auth.getName(), eid);
     }
 
-    // ★ ここを変更：VoteHistoryItem を返す（200 OK）
     @PostMapping("/confirm")
     public VoteHistoryItem confirm(@Valid @RequestBody VoteConfirmRequest req, Authentication auth) {
         if (auth == null || auth.getName() == null) {

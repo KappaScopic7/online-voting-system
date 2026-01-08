@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/voter/identity")
+@RequestMapping("/api/identity")
 public class VoterIdentityController {
 
     private final PortalAccountRepository portalRepo;
