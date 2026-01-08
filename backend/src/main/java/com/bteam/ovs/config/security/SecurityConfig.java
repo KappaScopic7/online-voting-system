@@ -55,14 +55,14 @@ public class SecurityConfig {
             .csrf(csrf -> csrf.disable())
             .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
-
-                // ★超重要：プリフライト(OPTIONS)を全開放
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                .requestMatchers("/error").permitAll()
 
                 .requestMatchers("/api/auth/register", "/api/auth/login").permitAll()
-                .requestMatchers("/api/public/**").permitAll()
-                .requestMatchers("/api/voter/**").hasRole("VOTER")
                 .requestMatchers("/api/elections/**").permitAll()
+
+                .requestMatchers("/api/votes/**").hasRole("VOTER")
+
                 .anyRequest().authenticated()
             )
             .addFilterBefore(new JwtAuthenticationFilter(jwtService), UsernamePasswordAuthenticationFilter.class)
