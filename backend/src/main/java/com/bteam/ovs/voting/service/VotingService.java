@@ -14,6 +14,7 @@ import com.bteam.ovs.voting.web.dto.VoteStartResponse;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.List;
@@ -44,8 +45,8 @@ public class VotingService {
         this.voteCurrentRepo = voteCurrentRepo;
     }
 
-    public VoteStartResponse start(String voterEmail, UUID electionId) {
-        var acc = portalRepo.findByEmail(voterEmail)
+    public VoteStartResponse start(UUID accountId, UUID electionId) {
+        var acc = portalRepo.findById(accountId)
                 .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "未ログインです"));
 
         if (acc.getCitizenId() == null) {
@@ -62,9 +63,9 @@ public class VotingService {
         return new VoteStartResponse(election.getId(), election.getTitle(), candidates);
     }
 
-    @org.springframework.transaction.annotation.Transactional
-    public VoteHistoryItem confirm(String voterEmail, UUID electionId, UUID candidateId) {
-        var acc = portalRepo.findByEmail(voterEmail)
+    @Transactional
+    public VoteHistoryItem confirm(UUID accountId, UUID electionId, UUID candidateId) {
+        var acc = portalRepo.findById(accountId)
                 .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "未ログインです"));
 
         if (acc.getCitizenId() == null) {
@@ -87,20 +88,22 @@ public class VotingService {
         var candidate = candidateRepo.findById(candidateId)
                 .orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST, "INVALID_CANDIDATE", "候補が不正です"));
 
+        UUID citizenId = acc.getCitizenId();
+
         // ===== 1) 履歴：追記 =====
         var cast = new VoteCast();
         cast.setElectionId(electionId);
-        cast.setCitizenId(acc.getCitizenId());
+        cast.setCitizenId(citizenId);
         cast.setCandidateId(candidateId);
         cast.setCastedAt(now);
         voteCastRepo.save(cast);
 
         // ===== 2) 最新：upsert =====
-        var current = voteCurrentRepo.findByElectionIdAndCitizenId(electionId, acc.getCitizenId())
+        var current = voteCurrentRepo.findByElectionIdAndCitizenId(electionId, citizenId)
                 .orElseGet(() -> {
                     var v = new VoteCurrent();
                     v.setElectionId(electionId);
-                    v.setCitizenId(acc.getCitizenId());
+                    v.setCitizenId(citizenId);
                     return v;
                 });
 
@@ -111,7 +114,7 @@ public class VotingService {
             voteCurrentRepo.save(current);
         } catch (DataIntegrityViolationException ex) {
             // 同時リクエスト等で insert がPK衝突する可能性があるため、取り直して update
-            var retry = voteCurrentRepo.findByElectionIdAndCitizenId(electionId, acc.getCitizenId())
+            var retry = voteCurrentRepo.findByElectionIdAndCitizenId(electionId, citizenId)
                     .orElseThrow(() -> ex);
 
             retry.setCandidateId(candidateId);
@@ -119,7 +122,6 @@ public class VotingService {
             voteCurrentRepo.save(retry);
         }
 
-        // 完了画面：履歴側のIDで返す（cast）
         return new VoteHistoryItem(
                 cast.getId(),
                 election.getId(),
@@ -130,8 +132,8 @@ public class VotingService {
         );
     }
 
-    public List<VoteHistoryItem> history(String voterEmail) {
-        var acc = portalRepo.findByEmail(voterEmail)
+    public List<VoteHistoryItem> history(UUID accountId) {
+        var acc = portalRepo.findById(accountId)
                 .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "未ログインです"));
 
         if (acc.getCitizenId() == null) {

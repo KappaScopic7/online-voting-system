@@ -28,8 +28,22 @@ public class VotingController {
         if (auth == null || auth.getName() == null) {
             throw new ApiException(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "未ログインです");
         }
-        UUID eid = UUID.fromString(electionId);
-        return votingService.start(auth.getName(), eid);
+
+        UUID accountId;
+        try {
+            accountId = UUID.fromString(auth.getName()); // principal=aid(UUID文字列)
+        } catch (IllegalArgumentException ex) {
+            throw new ApiException(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "未ログインです");
+        }
+
+        UUID eid;
+        try {
+            eid = UUID.fromString(electionId);
+        } catch (IllegalArgumentException ex) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_ELECTION_ID", "electionIdが不正です");
+        }
+
+        return votingService.start(accountId, eid);
     }
 
     @PostMapping("/confirm")
@@ -38,10 +52,27 @@ public class VotingController {
             throw new ApiException(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "未ログインです");
         }
 
-        return votingService.confirm(
-                auth.getName(),
-                UUID.fromString(req.electionId()),
-                UUID.fromString(req.candidateId())
-        );
+        UUID accountId;
+        try {
+            accountId = UUID.fromString(auth.getName());
+        } catch (IllegalArgumentException ex) {
+            throw new ApiException(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "未ログインです");
+        }
+
+        UUID electionId;
+        try {
+            electionId = UUID.fromString(req.electionId());
+        } catch (IllegalArgumentException ex) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_ELECTION_ID", "electionIdが不正です");
+        }
+
+        UUID candidateId;
+        try {
+            candidateId = UUID.fromString(req.candidateId());
+        } catch (IllegalArgumentException ex) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_CANDIDATE_ID", "candidateIdが不正です");
+        }
+
+        return votingService.confirm(accountId, electionId, candidateId);
     }
 }

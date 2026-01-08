@@ -12,7 +12,7 @@ public class Election {
     @Column(columnDefinition = "uuid")
     private UUID id;
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 200)
     private String title;
 
     @Column(name = "starts_at", nullable = false, columnDefinition = "timestamptz")

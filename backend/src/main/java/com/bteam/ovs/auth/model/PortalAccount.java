@@ -1,7 +1,6 @@
 package com.bteam.ovs.auth.model;
 
 import jakarta.persistence.*;
-
 import java.time.Instant;
 import java.util.UUID;
 
@@ -51,7 +50,6 @@ public class PortalAccount {
         if (createdAt == null) createdAt = now;
         updatedAt = now;
         if (role == null) role = Role.VOTER;
-        // emailVerified/enabled/locked は作成側で明示するのが望ましい
     }
 
     @PreUpdate
@@ -59,7 +57,6 @@ public class PortalAccount {
         updatedAt = Instant.now();
     }
 
-    // getter/setter（Lombok使うなら @Getter @Setter でOK）
     public UUID getId() { return id; }
     public void setId(UUID id) { this.id = id; }
     public String getEmail() { return email; }

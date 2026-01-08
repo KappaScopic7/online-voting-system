@@ -4,8 +4,18 @@ import jakarta.persistence.*;
 import java.util.UUID;
 
 @Entity
-@Table(name = "candidate",
-        indexes = @Index(name = "ix_candidate_election_id", columnList = "election_id"))
+@Table(
+        name = "candidate",
+        indexes = {
+                @Index(name = "ix_candidate_election_id", columnList = "election_id")
+        },
+        uniqueConstraints = {
+                @UniqueConstraint(
+                        name = "uk_candidate_election_id_name",
+                        columnNames = {"election_id", "name"}
+                )
+        }
+)
 public class Candidate {
 
     @Id

@@ -14,6 +14,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
@@ -42,14 +43,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     .getBody();
 
             String role = claims.get("role", String.class);
+            String aid = claims.get("aid", String.class);
+            String kind = claims.get("kind", String.class);
+
             var authorities = List.of(new SimpleGrantedAuthority("ROLE_" + role));
 
-            // principal はメール、必要なら details に accountId を詰める
-            var authentication = new UsernamePasswordAuthenticationToken(claims.getSubject(), null, authorities);
+            var authentication = new UsernamePasswordAuthenticationToken(aid, null, authorities);
+            authentication.setDetails(Map.of("kind", kind, "sub", claims.getSubject()));
             SecurityContextHolder.getContext().setAuthentication(authentication);
 
         } catch (JwtException ex) {
-            // 無効トークンは未認証扱いで落とす（401は後段で）
             SecurityContextHolder.clearContext();
         }
 

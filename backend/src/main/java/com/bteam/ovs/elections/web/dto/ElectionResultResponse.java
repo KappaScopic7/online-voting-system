@@ -4,7 +4,7 @@ import java.util.List;
 import java.util.UUID;
 import java.time.Instant;
 
-public record PublicElectionResultResponse(
+public record ElectionResultResponse(
         UUID electionId,
         String title,
         String countingMethod, // "CURRENT" 固定（VoteCurrent集計）

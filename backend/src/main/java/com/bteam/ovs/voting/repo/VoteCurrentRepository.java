@@ -30,8 +30,8 @@ public interface VoteCurrentRepository extends JpaRepository<VoteCurrent, VoteCu
         long getCnt();
     }
 
-    List<com.bteam.ovs.voting.model.VoteCurrent> findByCitizenIdAndElectionIdIn(
-        UUID citizenId,
-        Collection<UUID> electionIds
-);
+    List<VoteCurrent> findByCitizenIdAndElectionIdIn(
+            UUID citizenId,
+            Collection<UUID> electionIds
+    );
 }

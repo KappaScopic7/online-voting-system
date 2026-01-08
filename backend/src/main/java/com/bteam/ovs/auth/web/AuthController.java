@@ -10,6 +10,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.UUID;
+
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
@@ -38,9 +40,15 @@ public class AuthController {
         if (authentication == null || authentication.getName() == null) {
             throw new ApiException(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "未ログインです");
         }
-        String email = authentication.getName();
 
-        var acc = portalRepo.findByEmail(email)
+        UUID accountId;
+        try {
+            accountId = UUID.fromString(authentication.getName()); // principal=aid(UUID文字列)
+        } catch (IllegalArgumentException ex) {
+            throw new ApiException(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "未ログインです");
+        }
+
+        var acc = portalRepo.findById(accountId)
                 .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "未ログインです"));
 
         return new MeResponse(

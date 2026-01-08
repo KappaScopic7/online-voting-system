@@ -5,6 +5,8 @@ import com.bteam.ovs.shared.errors.ApiException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
+import java.util.UUID;
+
 @Service
 public class VoterEligibilityService {
 
@@ -14,8 +16,8 @@ public class VoterEligibilityService {
         this.portalRepo = portalRepo;
     }
 
-    public void assertIdentityLinked(String email) {
-        var acc = portalRepo.findByEmail(email)
+    public void assertIdentityLinked(UUID accountId) {
+        var acc = portalRepo.findById(accountId)
                 .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "未ログインです"));
 
         if (acc.getCitizenId() == null) {

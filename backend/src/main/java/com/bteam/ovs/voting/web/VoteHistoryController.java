@@ -9,6 +9,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/votes")
@@ -25,6 +26,14 @@ public class VoteHistoryController {
         if (auth == null || auth.getName() == null) {
             throw new ApiException(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "未ログインです");
         }
-        return votingService.history(auth.getName());
+
+        UUID accountId;
+        try {
+            accountId = UUID.fromString(auth.getName()); // principal=aid(UUID文字列)
+        } catch (IllegalArgumentException ex) {
+            throw new ApiException(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "未ログインです");
+        }
+
+        return votingService.history(accountId);
     }
 }

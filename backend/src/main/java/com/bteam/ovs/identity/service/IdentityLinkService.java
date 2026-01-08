@@ -18,8 +18,8 @@ public class IdentityLinkService {
     }
 
     @Transactional
-    public void link(String email, UUID citizenId) {
-        var acc = portalRepo.findByEmail(email)
+    public void link(UUID accountId, UUID citizenId) {
+        var acc = portalRepo.findById(accountId)
                 .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "未ログインです"));
 
         if (acc.getCitizenId() != null) {

@@ -1,7 +1,6 @@
 package com.bteam.ovs.auth.model;
 
 import jakarta.persistence.*;
-
 import java.time.Instant;
 import java.util.UUID;
 

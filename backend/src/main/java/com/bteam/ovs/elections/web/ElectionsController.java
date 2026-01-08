@@ -1,142 +1,106 @@
 package com.bteam.ovs.elections.web;
 
-import com.bteam.ovs.auth.repo.PortalAccountRepository;
 import com.bteam.ovs.elections.repo.CandidateRepository;
 import com.bteam.ovs.elections.repo.ElectionRepository;
+import com.bteam.ovs.elections.service.ElectionService;
 import com.bteam.ovs.elections.web.dto.ElectionListItem;
+import com.bteam.ovs.elections.web.dto.CandidateItem;
+import com.bteam.ovs.elections.web.dto.ElectionResultResponse;
+import com.bteam.ovs.shared.errors.ApiException;
 import com.bteam.ovs.voting.repo.VoteCurrentRepository;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.Instant;
-import java.util.*;
+import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/elections")
 public class ElectionsController {
 
+    private final ElectionService electionService;
     private final ElectionRepository electionRepo;
     private final CandidateRepository candidateRepo;
     private final VoteCurrentRepository voteCurrentRepo;
-    private final PortalAccountRepository portalRepo;
 
     public ElectionsController(
+            ElectionService electionService,
             ElectionRepository electionRepo,
             CandidateRepository candidateRepo,
-            VoteCurrentRepository voteCurrentRepo,
-            PortalAccountRepository portalRepo
+            VoteCurrentRepository voteCurrentRepo
     ) {
+        this.electionService = electionService;
         this.electionRepo = electionRepo;
         this.candidateRepo = candidateRepo;
         this.voteCurrentRepo = voteCurrentRepo;
-        this.portalRepo = portalRepo;
     }
 
     @GetMapping
     public List<ElectionListItem> list(Authentication auth) {
-        var now = Instant.now();
+        UUID accountId = null;
 
-        var elections = electionRepo.findAllByOrderByStartsAtDesc();
-        if (elections.isEmpty()) return List.of();
-
-        var electionIds = elections.stream().map(e -> e.getId()).toList();
-
-        // candidateCount を一括集計（あなたが入れたN+1対策を利用）
-        var countMap = candidateRepo.countByElectionIdIn(electionIds).stream()
-                .collect(Collectors.toMap(
-                        CandidateRepository.ElectionCandidateCount::getElectionId,
-                        CandidateRepository.ElectionCandidateCount::getCnt
-                ));
-
-        // 候補名を一括で取っておく（currentVote.candidateName 用）
-        var candidateNameById = candidateRepo.findByElectionIdIn(electionIds).stream()
-                .collect(Collectors.toMap(
-                        c -> c.getId(),
-                        c -> c.getName(),
-                        (a, b) -> a
-                ));
-
-        // ログインしてなければ public 相当で返す
-        if (auth == null || auth.getName() == null) {
-            return elections.stream()
-                    .map(e -> {
-                        String status = statusa(now, e.getStartsAt(), e.getEndsAt());
-                        boolean hasResult = "ENDED".equals(status);
-                        int candidateCount = Math.toIntExact(countMap.getOrDefault(e.getId(), 0L));
-                        return new ElectionListItem(
-                                e.getId(),
-                                e.getTitle(),
-                                e.getStartsAt(),
-                                e.getEndsAt(),
-                                status,
-                                hasResult,
-                                candidateCount,
-                                false,
-                                null
-                        );
-                    })
-                    .toList();
+        if (auth != null && auth.getName() != null) {
+            try {
+                accountId = UUID.fromString(auth.getName()); // principal=aid
+            } catch (IllegalArgumentException ex) {
+                throw new ApiException(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "未ログインです");
+            }
         }
 
-        // ログイン済み → citizenId を取る（無ければ本人リンク未）
-        var accOpt = portalRepo.findByEmail(auth.getName());
-        var citizenId = accOpt.map(a -> a.getCitizenId()).orElse(null);
-        boolean identityLinked = (citizenId != null);
+        return electionService.list(accountId);
+    }
 
-        // 本人リンク済みなら、currentVote を一括で取得（N+1回避）
-        Map<UUID, com.bteam.ovs.voting.model.VoteCurrent> currentByElectionId = Map.of();
-        if (identityLinked) {
-            currentByElectionId = voteCurrentRepo.findByCitizenIdAndElectionIdIn(citizenId, electionIds).stream()
-                    .collect(Collectors.toMap(
-                            v -> v.getElectionId(),
-                            v -> v,
-                            (a, b) -> a
-                    ));
+    @GetMapping("/{electionId}/candidates")
+    public List<CandidateItem> candidates(@PathVariable UUID electionId) {
+        if (!electionRepo.existsById(electionId)) {
+            throw new ApiException(HttpStatus.NOT_FOUND, "ELECTION_NOT_FOUND", "選挙が存在しません");
         }
 
-        var finalCurrentByElectionId = currentByElectionId;
-
-        return elections.stream()
-                .map(e -> {
-                    String status = statusa(now, e.getStartsAt(), e.getEndsAt());
-                    boolean hasResult = "ENDED".equals(status);
-                    int candidateCount = Math.toIntExact(countMap.getOrDefault(e.getId(), 0L));
-
-                    boolean canCast = identityLinked && "ONGOING".equals(status);
-
-                    ElectionListItem.CurrentVote currentVote = null;
-                    if (identityLinked) {
-                        var cur = finalCurrentByElectionId.get(e.getId());
-                        if (cur != null) {
-                            var cid = cur.getCandidateId();
-                            currentVote = new ElectionListItem.CurrentVote(
-                                    cid,
-                                    candidateNameById.get(cid),
-                                    cur.getCastedAt()
-                            );
-                        }
-                    }
-
-                    return new ElectionListItem(
-                            e.getId(),
-                            e.getTitle(),
-                            e.getStartsAt(),
-                            e.getEndsAt(),
-                            status,
-                            hasResult,
-                            candidateCount,
-                            canCast,
-                            currentVote
-                    );
-                })
+        return candidateRepo.findByElectionId(electionId).stream()
+                .map(c -> new CandidateItem(c.getId(), c.getName()))
                 .toList();
     }
 
-    private static String statusa(Instant now, Instant startsAt, Instant endsAt) {
-        if (now.isBefore(startsAt)) return "UPCOMING";
-        if (now.isAfter(endsAt)) return "ENDED";
-        return "ONGOING";
+    @GetMapping("/{electionId}/result")
+    public ElectionResultResponse result(@PathVariable UUID electionId) {
+        var election = electionRepo.findById(electionId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "ELECTION_NOT_FOUND", "選挙が存在しません"));
+
+        var now = Instant.now();
+        if (now.isBefore(election.getEndsAt())) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "RESULT_NOT_AVAILABLE", "結果は選挙終了後に公開されます");
+        }
+
+        var candidates = candidateRepo.findByElectionId(electionId);
+
+        var countMap = voteCurrentRepo.countByElectionGroupByCandidate(electionId).stream()
+                .collect(Collectors.toMap(
+                        VoteCurrentRepository.VoteCount::getCandidateId,
+                        VoteCurrentRepository.VoteCount::getCnt
+                ));
+
+        long totalVotes = countMap.values().stream().mapToLong(Long::longValue).sum();
+
+        var results = candidates.stream()
+                .map(c -> new ElectionResultResponse.CandidateResult(
+                        c.getId(),
+                        c.getName(),
+                        countMap.getOrDefault(c.getId(), 0L)
+                ))
+                .sorted((a, b) -> Long.compare(b.votes(), a.votes()))
+                .toList();
+
+        return new ElectionResultResponse(
+                election.getId(),
+                election.getTitle(),
+                "CURRENT",
+                totalVotes,
+                now,
+                results
+        );
     }
 }

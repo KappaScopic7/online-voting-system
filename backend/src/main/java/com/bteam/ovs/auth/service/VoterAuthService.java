@@ -13,8 +13,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.time.Instant;
-
 @Service
 public class VoterAuthService {
 
@@ -43,9 +41,8 @@ public class VoterAuthService {
         e.setEnabled(true);
         e.setLocked(false);
         e.setCitizenId(null);
-        e.setCreatedAt(Instant.now());
-        e.setUpdatedAt(Instant.now());
 
+        // createdAt/updatedAt は Entity の @PrePersist/@PreUpdate に任せる
         portalRepo.save(e);
 
         // (UC_02): 認証メール送信（token発行→メール→verify API）
@@ -68,7 +65,13 @@ public class VoterAuthService {
             throw new ApiException(HttpStatus.UNAUTHORIZED, "INVALID_CREDENTIALS", "IDまたはパスワードが違います");
         }
 
-        String token = jwtService.issueAccessToken(account.getId(), account.getEmail(), account.getRole());
+        String token = jwtService.issueAccessToken(
+                account.getId(),
+                account.getEmail(),
+                account.getRole(),
+                JwtService.AccountKind.PORTAL
+        );
+
         return new TokenResponse(token, "Bearer", jwtService.expiresInSeconds(), account.getRole().name());
     }
 
