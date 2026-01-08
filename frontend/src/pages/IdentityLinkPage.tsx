@@ -16,7 +16,7 @@ export function IdentityLinkPage() {
     try {
       await http.post("/api/voter/identity/link", { citizenId });
       await refreshMe();
-      nav("/voter");
+      nav("/");
     } catch (err: any) {
       setMsg(err?.response?.data?.message ?? "Link failed");
     }

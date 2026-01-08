@@ -18,7 +18,7 @@ export function LoginPage() {
       const token = await login(email, password);
       setAccessToken(token.accessToken);
       await refreshMe();
-      nav("/voter");
+      nav("/");
     } catch (err: any) {
       setMsg(err?.response?.data?.message ?? "Login failed");
     }
