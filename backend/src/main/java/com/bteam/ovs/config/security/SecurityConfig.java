@@ -59,7 +59,7 @@ public class SecurityConfig {
                 // ★超重要：プリフライト(OPTIONS)を全開放
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
-                .requestMatchers("/api/auth/voter/register", "/api/auth/voter/login").permitAll()
+                .requestMatchers("/api/auth/register", "/api/auth/login").permitAll()
                 .requestMatchers("/api/public/**").permitAll()
                 .requestMatchers("/api/voter/**").hasRole("VOTER")
                 .requestMatchers("/api/elections/**").permitAll()
