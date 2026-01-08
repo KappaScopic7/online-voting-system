@@ -86,8 +86,8 @@ export function VoterHomePage() {
         <div style={{ fontSize: 12, opacity: 0.75 }}>{headerNote}</div>
 
         <div style={{ display: "flex", gap: 12 }}>
-          <Link to="/voter/identity/link">Link Identity</Link>
-          <Link to="/voter/votes">Vote History</Link>
+          <Link to="/identity/link">Link Identity</Link>
+          <Link to="/votes">Vote History</Link>
           <button onClick={load}>Reload</button>
           <button onClick={logout} style={{ marginLeft: "auto" }}>
             Logout
@@ -159,12 +159,12 @@ export function VoterHomePage() {
               </div>
 
               <div style={{ display: "flex", gap: 12, marginTop: 6 }}>
-                <Link to={`/public/elections/${e.electionId}/candidates`}>
+                <Link to={`/elections/${e.electionId}/candidates`}>
                   候補者（公開）
                 </Link>
 
                 {e.canCast ? (
-                  <Link to={`/voter/voting/start?electionId=${e.electionId}`}>
+                  <Link to={`/voting/start?electionId=${e.electionId}`}>
                     投票する →
                   </Link>
                 ) : (

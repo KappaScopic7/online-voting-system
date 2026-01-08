@@ -53,7 +53,7 @@ export function VotingStartPage() {
     setError(null);
     try {
       const result = await confirmVote(electionId, selectedCandidateId);
-      nav("/voter/voting/done", { state: { result } });
+      nav("/voting/done", { state: { result } });
     } catch (err: any) {
       const status = err?.response?.status;
       const msg = err?.response?.data?.message;

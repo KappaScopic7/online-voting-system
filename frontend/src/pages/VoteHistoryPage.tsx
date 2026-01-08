@@ -76,7 +76,7 @@ export function VoteHistoryPage() {
           marginBottom: 12,
         }}
       >
-        <Link to="/voter">← 戻る</Link>
+        <Link to="/">← 戻る</Link>
         <button onClick={load} style={{ marginLeft: "auto" }}>
           Reload
         </button>
@@ -159,10 +159,10 @@ export function VoteHistoryPage() {
                 </div>
 
                 <div style={{ marginTop: 8, display: "flex", gap: 12 }}>
-                  <Link to={`/public/elections/${g.electionId}/candidates`}>
+                  <Link to={`/elections/${g.electionId}/candidates`}>
                     候補者（公開）
                   </Link>
-                  <Link to={`/public/elections/${g.electionId}/result`}>
+                  <Link to={`/elections/${g.electionId}/result`}>
                     結果（公開）
                   </Link>
                 </div>

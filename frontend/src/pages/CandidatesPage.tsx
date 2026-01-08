@@ -83,9 +83,7 @@ export function CandidatesPage() {
       )}
 
       <div style={{ marginTop: 16 }}>
-        <Link to={`/public/elections/${electionId}/result`}>
-          結果ページへ →
-        </Link>
+        <Link to={`/elections/${electionId}/result`}>結果ページへ →</Link>
       </div>
     </div>
   );

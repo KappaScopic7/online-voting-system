@@ -30,8 +30,8 @@ export function VotingDonePage() {
         <h2>投票完了</h2>
         <p>投票結果が見つかりません（ページを直接開いた可能性があります）</p>
         <div style={{ display: "flex", gap: 12 }}>
-          <Link to="/voter">Voter Homeへ</Link>
-          <Link to="/voter/votes">投票履歴へ</Link>
+          <Link to="/">Voter Homeへ</Link>
+          <Link to="/votes">投票履歴へ</Link>
         </div>
       </div>
     );
@@ -72,11 +72,11 @@ export function VotingDonePage() {
           Voter Homeへ戻る
         </button>
 
-        <Link to="/voter/votes">投票履歴を見る</Link>
-        <Link to={`/voter/voting/start?electionId=${result.electionId}`}>
+        <Link to="/votes">投票履歴を見る</Link>
+        <Link to={`/voting/start?electionId=${result.electionId}`}>
           同じ選挙でもう一度投票
         </Link>
-        <Link to={`/public/elections/${result.electionId}/candidates`}>
+        <Link to={`/elections/${result.electionId}/candidates`}>
           候補者（公開）
         </Link>
       </div>

@@ -14,7 +14,7 @@ export function IdentityLinkPage() {
     e.preventDefault();
     setMsg(null);
     try {
-      await http.post("/api/voter/identity/link", { citizenId });
+      await http.post("/api/identity/link", { citizenId });
       await refreshMe();
       nav("/");
     } catch (err: any) {
