@@ -22,13 +22,13 @@ public class AuthController {
         this.portalRepo = portalRepo;
     }
 
-    @PostMapping("/voter/register")
+    @PostMapping("/register")
     @ResponseStatus(HttpStatus.CREATED)
     public void voterRegister(@Valid @RequestBody VoterRegisterRequest req) {
         voterAuthService.register(req);
     }
 
-    @PostMapping("/voter/login")
+    @PostMapping("/login")
     public TokenResponse voterLogin(@Valid @RequestBody VoterLoginRequest req) {
         return voterAuthService.login(req);
     }
