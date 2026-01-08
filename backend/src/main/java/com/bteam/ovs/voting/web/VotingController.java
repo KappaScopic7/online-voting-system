@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/voter/voting")
+@RequestMapping("/api/voting")
 public class VotingController {
 
     private final VotingService votingService;

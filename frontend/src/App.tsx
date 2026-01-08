@@ -30,13 +30,10 @@ export default function App() {
 
         {/* Public detail（公開詳細ページ） */}
         <Route
-          path="/public/elections/:electionId/candidates"
+          path="/elections/:electionId/candidates"
           element={<CandidatesPage />}
         />
-        <Route
-          path="/public/elections/:electionId/result"
-          element={<ResultPage />}
-        />
+        <Route path="/elections/:electionId/result" element={<ResultPage />} />
 
         {/* Auth */}
         <Route path="/login" element={<LoginPage />} />

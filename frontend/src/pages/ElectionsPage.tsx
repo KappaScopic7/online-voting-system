@@ -107,20 +107,18 @@ export function ElectionsPage() {
               </div>
 
               <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-                <Link to={`/public/elections/${e.electionId}/candidates`}>
+                <Link to={`/elections/${e.electionId}/candidates`}>
                   候補者（公開）
                 </Link>
 
                 {e.hasResult ? (
-                  <Link to={`/public/elections/${e.electionId}/result`}>
-                    結果
-                  </Link>
+                  <Link to={`/elections/${e.electionId}/result`}>結果</Link>
                 ) : (
                   <span style={{ opacity: 0.5 }}>結果（未公開）</span>
                 )}
 
                 {e.canCast ? (
-                  <Link to={`/voter/voting/start?electionId=${e.electionId}`}>
+                  <Link to={`/voting/start?electionId=${e.electionId}`}>
                     投票する →
                   </Link>
                 ) : me ? (
