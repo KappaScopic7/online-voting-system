@@ -61,6 +61,8 @@ public class SecurityConfig {
                 .requestMatchers("/api/auth/register", "/api/auth/login").permitAll()
                 .requestMatchers("/api/elections/**").permitAll()
 
+                .requestMatchers("/api/identity/**").hasRole("VOTER")
+                .requestMatchers("/api/voting/**").hasRole("VOTER")
                 .requestMatchers("/api/votes/**").hasRole("VOTER")
 
                 .anyRequest().authenticated()
