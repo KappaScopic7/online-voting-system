@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { fetchElections, type ElectionListItem } from "../api/elections";
-import { useAuth } from "../auth/AuthContext";
+import { useAuth } from "../../auth/AuthContext";
 
 function formatJST(iso?: string | null): string {
   if (!iso) return "-";

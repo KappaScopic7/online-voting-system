@@ -1,5 +1,5 @@
 // api/votes.ts
-import { http } from "./http";
+import { http } from "../../shared/http";
 
 /* ===== types ===== */
 export type VoteHistoryItem = {

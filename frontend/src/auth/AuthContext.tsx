@@ -5,9 +5,9 @@ import React, {
   useMemo,
   useState,
 } from "react";
-import type { MeResponse } from "../api/auth";
-import { fetchMe } from "../api/auth";
-import { clearToken, getToken, setToken } from "./tokenStorage";
+import type { MeResponse } from "./api/auth";
+import { fetchMe } from "./api/auth";
+import { clearToken, getToken, setToken } from "../shared/tokenStorage";
 
 type AuthState = {
   me: MeResponse | null;

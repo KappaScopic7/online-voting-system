@@ -1,5 +1,5 @@
 // api/auth.ts
-import { http } from "./http";
+import { http } from "../../shared/http";
 
 export type TokenResponse = {
   accessToken: string;

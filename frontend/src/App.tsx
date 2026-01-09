@@ -2,17 +2,17 @@
 import { Link, Route, Routes } from "react-router-dom";
 import { RequireAuth } from "./auth/RequireAuth";
 
-import { ElectionsPage } from "./pages/ElectionsPage";
-import { CandidatesPage } from "./pages/CandidatesPage";
-import { ResultPage } from "./pages/ResultPage";
+import { ElectionsPage } from "./elections/pages/ElectionsPage";
+import { CandidatesPage } from "./elections/pages/CandidatesPage";
+import { ResultPage } from "./elections/pages/ResultPage";
 
-import { LoginPage } from "./pages/LoginPage";
-import { RegisterPage } from "./pages/RegisterPage";
+import { LoginPage } from "./auth/pages/LoginPage";
+import { RegisterPage } from "./auth/pages/RegisterPage";
 
-import { IdentityLinkPage } from "./pages/IdentityLinkPage";
-import { VotingStartPage } from "./pages/VotingStartPage";
-import { VotingDonePage } from "./pages/VotingDonePage";
-import { VoteHistoryPage } from "./pages/VoteHistoryPage";
+import { IdentityLinkPage } from "./identity/pages/IdentityLinkPage";
+import { VotingStartPage } from "./voting/pages/VotingStartPage";
+import { VotingDonePage } from "./voter/pages/VotingDonePage";
+import { VoteHistoryPage } from "./voting/pages/VoteHistoryPage";
 
 export default function App() {
   return (

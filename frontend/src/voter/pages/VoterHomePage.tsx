@@ -1,9 +1,9 @@
 // pages/VoterHomePage.tsx
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { useAuth } from "../auth/AuthContext";
-import { fetchElections } from "../api/elections";
-import type { ElectionListItem } from "../api/elections";
+import { useAuth } from "../../auth/AuthContext";
+import { fetchElections } from "../../elections/api/elections";
+import type { ElectionListItem } from "../../elections/api/elections";
 
 function formatJST(iso?: string | null): string {
   if (!iso) return "-";

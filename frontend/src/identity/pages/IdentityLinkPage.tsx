@@ -1,8 +1,8 @@
 // pages/IdentityLinkPage.tsx
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { http } from "../api/http";
-import { useAuth } from "../auth/AuthContext";
+import { http } from "../../shared/http";
+import { useAuth } from "../../auth/AuthContext";
 
 export function IdentityLinkPage() {
   const nav = useNavigate();

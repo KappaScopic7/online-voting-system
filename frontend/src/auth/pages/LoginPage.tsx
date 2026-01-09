@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { login } from "../api/auth";
-import { useAuth } from "../auth/AuthContext";
+import { useAuth } from "../AuthContext";
 
 export function LoginPage() {
   const nav = useNavigate();

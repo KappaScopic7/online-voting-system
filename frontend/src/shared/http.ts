@@ -1,6 +1,6 @@
 // api/http.ts
 import axios from "axios";
-import { getToken, clearToken } from "../auth/tokenStorage";
+import { getToken, clearToken } from "./tokenStorage";
 
 export const http = axios.create({
   baseURL: "",

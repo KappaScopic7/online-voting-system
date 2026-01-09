@@ -1,6 +1,6 @@
 // pages/VotingDonePage.tsx
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import type { VoteHistoryItem } from "../api/votes";
+import type { VoteHistoryItem } from "../../voting/api/votes";
 
 function formatJST(iso?: string | null): string {
   if (!iso) return "-";
