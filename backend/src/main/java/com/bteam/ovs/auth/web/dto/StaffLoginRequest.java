@@ -2,7 +2,7 @@ package com.bteam.ovs.auth.web.dto;
 
 import jakarta.validation.constraints.NotBlank;
 
-public record CommitteeLoginRequest(
+public record StaffLoginRequest(
         @NotBlank String loginId,
         @NotBlank String password
 ) {}

@@ -1,6 +1,6 @@
 package com.bteam.ovs.auth.service;
 
-import com.bteam.ovs.auth.repo.PortalAccountRepository;
+import com.bteam.ovs.auth.repo.UserAccountRepository;
 import com.bteam.ovs.shared.errors.ApiException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -10,14 +10,14 @@ import java.util.UUID;
 @Service
 public class VoterEligibilityService {
 
-    private final PortalAccountRepository portalRepo;
+    private final UserAccountRepository userRepo;
 
-    public VoterEligibilityService(PortalAccountRepository portalRepo) {
-        this.portalRepo = portalRepo;
+    public VoterEligibilityService(UserAccountRepository userRepo) {
+        this.userRepo = userRepo;
     }
 
     public void assertIdentityLinked(UUID accountId) {
-        var acc = portalRepo.findById(accountId)
+        var acc = userRepo.findById(accountId)
                 .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "未ログインです"));
 
         if (acc.getCitizenId() == null) {

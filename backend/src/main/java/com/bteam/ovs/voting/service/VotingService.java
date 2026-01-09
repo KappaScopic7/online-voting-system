@@ -1,6 +1,6 @@
 package com.bteam.ovs.voting.service;
 
-import com.bteam.ovs.auth.repo.PortalAccountRepository;
+import com.bteam.ovs.auth.repo.UserAccountRepository;
 import com.bteam.ovs.elections.repo.CandidateRepository;
 import com.bteam.ovs.elections.repo.ElectionRepository;
 import com.bteam.ovs.shared.errors.ApiException;
@@ -25,20 +25,20 @@ import java.util.stream.Collectors;
 @Service
 public class VotingService {
 
-    private final PortalAccountRepository portalRepo;
+    private final UserAccountRepository userRepo;
     private final ElectionRepository electionRepo;
     private final CandidateRepository candidateRepo;
     private final VoteCastRepository voteCastRepo;
     private final VoteCurrentRepository voteCurrentRepo;
 
     public VotingService(
-            PortalAccountRepository portalRepo,
+            UserAccountRepository userRepo,
             ElectionRepository electionRepo,
             CandidateRepository candidateRepo,
             VoteCastRepository voteCastRepo,
             VoteCurrentRepository voteCurrentRepo
     ) {
-        this.portalRepo = portalRepo;
+        this.userRepo = userRepo;
         this.electionRepo = electionRepo;
         this.candidateRepo = candidateRepo;
         this.voteCastRepo = voteCastRepo;
@@ -46,7 +46,7 @@ public class VotingService {
     }
 
     public VoteStartResponse start(UUID accountId, UUID electionId) {
-        var acc = portalRepo.findById(accountId)
+        var acc = userRepo.findById(accountId)
                 .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "未ログインです"));
 
         if (acc.getCitizenId() == null) {
@@ -65,7 +65,7 @@ public class VotingService {
 
     @Transactional
     public VoteHistoryItem confirm(UUID accountId, UUID electionId, UUID candidateId) {
-        var acc = portalRepo.findById(accountId)
+        var acc = userRepo.findById(accountId)
                 .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "未ログインです"));
 
         if (acc.getCitizenId() == null) {
@@ -133,7 +133,7 @@ public class VotingService {
     }
 
     public List<VoteHistoryItem> history(UUID accountId) {
-        var acc = portalRepo.findById(accountId)
+        var acc = userRepo.findById(accountId)
                 .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "未ログインです"));
 
         if (acc.getCitizenId() == null) {

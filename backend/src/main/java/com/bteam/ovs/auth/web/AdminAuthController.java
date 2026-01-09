@@ -1,7 +1,7 @@
 package com.bteam.ovs.auth.web;
 
-import com.bteam.ovs.auth.service.CommitteeAuthService;
-import com.bteam.ovs.auth.web.dto.CommitteeLoginRequest;
+import com.bteam.ovs.auth.service.StaffAuthService;
+import com.bteam.ovs.auth.web.dto.StaffLoginRequest;
 import com.bteam.ovs.auth.web.dto.TokenResponse;
 
 import jakarta.validation.Valid;
@@ -11,14 +11,14 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/admin/auth")
 public class AdminAuthController {
 
-    private final CommitteeAuthService committeeAuthService;
+    private final StaffAuthService staffAuthService;
 
-    public AdminAuthController(CommitteeAuthService committeeAuthService) {
-        this.committeeAuthService = committeeAuthService;
+    public AdminAuthController(StaffAuthService staffAuthService) {
+        this.staffAuthService = staffAuthService;
     }
 
     @PostMapping("/login")
-    public TokenResponse login(@Valid @RequestBody CommitteeLoginRequest req) {
-        return committeeAuthService.login(req);
+    public TokenResponse login(@Valid @RequestBody StaffLoginRequest req) {
+        return staffAuthService.login(req);
     }
 }

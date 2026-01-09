@@ -7,7 +7,13 @@ import jakarta.validation.constraints.Size;
 import java.time.Instant;
 
 public record ElectionCreateRequest(
-        @NotBlank @Size(max = 200) String title,
-        @NotNull Instant startsAt,
-        @NotNull Instant endsAt
+        @NotBlank
+        @Size(max = 200)
+        String title,
+
+        @NotNull
+        Instant startsAt,
+
+        @NotNull
+        Instant endsAt
 ) {}

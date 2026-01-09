@@ -1,6 +1,6 @@
 package com.bteam.ovs.auth.web;
 
-import com.bteam.ovs.auth.repo.PortalAccountRepository;
+import com.bteam.ovs.auth.repo.UserAccountRepository;
 import com.bteam.ovs.auth.service.VoterAuthService;
 import com.bteam.ovs.auth.web.dto.*;
 import com.bteam.ovs.shared.errors.ApiException;
@@ -17,11 +17,11 @@ import java.util.UUID;
 public class AuthController {
 
     private final VoterAuthService voterAuthService;
-    private final PortalAccountRepository portalRepo;
+    private final UserAccountRepository userRepo;
 
-    public AuthController(VoterAuthService voterAuthService, PortalAccountRepository portalRepo) {
+    public AuthController(VoterAuthService voterAuthService, UserAccountRepository userRepo) {
         this.voterAuthService = voterAuthService;
-        this.portalRepo = portalRepo;
+        this.userRepo = userRepo;
     }
 
     @PostMapping("/register")
@@ -48,15 +48,15 @@ public class AuthController {
             throw new ApiException(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "未ログインです");
         }
 
-        var acc = portalRepo.findById(accountId)
+        var acc = userRepo.findById(accountId)
                 .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "未ログインです"));
 
         return new MeResponse(
-                acc.getId(),
-                acc.getEmail(),
-                acc.getRole().name(),
-                acc.isEmailVerified(),
-                acc.getCitizenId() != null
+            acc.getId(),
+            acc.getEmail(),
+            acc.getRole() == null ? null : acc.getRole().name(),
+            acc.isEmailVerified(),
+            acc.getCitizenId() != null
         );
     }
 }

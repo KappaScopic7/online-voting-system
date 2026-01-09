@@ -1,9 +1,9 @@
 package com.bteam.ovs.auth.service;
 
-import com.bteam.ovs.auth.repo.CommitteeAccountRepository;
+import com.bteam.ovs.auth.repo.StaffAccountRepository;
 import com.bteam.ovs.auth.security.JwtService;
 import com.bteam.ovs.auth.security.JwtService.AccountKind;
-import com.bteam.ovs.auth.web.dto.CommitteeLoginRequest;
+import com.bteam.ovs.auth.web.dto.StaffLoginRequest;
 import com.bteam.ovs.auth.web.dto.TokenResponse;
 import com.bteam.ovs.shared.errors.ApiException;
 
@@ -12,26 +12,26 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 @Service
-public class CommitteeAuthService {
+public class StaffAuthService {
 
-    private final CommitteeAccountRepository committeeRepo;
+    private final StaffAccountRepository staffRepo;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
 
-    public CommitteeAuthService(
-            CommitteeAccountRepository committeeRepo,
+    public StaffAuthService(
+            StaffAccountRepository staffRepo,
             PasswordEncoder passwordEncoder,
             JwtService jwtService
     ) {
-        this.committeeRepo = committeeRepo;
+        this.staffRepo = staffRepo;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
     }
 
-    public TokenResponse login(CommitteeLoginRequest req) {
+    public TokenResponse login(StaffLoginRequest req) {
         String loginId = normalize(req.loginId());
 
-        var account = committeeRepo.findByLoginId(loginId)
+        var account = staffRepo.findByLoginId(loginId)
                 .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "ACCOUNT_NOT_FOUND", "アカウントが存在しません"));
 
         if (!account.isEnabled()) {
@@ -45,7 +45,7 @@ public class CommitteeAuthService {
             throw new ApiException(HttpStatus.UNAUTHORIZED, "INVALID_CREDENTIALS", "IDまたはパスワードが違います");
         }
 
-        String token = jwtService.issueAccessToken(account.getId(), account.getLoginId(), account.getRole(), AccountKind.COMMITTEE);
+        String token = jwtService.issueAccessToken(account.getId(), account.getLoginId(), account.getRole(), AccountKind.STAFF);
         return new TokenResponse(token, "Bearer", jwtService.expiresInSeconds(), account.getRole().name());
     }
 

@@ -46,7 +46,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             String aid = claims.get("aid", String.class);
             String kind = claims.get("kind", String.class);
 
-            var authorities = List.of(new SimpleGrantedAuthority("ROLE_" + role));
+            var authorities = (role == null)
+                ? List.<SimpleGrantedAuthority>of()
+                : List.of(new SimpleGrantedAuthority("ROLE_" + role));
 
             var authentication = new UsernamePasswordAuthenticationToken(aid, null, authorities);
             authentication.setDetails(Map.of("kind", kind, "sub", claims.getSubject()));

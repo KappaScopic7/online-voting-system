@@ -5,31 +5,37 @@ import java.time.Instant;
 import java.util.UUID;
 
 @Entity
-@Table(name = "committee_account",
+@Table(name = "user_account",
         uniqueConstraints = {
-                @UniqueConstraint(name = "uk_committee_account_login_id", columnNames = {"login_id"})
+                @UniqueConstraint(name = "uk_user_account_email", columnNames = {"email"})
         })
-public class CommitteeAccount {
+public class UserAccount {
 
     @Id
     @Column(columnDefinition = "uuid")
     private UUID id;
 
-    @Column(name = "login_id", nullable = false, length = 100)
-    private String loginId;
+    @Column(nullable = false, length = 320)
+    private String email;
 
     @Column(name = "password_hash", nullable = false, length = 255)
     private String passwordHash;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 30)
-    private Role role; // COMMITTEE or ADMIN
+    @Column(nullable = true, length = 30) // ★ null許可
+    private Role role; // null or VOTER
+
+    @Column(name = "email_verified", nullable = false)
+    private boolean emailVerified;
 
     @Column(nullable = false)
     private boolean enabled;
 
     @Column(nullable = false)
     private boolean locked;
+
+    @Column(name = "citizen_id", columnDefinition = "uuid")
+    private UUID citizenId; // nullable
 
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
@@ -43,7 +49,6 @@ public class CommitteeAccount {
         var now = Instant.now();
         if (createdAt == null) createdAt = now;
         updatedAt = now;
-        if (role == null) role = Role.COMMITTEE;
     }
 
     @PreUpdate
@@ -53,16 +58,20 @@ public class CommitteeAccount {
 
     public UUID getId() { return id; }
     public void setId(UUID id) { this.id = id; }
-    public String getLoginId() { return loginId; }
-    public void setLoginId(String loginId) { this.loginId = loginId; }
+    public String getEmail() { return email; }
+    public void setEmail(String email) { this.email = email; }
     public String getPasswordHash() { return passwordHash; }
     public void setPasswordHash(String passwordHash) { this.passwordHash = passwordHash; }
     public Role getRole() { return role; }
     public void setRole(Role role) { this.role = role; }
+    public boolean isEmailVerified() { return emailVerified; }
+    public void setEmailVerified(boolean emailVerified) { this.emailVerified = emailVerified; }
     public boolean isEnabled() { return enabled; }
     public void setEnabled(boolean enabled) { this.enabled = enabled; }
     public boolean isLocked() { return locked; }
     public void setLocked(boolean locked) { this.locked = locked; }
+    public UUID getCitizenId() { return citizenId; }
+    public void setCitizenId(UUID citizenId) { this.citizenId = citizenId; }
     public Instant getCreatedAt() { return createdAt; }
     public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }

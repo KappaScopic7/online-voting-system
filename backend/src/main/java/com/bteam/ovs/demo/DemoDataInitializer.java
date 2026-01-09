@@ -1,10 +1,10 @@
 package com.bteam.ovs.demo;
 
-import com.bteam.ovs.auth.model.CommitteeAccount;
-import com.bteam.ovs.auth.model.PortalAccount;
+import com.bteam.ovs.auth.model.StaffAccount;
+import com.bteam.ovs.auth.model.UserAccount;
 import com.bteam.ovs.auth.model.Role;
-import com.bteam.ovs.auth.repo.CommitteeAccountRepository;
-import com.bteam.ovs.auth.repo.PortalAccountRepository;
+import com.bteam.ovs.auth.repo.StaffAccountRepository;
+import com.bteam.ovs.auth.repo.UserAccountRepository;
 import com.bteam.ovs.elections.model.Candidate;
 import com.bteam.ovs.elections.model.Election;
 import com.bteam.ovs.elections.repo.CandidateRepository;
@@ -34,21 +34,21 @@ public class DemoDataInitializer {
 
     @Bean
     CommandLineRunner demoInit(
-            PortalAccountRepository portalRepo,
-            CommitteeAccountRepository committeeRepo,
+            UserAccountRepository userRepo,
+            StaffAccountRepository committeeRepo,
             ElectionRepository electionRepo,
             CandidateRepository candidateRepo,
             PasswordEncoder passwordEncoder,
             TransactionTemplate tx
     ) {
         return args -> tx.executeWithoutResult(status ->
-                init(portalRepo, committeeRepo, electionRepo, candidateRepo, passwordEncoder)
+                init(userRepo, committeeRepo, electionRepo, candidateRepo, passwordEncoder)
         );
     }
 
     void init(
-            PortalAccountRepository portalRepo,
-            CommitteeAccountRepository committeeRepo,
+            UserAccountRepository userRepo,
+            StaffAccountRepository committeeRepo,
             ElectionRepository electionRepo,
             CandidateRepository candidateRepo,
             PasswordEncoder passwordEncoder
@@ -60,7 +60,7 @@ public class DemoDataInitializer {
             """);
 
         seedAdmin(committeeRepo, passwordEncoder);
-        seedVoter(portalRepo, passwordEncoder);
+        seedVoter(userRepo, passwordEncoder);
         seedElection(electionRepo, candidateRepo);
 
         System.out.println("[DEMO] DemoDataInitializer end");
@@ -70,7 +70,7 @@ public class DemoDataInitializer {
     // Admin (CommitteeAccount)
     // ======================
     private void seedAdmin(
-            CommitteeAccountRepository committeeRepo,
+            StaffAccountRepository committeeRepo,
             PasswordEncoder passwordEncoder
     ) {
         if (committeeRepo.existsByLoginId(DEMO_ADMIN_LOGIN_ID)) {
@@ -78,7 +78,7 @@ public class DemoDataInitializer {
             return;
         }
 
-        var admin = new CommitteeAccount();
+        var admin = new StaffAccount();
         admin.setLoginId(DEMO_ADMIN_LOGIN_ID);
         admin.setPasswordHash(passwordEncoder.encode(DEMO_ADMIN_PASSWORD));
         admin.setRole(Role.ADMIN);
@@ -95,15 +95,15 @@ public class DemoDataInitializer {
     }
 
     // ======================
-    // Voter (PortalAccount)
+    // Voter (userAccount)
     // ======================
     private UUID seedVoter(
-            PortalAccountRepository portalRepo,
+            UserAccountRepository userRepo,
             PasswordEncoder passwordEncoder
     ) {
         var email = DEMO_VOTER_EMAIL;
 
-        var existing = portalRepo.findByEmail(email);
+        var existing = userRepo.findByEmail(email);
         if (existing.isPresent()) {
             System.out.println("[DEMO] Voter already exists: " + email);
             return existing.get().getCitizenId();
@@ -111,7 +111,7 @@ public class DemoDataInitializer {
 
         UUID citizenId = UUID.randomUUID();
 
-        var voter = new PortalAccount();
+        var voter = new UserAccount();
         voter.setEmail(email);
         voter.setPasswordHash(passwordEncoder.encode(DEMO_VOTER_PASSWORD));
         voter.setRole(Role.VOTER);
@@ -120,7 +120,7 @@ public class DemoDataInitializer {
         voter.setEmailVerified(true);
         voter.setCitizenId(citizenId);
 
-        portalRepo.save(voter);
+        userRepo.save(voter);
 
         System.out.println("""
             [DEMO] Voter created

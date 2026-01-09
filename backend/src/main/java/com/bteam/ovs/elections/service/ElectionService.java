@@ -1,9 +1,11 @@
 package com.bteam.ovs.elections.service;
 
-import com.bteam.ovs.auth.repo.PortalAccountRepository;
+import com.bteam.ovs.auth.repo.UserAccountRepository;
 import com.bteam.ovs.elections.repo.CandidateRepository;
 import com.bteam.ovs.elections.repo.ElectionRepository;
+import com.bteam.ovs.elections.web.dto.CandidateItem;
 import com.bteam.ovs.elections.web.dto.ElectionListItem;
+import com.bteam.ovs.elections.web.dto.ElectionResultResponse;
 import com.bteam.ovs.shared.errors.ApiException;
 import com.bteam.ovs.voting.repo.VoteCurrentRepository;
 
@@ -21,20 +23,23 @@ public class ElectionService {
     private final ElectionRepository electionRepo;
     private final CandidateRepository candidateRepo;
     private final VoteCurrentRepository voteCurrentRepo;
-    private final PortalAccountRepository portalRepo;
+    private final UserAccountRepository userRepo;
 
     public ElectionService(
             ElectionRepository electionRepo,
             CandidateRepository candidateRepo,
             VoteCurrentRepository voteCurrentRepo,
-            PortalAccountRepository portalRepo
+            UserAccountRepository userRepo
     ) {
         this.electionRepo = electionRepo;
         this.candidateRepo = candidateRepo;
         this.voteCurrentRepo = voteCurrentRepo;
-        this.portalRepo = portalRepo;
+        this.userRepo = userRepo;
     }
 
+    // ======================
+    // GET /api/elections
+    // ======================
     public List<ElectionListItem> list(UUID accountIdOrNull) {
         var now = Instant.now();
 
@@ -60,7 +65,7 @@ public class ElectionService {
         boolean identityLinked = false;
 
         if (accountIdOrNull != null) {
-            var acc = portalRepo.findById(accountIdOrNull)
+            var acc = userRepo.findById(accountIdOrNull)
                     .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "未ログインです"));
             citizenId = acc.getCitizenId();
             identityLinked = (citizenId != null);
@@ -113,6 +118,60 @@ public class ElectionService {
                     );
                 })
                 .toList();
+    }
+
+    // ======================
+    // GET /api/elections/{id}/candidates
+    // ======================
+    public List<CandidateItem> candidates(UUID electionId) {
+        if (!electionRepo.existsById(electionId)) {
+            throw new ApiException(HttpStatus.NOT_FOUND, "ELECTION_NOT_FOUND", "選挙が存在しません");
+        }
+
+        return candidateRepo.findByElectionId(electionId).stream()
+                .map(c -> new CandidateItem(c.getId(), c.getName()))
+                .toList();
+    }
+
+    // ======================
+    // GET /api/elections/{id}/result
+    // ======================
+    public ElectionResultResponse result(UUID electionId) {
+        var election = electionRepo.findById(electionId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "ELECTION_NOT_FOUND", "選挙が存在しません"));
+
+        var now = Instant.now();
+        if (now.isBefore(election.getEndsAt())) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "RESULT_NOT_AVAILABLE", "結果は選挙終了後に公開されます");
+        }
+
+        var candidates = candidateRepo.findByElectionId(electionId);
+
+        var countMap = voteCurrentRepo.countByElectionGroupByCandidate(electionId).stream()
+                .collect(Collectors.toMap(
+                        VoteCurrentRepository.VoteCount::getCandidateId,
+                        VoteCurrentRepository.VoteCount::getCnt
+                ));
+
+        long totalVotes = countMap.values().stream().mapToLong(Long::longValue).sum();
+
+        var results = candidates.stream()
+                .map(c -> new ElectionResultResponse.CandidateResult(
+                        c.getId(),
+                        c.getName(),
+                        countMap.getOrDefault(c.getId(), 0L)
+                ))
+                .sorted((a, b) -> Long.compare(b.votes(), a.votes()))
+                .toList();
+
+        return new ElectionResultResponse(
+                election.getId(),
+                election.getTitle(),
+                "CURRENT",
+                totalVotes,
+                now,
+                results
+        );
     }
 
     public static String status(Instant now, Instant startsAt, Instant endsAt) {

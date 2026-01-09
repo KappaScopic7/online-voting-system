@@ -18,8 +18,8 @@ import java.util.UUID;
 public class JwtService {
 
     public enum AccountKind {
-        PORTAL,
-        COMMITTEE
+        USER,
+        STAFF
     }
 
     private final Key key;
@@ -37,15 +37,18 @@ public class JwtService {
         Instant now = Instant.now();
         Instant exp = now.plusSeconds(expirationMinutes * 60);
 
-        return Jwts.builder()
-                .setSubject(subject)                 // portal: email / committee: loginId（識別用）
+        var b = Jwts.builder()
+                .setSubject(subject)
                 .claim("aid", accountId.toString())
-                .claim("role", role.name())
                 .claim("kind", kind.name())
                 .setIssuedAt(Date.from(now))
-                .setExpiration(Date.from(exp))
-                .signWith(key, SignatureAlgorithm.HS256)
-                .compact();
+                .setExpiration(Date.from(exp));
+
+        if (role != null) {
+            b.claim("role", role.name());
+        }
+
+        return b.signWith(key, SignatureAlgorithm.HS256).compact();
     }
 
     public long expiresInSeconds() {
