@@ -10,70 +10,7 @@
         "source.fixAll.eslint": "never"
     },
 
-    "[java]": {
-        "editor.tabSize": 4,
-        "editor.insertSpaces": true
-    },
-
-    "[yml]": {
-        "editor.tabSize": 2,
-        "editor.insertSpaces": true
-    },
-    "[yaml]": {
-        "editor.tabSize": 2,
-        "editor.insertSpaces": true
-    },
-
-    "[json]": {
-        "editor.tabSize": 4,
-        "editor.insertSpaces": true,
-        "editor.defaultFormatter": "esbenp.prettier-vscode"
-    },
-
-    "[gradle]": {
-        "editor.tabSize": 4,
-        "editor.insertSpaces": true
-    },
-
-    "[markdown]": {
-        "editor.tabSize": 4,
-        "editor.insertSpaces": true,
-        "editor.defaultFormatter": "esbenp.prettier-vscode"
-    },
-
-    "[tsx]": {
-        "editor.tabSize": 2,
-        "editor.insertSpaces": true,
-        "editor.defaultFormatter": "esbenp.prettier-vscode"
-    },
-
-    "[ts]": {
-        "editor.tabSize": 2,
-        "editor.insertSpaces": true,
-        "editor.defaultFormatter": "esbenp.prettier-vscode"
-    },
-
-    "[javascript]": {
-        "editor.tabSize": 4,
-        "editor.insertSpaces": true,
-        "editor.defaultFormatter": "esbenp.prettier-vscode"
-    },
-    "[javascriptreact]": {
-        "editor.tabSize": 4,
-        "editor.insertSpaces": true,
-        "editor.defaultFormatter": "esbenp.prettier-vscode"
-    },
-    "[typescript]": {
-        "editor.tabSize": 2,
-        "editor.insertSpaces": true,
-        "editor.defaultFormatter": "esbenp.prettier-vscode"
-    },
-    "[typescriptreact]": {
-        "editor.defaultFormatter": "esbenp.prettier-vscode",
-        "editor.tabSize": 2,
-        "editor.insertSpaces": true
-    },
-
-    "java.compile.nullAnalysis.mode": "disabled",
-    "java.configuration.updateBuildConfiguration": "interactive"
+    "prettier.tabWidth": 4,
+    "prettier.useTabs": false,
+    "java.compile.nullAnalysis.mode": "disabled"
 }
