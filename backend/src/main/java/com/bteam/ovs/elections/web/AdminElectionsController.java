@@ -31,7 +31,7 @@ public class AdminElectionsController {
     @PostMapping("/{electionId}/candidates")
     @ResponseStatus(HttpStatus.CREATED)
     public CandidateResponse addCandidate(
-            @PathVariable UUID electionId,
+            @PathVariable("electionId") UUID electionId,
             @Valid @RequestBody CandidateCreateRequest req
     ) {
         return adminService.addCandidate(electionId, req);

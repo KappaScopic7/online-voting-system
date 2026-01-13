@@ -5,8 +5,8 @@ import java.util.UUID;
 
 public record VoteStartResponse(
         UUID electionId,
-        String electionTitle,
+        String title,
         List<CandidateItem> candidates
 ) {
-    public record CandidateItem(UUID id, String name) {}
+    public record CandidateItem(UUID candidateId, String name) {}
 }

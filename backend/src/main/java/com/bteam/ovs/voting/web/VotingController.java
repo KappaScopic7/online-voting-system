@@ -11,6 +11,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -24,7 +25,7 @@ public class VotingController {
     }
 
     @GetMapping("/start")
-    public VoteStartResponse start(@RequestParam String electionId, Authentication auth) {
+    public VoteStartResponse start(@RequestParam("electionId") String electionId, Authentication auth) {
         if (auth == null || auth.getName() == null) {
             throw new ApiException(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "未ログインです");
         }
@@ -74,5 +75,21 @@ public class VotingController {
         }
 
         return votingService.confirm(accountId, electionId, candidateId);
+    }
+
+    @GetMapping("/history")
+    public List<VoteHistoryItem> history(Authentication auth) {
+        if (auth == null || auth.getName() == null) {
+            throw new ApiException(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "未ログインです");
+        }
+
+        UUID accountId;
+        try {
+            accountId = UUID.fromString(auth.getName());
+        } catch (IllegalArgumentException ex) {
+            throw new ApiException(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "未ログインです");
+        }
+
+        return votingService.history(accountId);
     }
 }
