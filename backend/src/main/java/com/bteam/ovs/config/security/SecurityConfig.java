@@ -49,14 +49,16 @@ public class SecurityConfig {
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http, JwtService jwtService) throws Exception {
         return http
-            .cors(withDefaults()) // ★ ここで corsConfigurationSource() が自動で使われる
+            .cors(withDefaults())
             .csrf(csrf -> csrf.disable())
             .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 .requestMatchers("/error").permitAll()
 
-                .requestMatchers("/api/auth/register", "/api/auth/login").permitAll()
+                // auth (user)
+                .requestMatchers("/api/auth/register", "/api/auth/login", "/api/auth/verify").permitAll()
+                .requestMatchers("/api/identity/**").authenticated()
 
                 // elections は GET だけ公開
                 .requestMatchers(HttpMethod.GET, "/api/elections/**").permitAll()
@@ -65,7 +67,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/admin/auth/login").permitAll()
                 .requestMatchers("/api/admin/**").hasAnyRole("ADMIN", "COMMITTEE")
 
-                .requestMatchers("/api/identity/**").hasRole("VOTER")
+                // voter only (role=VOTER の人だけ)
                 .requestMatchers("/api/voting/**").hasRole("VOTER")
                 .requestMatchers("/api/votes/**").hasRole("VOTER")
 

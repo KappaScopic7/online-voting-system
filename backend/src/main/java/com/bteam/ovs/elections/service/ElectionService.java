@@ -13,8 +13,10 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
-import java.util.*;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
@@ -37,24 +39,21 @@ public class ElectionService {
         this.userRepo = userRepo;
     }
 
-    // ======================
-    // GET /api/elections
-    // ======================
     public List<ElectionListItem> list(UUID accountIdOrNull) {
-        var now = Instant.now();
+        final Instant now = Instant.now();
 
         var elections = electionRepo.findAllByOrderByStartsAtDesc();
         if (elections.isEmpty()) return List.of();
 
         var electionIds = elections.stream().map(e -> e.getId()).toList();
 
-        var countMap = candidateRepo.countByElectionIdIn(electionIds).stream()
+        Map<UUID, Long> candidateCountByElectionId = candidateRepo.countByElectionIdIn(electionIds).stream()
                 .collect(Collectors.toMap(
                         CandidateRepository.ElectionCandidateCount::getElectionId,
                         CandidateRepository.ElectionCandidateCount::getCnt
                 ));
 
-        var candidateNameById = candidateRepo.findByElectionIdIn(electionIds).stream()
+        Map<UUID, String> candidateNameById = candidateRepo.findByElectionIdIn(electionIds).stream()
                 .collect(Collectors.toMap(
                         c -> c.getId(),
                         c -> c.getName(),
@@ -76,19 +75,21 @@ public class ElectionService {
             currentByElectionId = voteCurrentRepo.findByCitizenIdAndElectionIdIn(citizenId, electionIds).stream()
                     .collect(Collectors.toMap(
                             v -> v.getElectionId(),
-                            v -> v,
+                            Function.identity(),
                             (a, b) -> a
                     ));
         }
 
-        var finalIdentityLinked = identityLinked;
-        var finalCurrentByElectionId = currentByElectionId;
+        final boolean finalIdentityLinked = identityLinked;
+        final Map<UUID, com.bteam.ovs.voting.model.VoteCurrent> finalCurrentByElectionId = currentByElectionId;
 
         return elections.stream()
                 .map(e -> {
                     String st = status(now, e.getStartsAt(), e.getEndsAt());
                     boolean hasResult = "ENDED".equals(st);
-                    int candidateCount = Math.toIntExact(countMap.getOrDefault(e.getId(), 0L));
+
+                    long cnt = candidateCountByElectionId.getOrDefault(e.getId(), 0L);
+                    int candidateCount = (cnt > Integer.MAX_VALUE) ? Integer.MAX_VALUE : (int) cnt;
 
                     boolean canCast = finalIdentityLinked && "ONGOING".equals(st);
 
@@ -120,9 +121,6 @@ public class ElectionService {
                 .toList();
     }
 
-    // ======================
-    // GET /api/elections/{id}/candidates
-    // ======================
     public List<CandidateItem> candidates(UUID electionId) {
         if (!electionRepo.existsById(electionId)) {
             throw new ApiException(HttpStatus.NOT_FOUND, "ELECTION_NOT_FOUND", "選挙が存在しません");
@@ -133,9 +131,6 @@ public class ElectionService {
                 .toList();
     }
 
-    // ======================
-    // GET /api/elections/{id}/result
-    // ======================
     public ElectionResultResponse result(UUID electionId) {
         var election = electionRepo.findById(electionId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "ELECTION_NOT_FOUND", "選挙が存在しません"));

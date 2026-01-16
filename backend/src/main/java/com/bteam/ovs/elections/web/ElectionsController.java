@@ -29,7 +29,6 @@ public class ElectionsController {
         UUID accountId = null;
 
         if (auth != null && auth.getName() != null) {
-            // ★ kind を見る
             Object kind = auth.getDetails() instanceof Map<?, ?> m ? m.get("kind") : null;
 
             if ("USER".equals(kind)) {
@@ -39,7 +38,6 @@ public class ElectionsController {
                     throw new ApiException(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "未ログインです");
                 }
             }
-            // STAFF / ADMIN は accountId = null のまま
         }
 
         return electionService.list(accountId);

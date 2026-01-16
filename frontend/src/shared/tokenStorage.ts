@@ -1,11 +1,12 @@
+// shared/tokenStorage.ts
 const KEY = "ovs_access_token";
 
 export function getToken(): string | null {
-  return localStorage.getItem(KEY);
+    return localStorage.getItem(KEY);
 }
 export function setToken(token: string): void {
-  localStorage.setItem(KEY, token);
+    localStorage.setItem(KEY, token);
 }
 export function clearToken(): void {
-  localStorage.removeItem(KEY);
+    localStorage.removeItem(KEY);
 }

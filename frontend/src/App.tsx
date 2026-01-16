@@ -1,13 +1,16 @@
 // App.tsx
 import { Link, Route, Routes } from "react-router-dom";
-import { RequireAuth } from "./auth/RequireAuth";
 
 import { ElectionsPage } from "./elections/pages/ElectionsPage";
 import { CandidatesPage } from "./elections/pages/CandidatesPage";
 import { ResultPage } from "./elections/pages/ResultPage";
 
-import { LoginPage } from "./auth/pages/LoginPage";
+import { RequireAuth } from "./auth/RequireAuth";
+import { RequireVoter } from "./auth/RequireVoter";
 import { RegisterPage } from "./auth/pages/RegisterPage";
+import { VerifyEmailPage } from "./auth/pages/VerifyEmailPage";
+import { LoginPage } from "./auth/pages/LoginPage";
+import { MePage } from "./auth/pages/MePage";
 
 import { IdentityLinkPage } from "./identity/pages/IdentityLinkPage";
 import { VotingStartPage } from "./voting/pages/VotingStartPage";
@@ -23,6 +26,7 @@ export default function App() {
                 <Link to="/register">Register</Link>
                 <Link to="/identity/link">identity</Link>
                 <Link to="/votes">Votes</Link>
+                <Link to="/me">Me</Link>
             </header>
 
             <Routes>
@@ -40,10 +44,13 @@ export default function App() {
                 />
 
                 {/* Auth */}
-                <Route path="/login" element={<LoginPage />} />
                 <Route path="/register" element={<RegisterPage />} />
+                <Route path="/verify-email" element={<VerifyEmailPage />} />
+                <Route path="/login" element={<LoginPage />} />
 
                 {/* Voter protected */}
+                <Route path="/verify" element={<VerifyEmailPage />} />
+
                 <Route
                     path="/identity/link"
                     element={
@@ -52,27 +59,39 @@ export default function App() {
                         </RequireAuth>
                     }
                 />
+
                 <Route
                     path="/voting/start"
                     element={
-                        <RequireAuth>
+                        <RequireVoter>
                             <VotingStartPage />
-                        </RequireAuth>
+                        </RequireVoter>
                     }
                 />
+
                 <Route
                     path="/voting/done"
                     element={
-                        <RequireAuth>
+                        <RequireVoter>
                             <VotingDonePage />
-                        </RequireAuth>
+                        </RequireVoter>
                     }
                 />
+
                 <Route
                     path="/votes"
                     element={
-                        <RequireAuth>
+                        <RequireVoter>
                             <VoteHistoryPage />
+                        </RequireVoter>
+                    }
+                />
+
+                <Route
+                    path="/me"
+                    element={
+                        <RequireAuth>
+                            <MePage />
                         </RequireAuth>
                     }
                 />

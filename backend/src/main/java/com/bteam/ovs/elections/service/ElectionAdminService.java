@@ -31,9 +31,6 @@ public class ElectionAdminService {
         this.candidateRepo = candidateRepo;
     }
 
-    // ======================
-    // Election create
-    // ======================
     @Transactional
     public ElectionResponse create(ElectionCreateRequest req) {
         String title = normalize(req.title());
@@ -64,9 +61,6 @@ public class ElectionAdminService {
         return new ElectionResponse(e.getId(), e.getTitle(), e.getStartsAt(), e.getEndsAt());
     }
 
-    // ======================
-    // Candidate add (single)
-    // ======================
     @Transactional
     public CandidateResponse addCandidate(UUID electionId, CandidateCreateRequest req) {
         var election = electionRepo.findById(electionId)
@@ -77,40 +71,33 @@ public class ElectionAdminService {
             throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_CANDIDATE_NAME", "nameが不正です");
         }
 
-        // ここで「開始後は追加禁止」等のルールを入れたければ入れる
-        // if (!Instant.now().isBefore(election.getStartsAt())) {
-        //     throw new ApiException(HttpStatus.FORBIDDEN, "ELECTION_ALREADY_STARTED", "選挙開始後は候補を追加できません");
-        // }
+        if (!Instant.now().isBefore(election.getStartsAt())) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "ELECTION_ALREADY_STARTED", "選挙開始後は候補を追加できません");
+        }
 
         var c = new Candidate();
-        c.setElectionId(election.getId()); // ★ null防止
+        c.setElectionId(election.getId());
         c.setName(name);
 
         try {
             c = candidateRepo.save(c);
         } catch (DataIntegrityViolationException ex) {
-            // DBに (election_id, name) UNIQUE がある前提
             throw new ApiException(HttpStatus.CONFLICT, "CANDIDATE_ALREADY_EXISTS", "同名の候補が既に存在します");
         }
 
         return new CandidateResponse(c.getId(), c.getElectionId(), c.getName());
     }
 
-    // ======================
-    // Candidate add (bulk)
-    // ======================
     @Transactional
     public List<CandidateResponse> addCandidatesBulk(UUID electionId, List<CandidateCreateRequest> reqs) {
         if (reqs == null || reqs.isEmpty()) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "EMPTY_CANDIDATES", "候補が指定されていません");
         }
 
-        // 先に存在チェック（1回）
         if (!electionRepo.existsById(electionId)) {
             throw new ApiException(HttpStatus.NOT_FOUND, "ELECTION_NOT_FOUND", "選挙が存在しません");
         }
 
-        // 同一リクエスト内の重複も弾く（DBの409より先に400で落とす）
         var seen = new HashSet<String>();
         for (var r : reqs) {
             String name = normalize(r == null ? null : r.name());

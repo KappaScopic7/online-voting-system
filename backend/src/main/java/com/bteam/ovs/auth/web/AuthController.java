@@ -1,5 +1,6 @@
 package com.bteam.ovs.auth.web;
 
+import com.bteam.ovs.auth.model.IdentityStatus;
 import com.bteam.ovs.auth.repo.UserAccountRepository;
 import com.bteam.ovs.auth.service.VoterAuthService;
 import com.bteam.ovs.auth.web.dto.*;
@@ -30,6 +31,12 @@ public class AuthController {
         voterAuthService.register(req);
     }
 
+    @PostMapping("/verify")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void verify(@Valid @RequestBody VerifyEmailRequest req) {
+        voterAuthService.verifyEmail(req.email(), req.code());
+    }
+
     @PostMapping("/login")
     public TokenResponse voterLogin(@Valid @RequestBody VoterLoginRequest req) {
         return voterAuthService.login(req);
@@ -37,26 +44,56 @@ public class AuthController {
 
     @GetMapping("/me")
     public MeResponse me(Authentication authentication) {
+        var acc = findMe(authentication);
+
+        var identityStatus = (acc.getCitizenId() == null)
+                ? IdentityStatus.NOT_LINKED
+                : IdentityStatus.LINKED;
+
+        return new MeResponse(
+                acc.getId(),
+                acc.getEmail(),
+                acc.getRole() == null ? null : acc.getRole().name(),
+                acc.isEmailVerified(),
+                identityStatus
+        );
+    }
+
+    @GetMapping("/me/detail")
+    public MeDetailResponse meDetail(Authentication authentication) {
+        var acc = findMe(authentication);
+
+        var identityStatus = (acc.getCitizenId() == null)
+                ? IdentityStatus.NOT_LINKED
+                : IdentityStatus.LINKED;
+
+        return new MeDetailResponse(
+                acc.getId(),
+                acc.getEmail(),
+                acc.getRole() == null ? null : acc.getRole().name(),
+                acc.isEmailVerified(),
+                acc.isEnabled(),
+                acc.isLocked(),
+                acc.getCitizenId(),
+                identityStatus,
+                acc.getCreatedAt(),
+                acc.getUpdatedAt()
+        );
+    }
+
+    private com.bteam.ovs.auth.model.UserAccount findMe(Authentication authentication) {
         if (authentication == null || authentication.getName() == null) {
             throw new ApiException(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "未ログインです");
         }
 
         UUID accountId;
         try {
-            accountId = UUID.fromString(authentication.getName()); // principal=aid(UUID文字列)
+            accountId = UUID.fromString(authentication.getName());
         } catch (IllegalArgumentException ex) {
             throw new ApiException(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "未ログインです");
         }
 
-        var acc = userRepo.findById(accountId)
+        return userRepo.findById(accountId)
                 .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "未ログインです"));
-
-        return new MeResponse(
-            acc.getId(),
-            acc.getEmail(),
-            acc.getRole() == null ? null : acc.getRole().name(),
-            acc.isEmailVerified(),
-            acc.getCitizenId() != null
-        );
     }
 }

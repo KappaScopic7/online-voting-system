@@ -22,7 +22,7 @@ public class UserAccount {
     private String passwordHash;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = true, length = 30) // ★ null許可
+    @Column(nullable = true, length = 30) // null許可
     private Role role; // null or VOTER
 
     @Column(name = "email_verified", nullable = false)
@@ -35,7 +35,7 @@ public class UserAccount {
     private boolean locked;
 
     @Column(name = "citizen_id", columnDefinition = "uuid")
-    private UUID citizenId; // nullable
+    private UUID citizenId; // null許可
 
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;

@@ -1,5 +1,7 @@
 package com.bteam.ovs.identity.web;
 
+import com.bteam.ovs.auth.security.JwtService;
+import com.bteam.ovs.auth.web.dto.TokenResponse;
 import com.bteam.ovs.identity.service.IdentityLinkService;
 import com.bteam.ovs.identity.web.dto.IdentityLinkRequest;
 import com.bteam.ovs.shared.errors.ApiException;
@@ -13,17 +15,18 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/identity")
-public class VoterIdentityController {
+public class IdentityController {
 
     private final IdentityLinkService identityLinkService;
+    private final JwtService jwtService;
 
-    public VoterIdentityController(IdentityLinkService identityLinkService) {
+    public IdentityController(IdentityLinkService identityLinkService, JwtService jwtService) {
         this.identityLinkService = identityLinkService;
+        this.jwtService = jwtService;
     }
 
     @PostMapping("/link")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void link(@Valid @RequestBody IdentityLinkRequest req, Authentication auth) {
+    public TokenResponse link(@Valid @RequestBody IdentityLinkRequest req, Authentication auth) {
         if (auth == null || auth.getName() == null) {
             throw new ApiException(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "未ログインです");
         }
@@ -42,6 +45,22 @@ public class VoterIdentityController {
             throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_CITIZEN_ID", "citizenIdが不正です");
         }
 
-        identityLinkService.link(accountId, citizenId);
+        // ★ DB更新（citizenIdセット & role=VOTER）
+        var linked = identityLinkService.link(accountId, citizenId);
+
+        // ★ 新しいJWTを返す（role=VOTERがclaimに入る）
+        String token = jwtService.issueAccessToken(
+                linked.accountId(),
+                linked.email(),
+                linked.role(), // Role.VOTER（想定）
+                JwtService.AccountKind.USER
+        );
+
+        return new TokenResponse(
+                token,
+                "Bearer",
+                jwtService.expiresInSeconds(),
+                linked.role() == null ? null : linked.role().name()
+        );
     }
 }

@@ -11,13 +11,11 @@ import java.util.UUID;
 
 public interface CandidateRepository extends JpaRepository<Candidate, UUID> {
 
-    // ===== 既存 =====
     int deleteByElectionIdIn(Collection<UUID> electionIds);
     List<Candidate> findByElectionId(UUID electionId);
     boolean existsByIdAndElectionId(UUID id, UUID electionId);
     List<Candidate> findByElectionIdIn(Collection<UUID> electionIds);
 
-    // ===== 追加：count集計（N+1潰し） =====
     interface ElectionCandidateCount {
         UUID getElectionId();
         long getCnt();

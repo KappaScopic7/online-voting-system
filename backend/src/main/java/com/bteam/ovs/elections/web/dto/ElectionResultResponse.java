@@ -7,7 +7,7 @@ import java.util.UUID;
 public record ElectionResultResponse(
         UUID electionId,
         String title,
-        String countingMethod, // "CURRENT" など
+        String countingMethod,
         long totalVotes,
         Instant talliedAt,
         List<CandidateResult> results

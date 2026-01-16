@@ -8,15 +8,15 @@ public record ElectionListItem(
         String title,
         Instant startsAt,
         Instant endsAt,
-        String status,       // UPCOMING | ONGOING | ENDED
-        boolean hasResult,   // status==ENDED を基本にする想定
+        String status,
+        boolean hasResult,
         int candidateCount,
-        boolean canCast,     // (本人認証済み && status==ONGOING) など
-        CurrentVote currentVote // 未投票なら null 可
+        boolean canCast,
+        CurrentVote currentVote
 ) {
     public record CurrentVote(
             UUID candidateId,
-            String candidateName, // 取得できるなら埋める。不要なら null でもOK
+            String candidateName,
             Instant castedAt
     ) {}
 }

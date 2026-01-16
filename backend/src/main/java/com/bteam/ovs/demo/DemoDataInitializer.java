@@ -66,9 +66,6 @@ public class DemoDataInitializer {
         System.out.println("[DEMO] DemoDataInitializer end");
     }
 
-    // ======================
-    // Admin (CommitteeAccount)
-    // ======================
     private void seedAdmin(
             StaffAccountRepository committeeRepo,
             PasswordEncoder passwordEncoder
@@ -89,14 +86,11 @@ public class DemoDataInitializer {
 
         System.out.println("""
             [DEMO] Admin created
-              loginId : admin
-              password: Admin123!
+                loginId : admin
+                password: Admin123!
             """);
     }
 
-    // ======================
-    // Voter (userAccount)
-    // ======================
     private UUID seedVoter(
             UserAccountRepository userRepo,
             PasswordEncoder passwordEncoder
@@ -124,17 +118,14 @@ public class DemoDataInitializer {
 
         System.out.println("""
             [DEMO] Voter created
-              email    : test@example.com
-              password : Passw0rd!!
-              citizenId: %s
+                email    : test@example.com
+                password : Passw0rd!!
+                citizenId: %s
             """.formatted(citizenId));
 
         return citizenId;
     }
 
-    // ======================
-    // Election + Candidates
-    // ======================
     private void seedElection(
             ElectionRepository electionRepo,
             CandidateRepository candidateRepo
