@@ -44,12 +44,12 @@ public class ElectionsController {
     }
 
     @GetMapping("/{electionId}/candidates")
-    public List<CandidateItem> candidates(@PathVariable UUID electionId) {
+    public List<CandidateItem> candidates(@PathVariable("electionId") UUID electionId) {
         return electionService.candidates(electionId);
     }
 
     @GetMapping("/{electionId}/result")
-    public ElectionResultResponse result(@PathVariable UUID electionId) {
+    public ElectionResultResponse result(@PathVariable("electionId") UUID electionId) {
         return electionService.result(electionId);
     }
 }

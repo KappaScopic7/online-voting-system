@@ -17,7 +17,7 @@ export function RequireVoter({ children }: { children: React.ReactNode }) {
             />
         );
 
-    // メール未認証なら verifyへ
+    // メール未認証なら verify へ
     if (!me.emailVerified)
         return (
             <Navigate
@@ -27,15 +27,27 @@ export function RequireVoter({ children }: { children: React.ReactNode }) {
             />
         );
 
-    // ★ 投票可否は role じゃなく identityLinked で見る
-    if (!me.identityLinked)
-        return (
-            <Navigate
-                to="/identity/link"
-                replace
-                state={{ from: loc.pathname + loc.search }}
-            />
-        );
+    // ★ 本人認証ステータスで分岐
+    switch (me.identityStatus) {
+        case "LINKED":
+            break; // 投票OK
+        // case "PENDING":
+        //     return (
+        //         <Navigate
+        //             to="/identity/pending"
+        //             replace
+        //             state={{ from: loc.pathname + loc.search }}
+        //         />
+        //     );
+        default: // NOT_LINKED など
+            return (
+                <Navigate
+                    to="/identity/link"
+                    replace
+                    state={{ from: loc.pathname + loc.search }}
+                />
+            );
+    }
 
     return <>{children}</>;
 }

@@ -8,12 +8,14 @@ export type TokenResponse = {
     role: string | null;
 };
 
+export type IdentityStatus = "NOT_LINKED" | "LINKED";
+
 export type MeResponse = {
     accountId: string;
     email: string;
     role: string | null;
     emailVerified: boolean;
-    identityLinked: boolean;
+    identityStatus: IdentityStatus;
 };
 
 export type MeDetailResponse = {
@@ -24,7 +26,7 @@ export type MeDetailResponse = {
     enabled: boolean;
     locked: boolean;
     citizenId: string | null;
-    identityLinked: boolean;
+    identityStatus: IdentityStatus;
     createdAt: string;
     updatedAt: string;
 };
