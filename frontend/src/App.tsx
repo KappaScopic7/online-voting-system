@@ -22,11 +22,11 @@ export default function App() {
         <div style={{ padding: 16 }}>
             <header style={{ display: "flex", gap: 12, marginBottom: 16 }}>
                 <Link to="/">Home</Link>
-                <Link to="/login">Login</Link>
                 <Link to="/register">Register</Link>
+                <Link to="/login">Login</Link>
+                <Link to="/me">Me</Link>
                 <Link to="/identity/link">identity</Link>
                 <Link to="/votes">Votes</Link>
-                <Link to="/me">Me</Link>
             </header>
 
             <Routes>
