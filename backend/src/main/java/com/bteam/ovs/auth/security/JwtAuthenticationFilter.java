@@ -13,7 +13,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-import java.util.List;
+import java.util.ArrayList;
 import java.util.Map;
 
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
@@ -35,6 +35,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         String token = auth.substring("Bearer ".length()).trim();
+
         try {
             Claims claims = Jwts.parserBuilder()
                     .setSigningKey(jwtService.key())
@@ -42,19 +43,43 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     .parseClaimsJws(token)
                     .getBody();
 
+            String sub  = claims.getSubject();          // principal にする（email / loginId）
             String role = claims.get("role", String.class);
-            String aid = claims.get("aid", String.class);
+            String aid  = claims.get("aid", String.class);
             String kind = claims.get("kind", String.class);
 
-            var authorities = (role == null)
-                ? List.<SimpleGrantedAuthority>of()
-                : List.of(new SimpleGrantedAuthority("ROLE_" + role));
+            // principal が空なら無効（運用上の事故防止）
+            if (sub == null || sub.isBlank()) {
+                SecurityContextHolder.clearContext();
+                chain.doFilter(request, response);
+                return;
+            }
 
-            var authentication = new UsernamePasswordAuthenticationToken(aid, null, authorities);
-            authentication.setDetails(Map.of("kind", kind, "sub", claims.getSubject()));
+            var authorities = new ArrayList<SimpleGrantedAuthority>();
+
+            // ROLE_*
+            if (role != null && !role.isBlank()) {
+                authorities.add(new SimpleGrantedAuthority("ROLE_" + role));
+            }
+
+            // KIND_*（USER / STAFF）
+            if (kind != null && !kind.isBlank()) {
+                authorities.add(new SimpleGrantedAuthority("KIND_" + kind));
+            }
+
+            var authentication =
+                    new UsernamePasswordAuthenticationToken(sub, null, authorities);
+
+            // details に aid/kind を残す（必要なら Controller で参照できる）
+            authentication.setDetails(Map.of(
+                    "aid", aid,
+                    "kind", kind
+            ));
+
             SecurityContextHolder.getContext().setAuthentication(authentication);
 
         } catch (JwtException ex) {
+            // 署名不正/期限切れ/形式不正 → 認証なしとして扱う
             SecurityContextHolder.clearContext();
         }
 

@@ -65,14 +65,7 @@ export function VerifyEmailPage() {
         setIsSubmitting(true);
         try {
             await verifyEmail(em, cd);
-
-            // 成功後の遷移：from があればそこへ、なければ login
-            const to = state.from ?? "/login";
-            if (to === "/login") {
-                nav("/login", { replace: true, state: { email: em, from } });
-            } else {
-                nav(to, { replace: true });
-            }
+            nav("/login", { replace: true, state: { email: em, from } });
         } catch (err: any) {
             setMsg(err?.response?.data?.message ?? "Verify failed");
         } finally {
