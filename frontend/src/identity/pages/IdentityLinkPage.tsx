@@ -1,19 +1,12 @@
-// pages/IdentityLinkPage.tsx
+// identity/pages/IdentityLinkPage.tsx
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { http } from "../../shared/http";
+import { linkIdentity } from "../api/identity";
 import { useAuth } from "../../auth/AuthContext";
-
-type TokenResponse = {
-    accessToken: string;
-    tokenType: string;
-    expiresInSeconds: number;
-    role: string | null;
-};
 
 export function IdentityLinkPage() {
     const nav = useNavigate();
-    const { refreshMe, setAccessToken } = useAuth();
+    const { setAccessToken, refreshMe } = useAuth();
     const [citizenId, setCitizenId] = useState("");
     const [msg, setMsg] = useState<string | null>(null);
 
@@ -22,13 +15,10 @@ export function IdentityLinkPage() {
         setMsg(null);
 
         try {
-            // ★ linkのレスポンスで新トークンを受け取る
-            const res = await http.post<TokenResponse>("/api/identity/link", {
-                citizenId,
-            });
+            const token = await linkIdentity(citizenId.trim());
 
-            // ★ 新トークン保存 → me再取得（role=VOTERが反映される）
-            await setAccessToken(res.data.accessToken);
+            // 新JWT保存 → me更新
+            await setAccessToken(token.accessToken);
             await refreshMe();
 
             nav("/");
@@ -52,6 +42,19 @@ export function IdentityLinkPage() {
                 <button type="submit">Link</button>
             </form>
             {msg && <p style={{ marginTop: 8 }}>{msg}</p>}
+            <div style={{ marginTop: 16 }}>
+                Raw JSON
+                <pre style={{ whiteSpace: "pre-wrap" }}>
+                    {JSON.stringify(
+                        {
+                            citizenId,
+                            msg,
+                        },
+                        null,
+                        2,
+                    )}
+                </pre>
+            </div>
         </div>
     );
 }

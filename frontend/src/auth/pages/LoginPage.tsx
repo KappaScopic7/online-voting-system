@@ -53,6 +53,21 @@ export function LoginPage() {
                 <button type="submit">Login</button>
             </form>
             {msg && <p style={{ marginTop: 8 }}>{msg}</p>}
+            <div style={{ marginTop: 16 }}>
+                Raw JSON
+                <pre style={{ whiteSpace: "pre-wrap" }}>
+                    {JSON.stringify(
+                        {
+                            email,
+                            password,
+                            msg,
+                            locationState: state,
+                        },
+                        null,
+                        2,
+                    )}
+                </pre>
+            </div>
         </div>
     );
 }

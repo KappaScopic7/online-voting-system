@@ -45,6 +45,20 @@ export function RegisterPage() {
                 <button type="submit">Create</button>
             </form>
             {msg && <p style={{ marginTop: 8 }}>{msg}</p>}
+            <div style={{ marginTop: 16 }}>
+                Raw JSON
+                <pre style={{ whiteSpace: "pre-wrap" }}>
+                    {JSON.stringify(
+                        {
+                            email,
+                            password,
+                            msg,
+                        },
+                        null,
+                        2,
+                    )}
+                </pre>
+            </div>
         </div>
     );
 }

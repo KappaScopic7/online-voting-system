@@ -92,13 +92,12 @@ export function VotingDonePage() {
                     候補者（公開）
                 </Link>
             </div>
-
-            <details style={{ marginTop: 16 }}>
-                <summary>Raw JSON</summary>
+            <div style={{ marginTop: 16 }}>
+                Raw JSON
                 <pre style={{ whiteSpace: "pre-wrap" }}>
-                    {JSON.stringify(result, null, 2)}
+                    {JSON.stringify({ result, state, loc }, null, 2)}
                 </pre>
-            </details>
+            </div>
         </div>
     );
 }

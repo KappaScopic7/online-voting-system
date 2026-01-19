@@ -62,6 +62,22 @@ export function VerifyEmailPage() {
             </form>
 
             {msg && <p style={{ marginTop: 8 }}>{msg}</p>}
+            <div style={{ marginTop: 16 }}>
+                Raw JSON
+                <pre style={{ whiteSpace: "pre-wrap" }}>
+                    {JSON.stringify(
+                        {
+                            email,
+                            code,
+                            msg,
+                            locationState: state,
+                            isSubmitting,
+                        },
+                        null,
+                        2,
+                    )}
+                </pre>
+            </div>
         </div>
     );
 }

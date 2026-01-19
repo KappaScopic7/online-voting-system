@@ -5,7 +5,7 @@ import { linkIdentity } from "../../identity/api/identity";
 import { useAuth } from "../AuthContext";
 
 export function MePage() {
-    const { refreshMe } = useAuth();
+    const { refreshMe, setAccessToken } = useAuth();
     const [me, setMe] = useState<MeDetailResponse | null>(null);
     const [citizenId, setCitizenId] = useState("");
     const [msg, setMsg] = useState<string | null>(null);
@@ -30,14 +30,18 @@ export function MePage() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
+    const isLinked = me?.identityStatus === "LINKED";
+
     const onLink = async (e: React.FormEvent) => {
         e.preventDefault();
         setMsg(null);
         try {
-            await linkIdentity(citizenId.trim());
-            // me系を再取得（AuthContext側のmeも更新）
+            const token = await linkIdentity(citizenId.trim());
+
+            await setAccessToken(token.accessToken);
             await refreshMe();
             await load();
+
             setMsg(
                 "本人認証（citizenId）を登録しました。投票可能になっているはず！",
             );
@@ -100,27 +104,42 @@ export function MePage() {
                             value={citizenId}
                             onChange={(e) => setCitizenId(e.target.value)}
                             placeholder="citizenId (UUID) 例: 550e8400-e29b-41d4-a716-446655440000"
+                            disabled={isLinked}
                         />
                         <button
                             type="submit"
-                            disabled={!citizenId.trim() || me.identityLinked}
+                            disabled={!citizenId.trim() || isLinked}
                         >
-                            {me.identityLinked
-                                ? "本人認証済み"
-                                : "本人認証を登録"}
+                            {isLinked ? "本人認証済み" : "本人認証を登録"}
                         </button>
                     </form>
 
                     <p style={{ marginTop: 8 }}>
                         現在:{" "}
                         <b>
-                            {me.identityLinked
+                            {isLinked
                                 ? "投票可能（本人認証済み）"
                                 : "投票不可（本人認証まだ）"}
                         </b>
                     </p>
                 </>
             )}
+            <div style={{ marginTop: 16 }}>
+                Raw JSON
+                <pre style={{ whiteSpace: "pre-wrap" }}>
+                    {JSON.stringify(
+                        {
+                            me,
+                            citizenId,
+                            msg,
+                            isLinked,
+                            isLoading,
+                        },
+                        null,
+                        2,
+                    )}
+                </pre>
+            </div>
         </div>
     );
 }
