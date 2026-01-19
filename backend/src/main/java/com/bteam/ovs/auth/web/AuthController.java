@@ -47,7 +47,7 @@ public class AuthController {
         var acc = findMe(authentication);
 
         var identityStatus = (acc.getCitizenId() == null)
-                ? IdentityStatus.NOT_LINKED
+                ? IdentityStatus.NONE
                 : IdentityStatus.LINKED;
 
         return new MeResponse(
@@ -64,7 +64,7 @@ public class AuthController {
         var acc = findMe(authentication);
 
         var identityStatus = (acc.getCitizenId() == null)
-                ? IdentityStatus.NOT_LINKED
+                ? IdentityStatus.NONE
                 : IdentityStatus.LINKED;
 
         return new MeDetailResponse(

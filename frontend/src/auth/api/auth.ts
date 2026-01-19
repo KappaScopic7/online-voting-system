@@ -8,7 +8,7 @@ export type TokenResponse = {
     role: string | null;
 };
 
-export type IdentityStatus = "NOT_LINKED" | "LINKED";
+export type IdentityStatus = "NOT_LINKED" | "PENDING" | "LINKED";
 
 export type MeResponse = {
     accountId: string;

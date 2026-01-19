@@ -50,7 +50,7 @@ public class VotingService {
                 .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "未ログインです"));
 
         if (acc.getCitizenId() == null) {
-            throw new ApiException(HttpStatus.FORBIDDEN, "IDENTITY_NOT_LINKED", "本人認証が完了していません");
+            throw new ApiException(HttpStatus.FORBIDDEN, "IDENTITY_NONE", "本人認証が完了していません");
         }
 
         var election = electionRepo.findById(electionId)
@@ -69,7 +69,7 @@ public class VotingService {
                 .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "未ログインです"));
 
         if (acc.getCitizenId() == null) {
-            throw new ApiException(HttpStatus.FORBIDDEN, "IDENTITY_NOT_LINKED", "本人認証が完了していません");
+            throw new ApiException(HttpStatus.FORBIDDEN, "IDENTITY_NONE", "本人認証が完了していません");
         }
 
         var election = electionRepo.findById(electionId)

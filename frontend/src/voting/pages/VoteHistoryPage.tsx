@@ -24,9 +24,14 @@ type Group = {
 export function VoteHistoryPage() {
     const [items, setItems] = useState<VoteHistoryItem[] | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const [isLoading, setIsLoading] = useState(false);
+
+    // UI control（仮）
+    const [q, setQ] = useState("");
 
     const load = async () => {
         setError(null);
+        setIsLoading(true);
         try {
             const data = await fetchVoteHistory();
             setItems(data);
@@ -35,6 +40,8 @@ export function VoteHistoryPage() {
                 err?.response?.data?.message ?? "Failed to load vote history",
             );
             setItems([]);
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -58,7 +65,6 @@ export function VoteHistoryPage() {
             map.get(key)!.items.push(v);
         }
 
-        // items は castedAt desc で来てる想定。グループも最新順に並べる
         return Array.from(map.values()).sort((a, b) => {
             const at = a.items[0]?.castedAt ?? "";
             const bt = b.items[0]?.castedAt ?? "";
@@ -66,22 +72,69 @@ export function VoteHistoryPage() {
         });
     }, [items]);
 
+    const filteredGroups = useMemo(() => {
+        const keyword = q.trim().toLowerCase();
+        if (!keyword) return groups;
+
+        return groups
+            .map((g) => {
+                const hitElection = (g.electionTitle ?? "")
+                    .toLowerCase()
+                    .includes(keyword);
+                const hitItems = g.items.filter((v) =>
+                    (v.candidateName ?? "").toLowerCase().includes(keyword),
+                );
+                if (hitElection) return g; // 選挙名ヒットなら全表示
+                if (hitItems.length === 0) return null;
+                return { ...g, items: hitItems };
+            })
+            .filter((x): x is Group => x !== null);
+    }, [groups, q]);
+
+    const totalVotes = useMemo(() => items?.length ?? 0, [items]);
+    const totalGroups = useMemo(() => groups.length, [groups]);
+
+    const isDev = import.meta.env?.DEV;
+
     return (
-        <div>
-            <h2>投票履歴</h2>
+        <div style={{ padding: 16, display: "grid", gap: 12, maxWidth: 920 }}>
+            <header
+                style={{
+                    display: "flex",
+                    gap: 12,
+                    alignItems: "center",
+                    flexWrap: "wrap",
+                }}
+            >
+                <Link to="/me">← 戻る</Link>
+                <h2 style={{ margin: 0 }}>投票履歴</h2>
+
+                <button
+                    onClick={load}
+                    style={{ marginLeft: "auto" }}
+                    disabled={isLoading}
+                >
+                    {isLoading ? "Reloading..." : "Reload"}
+                </button>
+            </header>
 
             <div
                 style={{
                     display: "flex",
                     gap: 12,
                     alignItems: "center",
-                    marginBottom: 12,
+                    flexWrap: "wrap",
                 }}
             >
-                <Link to="/">← 戻る</Link>
-                <button onClick={load} style={{ marginLeft: "auto" }}>
-                    Reload
-                </button>
+                <input
+                    value={q}
+                    onChange={(e) => setQ(e.target.value)}
+                    placeholder="検索（選挙名 / 候補者名）"
+                    style={{ flex: 1, minWidth: 240 }}
+                />
+                <span style={{ fontSize: 12, opacity: 0.75 }}>
+                    合計 {totalVotes} 件（{totalGroups} 選挙）
+                </span>
             </div>
 
             {error && (
@@ -90,23 +143,53 @@ export function VoteHistoryPage() {
                         border: "1px solid #ddd",
                         borderRadius: 8,
                         padding: 12,
-                        marginBottom: 12,
                     }}
+                    role="alert"
                 >
-                    <p style={{ margin: 0 }}>{error}</p>
+                    <div
+                        style={{
+                            display: "flex",
+                            gap: 12,
+                            alignItems: "center",
+                            flexWrap: "wrap",
+                        }}
+                    >
+                        <p style={{ margin: 0 }}>{error}</p>
+                        <button onClick={load} style={{ marginLeft: "auto" }}>
+                            再試行
+                        </button>
+                    </div>
                 </div>
             )}
 
             {items === null ? (
                 <p>Loading...</p>
             ) : items.length === 0 ? (
-                <p>投票履歴はありません</p>
+                <div
+                    style={{
+                        border: "1px solid #ddd",
+                        borderRadius: 8,
+                        padding: 12,
+                    }}
+                >
+                    <p style={{ margin: 0 }}>投票履歴はありません</p>
+                </div>
+            ) : filteredGroups.length === 0 ? (
+                <div
+                    style={{
+                        border: "1px solid #ddd",
+                        borderRadius: 8,
+                        padding: 12,
+                    }}
+                >
+                    <p style={{ margin: 0 }}>該当する履歴が見つかりません</p>
+                </div>
             ) : (
                 <div style={{ display: "grid", gap: 12 }}>
-                    {groups.map((g) => {
+                    {filteredGroups.map((g) => {
                         const latest = g.items[0];
                         return (
-                            <div
+                            <section
                                 key={g.electionId}
                                 style={{
                                     border: "1px solid #ddd",
@@ -121,12 +204,13 @@ export function VoteHistoryPage() {
                                         display: "flex",
                                         justifyContent: "space-between",
                                         gap: 12,
+                                        flexWrap: "wrap",
                                     }}
                                 >
                                     <strong style={{ fontSize: 16 }}>
                                         {g.electionTitle}
                                     </strong>
-                                    <span style={{ opacity: 0.8 }}>
+                                    <span style={{ opacity: 0.85 }}>
                                         回数: {g.items.length}
                                     </span>
                                 </div>
@@ -151,6 +235,7 @@ export function VoteHistoryPage() {
                                                 display: "flex",
                                                 gap: 12,
                                                 alignItems: "baseline",
+                                                flexWrap: "wrap",
                                             }}
                                         >
                                             <span
@@ -169,25 +254,35 @@ export function VoteHistoryPage() {
                                                 </strong>
                                             </span>
 
-                                            <details
-                                                style={{ marginLeft: "auto" }}
-                                            >
-                                                <summary
+                                            {/* 本番はJSON全表示しない（DEVのみ） */}
+                                            {isDev && (
+                                                <details
                                                     style={{
-                                                        cursor: "pointer",
+                                                        marginLeft: "auto",
                                                     }}
                                                 >
-                                                    詳細
-                                                </summary>
-                                                <pre
-                                                    style={{
-                                                        whiteSpace: "pre-wrap",
-                                                        margin: 0,
-                                                    }}
-                                                >
-                                                    {JSON.stringify(v, null, 2)}
-                                                </pre>
-                                            </details>
+                                                    <summary
+                                                        style={{
+                                                            cursor: "pointer",
+                                                        }}
+                                                    >
+                                                        詳細
+                                                    </summary>
+                                                    <pre
+                                                        style={{
+                                                            whiteSpace:
+                                                                "pre-wrap",
+                                                            margin: 0,
+                                                        }}
+                                                    >
+                                                        {JSON.stringify(
+                                                            v,
+                                                            null,
+                                                            2,
+                                                        )}
+                                                    </pre>
+                                                </details>
+                                            )}
                                         </div>
                                     ))}
                                 </div>
@@ -197,6 +292,7 @@ export function VoteHistoryPage() {
                                         marginTop: 8,
                                         display: "flex",
                                         gap: 12,
+                                        flexWrap: "wrap",
                                     }}
                                 >
                                     <Link
@@ -207,20 +303,38 @@ export function VoteHistoryPage() {
                                     <Link
                                         to={`/elections/${g.electionId}/result`}
                                     >
-                                        結果（公開）
+                                        結果
                                     </Link>
                                 </div>
-                            </div>
+
+                                <p
+                                    style={{
+                                        margin: 0,
+                                        fontSize: 12,
+                                        opacity: 0.65,
+                                    }}
+                                >
+                                    ※
+                                    結果が未公開の場合、結果ページで「未公開」表示になります。
+                                </p>
+                            </section>
                         );
                     })}
                 </div>
             )}
-            <div style={{ marginTop: 16 }}>
-                Raw JSON
-                <pre style={{ whiteSpace: "pre-wrap" }}>
-                    {JSON.stringify({ items, error, groups }, null, 2)}
-                </pre>
-            </div>
+
+            {isDev && (
+                <details>
+                    <summary>Debug</summary>
+                    <pre style={{ whiteSpace: "pre-wrap" }}>
+                        {JSON.stringify(
+                            { items, error, groups, filteredGroups },
+                            null,
+                            2,
+                        )}
+                    </pre>
+                </details>
+            )}
         </div>
     );
 }

@@ -1,64 +1,186 @@
 // auth/pages/RegisterPage.tsx
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useMemo, useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { register } from "../api/auth";
+
+function isValidEmail(v: string) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+}
 
 export function RegisterPage() {
     const nav = useNavigate();
+    const loc = useLocation();
+    const from = (loc.state as any)?.from ?? loc.pathname + loc.search;
+
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
+    const [password2, setPassword2] = useState("");
+
+    const [showPw, setShowPw] = useState(false);
+
     const [msg, setMsg] = useState<string | null>(null);
+    const [fieldErr, setFieldErr] = useState<{
+        email?: string;
+        password?: string;
+        password2?: string;
+    }>({});
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const canSubmit = useMemo(() => {
+        const e = email.trim();
+        if (!e || !password || !password2) return false;
+        if (!isValidEmail(e)) return false;
+        if (password !== password2) return false;
+        return !isSubmitting;
+    }, [email, password, password2, isSubmitting]);
 
     const onSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setMsg(null);
-        try {
-            await register(email, password);
+        setFieldErr({});
 
-            // ★ 登録後は verify へ
-            nav("/verify", { state: { email } });
+        const em = email.trim();
+
+        // フロントバリデーション（仮）
+        const nextErr: typeof fieldErr = {};
+        if (!em) nextErr.email = "メールアドレスを入力してください";
+        else if (!isValidEmail(em))
+            nextErr.email = "メールアドレスの形式が不正です";
+
+        if (!password) nextErr.password = "パスワードを入力してください";
+        // 要件があるならここでチェック（例: 8文字以上）
+        if (password && password.length < 8)
+            nextErr.password = "パスワードは8文字以上にしてください（仮）";
+
+        if (!password2)
+            nextErr.password2 = "確認用パスワードを入力してください";
+        else if (password && password2 && password !== password2)
+            nextErr.password2 = "パスワードが一致しません";
+
+        if (nextErr.email || nextErr.password || nextErr.password2) {
+            setFieldErr(nextErr);
+            return;
+        }
+
+        try {
+            setIsSubmitting(true);
+            await register(em, password);
+
+            // 登録後は verify へ（emailを渡す）
+            nav("/verify", { replace: true, state: { email: em, from } });
         } catch (err: any) {
-            setMsg(err?.response?.data?.message ?? "Register failed");
+            const apiMsg = err?.response?.data?.message ?? "Register failed";
+            // 例: 既に登録済みならログインへ誘導したい、など code で分岐余地
+            setMsg(apiMsg);
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
+    const isDev = import.meta.env?.DEV;
+
     return (
-        <div>
+        <div style={{ padding: 16, display: "grid", gap: 12, maxWidth: 420 }}>
             <h2>Register</h2>
-            <form
-                onSubmit={onSubmit}
-                style={{ display: "grid", gap: 8, maxWidth: 360 }}
-            >
-                <input
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="email"
-                    autoComplete="email"
-                />
-                <input
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="password"
-                    type="password"
-                    autoComplete="new-password"
-                />
-                <button type="submit">Create</button>
-            </form>
-            {msg && <p style={{ marginTop: 8 }}>{msg}</p>}
-            <div style={{ marginTop: 16 }}>
-                Raw JSON
-                <pre style={{ whiteSpace: "pre-wrap" }}>
-                    {JSON.stringify(
-                        {
-                            email,
-                            password,
-                            msg,
-                        },
-                        null,
-                        2,
+
+            {msg && (
+                <div
+                    role="alert"
+                    style={{ padding: 8, border: "1px solid #ccc" }}
+                >
+                    {msg}
+                </div>
+            )}
+
+            <form onSubmit={onSubmit} style={{ display: "grid", gap: 8 }}>
+                <label style={{ display: "grid", gap: 4 }}>
+                    <span>Email</span>
+                    <input
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="email"
+                        autoComplete="email"
+                        inputMode="email"
+                    />
+                    {fieldErr.email && (
+                        <small style={{ color: "crimson" }}>
+                            {fieldErr.email}
+                        </small>
                     )}
-                </pre>
-            </div>
+                </label>
+
+                <label style={{ display: "grid", gap: 4 }}>
+                    <span>Password</span>
+                    <div style={{ display: "flex", gap: 8 }}>
+                        <input
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            placeholder="password"
+                            type={showPw ? "text" : "password"}
+                            autoComplete="new-password"
+                            style={{ flex: 1 }}
+                        />
+                        <button
+                            type="button"
+                            onClick={() => setShowPw((v) => !v)}
+                            aria-pressed={showPw}
+                        >
+                            {showPw ? "Hide" : "Show"}
+                        </button>
+                    </div>
+                    <small>※ 仮：8文字以上</small>
+                    {fieldErr.password && (
+                        <small style={{ color: "crimson" }}>
+                            {fieldErr.password}
+                        </small>
+                    )}
+                </label>
+
+                <label style={{ display: "grid", gap: 4 }}>
+                    <span>Password (confirm)</span>
+                    <input
+                        value={password2}
+                        onChange={(e) => setPassword2(e.target.value)}
+                        placeholder="password (confirm)"
+                        type={showPw ? "text" : "password"}
+                        autoComplete="new-password"
+                    />
+                    {fieldErr.password2 && (
+                        <small style={{ color: "crimson" }}>
+                            {fieldErr.password2}
+                        </small>
+                    )}
+                </label>
+
+                <button type="submit" disabled={!canSubmit}>
+                    {isSubmitting ? "Creating..." : "Create"}
+                </button>
+
+                <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+                    <Link to="/login" state={{ email: email.trim(), from }}>
+                        ログインへ
+                    </Link>
+                </div>
+            </form>
+
+            {/* DEV用デバッグ（passwordは出さない） */}
+            {isDev && (
+                <details>
+                    <summary>Debug</summary>
+                    <pre style={{ whiteSpace: "pre-wrap" }}>
+                        {JSON.stringify(
+                            {
+                                email,
+                                msg,
+                                isSubmitting,
+                                fieldErr,
+                            },
+                            null,
+                            2,
+                        )}
+                    </pre>
+                </details>
+            )}
         </div>
     );
 }
