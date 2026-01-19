@@ -1,4 +1,4 @@
-// pages/VotingDonePage.tsx
+// voting/pages/VotingDonePage.tsx
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import type { VoteHistoryItem } from "../api/votes";
 
@@ -78,12 +78,6 @@ export function VotingDonePage() {
             </div>
 
             <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-                <button
-                    onClick={() => nav("/voter", { state: { refresh: true } })}
-                >
-                    Voter Homeへ戻る
-                </button>
-
                 <Link to="/votes">投票履歴を見る</Link>
                 <Link to={`/voting/start?electionId=${result.electionId}`}>
                     同じ選挙でもう一度投票

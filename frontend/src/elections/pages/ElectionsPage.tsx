@@ -1,4 +1,4 @@
-// pages/ElectionsPage.tsx
+// elections/pages/ElectionsPage.tsx
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { fetchElections, type ElectionListItem } from "../api/elections";
