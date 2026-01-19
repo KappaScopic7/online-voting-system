@@ -376,7 +376,7 @@ export function ElectionsPage() {
                                     <Link
                                         to={`/elections/${e.electionId}/candidates`}
                                     >
-                                        候補者（公開）
+                                        候補者一覧
                                     </Link>
 
                                     {e.hasResult ? (
