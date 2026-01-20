@@ -1,17 +1,23 @@
 package com.bteam.ovs.demo;
 
+import com.bteam.ovs.auth.model.Role;
 import com.bteam.ovs.auth.model.StaffAccount;
 import com.bteam.ovs.auth.model.UserAccount;
-import com.bteam.ovs.auth.model.Role;
 import com.bteam.ovs.auth.repo.StaffAccountRepository;
 import com.bteam.ovs.auth.repo.UserAccountRepository;
 import com.bteam.ovs.elections.model.Candidate;
 import com.bteam.ovs.elections.model.Election;
 import com.bteam.ovs.elections.repo.CandidateRepository;
 import com.bteam.ovs.elections.repo.ElectionRepository;
+import com.bteam.ovs.voting.model.VoteCast;
+import com.bteam.ovs.voting.model.VoteCurrent;
+import com.bteam.ovs.voting.repo.VoteCastRepository;
+import com.bteam.ovs.voting.repo.VoteCurrentRepository;
 
 import org.springframework.boot.CommandLineRunner;
-import org.springframework.context.annotation.*;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.transaction.support.TransactionTemplate;
 
@@ -24,54 +30,59 @@ import java.util.UUID;
 @Configuration
 public class DemoDataInitializer {
 
-    private static final String DEMO_ELECTION_PREFIX = "デモ選挙 ";
+    private static final String DEMO_ELECTION_PREFIX = "デモ選挙0";
 
-    private static final String DEMO_VOTER_EMAIL = "test@example.com";
+    private static final String DEMO_VOTER_EMAIL = "0@example.com";
     private static final String DEMO_VOTER_PASSWORD = "Passw0rd!!";
 
     private static final String DEMO_ADMIN_LOGIN_ID = "admin";
-    private static final String DEMO_ADMIN_PASSWORD = "Admin123!";
+    private static final String DEMO_ADMIN_PASSWORD = "Passw0rd!!";
+
+    private static final String DEMO_COMMITTEE_LOGIN_ID = "committee";
+    private static final String DEMO_COMMITTEE_PASSWORD = "Passw0rd!!";
 
     @Bean
     CommandLineRunner demoInit(
             UserAccountRepository userRepo,
-            StaffAccountRepository committeeRepo,
+            StaffAccountRepository staffRepo,
             ElectionRepository electionRepo,
             CandidateRepository candidateRepo,
+            VoteCastRepository voteCastRepo,
+            VoteCurrentRepository voteCurrentRepo,
             PasswordEncoder passwordEncoder,
             TransactionTemplate tx
     ) {
         return args -> tx.executeWithoutResult(status ->
-                init(userRepo, committeeRepo, electionRepo, candidateRepo, passwordEncoder)
+                init(userRepo, staffRepo, electionRepo, candidateRepo, voteCastRepo, voteCurrentRepo, passwordEncoder)
         );
     }
 
     void init(
             UserAccountRepository userRepo,
-            StaffAccountRepository committeeRepo,
+            StaffAccountRepository staffRepo,
             ElectionRepository electionRepo,
             CandidateRepository candidateRepo,
+            VoteCastRepository voteCastRepo,
+            VoteCurrentRepository voteCurrentRepo,
             PasswordEncoder passwordEncoder
     ) {
-        System.out.println("""
-            [DEMO] DemoDataInitializer start
-            - profile: demo
-            - seed: voter / admin / election
-            """);
+        seedAdmin(staffRepo, passwordEncoder);
+        seedCommittee(staffRepo, passwordEncoder);
 
-        seedAdmin(committeeRepo, passwordEncoder);
-        seedVoter(userRepo, passwordEncoder);
-        seedElection(electionRepo, candidateRepo);
+        UUID citizenId = seedVoter(userRepo, passwordEncoder);
 
-        System.out.println("[DEMO] DemoDataInitializer end");
+        seedElectionsAndVotes(electionRepo, candidateRepo, voteCastRepo, voteCurrentRepo, citizenId);
     }
 
+    // =========================
+    // seed staff / user
+    // =========================
+
     private void seedAdmin(
-            StaffAccountRepository committeeRepo,
+            StaffAccountRepository staffRepo,
             PasswordEncoder passwordEncoder
     ) {
-        if (committeeRepo.existsByLoginId(DEMO_ADMIN_LOGIN_ID)) {
-            System.out.println("[DEMO] Admin already exists: " + DEMO_ADMIN_LOGIN_ID);
+        if (staffRepo.existsByLoginId(DEMO_ADMIN_LOGIN_ID)) {
             return;
         }
 
@@ -82,31 +93,41 @@ public class DemoDataInitializer {
         admin.setEnabled(true);
         admin.setLocked(false);
 
-        committeeRepo.save(admin);
+        staffRepo.save(admin);
+    }
 
-        System.out.println("""
-            [DEMO] Admin created
-                loginId : admin
-                password: Admin123!
-            """);
+    private void seedCommittee(
+            StaffAccountRepository staffRepo,
+            PasswordEncoder passwordEncoder
+    ) {
+        if (staffRepo.existsByLoginId(DEMO_COMMITTEE_LOGIN_ID)) {
+            return;
+        }
+
+        var committee = new StaffAccount();
+        committee.setLoginId(DEMO_COMMITTEE_LOGIN_ID);
+        committee.setPasswordHash(passwordEncoder.encode(DEMO_COMMITTEE_PASSWORD));
+        committee.setRole(Role.COMMITTEE);
+        committee.setEnabled(true);
+        committee.setLocked(false);
+
+        staffRepo.save(committee);
     }
 
     private UUID seedVoter(
             UserAccountRepository userRepo,
             PasswordEncoder passwordEncoder
     ) {
-        var email = DEMO_VOTER_EMAIL;
-
-        var existing = userRepo.findByEmail(email);
+        var existing = userRepo.findByEmail(DEMO_VOTER_EMAIL);
         if (existing.isPresent()) {
-            System.out.println("[DEMO] Voter already exists: " + email);
+            // 再起動時も citizenId を固定して使う
             return existing.get().getCitizenId();
         }
 
         UUID citizenId = UUID.randomUUID();
 
         var voter = new UserAccount();
-        voter.setEmail(email);
+        voter.setEmail(DEMO_VOTER_EMAIL);
         voter.setPasswordHash(passwordEncoder.encode(DEMO_VOTER_PASSWORD));
         voter.setRole(Role.VOTER);
         voter.setEnabled(true);
@@ -116,51 +137,136 @@ public class DemoDataInitializer {
 
         userRepo.save(voter);
 
-        System.out.println("""
-            [DEMO] Voter created
-                email    : test@example.com
-                password : Passw0rd!!
-                citizenId: %s
-            """.formatted(citizenId));
-
         return citizenId;
     }
 
-    private void seedElection(
+    // =========================
+    // seed elections / candidates / votes
+    // =========================
+
+    private void seedElectionsAndVotes(
             ElectionRepository electionRepo,
-            CandidateRepository candidateRepo
+            CandidateRepository candidateRepo,
+            VoteCastRepository voteCastRepo,
+            VoteCurrentRepository voteCurrentRepo,
+            UUID citizenId
     ) {
-        int deleted = electionRepo.deleteByTitleStartingWith(DEMO_ELECTION_PREFIX);
-        if (deleted > 0) {
-            System.out.println("[DEMO] Deleted demo elections: " + deleted);
-        }
+        // 既存デモ選挙を削除（前回分を掃除）
+        electionRepo.deleteByTitleStartingWith(DEMO_ELECTION_PREFIX);
 
         var now = Instant.now();
-        String title = DEMO_ELECTION_PREFIX + LocalDate.now() + " " + now;
+        String today = LocalDate.now().toString();
 
+        // 1) 開催前（startsAt が未来）
+        createElectionWithCandidates(
+                electionRepo, candidateRepo,
+                DEMO_ELECTION_PREFIX + " 開催前 " + today,
+                now.plusSeconds(60 * 60),          // starts +1h
+                now.plusSeconds(60 * 60 * 25),     // ends +25h
+                "開催前"
+        );
+
+        // 2) 投票可能（開催中）
+        createElectionWithCandidates(
+                electionRepo, candidateRepo,
+                DEMO_ELECTION_PREFIX + " 投票可能 " + today,
+                now.minusSeconds(60 * 60),         // started -1h
+                now.plusSeconds(60 * 60 * 24),     // ends +24h
+                "投票可能"
+        );
+
+        // 3) 終了済み（投票済み）
+        var endedVoted = createElectionWithCandidates(
+                electionRepo, candidateRepo,
+                DEMO_ELECTION_PREFIX + " 終了済み_投票済み " + today,
+                now.minusSeconds(60 * 60 * 48),    // started -48h
+                now.minusSeconds(60 * 60 * 24),    // ended -24h
+                "終了済み投票済み"
+        );
+
+        // endedVoted の候補Aに投票したことにする
+        UUID votedCandidateId = endedVoted.candidateIds().get(0);
+
+        // 終了前に投票したことにする（終了後だと不自然なので endedAt より前）
+        Instant votedAt = now.minusSeconds(60 * 60 * 25); // ended(-24h) より前
+
+        seedVoteCast(voteCastRepo, endedVoted.electionId(), citizenId, votedCandidateId, votedAt);
+        seedVoteCurrent(voteCurrentRepo, endedVoted.electionId(), citizenId, votedCandidateId, votedAt);
+
+        // 4) 終了済み（未投票）
+        createElectionWithCandidates(
+                electionRepo, candidateRepo,
+                DEMO_ELECTION_PREFIX + " 終了済み_未投票 " + today,
+                now.minusSeconds(60 * 60 * 72),    // started -72h
+                now.minusSeconds(60 * 60 * 48),    // ended -48h
+                "終了済み未投票"
+        );
+    }
+
+    private record CreatedElection(UUID electionId, List<UUID> candidateIds) {}
+
+    private CreatedElection createElectionWithCandidates(
+            ElectionRepository electionRepo,
+            CandidateRepository candidateRepo,
+            String title,
+            Instant startsAt,
+            Instant endsAt,
+            String suffix
+    ) {
         var election = new Election();
         election.setTitle(title);
-        election.setStartsAt(now.minusSeconds(60));
-        election.setEndsAt(now.plusSeconds(60 * 60 * 24));
+        election.setStartsAt(startsAt);
+        election.setEndsAt(endsAt);
 
         electionRepo.save(election);
 
-        createCandidates(candidateRepo, election.getId(),
-                List.of("候補A", "候補B", "候補C"));
+        var candidateIds = createCandidates(candidateRepo, election.getId(),
+                List.of("候補A_" + suffix, "候補B_" + suffix, "候補C_" + suffix));
 
-        System.out.println("[DEMO] Election created: " + election.getId());
+        return new CreatedElection(election.getId(), candidateIds);
     }
 
-    private void createCandidates(
+    private List<UUID> createCandidates(
             CandidateRepository candidateRepo,
             UUID electionId,
             List<String> names
     ) {
-        for (var name : names) {
+        return names.stream().map(name -> {
             var c = new Candidate();
             c.setElectionId(electionId);
             c.setName(name);
-            candidateRepo.save(c);
-        }
+            c = candidateRepo.save(c);
+            return c.getId();
+        }).toList();
+    }
+
+    private void seedVoteCast(
+            VoteCastRepository voteCastRepo,
+            UUID electionId,
+            UUID citizenId,
+            UUID candidateId,
+            Instant castedAt
+    ) {
+        var v = new VoteCast();
+        v.setElectionId(electionId);
+        v.setCitizenId(citizenId);
+        v.setCandidateId(candidateId);
+        v.setCastedAt(castedAt);
+        voteCastRepo.save(v);
+    }
+
+    private void seedVoteCurrent(
+            VoteCurrentRepository voteCurrentRepo,
+            UUID electionId,
+            UUID citizenId,
+            UUID candidateId,
+            Instant castedAt
+    ) {
+        var v = new VoteCurrent();
+        v.setElectionId(electionId);
+        v.setCitizenId(citizenId);
+        v.setCandidateId(candidateId);
+        v.setCastedAt(castedAt);
+        voteCurrentRepo.save(v);
     }
 }
