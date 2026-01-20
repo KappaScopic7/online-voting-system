@@ -17,6 +17,9 @@ import { VotingStartPage } from "./voting/pages/VotingStartPage";
 import { VotingDonePage } from "./voting/pages/VotingDonePage";
 import { VoteHistoryPage } from "./voting/pages/VoteHistoryPage";
 
+import { AdminLoginPage } from "./admin/pages/AdminLoginPage";
+import { RequireStaff } from "./auth/RequireStaff";
+
 export default function App() {
     return (
         <div style={{ padding: 16 }}>
@@ -47,6 +50,25 @@ export default function App() {
                 <Route path="/register" element={<RegisterPage />} />
                 <Route path="/verify-email" element={<VerifyEmailPage />} />
                 <Route path="/login" element={<LoginPage />} />
+
+                {/* /admin → /admin/login に飛ばす */}
+                <Route
+                    path="/admin"
+                    element={<Navigate to="/admin/login" replace />}
+                />
+
+                {/* admin login */}
+                <Route path="/admin/login" element={<AdminLoginPage />} />
+
+                {/* admin protected */}
+                <Route
+                    path="/admin/*"
+                    element={
+                        <RequireStaff>
+                            <div>Admin Layout</div>
+                        </RequireStaff>
+                    }
+                />
 
                 {/* Voter protected */}
                 <Route path="/verify" element={<VerifyEmailPage />} />

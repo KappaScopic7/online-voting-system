@@ -10,12 +10,17 @@ export type TokenResponse = {
 
 export type IdentityStatus = "NOT_LINKED" | "PENDING" | "LINKED";
 
+export type AccountKind = "USER" | "STAFF";
+
 export type MeResponse = {
     accountId: string;
-    email: string;
-    role: string | null;
-    emailVerified: boolean;
-    identityStatus: IdentityStatus;
+    kind: AccountKind;
+    role: "VOTER" | "ADMIN" | "COMMITTEE" | null;
+    email?: string;
+    emailVerified?: boolean;
+    identityStatus?: IdentityStatus;
+    enabled: boolean;
+    locked: boolean;
 };
 
 export type MeDetailResponse = {
