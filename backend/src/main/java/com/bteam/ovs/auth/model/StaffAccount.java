@@ -1,6 +1,10 @@
 package com.bteam.ovs.auth.model;
 
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
 import java.time.Instant;
 import java.util.UUID;
 
@@ -11,6 +15,9 @@ import java.util.UUID;
                 @UniqueConstraint(name = "uk_staff_account_login_id", columnNames = {"login_id"})
         }
 )
+@Getter
+@Setter
+@NoArgsConstructor
 public class StaffAccount {
 
     @Id
@@ -51,28 +58,4 @@ public class StaffAccount {
     void onUpdate() {
         updatedAt = Instant.now();
     }
-
-    public UUID getId() { return id; }
-    public void setId(UUID id) { this.id = id; }
-
-    public String getLoginId() { return loginId; }
-    public void setLoginId(String loginId) { this.loginId = loginId; }
-
-    public String getPasswordHash() { return passwordHash; }
-    public void setPasswordHash(String passwordHash) { this.passwordHash = passwordHash; }
-
-    public Role getRole() { return role; }
-    public void setRole(Role role) { this.role = role; }
-
-    public boolean isEnabled() { return enabled; }
-    public void setEnabled(boolean enabled) { this.enabled = enabled; }
-
-    public boolean isLocked() { return locked; }
-    public void setLocked(boolean locked) { this.locked = locked; }
-
-    public Instant getCreatedAt() { return createdAt; }
-    public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
-
-    public Instant getUpdatedAt() { return updatedAt; }
-    public void setUpdatedAt(Instant updatedAt) { this.updatedAt = updatedAt; }
 }

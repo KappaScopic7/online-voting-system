@@ -1,11 +1,18 @@
 package com.bteam.ovs.elections.model;
 
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.NoArgsConstructor;
+
 import java.time.Instant;
 import java.util.UUID;
 
 @Entity
 @Table(name = "election")
+@Getter
+@Setter
+@NoArgsConstructor
 public class Election {
 
     @Id
@@ -25,13 +32,4 @@ public class Election {
     void onCreate() {
         if (id == null) id = UUID.randomUUID();
     }
-
-    public UUID getId() { return id; }
-    public void setId(UUID id) { this.id = id; }
-    public String getTitle() { return title; }
-    public void setTitle(String title) { this.title = title; }
-    public Instant getStartsAt() { return startsAt; }
-    public void setStartsAt(Instant startsAt) { this.startsAt = startsAt; }
-    public Instant getEndsAt() { return endsAt; }
-    public void setEndsAt(Instant endsAt) { this.endsAt = endsAt; }
 }

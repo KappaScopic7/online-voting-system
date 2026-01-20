@@ -1,6 +1,10 @@
 package com.bteam.ovs.elections.model;
 
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
 import java.util.UUID;
 
 @Entity
@@ -16,6 +20,9 @@ import java.util.UUID;
                 )
         }
 )
+@Getter
+@Setter
+@NoArgsConstructor
 public class Candidate {
 
     @Id
@@ -32,11 +39,4 @@ public class Candidate {
     void onCreate() {
         if (id == null) id = UUID.randomUUID();
     }
-
-    public UUID getId() { return id; }
-    public void setId(UUID id) { this.id = id; }
-    public UUID getElectionId() { return electionId; }
-    public void setElectionId(UUID electionId) { this.electionId = electionId; }
-    public String getName() { return name; }
-    public void setName(String name) { this.name = name; }
 }

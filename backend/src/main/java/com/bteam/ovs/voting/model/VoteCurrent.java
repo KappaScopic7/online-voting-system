@@ -1,6 +1,10 @@
 package com.bteam.ovs.voting.model;
 
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
 import java.time.Instant;
 import java.util.UUID;
 
@@ -11,6 +15,9 @@ import java.util.UUID;
         @Index(name = "ix_vote_current_election_id", columnList = "election_id")
     }
 )
+@Getter
+@Setter
+@NoArgsConstructor
 @IdClass(VoteCurrentKey.class)
 public class VoteCurrent {
 
@@ -37,13 +44,4 @@ public class VoteCurrent {
     void onUpdate() {
         castedAt = Instant.now();
     }
-
-    public UUID getElectionId() { return electionId; }
-    public void setElectionId(UUID electionId) { this.electionId = electionId; }
-    public UUID getCitizenId() { return citizenId; }
-    public void setCitizenId(UUID citizenId) { this.citizenId = citizenId; }
-    public UUID getCandidateId() { return candidateId; }
-    public void setCandidateId(UUID candidateId) { this.candidateId = candidateId; }
-    public Instant getCastedAt() { return castedAt; }
-    public void setCastedAt(Instant castedAt) { this.castedAt = castedAt; }
 }

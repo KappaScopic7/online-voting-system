@@ -1,11 +1,17 @@
 package com.bteam.ovs.identity.model;
 
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.NoArgsConstructor;
 
 @Entity
 @Table(name = "nfc_credential", indexes = {
     @Index(name = "ix_nfc_credential_card_id", columnList = "card_id", unique = true)
 })
+@Getter
+@Setter
+@NoArgsConstructor
 public class NfcCredential {
 
     @Id
@@ -20,13 +26,4 @@ public class NfcCredential {
 
     @Column(name="voter_id", nullable=false)
     private Long voterId;
-
-    public Long getId() { return id; }
-    public String getCardId() { return cardId; }
-    public String getPinHash() { return pinHash; }
-    public Long getVoterId() { return voterId; }
-
-    public void setCardId(String cardId) { this.cardId = cardId; }
-    public void setPinHash(String pinHash) { this.pinHash = pinHash; }
-    public void setVoterId(Long voterId) { this.voterId = voterId; }
 }
