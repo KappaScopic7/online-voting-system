@@ -25,40 +25,20 @@ public class StaffAuthController {
 
     public StaffAuthController(
             StaffAuthService staffAuthService,
-            StaffAccountRepository StaffRepo
+            StaffAccountRepository staffRepo
     ) {
         this.staffAuthService = staffAuthService;
-        this.staffRepo = StaffRepo;
+        this.staffRepo = staffRepo;
     }
 
-    /**
-     * staff login
-     */
     @PostMapping("/login")
-    public TokenResponse staffLogin(
-            @Valid @RequestBody StaffLoginRequest req
-    ) {
+    public TokenResponse staffLogin(@Valid @RequestBody StaffLoginRequest req) {
         return staffAuthService.login(req);
     }
 
-    /**
-     * staff me
-     */
     @GetMapping("/me")
     public StaffMeResponse me(Authentication authentication) {
         var acc = findMe(authentication);
-
-        // staff ロールチェック（二重防御）
-        if (acc.getRole() == null ||
-            !(acc.getRole().name().equals("ADMIN")
-           || acc.getRole().name().equals("COMMITTEE"))) {
-            throw new ApiException(
-                    HttpStatus.FORBIDDEN,
-                    "FORBIDDEN",
-                    "スタッフ権限がありません"
-            );
-        }
-
         return new StaffMeResponse(
                 acc.getId(),
                 acc.getLoginId(),
@@ -68,17 +48,9 @@ public class StaffAuthController {
         );
     }
 
-    // =========================
-    // 共通処理
-    // =========================
-
     private StaffAccount findMe(Authentication authentication) {
         if (authentication == null || authentication.getName() == null) {
-            throw new ApiException(
-                    HttpStatus.UNAUTHORIZED,
-                    "UNAUTHORIZED",
-                    "未ログインです"
-            );
+            throw new ApiException(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "未ログインです");
         }
 
         UUID accountId;
@@ -87,18 +59,10 @@ public class StaffAuthController {
             var details = (Map<String, Object>) authentication.getDetails();
             accountId = UUID.fromString((String) details.get("aid"));
         } catch (Exception ex) {
-            throw new ApiException(
-                    HttpStatus.UNAUTHORIZED,
-                    "UNAUTHORIZED",
-                    "未ログインです"
-            );
+            throw new ApiException(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "未ログインです");
         }
 
         return staffRepo.findById(accountId)
-                .orElseThrow(() -> new ApiException(
-                        HttpStatus.UNAUTHORIZED,
-                        "UNAUTHORIZED",
-                        "未ログインです"
-                ));
+                .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "未ログインです"));
     }
 }

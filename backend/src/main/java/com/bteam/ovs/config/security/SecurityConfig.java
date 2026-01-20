@@ -63,7 +63,15 @@ public class SecurityConfig {
                         // elections は GET だけ公開
                         .requestMatchers(HttpMethod.GET, "/api/elections/**").permitAll()
 
-                        // ---- admin auth ----
+                        // ---- staff auth ----
+                        .requestMatchers("/api/staff/auth/login").permitAll()
+
+                        // staff 用API（me や committee/admin の土台）
+                        .requestMatchers("/api/staff/**").access((authentication, context) ->
+                                new AuthorizationDecision(isStaff(authentication.get()))
+                        )
+
+                        // ---- admin auth (互換で残すなら) ----
                         .requestMatchers("/api/admin/auth/login").permitAll()
 
                         // ★ /api/admin/** は「STAFF かつ ADMIN/COMMITTEE」
