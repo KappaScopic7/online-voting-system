@@ -2,10 +2,10 @@ package com.bteam.ovs.auth.service;
 
 import com.bteam.ovs.auth.repo.UserAccountRepository;
 import com.bteam.ovs.auth.model.UserAccount;
-import com.bteam.ovs.auth.security.JwtService;
 import com.bteam.ovs.auth.web.dto.TokenResponse;
 import com.bteam.ovs.auth.web.dto.VoterLoginRequest;
 import com.bteam.ovs.auth.web.dto.VoterRegisterRequest;
+import com.bteam.ovs.config.security.JwtService;
 import com.bteam.ovs.shared.errors.ApiException;
 
 import org.springframework.http.HttpStatus;

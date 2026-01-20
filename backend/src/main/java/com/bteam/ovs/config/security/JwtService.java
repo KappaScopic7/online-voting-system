@@ -1,4 +1,4 @@
-package com.bteam.ovs.auth.security;
+package com.bteam.ovs.config.security;
 
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;

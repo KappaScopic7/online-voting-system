@@ -10,7 +10,8 @@ function isValidEmail(v: string) {
 export function RegisterPage() {
     const nav = useNavigate();
     const loc = useLocation();
-    const from = (loc.state as any)?.from ?? loc.pathname + loc.search;
+    const state = (loc.state ?? {}) as { from?: string } | null;
+    const from = state?.from ?? "/";
 
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");

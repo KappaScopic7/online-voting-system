@@ -159,7 +159,7 @@ export function VerifyEmailPage() {
                 </div>
 
                 <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-                    <Link to="/login" state={{ email: email.trim() }}>
+                    <Link to="/login" state={{ email: email.trim(), from }}>
                         ログインへ戻る
                     </Link>
                     <Link to="/register" state={{ email: email.trim() }}>

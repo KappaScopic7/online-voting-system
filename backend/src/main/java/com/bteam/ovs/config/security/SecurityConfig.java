@@ -19,9 +19,6 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import static org.springframework.security.config.Customizer.withDefaults;
 
-import com.bteam.ovs.auth.security.JwtAuthenticationFilter;
-import com.bteam.ovs.auth.security.JwtService;
-
 @Configuration
 public class SecurityConfig {
 

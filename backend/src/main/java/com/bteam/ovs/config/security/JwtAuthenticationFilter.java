@@ -1,4 +1,4 @@
-package com.bteam.ovs.auth.security;
+package com.bteam.ovs.config.security;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;

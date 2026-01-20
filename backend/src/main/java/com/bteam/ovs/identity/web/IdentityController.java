@@ -1,7 +1,7 @@
 package com.bteam.ovs.identity.web;
 
-import com.bteam.ovs.auth.security.JwtService;
 import com.bteam.ovs.auth.web.dto.TokenResponse;
+import com.bteam.ovs.config.security.JwtService;
 import com.bteam.ovs.identity.service.IdentityLinkService;
 import com.bteam.ovs.identity.web.dto.IdentityLinkRequest;
 import com.bteam.ovs.shared.errors.ApiException;
@@ -11,6 +11,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -33,7 +34,9 @@ public class IdentityController {
 
         UUID accountId;
         try {
-            accountId = UUID.fromString(auth.getName()); // principal=aid(UUID文字列)
+            @SuppressWarnings("unchecked")
+            var details = (Map<String, Object>) auth.getDetails();
+            accountId = UUID.fromString((String) details.get("aid"));
         } catch (Exception e) {
             throw new ApiException(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "未ログインです");
         }

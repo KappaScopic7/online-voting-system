@@ -18,7 +18,7 @@ export function LoginPage() {
     const nav = useNavigate();
     const loc = useLocation();
     const state = (loc.state ?? {}) as LocationState;
-    const from = state.from ?? loc.pathname + loc.search;
+    const from = state.from ?? "/";
 
     const { setAccessToken } = useAuth();
 

@@ -11,6 +11,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -88,8 +89,10 @@ public class AuthController {
 
         UUID accountId;
         try {
-            accountId = UUID.fromString(authentication.getName());
-        } catch (IllegalArgumentException ex) {
+            @SuppressWarnings("unchecked")
+            var details = (Map<String, Object>) authentication.getDetails();
+            accountId = UUID.fromString((String) details.get("aid"));
+        } catch (Exception ex) {
             throw new ApiException(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "未ログインです");
         }
 

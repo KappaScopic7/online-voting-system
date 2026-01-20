@@ -12,6 +12,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -32,8 +33,10 @@ public class VotingController {
 
         UUID accountId;
         try {
-            accountId = UUID.fromString(auth.getName()); // principal=aid(UUID文字列)
-        } catch (IllegalArgumentException ex) {
+            @SuppressWarnings("unchecked")
+            var details = (Map<String, Object>) auth.getDetails();
+            accountId = UUID.fromString((String) details.get("aid"));
+        } catch (Exception e) {
             throw new ApiException(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "未ログインです");
         }
 
@@ -55,8 +58,10 @@ public class VotingController {
 
         UUID accountId;
         try {
-            accountId = UUID.fromString(auth.getName());
-        } catch (IllegalArgumentException ex) {
+            @SuppressWarnings("unchecked")
+            var details = (Map<String, Object>) auth.getDetails();
+            accountId = UUID.fromString((String) details.get("aid"));
+        } catch (Exception e) {
             throw new ApiException(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "未ログインです");
         }
 
@@ -85,8 +90,10 @@ public class VotingController {
 
         UUID accountId;
         try {
-            accountId = UUID.fromString(auth.getName());
-        } catch (IllegalArgumentException ex) {
+            @SuppressWarnings("unchecked")
+            var details = (Map<String, Object>) auth.getDetails();
+            accountId = UUID.fromString((String) details.get("aid"));
+        } catch (Exception e) {
             throw new ApiException(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "未ログインです");
         }
 

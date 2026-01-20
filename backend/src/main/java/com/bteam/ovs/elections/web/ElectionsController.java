@@ -33,8 +33,10 @@ public class ElectionsController {
 
             if ("USER".equals(kind)) {
                 try {
-                    accountId = UUID.fromString(auth.getName());
-                } catch (IllegalArgumentException ex) {
+                    @SuppressWarnings("unchecked")
+                    var details = (Map<String, Object>) auth.getDetails();
+                    accountId = UUID.fromString((String) details.get("aid"));
+                } catch (Exception ex) {
                     throw new ApiException(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "未ログインです");
                 }
             }
