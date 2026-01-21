@@ -10,17 +10,35 @@ type LocationState = {
 };
 
 function isValidEmail(v: string) {
-    // 仮の軽いチェック（後でzod等に差し替えOK）
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+}
+
+// 旧ルート救済 + 安全な戻り先に正規化
+function normalizeFrom(from?: string): string {
+    const f = (from ?? "").trim();
+    if (!f) return "/";
+
+    // 念のため、相対URLや外部URLっぽいのは弾く
+    if (!f.startsWith("/")) return "/";
+    if (f.startsWith("//")) return "/";
+
+    // ---- legacy -> new ----
+    if (f === "/votes") return "/me/votes";
+    if (f === "/identity/link") return "/me/identity";
+    if (f === "/identity/pending") return "/me/identity/pending";
+
+    // 既に新しい
+    return f;
 }
 
 export function LoginPage() {
     const nav = useNavigate();
     const loc = useLocation();
     const state = (loc.state ?? {}) as LocationState;
-    const from = state.from ?? "/";
 
     const { setAccessToken } = useAuth();
+
+    const from = normalizeFrom(state.from);
 
     const [email, setEmail] = useState(state.email ?? "");
     const [password, setPassword] = useState("");
@@ -44,7 +62,6 @@ export function LoginPage() {
         setMsg(null);
         setFieldErr({});
 
-        // 1) フロントバリデーション（仮）
         const nextErr: typeof fieldErr = {};
         if (!email.trim()) nextErr.email = "メールアドレスを入力してください";
         else if (!isValidEmail(email.trim()))
@@ -55,26 +72,22 @@ export function LoginPage() {
             return;
         }
 
-        // 2) API
         try {
             setIsSubmitting(true);
             const token = await login(email.trim(), password);
             await setAccessToken(token.accessToken);
 
-            // 3) 遷移（fromがあればそこへ）
-            const to = state.from ?? "/";
-            nav(to, { replace: true });
+            // from（正規化済み）へ
+            nav(from, { replace: true });
         } catch (err: any) {
-            // 4) エラーハンドリング（仮置き）
             const apiMsg = err?.response?.data?.message ?? "Login failed";
             const apiCode = err?.response?.data?.code;
 
-            // 例：メール未認証ならverifyへ誘導したい場合（コードは仮）
             if (apiCode === "EMAIL_NOT_VERIFIED") {
                 setMsg(
                     "メール認証が完了していません。認証画面へ進んでください。",
                 );
-                // nav("/verify", { state: { email: email.trim(), from: state.from } });
+                // nav("/verify", { state: { email: email.trim(), from } });
             } else {
                 setMsg(apiMsg);
             }
@@ -89,7 +102,6 @@ export function LoginPage() {
         <div style={{ padding: 16, display: "grid", gap: 12, maxWidth: 420 }}>
             <h2>Login</h2>
 
-            {/* グローバルメッセージ */}
             {msg && (
                 <div
                     role="alert"
@@ -146,7 +158,6 @@ export function LoginPage() {
                     {isSubmitting ? "Logging in..." : "Login"}
                 </button>
 
-                {/* 追加導線（仮） */}
                 <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
                     <Link to="/register" state={{ email, from }}>
                         新規登録
@@ -160,7 +171,6 @@ export function LoginPage() {
                 </div>
             </form>
 
-            {/* DEV用デバッグ（passwordは出さない） */}
             {isDev && (
                 <details>
                     <summary>Debug</summary>
@@ -172,6 +182,7 @@ export function LoginPage() {
                                 isSubmitting,
                                 fieldErr,
                                 locationState: state,
+                                normalizedFrom: from,
                             },
                             null,
                             2,

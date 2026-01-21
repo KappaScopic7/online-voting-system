@@ -1,5 +1,5 @@
 // App.tsx
-import { Link, Route, Routes } from "react-router-dom";
+import { Link, Route, Routes, Navigate } from "react-router-dom";
 
 import { ElectionsPage } from "./elections/pages/ElectionsPage";
 import { CandidatesPage } from "./elections/pages/CandidatesPage";
@@ -24,9 +24,11 @@ export default function App() {
                 <Link to="/">Home</Link>
                 <Link to="/register">Register</Link>
                 <Link to="/login">Login</Link>
+
+                {/* My Page */}
                 <Link to="/me">Me</Link>
-                <Link to="/identity/link">identity</Link>
-                <Link to="/votes">Votes</Link>
+                <Link to="/me/identity">Identity</Link>
+                <Link to="/me/votes">Votes</Link>
             </header>
 
             <Routes>
@@ -45,21 +47,17 @@ export default function App() {
 
                 {/* Auth */}
                 <Route path="/register" element={<RegisterPage />} />
-                <Route path="/verify-email" element={<VerifyEmailPage />} />
                 <Route path="/login" element={<LoginPage />} />
 
-                {/* Voter protected */}
+                {/* verify は /verify に統一 */}
                 <Route path="/verify" element={<VerifyEmailPage />} />
-
+                {/* 互換（古いURLで来ても救済） */}
                 <Route
-                    path="/identity/link"
-                    element={
-                        <RequireAuth>
-                            <IdentityLinkPage />
-                        </RequireAuth>
-                    }
+                    path="/verify-email"
+                    element={<Navigate to="/verify" replace />}
                 />
 
+                {/* Voting flow (voter only) */}
                 <Route
                     path="/voting/start"
                     element={
@@ -68,7 +66,6 @@ export default function App() {
                         </RequireVoter>
                     }
                 />
-
                 <Route
                     path="/voting/done"
                     element={
@@ -78,21 +75,32 @@ export default function App() {
                     }
                 />
 
-                <Route
-                    path="/votes"
-                    element={
-                        <RequireVoter>
-                            <VoteHistoryPage />
-                        </RequireVoter>
-                    }
-                />
-
+                {/* My Page routes */}
                 <Route
                     path="/me"
                     element={
                         <RequireAuth>
                             <MePage />
                         </RequireAuth>
+                    }
+                />
+
+                {/* 本人認証は RequireVoter 推奨（未ログイン/未認証を先に弾く） */}
+                <Route
+                    path="/me/identity"
+                    element={
+                        <RequireVoter>
+                            <IdentityLinkPage />
+                        </RequireVoter>
+                    }
+                />
+
+                <Route
+                    path="/me/votes"
+                    element={
+                        <RequireVoter>
+                            <VoteHistoryPage />
+                        </RequireVoter>
                     }
                 />
 

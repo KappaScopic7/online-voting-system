@@ -7,11 +7,24 @@ function isValidEmail(v: string) {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
 }
 
+function normalizeFrom(from?: string): string {
+    const f = (from ?? "").trim();
+    if (!f) return "/";
+    if (!f.startsWith("/") || f.startsWith("//")) return "/";
+
+    if (f === "/votes") return "/me/votes";
+    if (f === "/identity/link") return "/me/identity";
+    if (f === "/identity/pending") return "/me/identity/pending";
+
+    return f;
+}
+
 export function RegisterPage() {
     const nav = useNavigate();
     const loc = useLocation();
     const state = (loc.state ?? {}) as { from?: string } | null;
-    const from = state?.from ?? "/";
+
+    const from = normalizeFrom(state?.from);
 
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
@@ -42,14 +55,12 @@ export function RegisterPage() {
 
         const em = email.trim();
 
-        // フロントバリデーション（仮）
         const nextErr: typeof fieldErr = {};
         if (!em) nextErr.email = "メールアドレスを入力してください";
         else if (!isValidEmail(em))
             nextErr.email = "メールアドレスの形式が不正です";
 
         if (!password) nextErr.password = "パスワードを入力してください";
-        // 要件があるならここでチェック（例: 8文字以上）
         if (password && password.length < 8)
             nextErr.password = "パスワードは8文字以上にしてください（仮）";
 
@@ -67,11 +78,9 @@ export function RegisterPage() {
             setIsSubmitting(true);
             await register(em, password);
 
-            // 登録後は verify へ（emailを渡す）
             nav("/verify", { replace: true, state: { email: em, from } });
         } catch (err: any) {
             const apiMsg = err?.response?.data?.message ?? "Register failed";
-            // 例: 既に登録済みならログインへ誘導したい、など code で分岐余地
             setMsg(apiMsg);
         } finally {
             setIsSubmitting(false);
@@ -164,18 +173,12 @@ export function RegisterPage() {
                 </div>
             </form>
 
-            {/* DEV用デバッグ（passwordは出さない） */}
             {isDev && (
                 <details>
                     <summary>Debug</summary>
                     <pre style={{ whiteSpace: "pre-wrap" }}>
                         {JSON.stringify(
-                            {
-                                email,
-                                msg,
-                                isSubmitting,
-                                fieldErr,
-                            },
+                            { email, msg, isSubmitting, fieldErr, from },
                             null,
                             2,
                         )}

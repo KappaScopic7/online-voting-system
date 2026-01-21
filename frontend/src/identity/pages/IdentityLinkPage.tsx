@@ -55,8 +55,15 @@ export function IdentityLinkPage() {
             await setAccessToken(token.accessToken);
             await refreshMe();
 
-            // 元の画面へ戻す（なければMyPage/トップ）
-            nav(state.from ?? "/me", { replace: true });
+            // 元の画面へ戻す（なければMyPage）
+            // 自分自身に戻るのは避ける
+            const fallback = "/me";
+            const to =
+                state.from && state.from !== loc.pathname
+                    ? state.from
+                    : fallback;
+
+            nav(to, { replace: true });
         } catch (err: any) {
             setMsg(err?.response?.data?.message ?? "Link failed");
         } finally {

@@ -30,7 +30,7 @@ import java.util.UUID;
 @Configuration
 public class DemoDataInitializer {
 
-    private static final String DEMO_ELECTION_PREFIX = "デモ選挙0";
+    private static final String DEMO_ELECTION_PREFIX = "デモ選挙";
 
     private static final String DEMO_VOTER_EMAIL = "0@example.com";
     private static final String DEMO_VOTER_PASSWORD = "Passw0rd!!";

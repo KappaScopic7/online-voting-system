@@ -104,9 +104,11 @@ export function MePage() {
                                 flexWrap: "wrap",
                             }}
                         >
-                            <Link to="/elections" state={{ from }}>
+                            {/* 一覧は "/" */}
+                            <Link to="/" state={{ from }}>
                                 選挙一覧へ
                             </Link>
+
                             <Link to="/me/votes" state={{ from }}>
                                 投票履歴へ
                             </Link>
@@ -121,7 +123,10 @@ export function MePage() {
                             )}
 
                             {isPending && (
-                                <Link to="/identity/pending" state={{ from }}>
+                                <Link
+                                    to="/me/identity/pending"
+                                    state={{ from }}
+                                >
                                     本人認証：審査中
                                 </Link>
                             )}
@@ -164,7 +169,7 @@ export function MePage() {
                         </table>
                     </section>
 
-                    {/* Identity section (A案: 導線だけ) */}
+                    {/* Identity section */}
                     <section style={{ padding: 12, border: "1px solid #ddd" }}>
                         <h3 style={{ marginTop: 0 }}>本人認証</h3>
 
@@ -177,7 +182,10 @@ export function MePage() {
                                 <p style={{ margin: 0 }}>
                                     現在: <b>投票不可（本人認証：審査中）</b>
                                 </p>
-                                <Link to="/identity/pending" state={{ from }}>
+                                <Link
+                                    to="/me/identity/pending"
+                                    state={{ from }}
+                                >
                                     審査状況へ →
                                 </Link>
                             </div>
@@ -186,7 +194,7 @@ export function MePage() {
                                 <p style={{ margin: 0 }}>
                                     現在: <b>投票不可（本人認証が必要）</b>
                                 </p>
-                                <Link to="/identity/link" state={{ from }}>
+                                <Link to="/me/identity" state={{ from }}>
                                     本人認証へ進む →
                                 </Link>
                             </div>

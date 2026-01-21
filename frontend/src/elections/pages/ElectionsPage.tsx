@@ -392,21 +392,21 @@ export function ElectionsPage() {
                                     )}
 
                                     <span style={{ marginLeft: "auto" }}>
-                                        {e.canCast ? (
-                                            <Link
-                                                to={`/voting/start?electionId=${e.electionId}`}
-                                                state={{ from }} // ★ここ
-                                            >
-                                                <b>投票する →</b>
-                                            </Link>
-                                        ) : me ? (
-                                            <span style={{ opacity: 0.5 }}>
-                                                投票不可
-                                            </span>
-                                        ) : (
+                                        {!me ? (
                                             <Link to="/login" state={{ from }}>
                                                 ログインして投票
                                             </Link>
+                                        ) : e.canCast ? (
+                                            <Link
+                                                to={`/voting/start?electionId=${e.electionId}`}
+                                                state={{ from }}
+                                            >
+                                                <b>投票する →</b>
+                                            </Link>
+                                        ) : (
+                                            <span style={{ opacity: 0.5 }}>
+                                                投票不可
+                                            </span>
                                         )}
                                     </span>
                                 </div>

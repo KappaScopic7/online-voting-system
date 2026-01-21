@@ -1,6 +1,6 @@
 // voting/pages/VoteHistoryPage.tsx
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { fetchVoteHistory, type VoteHistoryItem } from "../api/votes";
 
 function formatJST(iso?: string | null): string {
@@ -25,6 +25,12 @@ export function VoteHistoryPage() {
     const [items, setItems] = useState<VoteHistoryItem[] | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
+
+    type LocationState = { from?: string };
+
+    const loc = useLocation();
+    const state = (loc.state ?? {}) as LocationState;
+    const backTo = state.from ?? "/me";
 
     // UI control（仮）
     const [q, setQ] = useState("");
@@ -106,7 +112,7 @@ export function VoteHistoryPage() {
                     flexWrap: "wrap",
                 }}
             >
-                <Link to="/me">← 戻る</Link>
+                <Link to={backTo}>← 戻る</Link>
                 <h2 style={{ margin: 0 }}>投票履歴</h2>
 
                 <button

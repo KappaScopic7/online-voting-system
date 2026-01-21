@@ -5,7 +5,7 @@ import { verifyEmail } from "../api/auth";
 
 type LocationState = {
     email?: string;
-    from?: string; // 保護ルートから来た場合の戻り先
+    from?: string;
 };
 
 function isValidEmail(v: string) {
@@ -13,18 +13,30 @@ function isValidEmail(v: string) {
 }
 
 function isValidCode(v: string) {
-    // 仮：6桁数字
     return /^\d{6}$/.test(v);
+}
+
+function normalizeFrom(from?: string): string {
+    const f = (from ?? "").trim();
+    if (!f) return "/";
+    if (!f.startsWith("/") || f.startsWith("//")) return "/";
+
+    if (f === "/votes") return "/me/votes";
+    if (f === "/identity/link") return "/me/identity";
+    if (f === "/identity/pending") return "/me/identity/pending";
+
+    return f;
 }
 
 export function VerifyEmailPage() {
     const nav = useNavigate();
     const loc = useLocation();
     const state = (loc.state ?? {}) as LocationState;
-    const from = state.from ?? "/";
+
+    const from = normalizeFrom(state.from);
 
     const [email, setEmail] = useState(state.email ?? "");
-    const [code, setCode] = useState("123456"); // デモならOK。本番は "" 推奨
+    const [code, setCode] = useState("123456"); // デモ
 
     const [msg, setMsg] = useState<string | null>(null);
     const [fieldErr, setFieldErr] = useState<{ email?: string; code?: string }>(
@@ -65,6 +77,8 @@ export function VerifyEmailPage() {
         setIsSubmitting(true);
         try {
             await verifyEmail(em, cd);
+
+            // verify後は login に戻して、ログイン後は from へ
             nav("/login", { replace: true, state: { email: em, from } });
         } catch (err: any) {
             setMsg(err?.response?.data?.message ?? "Verify failed");
@@ -77,8 +91,6 @@ export function VerifyEmailPage() {
         setMsg(null);
         setIsResending(true);
         try {
-            // TODO: resend API ができたら差し替え
-            // await resendVerifyCode(email.trim());
             await new Promise((r) => setTimeout(r, 400));
             setMsg("確認コードを再送しました（デモ）");
         } catch (err: any) {
@@ -118,8 +130,6 @@ export function VerifyEmailPage() {
                         onChange={(e) => setEmail(e.target.value)}
                         placeholder="email"
                         autoComplete="email"
-                        // register→verifyの流れなら readOnly もアリ（仮）
-                        // readOnly={!!state.email}
                     />
                     {fieldErr.email && (
                         <small style={{ color: "crimson" }}>
@@ -162,13 +172,12 @@ export function VerifyEmailPage() {
                     <Link to="/login" state={{ email: email.trim(), from }}>
                         ログインへ戻る
                     </Link>
-                    <Link to="/register" state={{ email: email.trim() }}>
+                    <Link to="/register" state={{ email: email.trim(), from }}>
                         新規登録へ
                     </Link>
                 </div>
             </form>
 
-            {/* DEV用デバッグ（本番は code を出さない） */}
             {isDev && (
                 <details>
                     <summary>Debug</summary>
@@ -179,6 +188,7 @@ export function VerifyEmailPage() {
                                 code,
                                 msg,
                                 locationState: state,
+                                normalizedFrom: from,
                                 isSubmitting,
                                 isResending,
                             },
