@@ -104,8 +104,8 @@ export function MePage() {
                                 flexWrap: "wrap",
                             }}
                         >
-                            {/* 一覧は "/" */}
-                            <Link to="/" state={{ from }}>
+                            {/* 一覧は "/elections" */}
+                            <Link to="/elections" state={{ from }}>
                                 選挙一覧へ
                             </Link>
 

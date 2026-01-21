@@ -1,5 +1,5 @@
 // App.tsx
-import { Link, Route, Routes, Navigate } from "react-router-dom";
+import { Link, Route, Routes, Navigate, useNavigate } from "react-router-dom";
 
 import { ElectionsPage } from "./elections/pages/ElectionsPage";
 import { CandidatesPage } from "./elections/pages/CandidatesPage";
@@ -28,11 +28,67 @@ import { RequireCommittee } from "./auth/RequireCommittee";
 import { AdminHomePage } from "./admin/pages/AdminHomePage";
 import { CommitteeHomePage } from "./committee/pages/CommitteeHomePage";
 
+import { useAuth } from "./auth/AuthContext";
+
+// 仮: あとで pages/PortalHomePage.tsx に切り出す
+function PortalHomePage() {
+    return (
+        <div style={{ padding: 16, display: "grid", gap: 12, maxWidth: 960 }}>
+            <h2 style={{ margin: 0 }}>Portal Home</h2>
+
+            <section
+                style={{
+                    border: "1px solid #ddd",
+                    borderRadius: 8,
+                    padding: 12,
+                }}
+            >
+                <h3 style={{ marginTop: 0 }}>お知らせ</h3>
+                <p style={{ margin: 0, opacity: 0.8 }}>
+                    （ここにお知らせ一覧を出す予定）
+                </p>
+            </section>
+
+            <section
+                style={{
+                    border: "1px solid #ddd",
+                    borderRadius: 8,
+                    padding: 12,
+                }}
+            >
+                <h3 style={{ marginTop: 0 }}>メニュー</h3>
+                <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+                    <Link to="/elections">選挙一覧へ</Link>
+                    <Link to="/me">My Pageへ</Link>
+                </div>
+            </section>
+        </div>
+    );
+}
+
 export default function App() {
+    const nav = useNavigate();
+    const { me, logout } = useAuth();
+
+    const onLogout = () => {
+        logout();
+        nav("/", { replace: true });
+    };
+
     return (
         <div style={{ padding: 16 }}>
-            <header style={{ display: "flex", gap: 12, marginBottom: 16 }}>
+            <header
+                style={{
+                    display: "flex",
+                    gap: 12,
+                    marginBottom: 16,
+                    alignItems: "center",
+                    flexWrap: "wrap",
+                }}
+            >
                 <Link to="/">Home</Link>
+                <Link to="/elections">Elections</Link>
+
                 <Link to="/register">Register</Link>
                 <Link to="/login">Login</Link>
 
@@ -40,11 +96,26 @@ export default function App() {
                 <Link to="/me">Me</Link>
                 <Link to="/me/identity">Identity</Link>
                 <Link to="/me/votes">Votes</Link>
+
+                <span style={{ marginLeft: "auto" }}>
+                    {me ? (
+                        <button type="button" onClick={onLogout}>
+                            Logout
+                        </button>
+                    ) : (
+                        <span style={{ fontSize: 12, opacity: 0.7 }}>
+                            未ログイン
+                        </span>
+                    )}
+                </span>
             </header>
 
             <Routes>
-                {/* Home（一覧はここだけ） */}
-                <Route path="/" element={<ElectionsPage />} />
+                {/* Portal Home */}
+                <Route path="/" element={<PortalHomePage />} />
+
+                {/* Elections list moved here */}
+                <Route path="/elections" element={<ElectionsPage />} />
 
                 {/* Public detail（公開詳細ページ） */}
                 <Route
@@ -89,7 +160,6 @@ export default function App() {
 
                 {/* verify は /verify に統一 */}
                 <Route path="/verify" element={<VerifyEmailPage />} />
-                {/* 互換（古いURLで来ても救済） */}
                 <Route
                     path="/verify-email"
                     element={<Navigate to="/verify" replace />}
@@ -122,8 +192,6 @@ export default function App() {
                         </RequireAuth>
                     }
                 />
-
-                {/* 本人認証は「ログイン必須」まで（本人認証ガードは付けない） */}
                 <Route
                     path="/me/identity"
                     element={
@@ -132,8 +200,6 @@ export default function App() {
                         </RequireAuth>
                     }
                 />
-
-                {/* 審査中ページ（存在させるならここも） */}
                 <Route
                     path="/me/identity/pending"
                     element={
@@ -142,7 +208,6 @@ export default function App() {
                         </RequireAuth>
                     }
                 />
-
                 <Route
                     path="/me/votes"
                     element={

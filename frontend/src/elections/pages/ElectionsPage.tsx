@@ -33,7 +33,7 @@ type StatusFilter = "ALL" | "UPCOMING" | "ONGOING" | "ENDED";
 type SortKey = "STATUS" | "STARTS_AT" | "ENDS_AT" | "TITLE";
 
 export function ElectionsPage() {
-    const { me } = useAuth();
+    const { me, isLoading: authLoading } = useAuth();
     const loc = useLocation();
     const from = loc.pathname + loc.search;
 
@@ -142,7 +142,11 @@ export function ElectionsPage() {
                         flexWrap: "wrap",
                     }}
                 >
-                    {!me ? (
+                    {authLoading ? (
+                        <span style={{ fontSize: 12, opacity: 0.75 }}>
+                            認証確認中...
+                        </span>
+                    ) : !me ? (
                         <>
                             <span style={{ fontSize: 12, opacity: 0.75 }}>
                                 ログインすると投票できます
