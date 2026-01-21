@@ -114,18 +114,29 @@ public class DemoDataInitializer {
         staffRepo.save(committee);
     }
 
-    private UUID seedVoter(
-            UserAccountRepository userRepo,
-            PasswordEncoder passwordEncoder
-    ) {
-        var existing = userRepo.findByEmail(DEMO_VOTER_EMAIL);
-        if (existing.isPresent()) {
-            // 再起動時も citizenId を固定して使う
-            return existing.get().getCitizenId();
+    private UUID seedVoter(UserAccountRepository userRepo, PasswordEncoder passwordEncoder) {
+        var opt = userRepo.findByEmail(DEMO_VOTER_EMAIL);
+
+        if (opt.isPresent()) {
+            var acc = opt.get();
+
+            // もし citizenId が無ければ付与して VOTER にする（デモなので強制昇格OK）
+            if (acc.getCitizenId() == null) {
+                acc.setCitizenId(UUID.randomUUID());
+            }
+            acc.setRole(Role.VOTER);
+            acc.setEmailVerified(true);
+            acc.setEnabled(true);
+            acc.setLocked(false);
+            if (acc.getPasswordHash() == null || acc.getPasswordHash().isBlank()) {
+                acc.setPasswordHash(passwordEncoder.encode(DEMO_VOTER_PASSWORD));
+            }
+
+            userRepo.save(acc);
+            return acc.getCitizenId();
         }
 
         UUID citizenId = UUID.randomUUID();
-
         var voter = new UserAccount();
         voter.setEmail(DEMO_VOTER_EMAIL);
         voter.setPasswordHash(passwordEncoder.encode(DEMO_VOTER_PASSWORD));
@@ -136,7 +147,6 @@ public class DemoDataInitializer {
         voter.setCitizenId(citizenId);
 
         userRepo.save(voter);
-
         return citizenId;
     }
 

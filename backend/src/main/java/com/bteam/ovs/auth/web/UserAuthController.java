@@ -2,7 +2,7 @@ package com.bteam.ovs.auth.web;
 
 import com.bteam.ovs.auth.model.IdentityStatus;
 import com.bteam.ovs.auth.repo.UserAccountRepository;
-import com.bteam.ovs.auth.service.VoterAuthService;
+import com.bteam.ovs.auth.service.UserAuthService;
 import com.bteam.ovs.auth.web.dto.*;
 import com.bteam.ovs.shared.errors.ApiException;
 
@@ -16,19 +16,19 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/auth")
-public class AuthController {
+public class UserAuthController {
 
-    private final VoterAuthService voterAuthService;
+    private final UserAuthService voterAuthService;
     private final UserAccountRepository userRepo;
 
-    public AuthController(VoterAuthService voterAuthService, UserAccountRepository userRepo) {
+    public UserAuthController(UserAuthService voterAuthService, UserAccountRepository userRepo) {
         this.voterAuthService = voterAuthService;
         this.userRepo = userRepo;
     }
 
     @PostMapping("/register")
     @ResponseStatus(HttpStatus.CREATED)
-    public void voterRegister(@Valid @RequestBody VoterRegisterRequest req) {
+    public void voterRegister(@Valid @RequestBody UserRegisterRequest req) {
         voterAuthService.register(req);
     }
 
@@ -39,7 +39,7 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public TokenResponse voterLogin(@Valid @RequestBody VoterLoginRequest req) {
+    public TokenResponse voterLogin(@Valid @RequestBody UserLoginRequest req) {
         return voterAuthService.login(req);
     }
 

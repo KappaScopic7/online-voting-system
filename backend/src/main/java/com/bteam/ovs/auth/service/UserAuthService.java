@@ -1,10 +1,11 @@
 package com.bteam.ovs.auth.service;
 
 import com.bteam.ovs.auth.repo.UserAccountRepository;
+import com.bteam.ovs.auth.model.Role;
 import com.bteam.ovs.auth.model.UserAccount;
 import com.bteam.ovs.auth.web.dto.TokenResponse;
-import com.bteam.ovs.auth.web.dto.VoterLoginRequest;
-import com.bteam.ovs.auth.web.dto.VoterRegisterRequest;
+import com.bteam.ovs.auth.web.dto.UserLoginRequest;
+import com.bteam.ovs.auth.web.dto.UserRegisterRequest;
 import com.bteam.ovs.config.security.JwtService;
 import com.bteam.ovs.shared.errors.ApiException;
 
@@ -14,20 +15,20 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
-public class VoterAuthService {
+public class UserAuthService {
 
     private final UserAccountRepository userRepo;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
 
-    public VoterAuthService(UserAccountRepository userRepo, PasswordEncoder passwordEncoder, JwtService jwtService) {
+    public UserAuthService(UserAccountRepository userRepo, PasswordEncoder passwordEncoder, JwtService jwtService) {
         this.userRepo = userRepo;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
     }
 
     @Transactional
-    public void register(VoterRegisterRequest req) {
+    public void register(UserRegisterRequest req) {
         String email = normalizeEmail(req.email());
 
         if (userRepo.existsByEmail(email)) {
@@ -38,7 +39,7 @@ public class VoterAuthService {
         e.setEmail(email);
         e.setPasswordHash(passwordEncoder.encode(req.password()));
 
-        e.setRole(null);
+        e.setRole(Role.USER);
         e.setEmailVerified(false);
 
         e.setEnabled(true);
@@ -74,7 +75,7 @@ public class VoterAuthService {
         userRepo.save(acc);
     }
 
-    public TokenResponse login(VoterLoginRequest req) {
+    public TokenResponse login(UserLoginRequest req) {
         String email = normalizeEmail(req.email());
 
         var account = userRepo.findByEmail(email)
