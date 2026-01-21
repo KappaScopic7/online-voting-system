@@ -17,6 +17,15 @@ import { VotingStartPage } from "./voting/pages/VotingStartPage";
 import { VotingDonePage } from "./voting/pages/VotingDonePage";
 import { VoteHistoryPage } from "./voting/pages/VoteHistoryPage";
 
+import { AdminLoginPage } from "./admin/pages/AdminLoginPage";
+import { CommitteeLoginPage } from "./committee/pages/CommitteeLoginPage";
+
+import { RequireAdmin } from "./auth/RequireAdmin";
+import { RequireCommittee } from "./auth/RequireCommittee";
+
+import { AdminHomePage } from "./admin/pages/AdminHomePage";
+import { CommitteeHomePage } from "./committee/pages/CommitteeHomePage";
+
 export default function App() {
     return (
         <div style={{ padding: 16 }}>
@@ -48,6 +57,32 @@ export default function App() {
                 {/* Auth */}
                 <Route path="/register" element={<RegisterPage />} />
                 <Route path="/login" element={<LoginPage />} />
+
+                {/* Staff Auth */}
+                <Route path="/admin/login" element={<AdminLoginPage />} />
+                <Route
+                    path="/committee/login"
+                    element={<CommitteeLoginPage />}
+                />
+                {/* Admin */}
+                <Route
+                    path="/admin/*"
+                    element={
+                        <RequireAdmin>
+                            <AdminHomePage />
+                        </RequireAdmin>
+                    }
+                />
+
+                {/* Committee */}
+                <Route
+                    path="/committee/*"
+                    element={
+                        <RequireCommittee>
+                            <CommitteeHomePage />
+                        </RequireCommittee>
+                    }
+                />
 
                 {/* verify は /verify に統一 */}
                 <Route path="/verify" element={<VerifyEmailPage />} />
