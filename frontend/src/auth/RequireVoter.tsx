@@ -14,21 +14,20 @@ export function RequireVoter({ children }: { children: React.ReactNode }) {
         return <Navigate to="/login" replace state={{ from }} />;
     }
 
-    // メール未認証なら verify へ
     if (!me.emailVerified) {
         return <Navigate to="/verify" replace state={{ from }} />;
     }
 
-    // 本人認証ステータスで分岐
     switch (me.identityStatus) {
         case "LINKED":
-            break; // 投票OK
+            break;
 
-        // PENDING を導線にするなら App.tsx と MePage と合わせてここもON
-        // case "PENDING":
-        //     return <Navigate to="/me/identity/pending" replace state={{ from }} />;
+        case "PENDING":
+            return (
+                <Navigate to="/me/identity/pending" replace state={{ from }} />
+            );
 
-        default: // NOT_LINKED など
+        default:
             return <Navigate to="/me/identity" replace state={{ from }} />;
     }
 

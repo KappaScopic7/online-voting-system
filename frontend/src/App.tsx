@@ -13,6 +13,8 @@ import { LoginPage } from "./auth/pages/LoginPage";
 import { MePage } from "./auth/pages/MePage";
 
 import { IdentityLinkPage } from "./identity/pages/IdentityLinkPage";
+import { IdentityPendingPage } from "./identity/pages/IdentityPendingPage";
+
 import { VotingStartPage } from "./voting/pages/VotingStartPage";
 import { VotingDonePage } from "./voting/pages/VotingDonePage";
 import { VoteHistoryPage } from "./voting/pages/VoteHistoryPage";
@@ -64,6 +66,7 @@ export default function App() {
                     path="/committee/login"
                     element={<CommitteeLoginPage />}
                 />
+
                 {/* Admin */}
                 <Route
                     path="/admin/*"
@@ -120,13 +123,23 @@ export default function App() {
                     }
                 />
 
-                {/* 本人認証は RequireVoter 推奨（未ログイン/未認証を先に弾く） */}
+                {/* 本人認証は「ログイン必須」まで（本人認証ガードは付けない） */}
                 <Route
                     path="/me/identity"
                     element={
-                        <RequireVoter>
+                        <RequireAuth>
                             <IdentityLinkPage />
-                        </RequireVoter>
+                        </RequireAuth>
+                    }
+                />
+
+                {/* 審査中ページ（存在させるならここも） */}
+                <Route
+                    path="/me/identity/pending"
+                    element={
+                        <RequireAuth>
+                            <IdentityPendingPage />
+                        </RequireAuth>
                     }
                 />
 

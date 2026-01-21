@@ -47,7 +47,7 @@ export function IdentityPendingPage() {
 
         // 審査が解除/差し戻し等で未リンクに戻った場合
         if (me.identityStatus !== "PENDING") {
-            nav("/identity/link", {
+            nav("/me/identity", {
                 replace: true,
                 state: { from },
             });
@@ -119,7 +119,7 @@ export function IdentityPendingPage() {
             </div>
 
             <section style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-                <Link to="/identity/link" state={{ from }}>
+                <Link to="/me/identity" state={{ from }}>
                     本人認証をやり直す
                 </Link>
                 <Link to="/">選挙一覧へ</Link>
