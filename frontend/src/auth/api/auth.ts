@@ -1,40 +1,10 @@
 // auth/api/auth.ts
 import { http } from "../../shared/http";
-
-export type TokenResponse = {
-    accessToken: string;
-    tokenType: string;
-    expiresInSeconds: number;
-    role: string | null;
-};
-
-export type IdentityStatus = "NOT_LINKED" | "PENDING" | "LINKED";
-
-export type AccountKind = "USER" | "STAFF";
-
-export type MeResponse = {
-    accountId: string;
-    kind: AccountKind;
-    role: "VOTER" | "ADMIN" | "COMMITTEE" | null;
-    email?: string;
-    emailVerified?: boolean;
-    identityStatus?: IdentityStatus;
-    enabled: boolean;
-    locked: boolean;
-};
-
-export type MeDetailResponse = {
-    accountId: string;
-    email: string;
-    role: string | null;
-    emailVerified: boolean;
-    enabled: boolean;
-    locked: boolean;
-    citizenId: string | null;
-    identityStatus: IdentityStatus;
-    createdAt: string;
-    updatedAt: string;
-};
+import type {
+    MeDetailResponse,
+    MeResponse,
+    TokenResponse,
+} from "../model/authTypes";
 
 export async function register(email: string, password: string): Promise<void> {
     await http.post("/api/auth/register", { email, password });

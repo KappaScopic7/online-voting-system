@@ -1,7 +1,8 @@
 // auth/pages/MePage.tsx
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { fetchMeDetail, type MeDetailResponse } from "../api/auth";
+import { fetchMeDetail } from "../api/auth";
+import type { MeDetailResponse } from "../model/authTypes";
 import { useAuth } from "../AuthContext";
 import {
     getMeProfile,

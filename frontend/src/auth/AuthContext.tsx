@@ -6,7 +6,7 @@ import React, {
     useMemo,
     useState,
 } from "react";
-import type { MeResponse } from "./api/auth";
+import type { MeResponse } from "./model/authTypes";
 import { fetchMe } from "./api/auth";
 import {
     subscribeTokenChange,
