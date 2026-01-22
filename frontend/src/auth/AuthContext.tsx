@@ -8,7 +8,12 @@ import React, {
 } from "react";
 import type { MeResponse } from "./api/auth";
 import { fetchMe } from "./api/auth";
-import { clearToken, getToken, setToken } from "../shared/tokenStorage";
+import {
+    subscribeTokenChange,
+    getToken,
+    setToken,
+    clearToken,
+} from "../shared/tokenStorage";
 
 type AuthState = {
     me: MeResponse | null;
@@ -41,18 +46,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setMe(data);
         } catch {
             // token が死んでる or サーバー側で無効化 etc
-            clearToken();
+            clearToken(); // ← emitされる想定
+            // subscribe 側でも落ちるけど、念のためここでも落としてOK
             setHasToken(false);
             setMe(null);
         }
     };
 
     const setAccessTokenAndLoadMe = async (token: string) => {
-        setToken(token);
+        setToken(token); // ← emitされる想定
         setHasToken(true);
         await refreshMe();
     };
 
+    // 初期ロード
     useEffect(() => {
         (async () => {
             setIsLoading(true);
@@ -60,6 +67,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setIsLoading(false);
         })();
         // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    // token変更（特に clearToken）に追従
+    useEffect(() => {
+        const unsub = subscribeTokenChange(() => {
+            const token = getToken();
+            setHasToken(!!token);
+
+            if (!token) {
+                setMe(null);
+            }
+            // token がセットされた時は setAccessToken() 側で refreshMe するので
+            // ここでは呼ばない（＝二重fetch回避）
+        });
+
+        return unsub;
     }, []);
 
     const value = useMemo<AuthState>(
@@ -70,7 +93,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             isAuthed: hasToken,
             setAccessToken: setAccessTokenAndLoadMe,
             logout: () => {
-                clearToken();
+                clearToken(); // ← emit
+                // subscribe でも落ちるけど、即時反映したいなら残してOK
                 setHasToken(false);
                 setMe(null);
             },
