@@ -50,6 +50,10 @@ export function AdminLoginPage() {
         try {
             setIsSubmitting(true);
             const token = await staffLogin(loginId.trim(), password);
+            if (token.role !== "ADMIN") {
+                setMsg("管理者アカウントではありません");
+                return;
+            }
             await setAccessToken(token.accessToken);
             nav(from, { replace: true });
         } catch (err: any) {

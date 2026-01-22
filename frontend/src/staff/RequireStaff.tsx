@@ -1,15 +1,16 @@
 // auth/RequireStaff.tsx
 import React from "react";
 import { Navigate, useLocation } from "react-router-dom";
-import { useAuth } from "./AuthContext";
+import { useStaffAuth } from "./StaffAuthContext";
 
 export function RequireStaff({ children }: { children: React.ReactNode }) {
-    const { isLoading, me } = useAuth();
+    const { isLoading, staff } = useStaffAuth();
     const loc = useLocation();
 
     if (isLoading) return <div>Loading...</div>;
 
-    if (!me)
+    // 未ログイン
+    if (!staff) {
         return (
             <Navigate
                 to="/admin/login"
@@ -17,11 +18,12 @@ export function RequireStaff({ children }: { children: React.ReactNode }) {
                 state={{ from: loc.pathname + loc.search }}
             />
         );
+    }
 
-    if (me.kind !== "STAFF") return <Navigate to="/" replace />;
-
-    if (me.role !== "ADMIN" && me.role !== "COMMITTEE")
+    // 権限チェック
+    if (staff.role !== "ADMIN" && staff.role !== "COMMITTEE") {
         return <Navigate to="/" replace />;
+    }
 
     return <>{children}</>;
 }

@@ -1,15 +1,16 @@
 // auth/RequireCommittee.tsx
 import React from "react";
 import { Navigate, useLocation } from "react-router-dom";
-import { useAuth } from "./AuthContext";
+import { useStaffAuth } from "../staff/StaffAuthContext";
 
 export function RequireCommittee({ children }: { children: React.ReactNode }) {
-    const { isLoading, me } = useAuth();
+    const { isLoading, staff } = useStaffAuth();
     const loc = useLocation();
 
     if (isLoading) return <div>Loading...</div>;
 
-    if (!me) {
+    // 未ログイン
+    if (!staff) {
         return (
             <Navigate
                 to="/committee/login"
@@ -19,11 +20,8 @@ export function RequireCommittee({ children }: { children: React.ReactNode }) {
         );
     }
 
-    if (me.kind !== "STAFF") {
-        return <Navigate to="/" replace />;
-    }
-
-    if (me.role !== "COMMITTEE") {
+    // 委員会のみ許可
+    if (staff.role !== "COMMITTEE") {
         return <Navigate to="/" replace />;
     }
 

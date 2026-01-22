@@ -1,8 +1,7 @@
 // committee/pages/CommitteeLoginPage.tsx
 import { useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { staffLogin } from "../../staff/api/staffAuth";
-import { useAuth } from "../../auth/AuthContext";
+import { useStaffAuth } from "../../staff/StaffAuthContext";
 
 type LocationState = {
     loginId?: string;
@@ -15,7 +14,7 @@ export function CommitteeLoginPage() {
     const state = (loc.state ?? {}) as LocationState;
     const from = state.from ?? "/committee";
 
-    const { setAccessToken } = useAuth();
+    const { login } = useStaffAuth();
 
     const [loginId, setLoginId] = useState(state.loginId ?? "");
     const [password, setPassword] = useState("");
@@ -48,12 +47,18 @@ export function CommitteeLoginPage() {
 
         try {
             setIsSubmitting(true);
-            const token = await staffLogin(loginId.trim(), password);
-            await setAccessToken(token.accessToken);
+
+            // 🔑 staff 認証は Context に一任
+            await login(loginId.trim(), password);
+
+            // 権限制御は RequireStaff に任せる
             nav(from, { replace: true });
         } catch (err: any) {
+            console.error("committee login error", err);
             setMsg(
-                err?.response?.data?.message ?? "委員会ログインに失敗しました",
+                err?.response?.data
+                    ? JSON.stringify(err.response.data)
+                    : (err?.message ?? "委員会ログインに失敗しました"),
             );
         } finally {
             setIsSubmitting(false);
@@ -81,6 +86,9 @@ export function CommitteeLoginPage() {
                         onChange={(e) => setLoginId(e.target.value)}
                         autoComplete="username"
                     />
+                    {fieldErr.loginId && (
+                        <div style={{ color: "red" }}>{fieldErr.loginId}</div>
+                    )}
                 </label>
 
                 <label>
@@ -91,6 +99,9 @@ export function CommitteeLoginPage() {
                         type="password"
                         autoComplete="current-password"
                     />
+                    {fieldErr.password && (
+                        <div style={{ color: "red" }}>{fieldErr.password}</div>
+                    )}
                 </label>
 
                 <button type="submit" disabled={!canSubmit}>

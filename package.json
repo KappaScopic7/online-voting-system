@@ -1,9 +1,15 @@
 {
     "devDependencies": {
+        "@types/dotenv": "^6.1.1",
+        "@types/jsonwebtoken": "^9.0.10",
         "@typescript-eslint/eslint-plugin": "^8.50.1",
         "@typescript-eslint/parser": "^8.50.1",
         "eslint-config-prettier": "^10.1.8",
         "eslint-plugin-react": "^7.37.5",
         "prettier": "^3.7.4"
+    },
+    "dependencies": {
+        "dotenv": "^17.2.3",
+        "jsonwebtoken": "^9.0.3"
     }
 }
