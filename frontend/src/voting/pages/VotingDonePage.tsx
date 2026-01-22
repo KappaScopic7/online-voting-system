@@ -114,7 +114,7 @@ export function VotingDonePage() {
                     flexWrap: "wrap",
                 }}
             >
-                <Link to="/votes">
+                <Link to="/me/votes">
                     <b>投票履歴を見る</b>
                 </Link>
                 <Link to="/elections">選挙一覧へ</Link>
