@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import { useLocation, useNavigate, Link } from "react-router-dom";
 import { login } from "../api/authApi";
 import { useAuth } from "../AuthContext";
+import { normalizeFrom } from "../../shared/normalizeFrom";
 
 type LocationState = {
     email?: string;
@@ -11,36 +12,6 @@ type LocationState = {
 
 function isValidEmail(v: string) {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
-}
-
-// 旧ルート救済 + 安全な戻り先に正規化
-function normalizeFrom(from?: string): string {
-    const f = (from ?? "").trim();
-
-    // ★ 既定の戻り先：選挙一覧
-    const DEFAULT = "/elections";
-
-    if (!f) return DEFAULT;
-
-    // 念のため、相対URLや外部URLっぽいのは弾く
-    if (!f.startsWith("/")) return DEFAULT;
-    if (f.startsWith("//")) return DEFAULT;
-
-    // ---- legacy -> new ----
-    // 旧: / が Elections だった時代の救済（「/ に戻る」は今はポータル）
-    if (f === "/") return DEFAULT;
-
-    // elections moved
-    if (f === "/elections") return "/elections"; // 明示（そのまま）
-    // もし旧一覧リンクが "/elections" 以外にあればここで救済する
-
-    // my routes
-    if (f === "/votes") return "/me/votes";
-    if (f === "/identity/link") return "/me/identity";
-    if (f === "/identity/pending") return "/me/identity/pending";
-
-    // 既に新しい
-    return f;
 }
 
 export function LoginPage() {

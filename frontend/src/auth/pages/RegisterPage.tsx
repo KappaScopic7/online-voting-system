@@ -2,21 +2,10 @@
 import { useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { register } from "../api/authApi";
+import { normalizeFrom } from "../../shared/normalizeFrom";
 
 function isValidEmail(v: string) {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
-}
-
-function normalizeFrom(from?: string): string {
-    const f = (from ?? "").trim();
-    if (!f) return "/";
-    if (!f.startsWith("/") || f.startsWith("//")) return "/";
-
-    if (f === "/votes") return "/me/votes";
-    if (f === "/identity/link") return "/me/identity";
-    if (f === "/identity/pending") return "/me/identity/pending";
-
-    return f;
 }
 
 export function RegisterPage() {
