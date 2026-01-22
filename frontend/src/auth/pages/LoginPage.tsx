@@ -1,7 +1,7 @@
 // auth/pages/LoginPage.tsx
 import { useMemo, useState } from "react";
 import { useLocation, useNavigate, Link } from "react-router-dom";
-import { login } from "../api/auth";
+import { login } from "../api/authApi";
 import { useAuth } from "../AuthContext";
 
 type LocationState = {

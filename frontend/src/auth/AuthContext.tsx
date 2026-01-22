@@ -7,7 +7,7 @@ import React, {
     useState,
 } from "react";
 import type { MeResponse } from "./model/authTypes";
-import { fetchMe } from "./api/auth";
+import { fetchMe } from "./api/authApi";
 import {
     subscribeTokenChange,
     getToken,

@@ -1,7 +1,7 @@
 // auth/pages/RegisterPage.tsx
 import { useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { register } from "../api/auth";
+import { register } from "../api/authApi";
 
 function isValidEmail(v: string) {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
