@@ -5,9 +5,13 @@ import com.bteam.ovs.auth.model.StaffAccount;
 import com.bteam.ovs.auth.model.UserAccount;
 import com.bteam.ovs.auth.repo.StaffAccountRepository;
 import com.bteam.ovs.auth.repo.UserAccountRepository;
+import com.bteam.ovs.citizen.model.Citizen;
+import com.bteam.ovs.citizen.repo.CitizenRepository;
 import com.bteam.ovs.elections.model.Candidate;
 import com.bteam.ovs.elections.model.Election;
+import com.bteam.ovs.elections.model.ElectionEligibilityRule;
 import com.bteam.ovs.elections.repo.CandidateRepository;
+import com.bteam.ovs.elections.repo.ElectionEligibilityRuleRepository;
 import com.bteam.ovs.elections.repo.ElectionRepository;
 import com.bteam.ovs.voting.model.VoteCast;
 import com.bteam.ovs.voting.model.VoteCurrent;
@@ -41,6 +45,8 @@ public class DemoDataInitializer {
     private static final String DEMO_COMMITTEE_LOGIN_ID = "committee";
     private static final String DEMO_COMMITTEE_PASSWORD = "Passw0rd!!";
 
+    private static final UUID DEMO_CITIZEN_ID = UUID.fromString("550e8400-e29b-41d4-a716-446655440000");
+
     @Bean
     CommandLineRunner demoInit(
             UserAccountRepository userRepo,
@@ -49,11 +55,23 @@ public class DemoDataInitializer {
             CandidateRepository candidateRepo,
             VoteCastRepository voteCastRepo,
             VoteCurrentRepository voteCurrentRepo,
+            CitizenRepository citizenRepo,
+            ElectionEligibilityRuleRepository ruleRepo,
             PasswordEncoder passwordEncoder,
             TransactionTemplate tx
     ) {
         return args -> tx.executeWithoutResult(status ->
-                init(userRepo, staffRepo, electionRepo, candidateRepo, voteCastRepo, voteCurrentRepo, passwordEncoder)
+                init(
+                        userRepo,
+                        staffRepo,
+                        electionRepo,
+                        candidateRepo,
+                        voteCastRepo,
+                        voteCurrentRepo,
+                        citizenRepo,
+                        ruleRepo,
+                        passwordEncoder
+                )
         );
     }
 
@@ -64,14 +82,17 @@ public class DemoDataInitializer {
             CandidateRepository candidateRepo,
             VoteCastRepository voteCastRepo,
             VoteCurrentRepository voteCurrentRepo,
+            CitizenRepository citizenRepo,
+            ElectionEligibilityRuleRepository ruleRepo,
             PasswordEncoder passwordEncoder
     ) {
         seedAdmin(staffRepo, passwordEncoder);
         seedCommittee(staffRepo, passwordEncoder);
 
-        UUID citizenId = seedVoter(userRepo, passwordEncoder);
+        UUID citizenId = seedCitizen(citizenRepo);
+        seedVoter(userRepo, passwordEncoder, citizenId);
 
-        seedElectionsAndVotes(electionRepo, candidateRepo, voteCastRepo, voteCurrentRepo, citizenId);
+        seedElectionsAndVotes(electionRepo, candidateRepo, voteCastRepo, voteCurrentRepo, ruleRepo, citizenId);
     }
 
     // =========================
@@ -114,16 +135,15 @@ public class DemoDataInitializer {
         staffRepo.save(committee);
     }
 
-    private UUID seedVoter(UserAccountRepository userRepo, PasswordEncoder passwordEncoder) {
+    private UUID seedVoter(UserAccountRepository userRepo, PasswordEncoder passwordEncoder, UUID citizenId) {
         var opt = userRepo.findByEmail(DEMO_VOTER_EMAIL);
 
         if (opt.isPresent()) {
             var acc = opt.get();
 
-            // もし citizenId が無ければ付与して VOTER にする（デモなので強制昇格OK）
-            if (acc.getCitizenId() == null) {
-                acc.setCitizenId(UUID.randomUUID());
-            }
+            // citizen は seedCitizen() が作ってる前提なので、ここは必ずそれに合わせる
+            acc.setCitizenId(citizenId);
+
             acc.setRole(Role.VOTER);
             acc.setEmailVerified(true);
             acc.setEnabled(true);
@@ -136,7 +156,6 @@ public class DemoDataInitializer {
             return acc.getCitizenId();
         }
 
-        UUID citizenId = UUID.randomUUID();
         var voter = new UserAccount();
         voter.setEmail(DEMO_VOTER_EMAIL);
         voter.setPasswordHash(passwordEncoder.encode(DEMO_VOTER_PASSWORD));
@@ -151,7 +170,7 @@ public class DemoDataInitializer {
     }
 
     // =========================
-    // seed elections / candidates / votes
+    // seed elections / candidates / votes / rules
     // =========================
 
     private void seedElectionsAndVotes(
@@ -159,31 +178,41 @@ public class DemoDataInitializer {
             CandidateRepository candidateRepo,
             VoteCastRepository voteCastRepo,
             VoteCurrentRepository voteCurrentRepo,
+            ElectionEligibilityRuleRepository ruleRepo,
             UUID citizenId
     ) {
+
+        voteCurrentRepo.deleteAll();
+        voteCastRepo.deleteAll();
+
         // 既存デモ選挙を削除（前回分を掃除）
         electionRepo.deleteByTitleStartingWith(DEMO_ELECTION_PREFIX);
+
+        // デモ用ルールも掃除（簡易）
+        ruleRepo.deleteAll();
 
         var now = Instant.now();
         String today = LocalDate.now().toString();
 
         // 1) 開催前（startsAt が未来）
-        createElectionWithCandidates(
+        var upcoming = createElectionWithCandidates(
                 electionRepo, candidateRepo,
                 DEMO_ELECTION_PREFIX + " 開催前 " + today,
                 now.plusSeconds(60 * 60),          // starts +1h
                 now.plusSeconds(60 * 60 * 25),     // ends +25h
                 "開催前"
         );
+        seedRule(ruleRepo, upcoming.electionId());
 
         // 2) 投票可能（開催中）
-        createElectionWithCandidates(
+        var voting = createElectionWithCandidates(
                 electionRepo, candidateRepo,
                 DEMO_ELECTION_PREFIX + " 投票可能 " + today,
                 now.minusSeconds(60 * 60),         // started -1h
                 now.plusSeconds(60 * 60 * 24),     // ends +24h
                 "投票可能"
         );
+        seedRule(ruleRepo, voting.electionId());
 
         // 3) 終了済み（投票済み）
         var endedVoted = createElectionWithCandidates(
@@ -193,6 +222,7 @@ public class DemoDataInitializer {
                 now.minusSeconds(60 * 60 * 24),    // ended -24h
                 "終了済み投票済み"
         );
+        seedRule(ruleRepo, endedVoted.electionId());
 
         // endedVoted の候補Aに投票したことにする
         UUID votedCandidateId = endedVoted.candidateIds().get(0);
@@ -204,13 +234,42 @@ public class DemoDataInitializer {
         seedVoteCurrent(voteCurrentRepo, endedVoted.electionId(), citizenId, votedCandidateId, votedAt);
 
         // 4) 終了済み（未投票）
-        createElectionWithCandidates(
+        var endedNotVoted = createElectionWithCandidates(
                 electionRepo, candidateRepo,
                 DEMO_ELECTION_PREFIX + " 終了済み_未投票 " + today,
                 now.minusSeconds(60 * 60 * 72),    // started -72h
                 now.minusSeconds(60 * 60 * 48),    // ended -48h
                 "終了済み未投票"
         );
+        seedRule(ruleRepo, endedNotVoted.electionId());
+    }
+
+    private void seedRule(
+            ElectionEligibilityRuleRepository ruleRepo,
+            UUID electionId
+    ) {
+        var r = new ElectionEligibilityRule();
+        r.setElectionId(electionId);
+        r.setCityCode("14100");  // citizen/self と合わせる
+        r.setMinAge(18);
+        ruleRepo.save(r);
+    }
+
+    private UUID seedCitizen(CitizenRepository citizenRepo) {
+        // デモでは固定にしておくと、毎回同じUUIDで本人認証/投票データが安定する
+        var citizen = citizenRepo.findById(DEMO_CITIZEN_ID).orElseGet(Citizen::new);
+
+        citizen.setCitizenId(DEMO_CITIZEN_ID);
+
+        // 例：20歳以上とかの判定に使えるように
+        citizen.setBirthDate(LocalDate.of(2000, 1, 1));
+
+        // とりあえず横浜っぽいコードを入れる、など（値は君のルール設計に合わせて統一）
+        citizen.setPrefCode("14");      // 神奈川(例)
+        citizen.setCityCode("14100");   // 横浜(例)
+
+        citizenRepo.save(citizen);
+        return citizen.getCitizenId();
     }
 
     private record CreatedElection(UUID electionId, List<UUID> candidateIds) {}

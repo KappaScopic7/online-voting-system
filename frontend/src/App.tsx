@@ -19,6 +19,8 @@ import { VotingStartPage } from "./voting/pages/VotingStartPage";
 import { VotingDonePage } from "./voting/pages/VotingDonePage";
 import { VoteHistoryPage } from "./voting/pages/VoteHistoryPage";
 
+import { MyElectionsPage } from "./elections/pages/MyElectionsPage";
+
 import { AdminLoginPage } from "./admin/pages/AdminLoginPage";
 import { CommitteeLoginPage } from "./committee/pages/CommitteeLoginPage";
 
@@ -95,6 +97,7 @@ export default function App() {
                 {/* My Page */}
                 <Link to="/me">Me</Link>
                 <Link to="/me/identity">Identity</Link>
+                <Link to="/me/elections">My Elections</Link>
                 <Link to="/me/votes">Votes</Link>
 
                 <span style={{ marginLeft: "auto" }}>
@@ -216,7 +219,16 @@ export default function App() {
                         </RequireVoter>
                     }
                 />
+                <Route
+                    path="/me/elections"
+                    element={
+                        <RequireAuth>
+                            <MyElectionsPage />
+                        </RequireAuth>
+                    }
+                />
 
+                {/* 404 */}
                 <Route path="*" element={<div>Not Found</div>} />
             </Routes>
         </div>

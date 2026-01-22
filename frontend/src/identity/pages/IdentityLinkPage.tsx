@@ -19,7 +19,7 @@ export function IdentityLinkPage() {
     const loc = useLocation();
     const state = (loc.state ?? {}) as LocationState;
 
-    const { setAccessToken, refreshMe } = useAuth();
+    const { setAccessToken } = useAuth();
 
     const [citizenId, setCitizenId] = useState("");
     const [msg, setMsg] = useState<string | null>(null);
@@ -53,11 +53,10 @@ export function IdentityLinkPage() {
             const token = await linkIdentity(v);
 
             await setAccessToken(token.accessToken);
-            await refreshMe();
 
             // 元の画面へ戻す（なければMyPage）
             // 自分自身に戻るのは避ける
-            const fallback = "/me";
+            const fallback = "/me/elections";
             const to =
                 state.from && state.from !== loc.pathname
                     ? state.from

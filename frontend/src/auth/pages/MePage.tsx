@@ -3,6 +3,11 @@ import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { fetchMeDetail, type MeDetailResponse } from "../api/auth";
 import { useAuth } from "../AuthContext";
+import {
+    getMeProfile,
+    putMeProfile,
+    type MeProfileResponse,
+} from "../api/meProfile";
 
 export function MePage() {
     const { refreshMe } = useAuth();
@@ -10,6 +15,17 @@ export function MePage() {
     const [me, setMe] = useState<MeDetailResponse | null>(null);
     const [msg, setMsg] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+
+    // self profile
+    const [profile, setProfile] = useState<MeProfileResponse | null>(null);
+    const [profileMsg, setProfileMsg] = useState<string | null>(null);
+
+    // form
+    const [birthDate, setBirthDate] = useState(""); // yyyy-MM-dd
+    const [prefCode, setPrefCode] = useState("");
+    const [cityCode, setCityCode] = useState("");
+    const [saving, setSaving] = useState(false);
+
     const loc = useLocation();
     const from = loc.pathname + loc.search;
 
@@ -20,14 +36,41 @@ export function MePage() {
             const data = await fetchMeDetail();
             setMe(data);
         } catch (err: any) {
-            setMsg(err?.response?.data?.message ?? "Failed to load");
+            setMsg(err?.message ?? "Failed to load");
         } finally {
             setIsLoading(false);
         }
     };
 
+    const loadProfile = async () => {
+        setProfileMsg(null);
+        try {
+            const p = await getMeProfile();
+            setProfile(p);
+            setBirthDate(p.birthDate ?? "");
+            setPrefCode(p.prefCode ?? "");
+            setCityCode(p.cityCode ?? "");
+        } catch (err: any) {
+            // 404=未入力は正常系として扱う
+            const m = err?.message ?? String(err);
+            if (String(m).includes("404")) {
+                setProfile(null);
+                setBirthDate("");
+                setPrefCode("");
+                setCityCode("");
+            } else {
+                setProfile(null);
+                setProfileMsg(m);
+            }
+        }
+    };
+
     useEffect(() => {
-        load();
+        (async () => {
+            await load();
+            await loadProfile();
+        })();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const identityStatus = me?.identityStatus ?? "UNKNOWN";
@@ -36,11 +79,33 @@ export function MePage() {
 
     const onRefreshAll = async () => {
         setMsg(null);
+        setProfileMsg(null);
         try {
             await refreshMe();
             await load();
+            await loadProfile();
         } catch (err: any) {
-            setMsg(err?.response?.data?.message ?? "Failed to refresh");
+            setMsg(err?.message ?? "Failed to refresh");
+        }
+    };
+
+    const onSaveProfile = async () => {
+        setProfileMsg(null);
+
+        if (!birthDate || !prefCode || !cityCode) {
+            setProfileMsg("birthDate / prefCode / cityCode を入力してください");
+            return;
+        }
+
+        setSaving(true);
+        try {
+            const p = await putMeProfile({ birthDate, prefCode, cityCode });
+            setProfile(p);
+            setProfileMsg("保存しました");
+        } catch (err: any) {
+            setProfileMsg(err?.message ?? "保存に失敗しました");
+        } finally {
+            setSaving(false);
         }
     };
 
@@ -104,9 +169,12 @@ export function MePage() {
                                 flexWrap: "wrap",
                             }}
                         >
-                            {/* 一覧は "/elections" */}
                             <Link to="/elections" state={{ from }}>
                                 選挙一覧へ
+                            </Link>
+
+                            <Link to="/me/elections" state={{ from }}>
+                                My選挙へ
                             </Link>
 
                             <Link to="/me/votes" state={{ from }}>
@@ -130,6 +198,104 @@ export function MePage() {
                                     本人認証：審査中
                                 </Link>
                             )}
+                        </div>
+                    </section>
+
+                    {/* Self Profile (本人認証前の自己申告プロフィール) */}
+                    <section style={{ padding: 12, border: "1px solid #ddd" }}>
+                        <h3 style={{ marginTop: 0 }}>
+                            プロフィール（本人認証前）
+                        </h3>
+
+                        {isLinked ? (
+                            <p style={{ margin: 0, opacity: 0.8 }}>
+                                本人認証済みのため、自己申告プロフィールは編集できません（市民情報が優先されます）
+                            </p>
+                        ) : (
+                            <p style={{ margin: 0, opacity: 0.8 }}>
+                                My選挙の対象判定に使います（本人認証すると市民情報で上書きされます）
+                            </p>
+                        )}
+
+                        {profileMsg && (
+                            <div
+                                style={{
+                                    marginTop: 10,
+                                    padding: 8,
+                                    border: "1px solid #ccc",
+                                }}
+                            >
+                                {profileMsg}
+                            </div>
+                        )}
+
+                        <div style={{ marginTop: 10, display: "grid", gap: 8 }}>
+                            <label style={{ display: "grid", gap: 4 }}>
+                                <span>生年月日（yyyy-MM-dd）</span>
+                                <input
+                                    value={birthDate}
+                                    onChange={(e) =>
+                                        setBirthDate(e.target.value)
+                                    }
+                                    placeholder="2000-01-01"
+                                    disabled={isLinked || saving}
+                                />
+                            </label>
+
+                            <label style={{ display: "grid", gap: 4 }}>
+                                <span>都道府県コード</span>
+                                <input
+                                    value={prefCode}
+                                    onChange={(e) =>
+                                        setPrefCode(e.target.value)
+                                    }
+                                    placeholder="14"
+                                    disabled={isLinked || saving}
+                                />
+                            </label>
+
+                            <label style={{ display: "grid", gap: 4 }}>
+                                <span>市区町村コード</span>
+                                <input
+                                    value={cityCode}
+                                    onChange={(e) =>
+                                        setCityCode(e.target.value)
+                                    }
+                                    placeholder="14100"
+                                    disabled={isLinked || saving}
+                                />
+                            </label>
+
+                            <div
+                                style={{
+                                    display: "flex",
+                                    gap: 12,
+                                    flexWrap: "wrap",
+                                    alignItems: "center",
+                                }}
+                            >
+                                <button
+                                    type="button"
+                                    onClick={onSaveProfile}
+                                    disabled={isLinked || saving}
+                                >
+                                    {saving ? "保存中..." : "保存"}
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={loadProfile}
+                                    disabled={saving}
+                                >
+                                    プロフィール再取得
+                                </button>
+                                {profile && (
+                                    <span
+                                        style={{ fontSize: 12, opacity: 0.75 }}
+                                    >
+                                        updatedAt: {profile.updatedAt}
+                                    </span>
+                                )}
+                            </div>
                         </div>
                     </section>
 
@@ -208,7 +374,14 @@ export function MePage() {
                     <summary>Debug</summary>
                     <pre style={{ whiteSpace: "pre-wrap" }}>
                         {JSON.stringify(
-                            { me, msg, identityStatus, isLoading },
+                            {
+                                me,
+                                msg,
+                                identityStatus,
+                                isLoading,
+                                profile,
+                                profileMsg,
+                            },
                             null,
                             2,
                         )}

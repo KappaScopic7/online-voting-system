@@ -48,7 +48,7 @@ export function VotingDonePage() {
 
                 <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
                     <Link to="/votes">投票履歴へ</Link>
-                    <Link to="/">選挙一覧へ</Link>
+                    <Link to="/elections">選挙一覧へ</Link>
                     <Link to="/me">My Pageへ</Link>
                 </div>
 
@@ -117,7 +117,7 @@ export function VotingDonePage() {
                 <Link to="/votes">
                     <b>投票履歴を見る</b>
                 </Link>
-                <Link to="/">選挙一覧へ</Link>
+                <Link to="/elections">選挙一覧へ</Link>
                 <Link to={`/elections/${result.electionId}/candidates`}>
                     候補者（公開）
                 </Link>
