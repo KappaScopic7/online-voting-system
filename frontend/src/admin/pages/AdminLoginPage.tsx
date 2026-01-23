@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { staffLogin } from "../../staff/api/staffAuth";
 import { useAuth } from "../../auth/AuthContext";
+//import { useAdminAuth } from "../AdminAuthContext";
 
 type LocationState = {
     loginId?: string;
@@ -15,6 +16,7 @@ export function AdminLoginPage() {
     const state = (loc.state ?? {}) as LocationState;
     const from = state.from ?? "/admin";
 
+    //    const { login } = useAdminAuth();
     const { setAccessToken } = useAuth();
 
     const [loginId, setLoginId] = useState(state.loginId ?? "");
