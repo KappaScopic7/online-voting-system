@@ -365,6 +365,8 @@ export function VotingStartPage() {
                                 busy,
                                 electionId,
                                 step,
+                                state,
+                                loc,
                             },
                             null,
                             2,

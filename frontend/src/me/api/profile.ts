@@ -1,21 +1,9 @@
 // me/api/profile.ts
 import { http } from "../../shared/http";
-
-export type MeProfileResponse = {
-    accountId: string;
-    source: "SELF";
-    birthDate: string; // yyyy-MM-dd
-    prefCode: string;
-    cityCode: string;
-    createdAt: string;
-    updatedAt: string;
-};
-
-export type MeProfileUpdateRequest = {
-    birthDate: string; // yyyy-MM-dd
-    prefCode: string;
-    cityCode: string;
-};
+import type {
+    MeProfileResponse,
+    MeProfileUpdateRequest,
+} from "../model/profileTypes";
 
 export async function getMeProfile(): Promise<MeProfileResponse> {
     const res = await http.get<MeProfileResponse>("/api/me/profile");
