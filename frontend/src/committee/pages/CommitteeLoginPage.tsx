@@ -1,7 +1,7 @@
-// committee/pages/CommitteeLoginPage.tsx
 import { useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useStaffAuth } from "../../staff/StaffAuthContext";
+import { useAuth } from "../../auth/AuthContext";
 
 type LocationState = {
     loginId?: string;
@@ -14,7 +14,8 @@ export function CommitteeLoginPage() {
     const state = (loc.state ?? {}) as LocationState;
     const from = state.from ?? "/committee";
 
-    const { login } = useStaffAuth();
+    const { login: staffLogin } = useStaffAuth();
+    const { logout: userLogout } = useAuth(); // ← ★追加
 
     const [loginId, setLoginId] = useState(state.loginId ?? "");
     const [password, setPassword] = useState("");
@@ -48,10 +49,9 @@ export function CommitteeLoginPage() {
         try {
             setIsSubmitting(true);
 
-            // 🔑 staff 認証は Context に一任
-            await login(loginId.trim(), password);
+            userLogout();
+            await staffLogin(loginId.trim(), password);
 
-            // 権限制御は RequireStaff に任せる
             nav(from, { replace: true });
         } catch (err: any) {
             console.error("committee login error", err);

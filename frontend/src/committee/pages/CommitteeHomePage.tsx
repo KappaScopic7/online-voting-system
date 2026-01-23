@@ -4,14 +4,6 @@ import { Link } from "react-router-dom";
 export function CommitteeHomePage() {
     return (
         <div style={{ padding: 16 }}>
-            <header style={{ display: "flex", gap: 12, marginBottom: 16 }}>
-                <Link to="/committee">Committee Home</Link>
-                <Link to="/committee/elections">Elections</Link>
-                <Link to="/committee/results">Results</Link>
-                <Link to="/committee/me">Me</Link>
-                <Link to="/committee/logout">Logout</Link>
-            </header>
-
             <h2>選挙管理委員会ホーム</h2>
 
             <ul>

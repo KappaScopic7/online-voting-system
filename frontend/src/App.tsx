@@ -1,5 +1,12 @@
 // App.tsx
-import { Link, Route, Routes, Navigate, useNavigate } from "react-router-dom";
+import {
+    Link,
+    Route,
+    Routes,
+    Navigate,
+    useNavigate,
+    useLocation,
+} from "react-router-dom";
 
 import { ElectionsPage } from "./elections/pages/ElectionsPage";
 import { CandidatesPage } from "./elections/pages/CandidatesPage";
@@ -31,6 +38,7 @@ import { AdminHomePage } from "./admin/pages/AdminHomePage";
 import { CommitteeHomePage } from "./committee/pages/CommitteeHomePage";
 
 import { useAuth } from "./auth/AuthContext";
+import { useStaffAuth } from "./staff/StaffAuthContext";
 
 // 仮: あとで pages/PortalHomePage.tsx に切り出す
 function PortalHomePage() {
@@ -70,11 +78,26 @@ function PortalHomePage() {
 
 export default function App() {
     const nav = useNavigate();
-    const { me, logout } = useAuth();
+    const location = useLocation();
+    const pathname = location.pathname;
+
+    const isAdminArea = pathname.startsWith("/admin");
+    const isCommitteeArea = pathname.startsWith("/committee");
+
+    const { me: user, logout: userLogout } = useAuth();
+    const { staff, logout: staffLogout } = useStaffAuth();
 
     const onLogout = () => {
-        logout();
-        nav("/", { replace: true });
+        if (staff) {
+            staffLogout();
+            nav("/", { replace: true });
+            return;
+        }
+
+        if (user) {
+            userLogout();
+            nav("/", { replace: true });
+        }
     };
 
     return (
@@ -88,29 +111,51 @@ export default function App() {
                     flexWrap: "wrap",
                 }}
             >
-                <Link to="/">Home</Link>
-                <Link to="/elections">Elections</Link>
+                {/* ===== Admin Header ===== */}
+                {isAdminArea && (
+                    <>
+                        <Link to="/admin">Admin Home</Link>
+                        <Link to="/admin/elections">Elections</Link>
+                        <button onClick={onLogout}>Logout</button>
+                    </>
+                )}
 
-                <Link to="/register">Register</Link>
-                <Link to="/login">Login</Link>
+                {/* ===== Committee Header ===== */}
+                {isCommitteeArea && (
+                    <>
+                        <Link to="/committee">Committee Home</Link>
+                        <Link to="/committee/elections">Elections</Link>
+                        <button onClick={onLogout}>Logout</button>
+                    </>
+                )}
 
-                {/* My Page */}
-                <Link to="/me">Me</Link>
-                <Link to="/me/identity">Identity</Link>
-                <Link to="/me/elections">My Elections</Link>
-                <Link to="/me/votes">Votes</Link>
+                {/* ===== User Header（★変更なし） ===== */}
+                {!isAdminArea && !isCommitteeArea && (
+                    <>
+                        <Link to="/">Home</Link>
+                        <Link to="/elections">Elections</Link>
 
-                <span style={{ marginLeft: "auto" }}>
-                    {me ? (
-                        <button type="button" onClick={onLogout}>
-                            Logout
-                        </button>
-                    ) : (
-                        <span style={{ fontSize: 12, opacity: 0.7 }}>
-                            未ログイン
+                        <Link to="/register">Register</Link>
+                        <Link to="/login">Login</Link>
+
+                        <Link to="/me">Me</Link>
+                        <Link to="/me/identity">Identity</Link>
+                        <Link to="/me/elections">My Elections</Link>
+                        <Link to="/me/votes">Votes</Link>
+
+                        <span style={{ marginLeft: "auto" }}>
+                            {user ? (
+                                <button type="button" onClick={onLogout}>
+                                    Logout
+                                </button>
+                            ) : (
+                                <span style={{ fontSize: 12, opacity: 0.7 }}>
+                                    未ログイン
+                                </span>
+                            )}
                         </span>
-                    )}
-                </span>
+                    </>
+                )}
             </header>
 
             <Routes>
