@@ -1,9 +1,9 @@
 package com.bteam.ovs.eligibility.service;
 
-import com.bteam.ovs.auth.repo.UserAccountRepository;
-import com.bteam.ovs.citizen.repo.CitizenRepository;
-import com.bteam.ovs.eligibility.service.model.EligibilitySnapshot;
-import com.bteam.ovs.profile.repo.VoterProfileSelfRepository;
+import com.bteam.ovs.auth.repository.UserAccountRepository;
+import com.bteam.ovs.citizen.repository.CitizenRepository;
+import com.bteam.ovs.eligibility.service.entity.EligibilitySnapshot;
+import com.bteam.ovs.profile.repository.VoterProfileSelfRepository;
 import com.bteam.ovs.shared.errors.ApiException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;

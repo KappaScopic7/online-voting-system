@@ -1,8 +1,8 @@
 package com.bteam.ovs.identity.service;
 
-import com.bteam.ovs.auth.model.Role;
-import com.bteam.ovs.auth.repo.UserAccountRepository;
-import com.bteam.ovs.citizen.repo.CitizenRepository;
+import com.bteam.ovs.auth.entity.Role;
+import com.bteam.ovs.auth.repository.UserAccountRepository;
+import com.bteam.ovs.citizen.repository.CitizenRepository;
 import com.bteam.ovs.shared.errors.ApiException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;

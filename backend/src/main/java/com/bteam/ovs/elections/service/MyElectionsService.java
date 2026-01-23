@@ -1,9 +1,10 @@
 package com.bteam.ovs.elections.service;
 
 import com.bteam.ovs.eligibility.service.EligibilityProfileResolver;
-import com.bteam.ovs.elections.model.Election;
-import com.bteam.ovs.elections.repo.ElectionEligibilityRuleRepository;
-import com.bteam.ovs.elections.repo.ElectionRepository;
+import com.bteam.ovs.elections.entity.Election;
+import com.bteam.ovs.elections.repository.ElectionEligibilityRuleRepository;
+import com.bteam.ovs.elections.repository.ElectionRepository;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,7 +33,7 @@ public class MyElectionsService {
     public List<Election> listMyElections(UUID accountId) {
         var snap = resolver.resolve(accountId);
 
-        if (snap.source() == com.bteam.ovs.eligibility.service.model.EligibilitySnapshot.Source.NONE) {
+        if (snap.source() == com.bteam.ovs.eligibility.service.entity.EligibilitySnapshot.Source.NONE) {
             return List.of();
         }
         if (snap.cityCode() == null || snap.cityCode().isBlank()) {

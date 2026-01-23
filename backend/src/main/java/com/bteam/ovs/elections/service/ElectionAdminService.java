@@ -1,13 +1,13 @@
 package com.bteam.ovs.elections.service;
 
-import com.bteam.ovs.elections.model.Candidate;
-import com.bteam.ovs.elections.model.Election;
-import com.bteam.ovs.elections.repo.CandidateRepository;
-import com.bteam.ovs.elections.repo.ElectionRepository;
-import com.bteam.ovs.elections.web.dto.CandidateCreateRequest;
-import com.bteam.ovs.elections.web.dto.CandidateResponse;
-import com.bteam.ovs.elections.web.dto.ElectionCreateRequest;
-import com.bteam.ovs.elections.web.dto.ElectionResponse;
+import com.bteam.ovs.elections.controller.dto.CandidateCreateRequest;
+import com.bteam.ovs.elections.controller.dto.CandidateResponse;
+import com.bteam.ovs.elections.controller.dto.ElectionCreateRequest;
+import com.bteam.ovs.elections.controller.dto.ElectionResponse;
+import com.bteam.ovs.elections.entity.Candidate;
+import com.bteam.ovs.elections.entity.Election;
+import com.bteam.ovs.elections.repository.CandidateRepository;
+import com.bteam.ovs.elections.repository.ElectionRepository;
 import com.bteam.ovs.shared.errors.ApiException;
 
 import org.springframework.dao.DataIntegrityViolationException;

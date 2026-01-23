@@ -6,7 +6,7 @@ import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-import com.bteam.ovs.auth.model.Role;
+import com.bteam.ovs.auth.entity.Role;
 
 import java.nio.charset.StandardCharsets;
 import java.security.Key;

@@ -1,11 +1,12 @@
 package com.bteam.ovs.voters.service;
 
-import com.bteam.ovs.elections.model.Election;
-import com.bteam.ovs.elections.repo.CandidateRepository;
-import com.bteam.ovs.elections.repo.ElectionRepository;
-import com.bteam.ovs.elections.web.dto.ElectionListItem;
-import com.bteam.ovs.voting.model.VoteCurrent;
-import com.bteam.ovs.voting.repo.VoteCurrentRepository;
+import com.bteam.ovs.elections.controller.dto.ElectionListItem;
+import com.bteam.ovs.elections.entity.Election;
+import com.bteam.ovs.elections.repository.CandidateRepository;
+import com.bteam.ovs.elections.repository.ElectionRepository;
+import com.bteam.ovs.voting.entity.VoteCurrent;
+import com.bteam.ovs.voting.repository.VoteCurrentRepository;
+
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;

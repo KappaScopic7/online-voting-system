@@ -1,15 +1,15 @@
 package com.bteam.ovs.voting.service;
 
-import com.bteam.ovs.auth.repo.UserAccountRepository;
-import com.bteam.ovs.elections.repo.CandidateRepository;
-import com.bteam.ovs.elections.repo.ElectionRepository;
+import com.bteam.ovs.auth.repository.UserAccountRepository;
+import com.bteam.ovs.elections.repository.CandidateRepository;
+import com.bteam.ovs.elections.repository.ElectionRepository;
 import com.bteam.ovs.shared.errors.ApiException;
-import com.bteam.ovs.voting.model.VoteCast;
-import com.bteam.ovs.voting.model.VoteCurrent;
-import com.bteam.ovs.voting.repo.VoteCastRepository;
-import com.bteam.ovs.voting.repo.VoteCurrentRepository;
-import com.bteam.ovs.voting.web.dto.VoteHistoryItem;
-import com.bteam.ovs.voting.web.dto.VoteStartResponse;
+import com.bteam.ovs.voting.controller.dto.VoteHistoryItem;
+import com.bteam.ovs.voting.controller.dto.VoteStartResponse;
+import com.bteam.ovs.voting.entity.VoteCast;
+import com.bteam.ovs.voting.entity.VoteCurrent;
+import com.bteam.ovs.voting.repository.VoteCastRepository;
+import com.bteam.ovs.voting.repository.VoteCurrentRepository;
 
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;

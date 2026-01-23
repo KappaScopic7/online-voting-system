@@ -1,8 +1,8 @@
 package com.bteam.ovs.auth.service;
 
-import com.bteam.ovs.auth.repo.StaffAccountRepository;
-import com.bteam.ovs.auth.web.dto.StaffLoginRequest;
-import com.bteam.ovs.auth.web.dto.TokenResponse;
+import com.bteam.ovs.auth.controller.dto.StaffLoginRequest;
+import com.bteam.ovs.auth.controller.dto.TokenResponse;
+import com.bteam.ovs.auth.repository.StaffAccountRepository;
 import com.bteam.ovs.config.security.JwtService;
 import com.bteam.ovs.config.security.JwtService.AccountKind;
 import com.bteam.ovs.shared.errors.ApiException;

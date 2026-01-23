@@ -1,6 +1,6 @@
 package com.bteam.ovs.auth.service;
 
-import com.bteam.ovs.auth.repo.UserAccountRepository;
+import com.bteam.ovs.auth.repository.UserAccountRepository;
 import com.bteam.ovs.shared.errors.ApiException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;

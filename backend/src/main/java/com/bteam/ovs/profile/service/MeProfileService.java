@@ -1,10 +1,10 @@
 package com.bteam.ovs.profile.service;
 
-import com.bteam.ovs.auth.repo.UserAccountRepository;
-import com.bteam.ovs.profile.model.VoterProfileSelf;
-import com.bteam.ovs.profile.repo.VoterProfileSelfRepository;
-import com.bteam.ovs.profile.web.dto.MeProfileResponse;
-import com.bteam.ovs.profile.web.dto.MeProfileUpdateRequest;
+import com.bteam.ovs.auth.repository.UserAccountRepository;
+import com.bteam.ovs.profile.controller.dto.MeProfileResponse;
+import com.bteam.ovs.profile.controller.dto.MeProfileUpdateRequest;
+import com.bteam.ovs.profile.entity.VoterProfileSelf;
+import com.bteam.ovs.profile.repository.VoterProfileSelfRepository;
 import com.bteam.ovs.shared.errors.ApiException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;

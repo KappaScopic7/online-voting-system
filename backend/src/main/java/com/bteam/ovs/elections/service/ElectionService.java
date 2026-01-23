@@ -1,13 +1,13 @@
 package com.bteam.ovs.elections.service;
 
-import com.bteam.ovs.auth.repo.UserAccountRepository;
-import com.bteam.ovs.elections.repo.CandidateRepository;
-import com.bteam.ovs.elections.repo.ElectionRepository;
-import com.bteam.ovs.elections.web.dto.CandidateItem;
-import com.bteam.ovs.elections.web.dto.ElectionListItem;
-import com.bteam.ovs.elections.web.dto.ElectionResultResponse;
+import com.bteam.ovs.auth.repository.UserAccountRepository;
+import com.bteam.ovs.elections.controller.dto.CandidateItem;
+import com.bteam.ovs.elections.controller.dto.ElectionListItem;
+import com.bteam.ovs.elections.controller.dto.ElectionResultResponse;
+import com.bteam.ovs.elections.repository.CandidateRepository;
+import com.bteam.ovs.elections.repository.ElectionRepository;
 import com.bteam.ovs.shared.errors.ApiException;
-import com.bteam.ovs.voting.repo.VoteCurrentRepository;
+import com.bteam.ovs.voting.repository.VoteCurrentRepository;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -70,7 +70,7 @@ public class ElectionService {
             identityLinked = (citizenId != null);
         }
 
-        Map<UUID, com.bteam.ovs.voting.model.VoteCurrent> currentByElectionId = Map.of();
+        Map<UUID, com.bteam.ovs.voting.entity.VoteCurrent> currentByElectionId = Map.of();
         if (identityLinked) {
             currentByElectionId = voteCurrentRepo.findByCitizenIdAndElectionIdIn(citizenId, electionIds).stream()
                     .collect(Collectors.toMap(
@@ -81,7 +81,7 @@ public class ElectionService {
         }
 
         final boolean finalIdentityLinked = identityLinked;
-        final Map<UUID, com.bteam.ovs.voting.model.VoteCurrent> finalCurrentByElectionId = currentByElectionId;
+        final Map<UUID, com.bteam.ovs.voting.entity.VoteCurrent> finalCurrentByElectionId = currentByElectionId;
 
         return elections.stream()
                 .map(e -> {
