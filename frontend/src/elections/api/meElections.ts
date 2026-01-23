@@ -1,4 +1,4 @@
-import { http } from "../../shared/http";
+import { httpUser } from "../../shared/httpUser";
 
 export type MyElectionItem = {
     electionId: string;
@@ -8,5 +8,5 @@ export type MyElectionItem = {
 };
 
 export async function fetchMyElections(): Promise<MyElectionItem[]> {
-    return http.get("/api/me/elections").then((res) => res.data);
+    return httpUser.get("/api/me/elections").then((res) => res.data);
 }

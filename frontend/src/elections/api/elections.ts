@@ -1,5 +1,5 @@
 // api/elections.ts
-import { http } from "../../shared/http";
+import { httpUser } from "../../shared/httpUser";
 
 /* ===== types ===== */
 export type ElectionListItem = {
@@ -38,14 +38,14 @@ export type ElectionResultResponse = {
 
 /* ===== api ===== */
 export async function fetchElections(): Promise<ElectionListItem[]> {
-    const res = await http.get<ElectionListItem[]>("/api/elections");
+    const res = await httpUser.get<ElectionListItem[]>("/api/elections");
     return res.data;
 }
 
 export async function fetchCandidates(
     electionId: string,
 ): Promise<CandidateItem[]> {
-    const res = await http.get<CandidateItem[]>(
+    const res = await httpUser.get<CandidateItem[]>(
         `/api/elections/${electionId}/candidates`,
     );
     return res.data;
@@ -54,7 +54,7 @@ export async function fetchCandidates(
 export async function fetchResult(
     electionId: string,
 ): Promise<ElectionResultResponse> {
-    const res = await http.get<ElectionResultResponse>(
+    const res = await httpUser.get<ElectionResultResponse>(
         `/api/elections/${electionId}/result`,
     );
     return res.data;

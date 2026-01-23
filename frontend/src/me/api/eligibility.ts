@@ -1,4 +1,4 @@
-import { http } from "../../shared/http";
+import { httpUser } from "../../shared/httpUser";
 
 export type MeEligibilityResponse = {
     source: "SELF" | "CITIZEN" | "NONE";
@@ -8,5 +8,5 @@ export type MeEligibilityResponse = {
 };
 
 export async function fetchMeEligibility(): Promise<MeEligibilityResponse> {
-    return http.get("/api/me/eligibility");
+    return httpUser.get("/api/me/eligibility");
 }
