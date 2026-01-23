@@ -8,18 +8,13 @@ import React, {
 } from "react";
 import type { MeResponse } from "./model/authTypes";
 import { fetchMe } from "./api/authApi";
-import {
-    subscribeTokenChange,
-    getToken,
-    setToken,
-    clearToken,
-} from "../shared/tokenStorage";
+import { userToken } from "../shared/tokenStorage";
 
 type AuthState = {
     me: MeResponse | null;
-    isLoading: boolean; // 初期ロード中
-    hasToken: boolean; // token があるか
-    isAuthed: boolean; // 「ログイン状態」判定（= hasToken）
+    isLoading: boolean;
+    hasToken: boolean;
+    isAuthed: boolean;
     setAccessToken: (token: string) => Promise<void>;
     logout: () => void;
     refreshMe: () => Promise<void>;
@@ -30,10 +25,10 @@ const AuthContext = createContext<AuthState | null>(null);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [me, setMe] = useState<MeResponse | null>(null);
     const [isLoading, setIsLoading] = useState(true);
-    const [hasToken, setHasToken] = useState(!!getToken());
+    const [hasToken, setHasToken] = useState(!!userToken.get());
 
     const refreshMe = async () => {
-        const token = getToken();
+        const token = userToken.get();
         setHasToken(!!token);
 
         if (!token) {
@@ -46,15 +41,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setMe(data);
         } catch {
             // token が死んでる or サーバー側で無効化 etc
-            clearToken(); // ← emitされる想定
-            // subscribe 側でも落ちるけど、念のためここでも落としてOK
+            userToken.clear(); // subscribe が走る想定
             setHasToken(false);
             setMe(null);
         }
     };
 
     const setAccessTokenAndLoadMe = async (token: string) => {
-        setToken(token); // ← emitされる想定
+        userToken.set(token); // subscribe が走る想定
         setHasToken(true);
         await refreshMe();
     };
@@ -69,19 +63,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    // token変更（特に clearToken）に追従
+    // token変更（別タブ含む）に追従
     useEffect(() => {
-        const unsub = subscribeTokenChange(() => {
-            const token = getToken();
+        const unsub = userToken.subscribe(() => {
+            const token = userToken.get();
             setHasToken(!!token);
 
-            if (!token) {
-                setMe(null);
-            }
-            // token がセットされた時は setAccessToken() 側で refreshMe するので
-            // ここでは呼ばない（＝二重fetch回避）
+            if (!token) setMe(null);
+            // token がセットされた時は setAccessToken() 側で refreshMe するのでここでは呼ばない
         });
-
         return unsub;
     }, []);
 
@@ -93,8 +83,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             isAuthed: hasToken,
             setAccessToken: setAccessTokenAndLoadMe,
             logout: () => {
-                clearToken(); // ← emit
-                // subscribe でも落ちるけど、即時反映したいなら残してOK
+                userToken.clear();
                 setHasToken(false);
                 setMe(null);
             },

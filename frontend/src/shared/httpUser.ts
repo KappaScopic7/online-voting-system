@@ -1,18 +1,16 @@
-// shared/http.ts
 import axios from "axios";
-import { getToken, clearToken } from "./tokenStorage";
+import { userToken } from "./tokenStorage";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8080";
 
-export const http = axios.create({
+export const httpUser = axios.create({
     baseURL: API_BASE,
     headers: { "Content-Type": "application/json" },
 });
 
-http.interceptors.request.use((config) => {
-    const token = getToken();
+httpUser.interceptors.request.use((config) => {
+    const token = userToken.get();
     if (token) {
-        // Axios v1: headers が AxiosHeaders の場合があるので安全にセット
         if (
             config.headers &&
             typeof (config.headers as any).set === "function"
@@ -28,11 +26,10 @@ http.interceptors.request.use((config) => {
     return config;
 });
 
-http.interceptors.response.use(
+httpUser.interceptors.response.use(
     (res) => res,
     (err) => {
-        // 401 なら token 破棄（未ログイン扱いへ）
-        if (err?.response?.status === 401) clearToken();
+        if (err?.response?.status === 401) userToken.clear();
         return Promise.reject(err);
     },
 );

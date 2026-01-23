@@ -7,7 +7,7 @@ import React, {
     useState,
 } from "react";
 import { staffLogin, fetchStaffMe } from "./api/staffAuth";
-import { getToken, setToken, clearToken } from "../shared/tokenStorage";
+import { staffToken } from "../shared/tokenStorage";
 
 export type StaffMe = {
     accountId: string;
@@ -31,7 +31,7 @@ export function StaffAuthProvider({ children }: { children: React.ReactNode }) {
     const [isLoading, setIsLoading] = useState(true);
 
     const refreshMe = async () => {
-        const token = getToken();
+        const token = staffToken.get();
         if (!token) {
             setStaff(null);
             return;
@@ -41,23 +41,23 @@ export function StaffAuthProvider({ children }: { children: React.ReactNode }) {
             const me = await fetchStaffMe();
             setStaff(me);
         } catch {
-            // token が無効
-            clearToken();
+            staffToken.clear();
             setStaff(null);
         }
     };
 
     const login = async (loginId: string, password: string) => {
         const res = await staffLogin(loginId, password);
-        setToken(res.accessToken);
+        staffToken.set(res.accessToken);
         await refreshMe();
     };
 
     const logout = () => {
-        clearToken();
+        staffToken.clear();
         setStaff(null);
     };
 
+    // 初期ロード
     useEffect(() => {
         (async () => {
             setIsLoading(true);
@@ -67,6 +67,16 @@ export function StaffAuthProvider({ children }: { children: React.ReactNode }) {
                 setIsLoading(false);
             }
         })();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    // token変更（別タブ含む）に追従：必要なら
+    useEffect(() => {
+        const unsub = staffToken.subscribe(() => {
+            const token = staffToken.get();
+            if (!token) setStaff(null);
+        });
+        return unsub;
     }, []);
 
     const value = useMemo<StaffAuthState>(
