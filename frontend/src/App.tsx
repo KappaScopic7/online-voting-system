@@ -12,8 +12,8 @@ import { ElectionsPage } from "./elections/pages/ElectionsPage";
 import { CandidatesPage } from "./elections/pages/CandidatesPage";
 import { ResultPage } from "./elections/pages/ResultPage";
 
-import { RequireAuth } from "./auth/RequireAuth";
-import { RequireVoter } from "./auth/RequireVoter";
+import { RequireAuth } from "./auth/routes/RequireAuth";
+import { RequireVoter } from "./auth/routes/RequireVoter";
 import { RegisterPage } from "./auth/pages/RegisterPage";
 import { VerifyEmailPage } from "./auth/pages/VerifyEmailPage";
 import { LoginPage } from "./auth/pages/LoginPage";
@@ -31,8 +31,8 @@ import { MyElectionsPage } from "./elections/pages/MyElectionsPage";
 import { AdminLoginPage } from "./admin/pages/AdminLoginPage";
 import { CommitteeLoginPage } from "./committee/pages/CommitteeLoginPage";
 
-import { RequireAdmin } from "./auth/RequireAdmin";
-import { RequireCommittee } from "./auth/RequireCommittee";
+import { RequireAdmin } from "./auth/routes/RequireAdmin";
+import { RequireCommittee } from "./auth/routes/RequireCommittee";
 
 import { AdminHomePage } from "./admin/pages/AdminHomePage";
 import { CommitteeHomePage } from "./committee/pages/CommitteeHomePage";
@@ -129,12 +129,13 @@ export default function App() {
                     </>
                 )}
 
-                {/* ===== User Header（★変更なし） ===== */}
+                {/* ===== User Header ===== */}
                 {!isAdminArea && !isCommitteeArea && (
                     <>
-                        {/* ===== Allways ===== */}
+                        {/* ===== Always ===== */}
                         <Link to="/">トップへ</Link>
                         <Link to="/elections">選挙一覧</Link>
+
                         {/* ===== Not Login ===== */}
                         {!user && (
                             <>
@@ -142,8 +143,8 @@ export default function App() {
                                 <Link to="/login">ログイン</Link>
                             </>
                         )}
+
                         {/* ===== Do Login ===== */}
-                        {/* My Page */}
                         {user && (
                             <>
                                 <Link to="/me">マイページ</Link>
@@ -152,6 +153,7 @@ export default function App() {
                                 <Link to="/me/votes">投票履歴</Link>
                             </>
                         )}
+
                         <span style={{ marginLeft: "auto" }}>
                             {user ? (
                                 <button type="button" onClick={onLogout}>
@@ -168,13 +170,10 @@ export default function App() {
             </header>
 
             <Routes>
-                {/* Portal Home */}
+                {/* ===== Public ===== */}
                 <Route path="/" element={<PortalHomePage />} />
 
-                {/* Elections list moved here */}
                 <Route path="/elections" element={<ElectionsPage />} />
-
-                {/* Public detail（公開詳細ページ） */}
                 <Route
                     path="/elections/:electionId/candidates"
                     element={<CandidatesPage />}
@@ -184,36 +183,9 @@ export default function App() {
                     element={<ResultPage />}
                 />
 
-                {/* Auth */}
+                {/* ===== Auth ===== */}
                 <Route path="/register" element={<RegisterPage />} />
                 <Route path="/login" element={<LoginPage />} />
-
-                {/* Staff Auth */}
-                <Route path="/admin/login" element={<AdminLoginPage />} />
-                <Route
-                    path="/committee/login"
-                    element={<CommitteeLoginPage />}
-                />
-
-                {/* Admin */}
-                <Route
-                    path="/admin/*"
-                    element={
-                        <RequireAdmin>
-                            <AdminHomePage />
-                        </RequireAdmin>
-                    }
-                />
-
-                {/* Committee */}
-                <Route
-                    path="/committee/*"
-                    element={
-                        <RequireCommittee>
-                            <CommitteeHomePage />
-                        </RequireCommittee>
-                    }
-                />
 
                 {/* verify は /verify に統一 */}
                 <Route path="/verify" element={<VerifyEmailPage />} />
@@ -222,65 +194,43 @@ export default function App() {
                     element={<Navigate to="/verify" replace />}
                 />
 
-                {/* Voting flow (voter only) */}
+                {/* ===== Staff Auth ===== */}
+                <Route path="/admin/login" element={<AdminLoginPage />} />
                 <Route
-                    path="/voting/start"
-                    element={
-                        <RequireVoter>
-                            <VotingStartPage />
-                        </RequireVoter>
-                    }
-                />
-                <Route
-                    path="/voting/done"
-                    element={
-                        <RequireVoter>
-                            <VotingDonePage />
-                        </RequireVoter>
-                    }
+                    path="/committee/login"
+                    element={<CommitteeLoginPage />}
                 />
 
-                {/* My Page routes */}
-                <Route
-                    path="/me"
-                    element={
-                        <RequireAuth>
-                            <MePage />
-                        </RequireAuth>
-                    }
-                />
-                <Route
-                    path="/me/identity"
-                    element={
-                        <RequireAuth>
-                            <IdentityLinkPage />
-                        </RequireAuth>
-                    }
-                />
-                <Route
-                    path="/me/identity/pending"
-                    element={
-                        <RequireAuth>
-                            <IdentityPendingPage />
-                        </RequireAuth>
-                    }
-                />
-                <Route
-                    path="/me/votes"
-                    element={
-                        <RequireVoter>
-                            <VoteHistoryPage />
-                        </RequireVoter>
-                    }
-                />
-                <Route
-                    path="/me/elections"
-                    element={
-                        <RequireAuth>
-                            <MyElectionsPage />
-                        </RequireAuth>
-                    }
-                />
+                {/* ===== Admin Area (protected) ===== */}
+                <Route element={<RequireAdmin />}>
+                    <Route path="/admin/*" element={<AdminHomePage />} />
+                </Route>
+
+                {/* ===== Committee Area (protected) ===== */}
+                <Route element={<RequireCommittee />}>
+                    <Route
+                        path="/committee/*"
+                        element={<CommitteeHomePage />}
+                    />
+                </Route>
+
+                {/* ===== Voter-only (protected) ===== */}
+                <Route element={<RequireVoter />}>
+                    <Route path="/voting/start" element={<VotingStartPage />} />
+                    <Route path="/voting/done" element={<VotingDonePage />} />
+                    <Route path="/me/votes" element={<VoteHistoryPage />} />
+                </Route>
+
+                {/* ===== Login-only (protected) ===== */}
+                <Route element={<RequireAuth />}>
+                    <Route path="/me" element={<MePage />} />
+                    <Route path="/me/identity" element={<IdentityLinkPage />} />
+                    <Route
+                        path="/me/identity/pending"
+                        element={<IdentityPendingPage />}
+                    />
+                    <Route path="/me/elections" element={<MyElectionsPage />} />
+                </Route>
 
                 {/* 404 */}
                 <Route path="*" element={<div>Not Found</div>} />

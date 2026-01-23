@@ -1,10 +1,9 @@
-// auth/RequireVoter.tsx
-import React from "react";
-import { Navigate, useLocation } from "react-router-dom";
-import { useAuth } from "./AuthContext";
-import { normalizeFrom } from "../shared/normalizeFrom";
+// auth/routes/RequireVerifiedEmail.tsx
+import { Navigate, Outlet, useLocation } from "react-router-dom";
+import { useAuth } from "../AuthContext";
+import { normalizeFrom } from "../../shared/normalizeFrom";
 
-export function RequireVoter({ children }: { children: React.ReactNode }) {
+export function RequireVoter() {
     const { isLoading, me } = useAuth();
     const loc = useLocation();
     const from = normalizeFrom(loc.pathname + loc.search);
@@ -26,5 +25,5 @@ export function RequireVoter({ children }: { children: React.ReactNode }) {
         return <Navigate to="/me/identity" replace state={{ from }} />;
     }
 
-    return <>{children}</>;
+    return <Outlet />;
 }
