@@ -1,4 +1,5 @@
-import { apiFetch } from "../../shared/apiFetch";
+// me/api/profile.ts
+import { http } from "../../shared/http";
 
 export type MeProfileResponse = {
     accountId: string;
@@ -17,14 +18,13 @@ export type MeProfileUpdateRequest = {
 };
 
 export async function getMeProfile(): Promise<MeProfileResponse> {
-    return apiFetch("/api/me/profile");
+    const res = await http.get<MeProfileResponse>("/api/me/profile");
+    return res.data;
 }
 
 export async function putMeProfile(
     req: MeProfileUpdateRequest,
 ): Promise<MeProfileResponse> {
-    return apiFetch("/api/me/profile", {
-        method: "PUT",
-        body: JSON.stringify(req),
-    });
+    const res = await http.put<MeProfileResponse>("/api/me/profile", req);
+    return res.data;
 }
