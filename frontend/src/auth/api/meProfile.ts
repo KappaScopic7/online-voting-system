@@ -18,11 +18,13 @@ export type MeProfileUpdateRequest = {
 };
 
 export async function getMeProfile(): Promise<MeProfileResponse> {
-    return http.get("/api/me/profile").then((res) => res.data);
+    const res = await http.get<MeProfileResponse>("/api/me/profile");
+    return res.data;
 }
 
 export async function putMeProfile(
     req: MeProfileUpdateRequest,
 ): Promise<MeProfileResponse> {
-    return http.put("/api/me/profile", req).then((res) => res.data);
+    const res = await http.put<MeProfileResponse>("/api/me/profile", req);
+    return res.data;
 }
