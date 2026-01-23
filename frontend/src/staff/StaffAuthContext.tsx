@@ -1,4 +1,4 @@
-// staff/auth/StaffAuthContext.tsx
+// staff/StaffAuthContext.tsx
 import React, {
     createContext,
     useContext,

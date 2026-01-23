@@ -15,7 +15,7 @@ export function CommitteeLoginPage() {
     const from = state.from ?? "/committee";
 
     const { login: staffLogin } = useStaffAuth();
-    const { logout: userLogout } = useAuth(); // ← ★追加
+    const { logout: userLogout } = useAuth();
 
     const [loginId, setLoginId] = useState(state.loginId ?? "");
     const [password, setPassword] = useState("");
