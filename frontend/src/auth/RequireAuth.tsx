@@ -2,6 +2,7 @@
 import React from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "./AuthContext";
+import { normalizeFrom } from "../shared/normalizeFrom";
 
 export function RequireAuth({ children }: { children: React.ReactNode }) {
     const { isLoading, isAuthed } = useAuth();
@@ -10,13 +11,8 @@ export function RequireAuth({ children }: { children: React.ReactNode }) {
     if (isLoading) return <div>Loading...</div>;
 
     if (!isAuthed) {
-        return (
-            <Navigate
-                to="/login"
-                replace
-                state={{ from: loc.pathname + loc.search }}
-            />
-        );
+        const from = normalizeFrom(loc.pathname + loc.search);
+        return <Navigate to="/login" replace state={{ from }} />;
     }
 
     return <>{children}</>;
