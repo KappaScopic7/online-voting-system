@@ -1,6 +1,6 @@
 import { Link, Outlet, useNavigate } from "react-router-dom";
 import { useStaffAuth } from "../staff/StaffAuthContext";
-export function StaffLayout({ area }: { area: "admin" | "committee" }) {
+export function AdminLayout() {
     const nav = useNavigate();
     const { staff, logout } = useStaffAuth();
 
@@ -8,9 +8,6 @@ export function StaffLayout({ area }: { area: "admin" | "committee" }) {
         logout();
         nav("/", { replace: true });
     };
-
-    const base = area === "admin" ? "/admin" : "/committee";
-    const label = area === "admin" ? "Admin" : "Committee";
 
     return (
         <div style={{ padding: 16 }}>
@@ -23,9 +20,14 @@ export function StaffLayout({ area }: { area: "admin" | "committee" }) {
                     flexWrap: "wrap",
                 }}
             >
-                <Link to={base}>{label} Home</Link>
-                <Link to={`${base}/elections`}>Elections</Link>
-                {staff ? <button onClick={onLogout}>Logout</button> : null}
+                <Link to="/admin">Admin Home</Link>
+                <Link to="/admin/elections">Elections</Link>
+                <Link to="/admin/staff">Staff</Link>
+                <Link to="/admin/me">Me</Link>
+
+                <span style={{ marginLeft: "auto" }}>
+                    {staff && <button onClick={onLogout}>Logout</button>}
+                </span>
             </header>
 
             <Outlet />

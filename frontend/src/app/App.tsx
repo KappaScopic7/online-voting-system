@@ -8,37 +8,38 @@ import {
     useLocation,
 } from "react-router-dom";
 
-import { ElectionsPage } from "./elections/pages/ElectionsPage";
-import { CandidatesPage } from "./elections/pages/CandidatesPage";
-import { ResultPage } from "./elections/pages/ResultPage";
+import { ElectionsPage } from "../elections/pages/ElectionsPage";
+import { CandidatesPage } from "../elections/pages/CandidatesPage";
+import { ResultPage } from "../elections/pages/ResultPage";
 
-import { RequireAuth } from "./auth/routes/RequireAuth";
-import { RequireVoter } from "./auth/routes/RequireVoter";
-import { RegisterPage } from "./auth/pages/RegisterPage";
-import { VerifyEmailPage } from "./auth/pages/VerifyEmailPage";
-import { LoginPage } from "./auth/pages/LoginPage";
-import { MePage } from "./me/pages/MePage";
+import { RequireAuth } from "../auth/routes/RequireAuth";
+import { RequireVoter } from "../auth/routes/RequireVoter";
+import { RegisterPage } from "../auth/pages/RegisterPage";
+import { VerifyEmailPage } from "../auth/pages/VerifyEmailPage";
+import { LoginPage } from "../auth/pages/LoginPage";
+import { MePage } from "../me/pages/MePage";
 
-import { IdentityLinkPage } from "./identity/pages/IdentityLinkPage";
-import { IdentityPendingPage } from "./identity/pages/IdentityPendingPage";
+import { IdentityLinkPage } from "../identity/pages/IdentityLinkPage";
+import { IdentityPendingPage } from "../identity/pages/IdentityPendingPage";
 
-import { VotingStartPage } from "./voting/pages/VotingStartPage";
-import { VotingDonePage } from "./voting/pages/VotingDonePage";
-import { VoteHistoryPage } from "./voting/pages/VoteHistoryPage";
+import { VotingStartPage } from "../voting/pages/VotingStartPage";
+import { VotingDonePage } from "../voting/pages/VotingDonePage";
+import { VoteHistoryPage } from "../voting/pages/VoteHistoryPage";
 
-import { MyElectionsPage } from "./elections/pages/MyElectionsPage";
+import { MyElectionsPage } from "../elections/pages/MyElectionsPage";
 
-import { AdminLoginPage } from "./staff/admin/pages/AdminLoginPage";
-import { CommitteeLoginPage } from "./staff/committee/pages/CommitteeLoginPage";
+import { AdminLoginPage } from "../staff/admin/pages/AdminLoginPage";
+import { CommitteeLoginPage } from "../staff/committee/pages/CommitteeLoginPage";
 
-import { RequireAdmin } from "./auth/routes/RequireAdmin";
-import { RequireCommittee } from "./auth/routes/RequireCommittee";
+import { RequireAdmin } from "../auth/routes/RequireAdmin";
+import { RequireCommittee } from "../auth/routes/RequireCommittee";
 
-import { AdminHomePage } from "./staff/admin/pages/AdminHomePage";
-import { CommitteeHomePage } from "./staff/committee/pages/CommitteeHomePage";
+import { AdminHomePage } from "../staff/admin/pages/AdminHomePage";
+import { CommitteeHomePage } from "../staff/committee/pages/CommitteeHomePage";
 
-import { useAuth } from "./auth/AuthContext";
-import { useStaffAuth } from "./staff/StaffAuthContext";
+import { useAuth } from "../auth/AuthContext";
+import { useStaffAuth } from "../staff/StaffAuthContext";
+import { AppRoutes } from "./routes";
 
 // 仮: あとで pages/PortalHomePage.tsx に切り出す
 function PortalHomePage() {
@@ -248,4 +249,5 @@ export default function App() {
             </Routes>
         </div>
     );
+    return <AppRoutes />;
 }
