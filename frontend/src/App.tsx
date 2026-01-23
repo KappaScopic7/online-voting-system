@@ -135,36 +135,47 @@ export default function App() {
                         {/* ===== Always ===== */}
                         <Link to="/">トップへ</Link>
                         <Link to="/elections">選挙一覧</Link>
-
-                        {/* ===== Not Login ===== */}
-                        {!user && (
-                            <>
-                                <Link to="/register">新規登録</Link>
-                                <Link to="/login">ログイン</Link>
-                            </>
-                        )}
-
-                        {/* ===== Do Login ===== */}
-                        {user && (
-                            <>
-                                <Link to="/me">マイページ</Link>
-                                <Link to="/me/identity">本人確認</Link>
-                                <Link to="/me/elections">My選挙</Link>
-                                <Link to="/me/votes">投票履歴</Link>
-                            </>
-                        )}
-
-                        <span style={{ marginLeft: "auto" }}>
-                            {user ? (
-                                <button type="button" onClick={onLogout}>
-                                    Logout
-                                </button>
-                            ) : (
-                                <span style={{ fontSize: 12, opacity: 0.7 }}>
-                                    未ログイン
-                                </span>
+                        <div
+                            style={{
+                                marginLeft: "auto",
+                                display: "flex",
+                                gap: 12,
+                                alignItems: "center",
+                                flexWrap: "wrap",
+                            }}
+                        >
+                            {/* ===== Not Login ===== */}
+                            {!user && (
+                                <>
+                                    <Link to="/register">新規登録</Link>
+                                    <Link to="/login">ログイン</Link>
+                                </>
                             )}
-                        </span>
+
+                            {/* ===== Do Login ===== */}
+                            {user && (
+                                <>
+                                    <Link to="/me">マイページ</Link>
+                                    <Link to="/me/identity">本人確認</Link>
+                                    <Link to="/me/elections">My選挙</Link>
+                                    <Link to="/me/votes">投票履歴</Link>
+                                </>
+                            )}
+
+                            <span style={{ marginLeft: "auto" }}>
+                                {user ? (
+                                    <button type="button" onClick={onLogout}>
+                                        Logout
+                                    </button>
+                                ) : (
+                                    <span
+                                        style={{ fontSize: 12, opacity: 0.7 }}
+                                    >
+                                        未ログイン
+                                    </span>
+                                )}
+                            </span>
+                        </div>
                     </>
                 )}
             </header>
