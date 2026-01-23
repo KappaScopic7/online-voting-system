@@ -1,14 +1,14 @@
-// auth/pages/MePage.tsx
+// me/pages/MePage.tsx
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { fetchMeDetail } from "../api/authApi";
-import type { MeDetailResponse } from "../model/authTypes";
-import { useAuth } from "../AuthContext";
+import { fetchMeDetail } from "../../auth/api/authApi";
+import type { MeDetailResponse } from "../../auth/model/authTypes";
+import { useAuth } from "../../auth/AuthContext";
 import {
     getMeProfile,
     putMeProfile,
     type MeProfileResponse,
-} from "../api/meProfile";
+} from "../../auth/api/meProfile";
 
 export function MePage() {
     const { refreshMe } = useAuth();

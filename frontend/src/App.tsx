@@ -17,7 +17,7 @@ import { RequireVoter } from "./auth/RequireVoter";
 import { RegisterPage } from "./auth/pages/RegisterPage";
 import { VerifyEmailPage } from "./auth/pages/VerifyEmailPage";
 import { LoginPage } from "./auth/pages/LoginPage";
-import { MePage } from "./auth/pages/MePage";
+import { MePage } from "./me/pages/MePage";
 
 import { IdentityLinkPage } from "./identity/pages/IdentityLinkPage";
 import { IdentityPendingPage } from "./identity/pages/IdentityPendingPage";
