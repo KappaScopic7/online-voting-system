@@ -1,8 +1,8 @@
 // admin/pages/AdminLoginPage.tsx
 import { useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { staffLogin } from "../../staff/api/staffAuth";
-import { useAuth } from "../../auth/AuthContext";
+import { staffLogin } from "../../api/staffAuth";
+import { useAuth } from "../../../auth/AuthContext";
 //import { useAdminAuth } from "../AdminAuthContext";
 
 type LocationState = {
