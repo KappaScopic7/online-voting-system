@@ -29,13 +29,13 @@ import { VoteHistoryPage } from "./voting/pages/VoteHistoryPage";
 import { MyElectionsPage } from "./elections/pages/MyElectionsPage";
 
 import { AdminLoginPage } from "./admin/pages/AdminLoginPage";
-import { CommitteeLoginPage } from "./committee/pages/CommitteeLoginPage";
+import { CommitteeLoginPage } from "./staff/committee/pages/CommitteeLoginPage";
 
 import { RequireAdmin } from "./auth/routes/RequireAdmin";
 import { RequireCommittee } from "./auth/routes/RequireCommittee";
 
 import { AdminHomePage } from "./admin/pages/AdminHomePage";
-import { CommitteeHomePage } from "./committee/pages/CommitteeHomePage";
+import { CommitteeHomePage } from "./staff/committee/pages/CommitteeHomePage";
 
 import { useAuth } from "./auth/AuthContext";
 import { useStaffAuth } from "./staff/StaffAuthContext";
