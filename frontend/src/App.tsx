@@ -132,17 +132,26 @@ export default function App() {
                 {/* ===== User Header（★変更なし） ===== */}
                 {!isAdminArea && !isCommitteeArea && (
                     <>
-                        <Link to="/">Home</Link>
-                        <Link to="/elections">Elections</Link>
-
-                        <Link to="/register">Register</Link>
-                        <Link to="/login">Login</Link>
-
-                        <Link to="/me">Me</Link>
-                        <Link to="/me/identity">Identity</Link>
-                        <Link to="/me/elections">My Elections</Link>
-                        <Link to="/me/votes">Votes</Link>
-
+                        {/* ===== Allways ===== */}
+                        <Link to="/">トップへ</Link>
+                        <Link to="/elections">選挙一覧</Link>
+                        {/* ===== Not Login ===== */}
+                        {!user && (
+                            <>
+                                <Link to="/register">新規登録</Link>
+                                <Link to="/login">ログイン</Link>
+                            </>
+                        )}
+                        {/* ===== Do Login ===== */}
+                        {/* My Page */}
+                        {user && (
+                            <>
+                                <Link to="/me">マイページ</Link>
+                                <Link to="/me/identity">本人確認</Link>
+                                <Link to="/me/elections">My選挙</Link>
+                                <Link to="/me/votes">投票履歴</Link>
+                            </>
+                        )}
                         <span style={{ marginLeft: "auto" }}>
                             {user ? (
                                 <button type="button" onClick={onLogout}>
