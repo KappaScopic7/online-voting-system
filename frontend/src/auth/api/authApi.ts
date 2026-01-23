@@ -1,4 +1,4 @@
-// auth/api/auth.ts
+// auth/api/authApi.ts
 import { http } from "../../shared/http";
 import type {
     MeDetailResponse,
