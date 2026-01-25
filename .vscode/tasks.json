@@ -9,6 +9,7 @@
             "options": {
                 "cwd": "${workspaceFolder}"
             },
+            "problemMatcher": [],
             "presentation": {
                 "reveal": "always",
                 "panel": "dedicated",
@@ -19,17 +20,15 @@
         {
             "label": "ovs: frontend install (if needed)",
             "type": "shell",
-            "command": "powershell",
+            "command": "cmd.exe",
             "args": [
-                "-NoProfile",
-                "-ExecutionPolicy",
-                "Bypass",
-                "-Command",
-                "if (!(Test-Path 'node_modules')) { echo 'node_modules not found. installing...'; npm install } else { echo 'node_modules already exists. skip install.' }"
+                "/c",
+                "if not exist node_modules (echo node_modules not found. installing... && npm install) else (echo node_modules already exists. skip install.)"
             ],
             "options": {
                 "cwd": "${workspaceFolder}/frontend"
             },
+            "problemMatcher": [],
             "presentation": {
                 "reveal": "always",
                 "panel": "dedicated",
