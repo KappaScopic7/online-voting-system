@@ -1,0 +1,45 @@
+{
+    "folders": [
+        { "name": ".vscode", "path": "." },
+
+        { "name": "frontend", "path": "../frontend/src" },
+        { "name": "backend", "path": "../backend/src/main/java/com/bteam/ovs" },
+        { "name": "resources", "path": "../backend/src/main/resources" },
+    ],
+    "settings": {
+        "java.compile.nullAnalysis.mode": "disabled",
+        "java.configuration.updateBuildConfiguration": "interactive",
+
+        "files.exclude": {
+            // 触らない系（見せない）
+            ".editorconfig": true,
+            ".gitattributes": true,
+            ".gitignore": true,
+            ".prettierrc": true,
+            "docker-compose.yml": true,
+            "package.json": true,
+            "package-lock.json": true,
+            "graph-service": true,
+
+            // 個別に隠す
+            "**/OnlineVotingSystemApplication.java": true,
+            "**/application.yaml": true,
+            "**/application.properties": true,
+
+            // 共通ノイズ
+            "**/node_modules": true,
+            "**/.gradle": true,
+            "**/build": true,
+            "**/bin": true,
+            "**/dist": true,
+        },
+
+        "search.exclude": {
+            "**/node_modules": true,
+            "**/.gradle": true,
+            "**/build": true,
+            "**/bin": true,
+            "**/dist": true,
+        },
+    },
+}

@@ -35,6 +35,13 @@ export function LoginPage() {
     }>({});
     const [isSubmitting, setIsSubmitting] = useState(false);
 
+    const fillDemo = (v: { email: string; password: string }) => {
+        setEmail(v.email);
+        setPassword(v.password);
+        setFieldErr({});
+        setMsg(null);
+    };
+
     const canSubmit = useMemo(() => {
         if (!email.trim() || !password) return false;
         if (!isValidEmail(email.trim())) return false;
@@ -139,24 +146,26 @@ export function LoginPage() {
                 </label>
 
                 {isDev && (
-                    <button
-                        type="button"
-                        onClick={() => {
-                            setEmail(demoPersonas.voter.email);
-                            setPassword(demoPersonas.voter.password);
-                            setFieldErr({});
-                            setMsg(null);
-                        }}
-                        disabled={isSubmitting}
-                        style={{
-                            fontSize: 12,
-                            padding: "4px 8px",
-                            alignSelf: "flex-start",
-                        }}
-                        title="デモ用の有権者アカウントを入力します"
-                    >
-                        デモ入力（有権者）
-                    </button>
+                    <div style={{ display: "grid", gap: 6, marginTop: 8 }}>
+                        {Object.values(demoPersonas.voter).map((p) => (
+                            <button
+                                key={p.key}
+                                type="button"
+                                onClick={() => {
+                                    fillDemo(p);
+                                }}
+                                disabled={isSubmitting}
+                                style={{
+                                    fontSize: 12,
+                                    padding: "4px 8px",
+                                    textAlign: "left",
+                                }}
+                                title={p.description}
+                            >
+                                {p.label}
+                            </button>
+                        ))}
+                    </div>
                 )}
 
                 <button type="submit" disabled={!canSubmit}>

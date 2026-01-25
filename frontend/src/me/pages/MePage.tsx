@@ -9,6 +9,8 @@ import {
     putMeProfile,
     type MeProfileResponse,
 } from "../../auth/api/meProfile";
+import { login } from "../../auth/api/authApi";
+import { demoPersonas } from "../../demo/personas";
 
 export function MePage() {
     const { refreshMe } = useAuth();
@@ -63,6 +65,21 @@ export function MePage() {
                 setProfile(null);
                 setProfileMsg(m);
             }
+        }
+    };
+
+    const { setAccessToken } = useAuth();
+
+    const loginAs = async (p: { email: string; password: string }) => {
+        setMsg(null);
+        try {
+            const token = await login(p.email, p.password);
+            await setAccessToken(token.accessToken);
+
+            await load();
+            await loadProfile();
+        } catch (err: any) {
+            setMsg(err?.response?.data?.message ?? "スタブログイン失敗");
         }
     };
 
@@ -335,6 +352,40 @@ export function MePage() {
                             </tbody>
                         </table>
                     </section>
+
+                    {isDev && (
+                        <section
+                            style={{ padding: 12, border: "1px dashed #999" }}
+                        >
+                            <h3 style={{ marginTop: 0 }}>
+                                DEV: クイック状態切替
+                            </h3>
+
+                            <div
+                                style={{
+                                    display: "flex",
+                                    gap: 8,
+                                    flexWrap: "wrap",
+                                }}
+                            >
+                                {Object.values(demoPersonas.voter).map((p) => (
+                                    <button
+                                        key={p.key}
+                                        type="button"
+                                        onClick={() => loginAs(p)}
+                                        style={{
+                                            fontSize: 12,
+                                            padding: "4px 8px",
+                                            textAlign: "left",
+                                        }}
+                                        title={p.description}
+                                    >
+                                        {p.label}
+                                    </button>
+                                ))}
+                            </div>
+                        </section>
+                    )}
 
                     {/* Identity section */}
                     <section style={{ padding: 12, border: "1px solid #ddd" }}>

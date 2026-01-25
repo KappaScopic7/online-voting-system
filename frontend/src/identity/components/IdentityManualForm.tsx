@@ -103,47 +103,22 @@ export function IdentityManualForm(props: {
                             marginTop: 4,
                         }}
                     >
-                        <button
-                            type="button"
-                            onClick={() =>
-                                fillDemoCitizenId(
-                                    demoPersonas.voter.citizenIdMachidaOk,
-                                )
-                            }
-                            disabled={isSubmitting}
-                            style={{ fontSize: 12, padding: "4px 8px" }}
-                            title="町田市民・年齢OK（投票可能）"
-                        >
-                            町田OK
-                        </button>
-
-                        <button
-                            type="button"
-                            onClick={() =>
-                                fillDemoCitizenId(
-                                    demoPersonas.voter.citizenIdUnderage,
-                                )
-                            }
-                            disabled={isSubmitting}
-                            style={{ fontSize: 12, padding: "4px 8px" }}
-                            title="町田市民だが年齢不足（投票不可）"
-                        >
-                            年齢NG
-                        </button>
-
-                        <button
-                            type="button"
-                            onClick={() =>
-                                fillDemoCitizenId(
-                                    demoPersonas.voter.citizenIdOutsideCity,
-                                )
-                            }
-                            disabled={isSubmitting}
-                            style={{ fontSize: 12, padding: "4px 8px" }}
-                            title="町田市外（投票不可）"
-                        >
-                            市外NG
-                        </button>
+                        {Object.values(demoPersonas.voter)
+                            .filter((p) => p.citizenId)
+                            .map((p) => (
+                                <button
+                                    key={p.key}
+                                    type="button"
+                                    onClick={() =>
+                                        fillDemoCitizenId(p.citizenId)
+                                    }
+                                    disabled={isSubmitting}
+                                    style={{ fontSize: 12, padding: "4px 8px" }}
+                                    title={p.description}
+                                >
+                                    {p.label}
+                                </button>
+                            ))}
                     </div>
                 )}
 

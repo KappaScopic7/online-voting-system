@@ -37,7 +37,7 @@
 
     {
         "key": "hr51_open_two_choices_voted",
-        "title": "第51回衆院選2026 最高裁裁判官国民審査風（2択・投票済み）",
+        "title": "第51回衆院選2026 国民審査風（2択・投票済み）",
         "startsAtOffsetSec": -3600,
         "endsAtOffsetSec": 86400,
         "candidates": ["信任", "不信任"]
@@ -51,15 +51,15 @@
     },
 
     {
-        "key": "hr51_open_ineligible_city",
-        "title": "第51回衆院選2026（投票不可：町田市以外の市コード）",
+        "key": "hr51_open_target_yokohama",
+        "title": "第51回衆院選2026（対象：横浜14100）",
         "startsAtOffsetSec": -3600,
         "endsAtOffsetSec": 86400,
         "candidates": ["候補A", "候補B", "候補C"]
     },
     {
-        "key": "hr51_open_ineligible_age",
-        "title": "第51回衆院選2026（投票不可：年齢不足）",
+        "key": "hr51_open_minage30",
+        "title": "第51回衆院選2026（対象：町田13209 / minAge=30）",
         "startsAtOffsetSec": -3600,
         "endsAtOffsetSec": 86400,
         "candidates": ["候補A", "候補B", "候補C"]

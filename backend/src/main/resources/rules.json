@@ -21,15 +21,12 @@
     },
 
     {
-        "electionKey": "hr51_open_ineligible_city",
+        "electionKey": "hr51_open_target_yokohama",
         "cityCode": "14100",
         "minAge": 18
     },
-    {
-        "electionKey": "hr51_open_ineligible_age",
-        "cityCode": "13209",
-        "minAge": 30
-    },
+
+    { "electionKey": "hr51_open_minage30", "cityCode": "13209", "minAge": 30 },
 
     {
         "electionKey": "hr51_open_rules_multi_city_or",

@@ -54,6 +54,15 @@
         "locked": false,
         "citizenId": "550e8400-e29b-41d4-a716-446655440003"
     },
+    {
+        "email": "voter_linked_senior30ok@example.com",
+        "password": "Passw0rd!!",
+        "role": "VOTER",
+        "emailVerified": true,
+        "enabled": true,
+        "locked": false,
+        "citizenId": "550e8400-e29b-41d4-a716-446655440004"
+    },
 
     {
         "email": "disabled_user@example.com",

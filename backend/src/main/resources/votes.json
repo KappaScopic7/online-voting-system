@@ -17,6 +17,21 @@
         "candidateIndex": 2,
         "castedAtOffsetSec": -90000
     },
+
+    {
+        "electionKey": "hr51_open_target_yokohama",
+        "citizenId": "550e8400-e29b-41d4-a716-446655440002",
+        "candidateIndex": 0,
+        "castedAtOffsetSec": -2400
+    },
+
+    {
+        "electionKey": "hr51_open_minage30",
+        "citizenId": "550e8400-e29b-41d4-a716-446655440004",
+        "candidateIndex": 2,
+        "castedAtOffsetSec": -3000
+    },
+
     {
         "electionKey": "hr50_ended_voted",
         "citizenId": "550e8400-e29b-41d4-a716-446655440000",

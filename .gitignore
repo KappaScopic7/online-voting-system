@@ -39,4 +39,5 @@ out/
 !.vscode/settings.json
 !.vscode/launch.json
 !.vscode/tasks.json
+!.vscode/online-voting-system.code-workspace
 

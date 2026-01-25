@@ -96,64 +96,21 @@ export function IdentityNfcStub(props: {
                 </div>
 
                 {isDev && (
-                    <div
-                        style={{
-                            display: "flex",
-                            gap: 8,
-                            flexWrap: "wrap",
-                        }}
-                    >
-                        <button
-                            type="button"
-                            onClick={() =>
-                                simulateRead(
-                                    demoPersonas.voter.citizenIdMachidaOk,
-                                )
-                            }
-                            disabled={isSubmitting}
-                            style={{ fontSize: 12, padding: "4px 8px" }}
-                            title="町田市民・年齢OK（投票可能）"
-                        >
-                            読取 町田OK
-                        </button>
-
-                        <button
-                            type="button"
-                            onClick={() =>
-                                simulateRead(
-                                    demoPersonas.voter.citizenIdUnderage,
-                                )
-                            }
-                            disabled={isSubmitting}
-                            style={{ fontSize: 12, padding: "4px 8px" }}
-                            title="町田市民だが年齢不足（投票不可）"
-                        >
-                            読取 年齢NG
-                        </button>
-
-                        <button
-                            type="button"
-                            onClick={() =>
-                                simulateRead(
-                                    demoPersonas.voter.citizenIdOutsideCity,
-                                )
-                            }
-                            disabled={isSubmitting}
-                            style={{ fontSize: 12, padding: "4px 8px" }}
-                            title="町田市外（投票不可）"
-                        >
-                            読取 市外NG
-                        </button>
-
-                        <button
-                            type="button"
-                            onClick={() => simulateRead("")}
-                            disabled={isSubmitting}
-                            style={{ fontSize: 12, padding: "4px 8px" }}
-                            title="読み取り結果をクリア"
-                        >
-                            クリア
-                        </button>
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                        {Object.values(demoPersonas.voter)
+                            .filter((p) => p.citizenId)
+                            .map((p) => (
+                                <button
+                                    key={p.key}
+                                    type="button"
+                                    onClick={() => simulateRead(p.citizenId)}
+                                    disabled={isSubmitting}
+                                    style={{ fontSize: 12, padding: "4px 8px" }}
+                                    title={p.description}
+                                >
+                                    読取 {p.label}
+                                </button>
+                            ))}
                     </div>
                 )}
 
