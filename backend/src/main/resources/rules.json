@@ -1,35 +1,47 @@
 [
-    { "electionKey": "upcoming_notvoted", "cityCode": "14100", "minAge": 18 },
-    { "electionKey": "open_notvoted", "cityCode": "14100", "minAge": 18 },
-    { "electionKey": "open_voted", "cityCode": "14100", "minAge": 18 },
-    { "electionKey": "ended_notvoted", "cityCode": "14100", "minAge": 18 },
-    { "electionKey": "ended_voted", "cityCode": "14100", "minAge": 18 },
     {
-        "electionKey": "open_many_candidates",
-        "cityCode": "14100",
+        "electionKey": "hr51_upcoming_notvoted",
+        "cityCode": "13209",
+        "minAge": 18
+    },
+    { "electionKey": "hr51_open_notvoted", "cityCode": "13209", "minAge": 18 },
+    { "electionKey": "hr51_open_voted", "cityCode": "13209", "minAge": 18 },
+    { "electionKey": "hr51_ended_notvoted", "cityCode": "13209", "minAge": 18 },
+    { "electionKey": "hr51_ended_voted", "cityCode": "13209", "minAge": 18 },
+
+    {
+        "electionKey": "hr51_open_two_choices_voted",
+        "cityCode": "13209",
         "minAge": 18
     },
     {
-        "electionKey": "ended_two_candidates_voted",
-        "cityCode": "14100",
+        "electionKey": "hr51_open_many_candidates",
+        "cityCode": "13209",
         "minAge": 18
     },
 
     {
-        "electionKey": "open_ineligible_by_city",
-        "cityCode": "13101",
+        "electionKey": "hr51_open_ineligible_city",
+        "cityCode": "14100",
         "minAge": 18
     },
     {
-        "electionKey": "open_ineligible_by_age",
-        "cityCode": "14100",
+        "electionKey": "hr51_open_ineligible_age",
+        "cityCode": "13209",
         "minAge": 30
     },
 
     {
-        "electionKey": "open_rule_multi_city",
+        "electionKey": "hr51_open_rules_multi_city_or",
+        "cityCode": "13209",
+        "minAge": 18
+    },
+    {
+        "electionKey": "hr51_open_rules_multi_city_or",
         "cityCode": "14100",
         "minAge": 18
     },
-    { "electionKey": "open_rule_multi_city", "cityCode": "13101", "minAge": 18 }
+
+    { "electionKey": "hr50_ended_voted", "cityCode": "13209", "minAge": 18 },
+    { "electionKey": "hr50_ended_notvoted", "cityCode": "13209", "minAge": 18 }
 ]

@@ -30,6 +30,12 @@ export function IdentityManualForm(props: {
         return !isSubmitting;
     }, [citizenId, isSubmitting]);
 
+    const fillDemoCitizenId = (id: string) => {
+        setCitizenId(id);
+        setFieldErr({});
+        setMsg(null);
+    };
+
     const onSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setMsg(null);
@@ -89,23 +95,56 @@ export function IdentityManualForm(props: {
                 </label>
 
                 {isDev && (
-                    <button
-                        type="button"
-                        onClick={() => {
-                            setCitizenId(demoPersonas.voter.citizenId);
-                            setFieldErr({});
-                            setMsg(null);
-                        }}
-                        disabled={isSubmitting}
+                    <div
                         style={{
-                            fontSize: 12,
-                            padding: "4px 8px",
-                            alignSelf: "flex-start",
+                            display: "flex",
+                            gap: 8,
+                            flexWrap: "wrap",
+                            marginTop: 4,
                         }}
-                        title="デモ用 citizenId を入力します"
                     >
-                        デモ入力
-                    </button>
+                        <button
+                            type="button"
+                            onClick={() =>
+                                fillDemoCitizenId(
+                                    demoPersonas.voter.citizenIdMachidaOk,
+                                )
+                            }
+                            disabled={isSubmitting}
+                            style={{ fontSize: 12, padding: "4px 8px" }}
+                            title="町田市民・年齢OK（投票可能）"
+                        >
+                            町田OK
+                        </button>
+
+                        <button
+                            type="button"
+                            onClick={() =>
+                                fillDemoCitizenId(
+                                    demoPersonas.voter.citizenIdUnderage,
+                                )
+                            }
+                            disabled={isSubmitting}
+                            style={{ fontSize: 12, padding: "4px 8px" }}
+                            title="町田市民だが年齢不足（投票不可）"
+                        >
+                            年齢NG
+                        </button>
+
+                        <button
+                            type="button"
+                            onClick={() =>
+                                fillDemoCitizenId(
+                                    demoPersonas.voter.citizenIdOutsideCity,
+                                )
+                            }
+                            disabled={isSubmitting}
+                            style={{ fontSize: 12, padding: "4px 8px" }}
+                            title="町田市外（投票不可）"
+                        >
+                            市外NG
+                        </button>
+                    </div>
                 )}
 
                 <button type="submit" disabled={!canSubmit}>

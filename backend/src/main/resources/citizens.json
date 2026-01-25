@@ -2,31 +2,31 @@
     {
         "citizenId": "550e8400-e29b-41d4-a716-446655440000",
         "birthDate": "2000-01-01",
-        "prefCode": "14",
-        "cityCode": "14100"
+        "prefCode": "13",
+        "cityCode": "13209"
     },
     {
         "citizenId": "550e8400-e29b-41d4-a716-446655440001",
         "birthDate": "2010-01-01",
-        "prefCode": "14",
-        "cityCode": "14100"
+        "prefCode": "13",
+        "cityCode": "13209"
     },
     {
         "citizenId": "550e8400-e29b-41d4-a716-446655440002",
         "birthDate": "2000-01-01",
-        "prefCode": "13",
-        "cityCode": "13101"
+        "prefCode": "14",
+        "cityCode": "14100"
     },
     {
         "citizenId": "550e8400-e29b-41d4-a716-446655440003",
-        "birthDate": "2007-01-01",
-        "prefCode": "14",
-        "cityCode": "14100"
+        "birthDate": "2008-01-01",
+        "prefCode": "13",
+        "cityCode": "13209"
     },
     {
         "citizenId": "550e8400-e29b-41d4-a716-446655440004",
         "birthDate": "1960-01-01",
-        "prefCode": "14",
-        "cityCode": "14100"
+        "prefCode": "13",
+        "cityCode": "13209"
     }
 ]

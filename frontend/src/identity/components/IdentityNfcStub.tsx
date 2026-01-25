@@ -1,17 +1,183 @@
 // frontend/src/identity/components/IdentityNfcStub.tsx
-export function IdentityNfcStub() {
+import { useMemo, useState } from "react";
+import { linkIdentity } from "../api/identity";
+import { useAuth } from "../../auth/AuthContext";
+import { demoPersonas } from "../../demo/personas";
+
+function isUuidLike(v: string) {
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+        v,
+    );
+}
+
+export function IdentityNfcStub(props: {
+    onLinked: (accessToken: string) => void;
+}) {
+    const { onLinked } = props;
+    const { setAccessToken } = useAuth();
+
+    const isDev = import.meta.env?.DEV;
+
+    const [readCitizenId, setReadCitizenId] = useState<string>("");
+    const [msg, setMsg] = useState<string | null>(null);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const canLink = useMemo(() => {
+        if (!readCitizenId) return false;
+        if (!isUuidLike(readCitizenId)) return false;
+        return !isSubmitting;
+    }, [readCitizenId, isSubmitting]);
+
+    // ===== NFC読み取り（スタブ）
+    // 将来：ここを Web NFC / ネイティブ連携に差し替える
+    const simulateRead = (id: string) => {
+        setReadCitizenId(id);
+        setMsg(null);
+    };
+
+    const onLink = async () => {
+        setMsg(null);
+
+        if (!readCitizenId) {
+            setMsg("NFC読み取り結果がありません");
+            return;
+        }
+        if (!isUuidLike(readCitizenId)) {
+            setMsg("読み取った citizenId の形式が不正です");
+            return;
+        }
+
+        try {
+            setIsSubmitting(true);
+            const token = await linkIdentity(readCitizenId);
+            await setAccessToken(token.accessToken);
+
+            // NFCは「審査中へ遷移」する想定（本番に近い）
+            onLinked(token.accessToken);
+        } catch (err: any) {
+            setMsg(err?.response?.data?.message ?? "Link failed");
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
     return (
         <div style={{ display: "grid", gap: 8 }}>
             <p style={{ margin: 0, opacity: 0.85 }}>
-                NFC読み取りは後で実装します。この枠がそのままNFCコンポーネントに置き換わります。
+                NFC読み取り（スタブ）：カードから citizenId
+                を取得した想定で本人認証を行います。
             </p>
-            <button type="button" disabled title="準備中">
-                NFCを読み取る（準備中）
-            </button>
-            <small style={{ opacity: 0.7 }}>
-                実装方針：読み取り → payload生成 → /api/identity/link
-                に送信（または専用endpoint）
-            </small>
+
+            {msg && (
+                <div
+                    role="alert"
+                    style={{ padding: 8, border: "1px solid #ccc" }}
+                >
+                    {msg}
+                </div>
+            )}
+
+            <div
+                style={{
+                    border: "1px solid #ddd",
+                    borderRadius: 10,
+                    padding: 12,
+                    display: "grid",
+                    gap: 8,
+                }}
+            >
+                <div style={{ display: "grid", gap: 4 }}>
+                    <div style={{ fontSize: 12, opacity: 0.7 }}>
+                        読み取り結果 citizenId
+                    </div>
+                    <code style={{ wordBreak: "break-all" }}>
+                        {readCitizenId || "(未読み取り)"}
+                    </code>
+                </div>
+
+                {isDev && (
+                    <div
+                        style={{
+                            display: "flex",
+                            gap: 8,
+                            flexWrap: "wrap",
+                        }}
+                    >
+                        <button
+                            type="button"
+                            onClick={() =>
+                                simulateRead(
+                                    demoPersonas.voter.citizenIdMachidaOk,
+                                )
+                            }
+                            disabled={isSubmitting}
+                            style={{ fontSize: 12, padding: "4px 8px" }}
+                            title="町田市民・年齢OK（投票可能）"
+                        >
+                            読取 町田OK
+                        </button>
+
+                        <button
+                            type="button"
+                            onClick={() =>
+                                simulateRead(
+                                    demoPersonas.voter.citizenIdUnderage,
+                                )
+                            }
+                            disabled={isSubmitting}
+                            style={{ fontSize: 12, padding: "4px 8px" }}
+                            title="町田市民だが年齢不足（投票不可）"
+                        >
+                            読取 年齢NG
+                        </button>
+
+                        <button
+                            type="button"
+                            onClick={() =>
+                                simulateRead(
+                                    demoPersonas.voter.citizenIdOutsideCity,
+                                )
+                            }
+                            disabled={isSubmitting}
+                            style={{ fontSize: 12, padding: "4px 8px" }}
+                            title="町田市外（投票不可）"
+                        >
+                            読取 市外NG
+                        </button>
+
+                        <button
+                            type="button"
+                            onClick={() => simulateRead("")}
+                            disabled={isSubmitting}
+                            style={{ fontSize: 12, padding: "4px 8px" }}
+                            title="読み取り結果をクリア"
+                        >
+                            クリア
+                        </button>
+                    </div>
+                )}
+
+                <div
+                    style={{
+                        display: "flex",
+                        gap: 8,
+                        flexWrap: "wrap",
+                        alignItems: "center",
+                    }}
+                >
+                    <button type="button" onClick={onLink} disabled={!canLink}>
+                        {isSubmitting
+                            ? "登録中..."
+                            : "この読み取り結果で本人認証（審査へ）"}
+                    </button>
+
+                    {!readCitizenId && (
+                        <span style={{ fontSize: 12, opacity: 0.7 }}>
+                            先に読み取り（スタブ）してください
+                        </span>
+                    )}
+                </div>
+            </div>
         </div>
     );
 }

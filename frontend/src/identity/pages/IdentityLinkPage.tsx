@@ -25,11 +25,8 @@ export function IdentityLinkPage() {
             : fallback;
     }, [state.from, loc.pathname]);
 
-    const onLinked = () => {
-        // ここは「直で戻る」でも「pendingへ」でもOK
-        // NFC実装後もこの挙動を維持できる
+    const onLinked = (_accessToken: string) => {
         nav(to, { replace: true });
-        // もし「審査中」を挟みたいなら：
         // nav("/identity/pending", { replace: true, state: { from: to } });
     };
 
@@ -47,7 +44,7 @@ export function IdentityLinkPage() {
             <IdentityMethodTabs
                 value={method}
                 onChange={setMethod}
-                nfcEnabled={false}
+                nfcEnabled={isDev}
             />
 
             <div
@@ -60,7 +57,7 @@ export function IdentityLinkPage() {
                 {method === "MANUAL" ? (
                     <IdentityManualForm onLinked={onLinked} />
                 ) : (
-                    <IdentityNfcStub />
+                    <IdentityNfcStub onLinked={onLinked} />
                 )}
 
                 {state.from && (

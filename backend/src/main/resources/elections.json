@@ -1,75 +1,89 @@
 [
     {
-        "key": "upcoming_notvoted",
-        "title": "開催前（未投票）",
-        "startsAtOffsetSec": 3600,
-        "endsAtOffsetSec": 90000,
-        "candidates": ["候補A", "候補B", "候補C"]
+        "key": "hr51_upcoming_notvoted",
+        "title": "第51回衆院選2026 小選挙区（開始前・未投票）",
+        "startsAtOffsetSec": 86400,
+        "endsAtOffsetSec": 172800,
+        "candidates": ["候補A_第51", "候補B_第51", "候補C_第51"]
     },
     {
-        "key": "open_notvoted",
-        "title": "開催中（未投票）",
+        "key": "hr51_open_notvoted",
+        "title": "第51回衆院選2026 小選挙区（開催中・未投票）",
         "startsAtOffsetSec": -3600,
         "endsAtOffsetSec": 86400,
-        "candidates": ["候補A", "候補B", "候補C"]
+        "candidates": ["候補A_第51", "候補B_第51", "候補C_第51"]
     },
     {
-        "key": "open_voted",
-        "title": "開催中（投票済み）",
+        "key": "hr51_open_voted",
+        "title": "第51回衆院選2026 小選挙区（開催中・投票済み）",
         "startsAtOffsetSec": -7200,
         "endsAtOffsetSec": 86400,
-        "candidates": ["候補A", "候補B", "候補C"]
+        "candidates": ["候補A_第51", "候補B_第51", "候補C_第51"]
     },
     {
-        "key": "ended_notvoted",
-        "title": "終了済み（未投票）",
+        "key": "hr51_ended_notvoted",
+        "title": "第51回衆院選2026 小選挙区（終了済み・未投票）",
         "startsAtOffsetSec": -259200,
         "endsAtOffsetSec": -172800,
-        "candidates": ["候補A", "候補B", "候補C"]
+        "candidates": ["候補A_第51", "候補B_第51", "候補C_第51"]
     },
     {
-        "key": "ended_voted",
-        "title": "終了済み（投票済み）",
+        "key": "hr51_ended_voted",
+        "title": "第51回衆院選2026 小選挙区（終了済み・投票済み）",
         "startsAtOffsetSec": -172800,
         "endsAtOffsetSec": -86400,
-        "candidates": ["候補A", "候補B", "候補C"]
+        "candidates": ["候補A_第51", "候補B_第51", "候補C_第51"]
     },
 
     {
-        "key": "open_many_candidates",
-        "title": "開催中（候補5人）",
+        "key": "hr51_open_two_choices_voted",
+        "title": "第51回衆院選2026 最高裁裁判官国民審査風（2択・投票済み）",
+        "startsAtOffsetSec": -3600,
+        "endsAtOffsetSec": 86400,
+        "candidates": ["信任", "不信任"]
+    },
+    {
+        "key": "hr51_open_many_candidates",
+        "title": "第51回衆院選2026 比例代表風（候補5・開催中）",
         "startsAtOffsetSec": -3600,
         "endsAtOffsetSec": 86400,
         "candidates": ["候補A", "候補B", "候補C", "候補D", "候補E"]
     },
+
     {
-        "key": "ended_two_candidates_voted",
-        "title": "終了済み（候補2人・投票済み）",
-        "startsAtOffsetSec": -172800,
-        "endsAtOffsetSec": -86400,
-        "candidates": ["賛成", "反対"]
+        "key": "hr51_open_ineligible_city",
+        "title": "第51回衆院選2026（投票不可：町田市以外の市コード）",
+        "startsAtOffsetSec": -3600,
+        "endsAtOffsetSec": 86400,
+        "candidates": ["候補A", "候補B", "候補C"]
+    },
+    {
+        "key": "hr51_open_ineligible_age",
+        "title": "第51回衆院選2026（投票不可：年齢不足）",
+        "startsAtOffsetSec": -3600,
+        "endsAtOffsetSec": 86400,
+        "candidates": ["候補A", "候補B", "候補C"]
+    },
+    {
+        "key": "hr51_open_rules_multi_city_or",
+        "title": "第51回衆院選2026（複数ルール：町田13209 OR 横浜14100）",
+        "startsAtOffsetSec": -3600,
+        "endsAtOffsetSec": 86400,
+        "candidates": ["候補A", "候補B", "候補C"]
     },
 
     {
-        "key": "open_ineligible_by_city",
-        "title": "開催中（投票不可：市コード不一致）",
-        "startsAtOffsetSec": -3600,
-        "endsAtOffsetSec": 86400,
-        "candidates": ["候補A", "候補B", "候補C"]
+        "key": "hr50_ended_voted",
+        "title": "第50回衆院選2024（過去・投票済み履歴用）",
+        "startsAtOffsetSec": -31536000,
+        "endsAtOffsetSec": -31449600,
+        "candidates": ["候補A_第50", "候補B_第50", "候補C_第50"]
     },
     {
-        "key": "open_ineligible_by_age",
-        "title": "開催中（投票不可：年齢不足）",
-        "startsAtOffsetSec": -3600,
-        "endsAtOffsetSec": 86400,
-        "candidates": ["候補A", "候補B", "候補C"]
-    },
-
-    {
-        "key": "open_rule_multi_city",
-        "title": "開催中（複数ルール：市コード14100 or 13101）",
-        "startsAtOffsetSec": -3600,
-        "endsAtOffsetSec": 86400,
-        "candidates": ["候補A", "候補B", "候補C"]
+        "key": "hr50_ended_notvoted",
+        "title": "第50回衆院選2024（過去・未投票履歴用）",
+        "startsAtOffsetSec": -31622400,
+        "endsAtOffsetSec": -31536000,
+        "candidates": ["候補A_第50", "候補B_第50", "候補C_第50"]
     }
 ]

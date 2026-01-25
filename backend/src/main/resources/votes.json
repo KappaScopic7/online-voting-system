@@ -1,26 +1,26 @@
 [
     {
-        "electionKey": "open_voted",
+        "electionKey": "hr51_open_voted",
         "citizenId": "550e8400-e29b-41d4-a716-446655440000",
         "candidateIndex": 1,
         "castedAtOffsetSec": -1800
     },
     {
-        "electionKey": "ended_voted",
+        "electionKey": "hr51_open_two_choices_voted",
         "citizenId": "550e8400-e29b-41d4-a716-446655440000",
         "candidateIndex": 0,
-        "castedAtOffsetSec": -90000
-    },
-    {
-        "electionKey": "ended_two_candidates_voted",
-        "citizenId": "550e8400-e29b-41d4-a716-446655440000",
-        "candidateIndex": 0,
-        "castedAtOffsetSec": -90000
-    },
-    {
-        "electionKey": "open_many_candidates",
-        "citizenId": "550e8400-e29b-41d4-a716-446655440000",
-        "candidateIndex": 4,
         "castedAtOffsetSec": -1200
+    },
+    {
+        "electionKey": "hr51_ended_voted",
+        "citizenId": "550e8400-e29b-41d4-a716-446655440000",
+        "candidateIndex": 2,
+        "castedAtOffsetSec": -90000
+    },
+    {
+        "electionKey": "hr50_ended_voted",
+        "citizenId": "550e8400-e29b-41d4-a716-446655440000",
+        "candidateIndex": 0,
+        "castedAtOffsetSec": -31500000
     }
 ]
