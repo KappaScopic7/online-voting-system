@@ -1,4 +1,4 @@
-// auth/pages/LoginPage.tsx
+// frontend/src/auth/pages/LoginPage.tsx
 import { useMemo, useState } from "react";
 import { useLocation, useNavigate, Link } from "react-router-dom";
 import { login } from "../api/authApi";
@@ -21,7 +21,7 @@ export function LoginPage() {
 
     const { setAccessToken } = useAuth();
 
-    const from = normalizeFrom(state.from);
+    const from = normalizeFrom(state.from ?? "/");
 
     const [email, setEmail] = useState(state.email ?? "");
     const [password, setPassword] = useState("");
@@ -70,7 +70,7 @@ export function LoginPage() {
                 setMsg(
                     "メール認証が完了していません。認証画面へ進んでください。",
                 );
-                // nav("/verify", { state: { email: email.trim(), from } });
+                nav("/verify", { state: { email: email.trim(), from } });
             } else {
                 setMsg(apiMsg);
             }

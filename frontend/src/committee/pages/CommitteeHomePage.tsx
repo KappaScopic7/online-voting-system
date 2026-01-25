@@ -1,4 +1,4 @@
-// committee/pages/CommitteeHomePage.tsx
+// frontend/src/committee/pages/CommitteeHomePage.tsx
 import { Link } from "react-router-dom";
 
 export function CommitteeHomePage() {

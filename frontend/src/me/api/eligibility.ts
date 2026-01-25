@@ -1,3 +1,4 @@
+// frontend/src/me/api/eligibility.ts
 import { httpUser } from "../../shared/httpUser";
 
 export type MeEligibilityResponse = {

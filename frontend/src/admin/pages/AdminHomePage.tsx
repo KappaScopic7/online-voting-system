@@ -1,5 +1,6 @@
-// admin/pages/AdminHomePage.tsx
+// frontend/src/admin/pages/AdminHomePage.tsx
 import { Link } from "react-router-dom";
+
 export function AdminHomePage() {
     return (
         <div style={{ padding: 16 }}>

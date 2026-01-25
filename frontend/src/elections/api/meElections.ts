@@ -1,3 +1,4 @@
+// frontend/src/elections/api/meElections.ts
 import { httpUser } from "../../shared/httpUser";
 
 export type MyElectionItem = {

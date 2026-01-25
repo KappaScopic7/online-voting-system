@@ -1,3 +1,4 @@
+// frontend/src/me/pages/MyElectionsPage.tsx
 import { useEffect, useState } from "react";
 import { fetchMyElections, type MyElectionItem } from "../api/meElections";
 import {

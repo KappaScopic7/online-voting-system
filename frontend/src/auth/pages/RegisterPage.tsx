@@ -1,4 +1,4 @@
-// auth/pages/RegisterPage.tsx
+// frontend/src/auth/pages/RegisterPage.tsx
 import { useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { register } from "../api/authApi";
@@ -13,7 +13,7 @@ export function RegisterPage() {
     const loc = useLocation();
     const state = (loc.state ?? {}) as { from?: string } | null;
 
-    const from = normalizeFrom(state?.from);
+    const from = normalizeFrom(state?.from ?? "/");
 
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");

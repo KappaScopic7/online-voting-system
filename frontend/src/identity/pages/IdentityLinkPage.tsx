@@ -1,4 +1,4 @@
-// identity/pages/IdentityLinkPage.tsx
+// frontend/src/identity/pages/IdentityLinkPage.tsx
 import { useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { linkIdentity } from "../api/identity";

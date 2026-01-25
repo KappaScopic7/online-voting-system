@@ -1,5 +1,6 @@
-// auth/api/meProfile.ts
-import { httpUser } from "../../shared/httpUser";
+// frontend/src/auth/api/meProfile.ts
+import { createHttpClient } from "../../shared/httpClientFactory";
+import { userToken } from "../../shared/tokenStorage";
 
 export type MeProfileResponse = {
     accountId: string;
@@ -16,6 +17,9 @@ export type MeProfileUpdateRequest = {
     prefCode: string;
     cityCode: string;
 };
+
+// user用 http クライアントをここで生成
+const httpUser = createHttpClient(userToken);
 
 export async function getMeProfile(): Promise<MeProfileResponse> {
     const res = await httpUser.get<MeProfileResponse>("/api/me/profile");

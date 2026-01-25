@@ -1,33 +1,13 @@
-// elections/pages/ElectionsPage.tsx
+// frontend/src/elections/pages/ElectionsPage.tsx
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { fetchElections, type ElectionListItem } from "../api/elections";
 import { useAuth } from "../../auth/AuthContext";
-
-function formatJST(iso?: string | null): string {
-    if (!iso) return "-";
-    const d = new Date(iso);
-    if (Number.isNaN(d.getTime())) return "-";
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, "0");
-    const day = String(d.getDate()).padStart(2, "0");
-    const hh = String(d.getHours()).padStart(2, "0");
-    const mm = String(d.getMinutes()).padStart(2, "0");
-    return `${y}/${m}/${day} ${hh}:${mm}`;
-}
-
-function statusLabel(status: string): string {
-    switch (status) {
-        case "UPCOMING":
-            return "予定";
-        case "ONGOING":
-            return "開催中";
-        case "ENDED":
-            return "終了";
-        default:
-            return status;
-    }
-}
+import {
+    formatJST,
+    statusLabel,
+    statusRank,
+} from "../../shared/elections/format";
 
 type StatusFilter = "ALL" | "UPCOMING" | "ONGOING" | "ENDED";
 type SortKey = "STATUS" | "STARTS_AT" | "ENDS_AT" | "TITLE";
@@ -86,19 +66,8 @@ export function ElectionsPage() {
         }
 
         arr.sort((a, b) => {
-            const aS = a.status ?? "";
-            const bS = b.status ?? "";
-            const rank = (s: string) =>
-                s === "ONGOING"
-                    ? 0
-                    : s === "UPCOMING"
-                      ? 1
-                      : s === "ENDED"
-                        ? 2
-                        : 9;
-
             if (sortKey === "STATUS") {
-                const r = rank(aS) - rank(bS);
+                const r = statusRank(a.status) - statusRank(b.status);
                 if (r !== 0) return r;
                 return (a.startsAt ?? "").localeCompare(b.startsAt ?? "");
             }

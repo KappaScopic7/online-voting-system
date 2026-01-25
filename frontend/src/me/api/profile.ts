@@ -1,4 +1,4 @@
-// me/api/profile.ts
+// frontend/src/me/api/profile.ts
 import { httpUser } from "../../shared/httpUser";
 import type {
     MeProfileResponse,

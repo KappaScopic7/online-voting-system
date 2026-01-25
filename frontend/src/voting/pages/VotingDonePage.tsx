@@ -1,4 +1,4 @@
-// voting/pages/VotingDonePage.tsx
+// frontend/src/voting/pages/VotingDonePage.tsx
 import { Link, useLocation } from "react-router-dom";
 import type { VoteHistoryItem } from "../api/votes";
 

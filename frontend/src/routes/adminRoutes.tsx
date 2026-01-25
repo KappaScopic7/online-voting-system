@@ -1,26 +1,27 @@
+// frontend/src/routes/adminRoutes.tsx
 import { Routes, Route } from "react-router-dom";
-import { RequireAdmin } from "../auth/routes/RequireAdmin";
+import { RequireStaff } from "../auth/routes/RequireStaff";
 import { AdminLayout } from "../layout/AdminLayout";
-import { AdminHomePage } from "../staff/admin/pages/AdminHomePage";
-// 仮：後で実装
-function AdminElectionsPage() {
-    return <div style={{ padding: 16 }}>Admin Elections</div>;
-}
-function AdminStaffPage() {
-    return <div style={{ padding: 16 }}>Admin Staff</div>;
-}
-function AdminMePage() {
-    return <div style={{ padding: 16 }}>Admin Me</div>;
-}
+import { AdminHomePage } from "../admin/pages/AdminHomePage";
+import { AdminElectionsPage } from "../admin/pages/AdminElectionsPage";
+import { AdminStaffPage } from "../admin/pages/AdminStaffPage";
+import { AdminMePage } from "../admin/pages/AdminMePage";
+
 export function AdminRoutes() {
     return (
-        <Route element={<RequireAdmin />}>
-            <Route element={<AdminLayout />}>
-                <Route path="" element={<AdminHomePage />} />
-                <Route path="elections" element={<AdminElectionsPage />} />
-                <Route path="staff" element={<AdminStaffPage />} />
-                <Route path="me" element={<AdminMePage />} />
+        <Routes>
+            <Route
+                element={<RequireStaff role="ADMIN" loginPath="/admin/login" />}
+            >
+                <Route element={<AdminLayout />}>
+                    <Route index element={<AdminHomePage />} />
+                    <Route path="elections" element={<AdminElectionsPage />} />
+                    <Route path="staff" element={<AdminStaffPage />} />
+                    <Route path="me" element={<AdminMePage />} />
+                </Route>
             </Route>
-        </Route>
+
+            <Route path="*" element={<div>Not Found</div>} />
+        </Routes>
     );
 }

@@ -1,4 +1,4 @@
-// shared/tokenStorage.ts
+// frontend/src/shared/tokenStorage.ts
 const USER_KEY = "ovs_user_access_token";
 const STAFF_KEY = "ovs_staff_access_token";
 

@@ -1,23 +1,24 @@
-// admin/pages/AdminLoginPage.tsx
-import { useMemo, useState } from "react";
+// frontend/src/committee/pages/CommitteeLoginPage.tsx
+import { useMemo, useState, type FormEvent } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { staffLogin } from "../../api/staffAuth";
-import { useAuth } from "../../../auth/AuthContext";
-//import { useAdminAuth } from "../AdminAuthContext";
+import { useStaffAuth } from "../../staff/StaffAuthContext";
+import { useAuth } from "../../auth/AuthContext";
+import { normalizeFrom } from "../../shared/normalizeFrom";
 
 type LocationState = {
     loginId?: string;
     from?: string;
 };
 
-export function AdminLoginPage() {
+export function CommitteeLoginPage() {
     const nav = useNavigate();
     const loc = useLocation();
     const state = (loc.state ?? {}) as LocationState;
-    const from = state.from ?? "/admin";
 
-    //    const { login } = useAdminAuth();
-    const { setAccessToken } = useAuth();
+    const from = normalizeFrom(state.from ?? "/committee");
+
+    const { login: staffLogin, refreshMe, staff } = useStaffAuth();
+    const { logout: userLogout } = useAuth();
 
     const [loginId, setLoginId] = useState(state.loginId ?? "");
     const [password, setPassword] = useState("");
@@ -35,7 +36,7 @@ export function AdminLoginPage() {
         return !isSubmitting;
     }, [loginId, password, isSubmitting]);
 
-    const onSubmit = async (e: React.FormEvent) => {
+    const onSubmit = async (e: FormEvent) => {
         e.preventDefault();
         setMsg(null);
         setFieldErr({});
@@ -43,7 +44,6 @@ export function AdminLoginPage() {
         const nextErr: typeof fieldErr = {};
         if (!loginId.trim()) nextErr.loginId = "ログインIDを入力してください";
         if (!password) nextErr.password = "パスワードを入力してください";
-
         if (nextErr.loginId || nextErr.password) {
             setFieldErr(nextErr);
             return;
@@ -51,16 +51,21 @@ export function AdminLoginPage() {
 
         try {
             setIsSubmitting(true);
-            const token = await staffLogin(loginId.trim(), password);
-            if (token.role !== "ADMIN") {
-                setMsg("管理者アカウントではありません");
+
+            userLogout();
+            await staffLogin(loginId.trim(), password);
+            await refreshMe();
+
+            if (staff?.role !== "COMMITTEE") {
+                setMsg("委員会アカウントではありません");
                 return;
             }
-            await setAccessToken(token.accessToken);
+
             nav(from, { replace: true });
         } catch (err: any) {
+            console.error("committee login error", err);
             setMsg(
-                err?.response?.data?.message ?? "管理者ログインに失敗しました",
+                err?.response?.data?.message ?? "委員会ログインに失敗しました",
             );
         } finally {
             setIsSubmitting(false);
@@ -69,7 +74,7 @@ export function AdminLoginPage() {
 
     return (
         <div style={{ padding: 16, display: "grid", gap: 12, maxWidth: 420 }}>
-            <h2>Admin Login</h2>
+            <h2>Committee Login</h2>
 
             {msg && (
                 <div
@@ -81,7 +86,7 @@ export function AdminLoginPage() {
             )}
 
             <form onSubmit={onSubmit} style={{ display: "grid", gap: 8 }}>
-                <label>
+                <label style={{ display: "grid", gap: 4 }}>
                     <span>Login ID</span>
                     <input
                         value={loginId}
@@ -95,7 +100,7 @@ export function AdminLoginPage() {
                     )}
                 </label>
 
-                <label>
+                <label style={{ display: "grid", gap: 4 }}>
                     <span>Password</span>
                     <div style={{ display: "flex", gap: 8 }}>
                         <input
@@ -108,6 +113,7 @@ export function AdminLoginPage() {
                         <button
                             type="button"
                             onClick={() => setShowPw((v) => !v)}
+                            aria-pressed={showPw}
                         >
                             {showPw ? "Hide" : "Show"}
                         </button>

@@ -1,10 +1,13 @@
-// auth/api/authApi.ts
-import { httpUser } from "../../shared/httpUser";
+// frontend/src/auth/api/authApi.ts
+import { createHttpClient } from "../../shared/httpClientFactory";
+import { userToken } from "../../shared/tokenStorage";
 import type {
     MeDetailResponse,
     MeResponse,
     TokenResponse,
 } from "../model/authTypes";
+
+const httpUser = createHttpClient(userToken);
 
 export async function register(email: string, password: string): Promise<void> {
     await httpUser.post("/api/auth/register", { email, password });

@@ -1,4 +1,4 @@
-// voting/pages/VotingStartPage.tsx
+// frontend/src/voting/pages/VotingStartPage.tsx
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { confirmVote, startVoting } from "../api/votes";

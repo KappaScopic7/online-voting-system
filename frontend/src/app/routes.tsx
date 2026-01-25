@@ -1,26 +1,20 @@
+// frontend/src/app/routes.tsx
 import { Routes, Route } from "react-router-dom";
-import { PortalLayout } from "../layout/PortalLayout";
-import { StaffLayout } from "../layout/StaffLayout";
-import { PortalRoutes } from "../routes/portalRoutes";
+import { PublicLayout } from "../layout/PublicLayout";
+import { PublicRoutes } from "../routes/publicRoutes";
 import { AdminRoutes } from "../routes/adminRoutes";
 import { CommitteeRoutes } from "../routes/committeeRoutes";
+
 export function AppRoutes() {
     return (
         <Routes>
-            {/* Portal */}
-            <Route element={<PortalLayout />}>
-                <Route path="/*" element={<PortalRoutes />} />
+            <Route element={<PublicLayout />}>
+                <Route path="/*" element={<PublicRoutes />} />
             </Route>
 
-            {/* Admin */}
-            <Route element={<StaffLayout area="admin" />}>
-                <Route path="/admin/*" element={<AdminRoutes />} />
-            </Route>
-
-            {/* Committee */}
-            <Route element={<StaffLayout area="committee" />}>
-                <Route path="/committee/*" element={<CommitteeRoutes />} />
-            </Route>
+            {/* Admin / Committee は各Routes内で Layout + Guard を完結させる */}
+            <Route path="/admin/*" element={<AdminRoutes />} />
+            <Route path="/committee/*" element={<CommitteeRoutes />} />
 
             <Route path="*" element={<div>Not Found</div>} />
         </Routes>

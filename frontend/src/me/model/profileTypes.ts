@@ -1,5 +1,4 @@
-// me/model/profileTypes.ts
-
+// frontend/src/me/model/profileTypes.ts
 export type MeProfileSource = "SELF";
 
 export type MeProfileResponse = {

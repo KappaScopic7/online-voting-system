@@ -1,3 +1,4 @@
+// frontend/src/routes/publicRoutes.tsx
 import { Routes, Route, Navigate } from "react-router-dom";
 import { ElectionsPage } from "../elections/pages/ElectionsPage";
 import { CandidatesPage } from "../elections/pages/CandidatesPage";
@@ -12,17 +13,15 @@ import { IdentityPendingPage } from "../identity/pages/IdentityPendingPage";
 import { VotingStartPage } from "../voting/pages/VotingStartPage";
 import { VotingDonePage } from "../voting/pages/VotingDonePage";
 import { VoteHistoryPage } from "../voting/pages/VoteHistoryPage";
+
 import { RequireAuth } from "../auth/routes/RequireAuth";
-import { RequireVoter } from "../auth/routes/RequireVoter";
-// 仮 Home（今のを移植してもOK）
-function PortalHomePage() {
-    return <div style={{ padding: 16 }}>Portal Home</div>;
-}
-export function PortalRoutes() {
+import { RequireVerifiedEmail } from "../auth/routes/RequireVerifiedEmail";
+import { RequireIdentityLinked } from "../auth/routes/RequireIdentityLinked";
+
+export function PublicRoutes() {
     return (
         <Routes>
             {/* Public */}
-            <Route path="/" element={<PortalHomePage />} />
             <Route path="/elections" element={<ElectionsPage />} />
             <Route
                 path="/elections/:electionId/candidates"
@@ -42,13 +41,6 @@ export function PortalRoutes() {
                 element={<Navigate to="/verify" replace />}
             />
 
-            {/* Voter-only */}
-            <Route element={<RequireVoter />}>
-                <Route path="/voting/start" element={<VotingStartPage />} />
-                <Route path="/voting/done" element={<VotingDonePage />} />
-                <Route path="/me/votes" element={<VoteHistoryPage />} />
-            </Route>
-
             {/* Login-only */}
             <Route element={<RequireAuth />}>
                 <Route path="/me" element={<MePage />} />
@@ -57,7 +49,18 @@ export function PortalRoutes() {
                     path="/me/identity/pending"
                     element={<IdentityPendingPage />}
                 />
+            </Route>
+
+            {/* Verified-email-only（ここに My選挙 / 投票履歴 を入れるのが自然） */}
+            <Route element={<RequireVerifiedEmail />}>
                 <Route path="/me/elections" element={<MyElectionsPage />} />
+                <Route path="/me/votes" element={<VoteHistoryPage />} />
+            </Route>
+
+            {/* Identity-linked-only（投票） */}
+            <Route element={<RequireIdentityLinked />}>
+                <Route path="/voting/start" element={<VotingStartPage />} />
+                <Route path="/voting/done" element={<VotingDonePage />} />
             </Route>
 
             <Route path="*" element={<div>Not Found</div>} />

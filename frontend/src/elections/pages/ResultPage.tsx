@@ -1,4 +1,4 @@
-// elections/pages/ResultPage.tsx
+// frontend/src/elections/pages/ResultPage.tsx
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { fetchResult, type ElectionResultResponse } from "../api/elections";

@@ -1,4 +1,4 @@
-// auth/routes/RequireVerifiedEmail.tsx
+// frontend/src/auth/routes/RequireVerifiedEmail.tsx
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "../AuthContext";
 import { normalizeFrom } from "../../shared/normalizeFrom";

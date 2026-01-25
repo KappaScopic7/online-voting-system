@@ -1,24 +1,24 @@
+// frontend/src/admin/pages/AdminLoginPage.tsx
 import { useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { useStaffAuth } from "../../../staff/StaffAuthContext";
-import { useAuth } from "../../../auth/AuthContext";
+import { useStaffAuth } from "../../staff/StaffAuthContext";
 
 type LocationState = {
     loginId?: string;
     from?: string;
 };
 
-export function CommitteeLoginPage() {
+export function AdminLoginPage() {
     const nav = useNavigate();
     const loc = useLocation();
     const state = (loc.state ?? {}) as LocationState;
-    const from = state.from ?? "/committee";
+    const from = state.from ?? "/admin";
 
-    const { login: staffLogin } = useStaffAuth();
-    const { logout: userLogout } = useAuth();
+    const { login } = useStaffAuth();
 
     const [loginId, setLoginId] = useState(state.loginId ?? "");
     const [password, setPassword] = useState("");
+    const [showPw, setShowPw] = useState(false);
 
     const [msg, setMsg] = useState<string | null>(null);
     const [fieldErr, setFieldErr] = useState<{
@@ -49,16 +49,17 @@ export function CommitteeLoginPage() {
         try {
             setIsSubmitting(true);
 
-            userLogout();
-            await staffLogin(loginId.trim(), password);
+            // StaffAuthContext に任せる（token保存→me取得まで）
+            await login(loginId.trim(), password);
 
+            // login後に staff が入る想定。念のため role チェック
+            // （roleミスマッチならログアウトして弾くのが親切）
+            // ここで staff はまだ古い可能性があるので、厳密にやるなら refreshMe を返す設計にする。
+            // 今回は「ADMIN画面に入ったら RequireStaff が弾く」でもOK。
             nav(from, { replace: true });
         } catch (err: any) {
-            console.error("committee login error", err);
             setMsg(
-                err?.response?.data
-                    ? JSON.stringify(err.response.data)
-                    : (err?.message ?? "委員会ログインに失敗しました"),
+                err?.response?.data?.message ?? "管理者ログインに失敗しました",
             );
         } finally {
             setIsSubmitting(false);
@@ -67,7 +68,7 @@ export function CommitteeLoginPage() {
 
     return (
         <div style={{ padding: 16, display: "grid", gap: 12, maxWidth: 420 }}>
-            <h2>Committee Login</h2>
+            <h2>Admin Login</h2>
 
             {msg && (
                 <div
@@ -87,20 +88,33 @@ export function CommitteeLoginPage() {
                         autoComplete="username"
                     />
                     {fieldErr.loginId && (
-                        <div style={{ color: "red" }}>{fieldErr.loginId}</div>
+                        <small style={{ color: "crimson" }}>
+                            {fieldErr.loginId}
+                        </small>
                     )}
                 </label>
 
                 <label>
                     <span>Password</span>
-                    <input
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        type="password"
-                        autoComplete="current-password"
-                    />
+                    <div style={{ display: "flex", gap: 8 }}>
+                        <input
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            type={showPw ? "text" : "password"}
+                            autoComplete="current-password"
+                            style={{ flex: 1 }}
+                        />
+                        <button
+                            type="button"
+                            onClick={() => setShowPw((v) => !v)}
+                        >
+                            {showPw ? "Hide" : "Show"}
+                        </button>
+                    </div>
                     {fieldErr.password && (
-                        <div style={{ color: "red" }}>{fieldErr.password}</div>
+                        <small style={{ color: "crimson" }}>
+                            {fieldErr.password}
+                        </small>
                     )}
                 </label>
 

@@ -1,5 +1,4 @@
-// auth/model/authTypes.ts
-
+// frontend/src/auth/model/authTypes.ts
 export type TokenResponse = {
     accessToken: string;
     tokenType: string;

@@ -1,5 +1,4 @@
-// shared/normalizeFrom.ts
-
+// frontend/src/shared/normalizeFrom.ts
 const DEFAULT_FROM = "/elections";
 
 export function normalizeFrom(from?: string): string {

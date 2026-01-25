@@ -1,4 +1,4 @@
-// voting/pages/VoteHistoryPage.tsx
+// frontend/src/voting/pages/VoteHistoryPage.tsx
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { fetchVoteHistory, type VoteHistoryItem } from "../api/votes";

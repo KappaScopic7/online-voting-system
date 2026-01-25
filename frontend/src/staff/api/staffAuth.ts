@@ -1,6 +1,5 @@
-// auth/api/staffAuth.ts
+// frontend/src/staff/api/staffAuth.ts
 import { httpStaff } from "../../shared/httpStaff";
-
 /**
  * staff login response
  */
@@ -8,7 +7,7 @@ export type StaffTokenResponse = {
     accessToken: string;
     tokenType: string;
     expiresInSeconds: number;
-    role: "ADMIN" | "COMMITTEE" | null;
+    role: "ADMIN" | "COMMITTEE";
 };
 
 /**
@@ -31,10 +30,7 @@ export async function staffLogin(
 ): Promise<StaffTokenResponse> {
     const res = await httpStaff.post<StaffTokenResponse>(
         "/api/staff/auth/login",
-        {
-            loginId,
-            password,
-        },
+        { loginId, password },
     );
     return res.data;
 }

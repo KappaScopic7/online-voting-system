@@ -1,4 +1,4 @@
-// identity/api/identity.ts
+// frontend/src/identity/api/identity.ts
 import { httpUser } from "../../shared/httpUser";
 import type { TokenResponse } from "../../auth/model/authTypes";
 

@@ -1,7 +1,8 @@
-// auth/pages/VerifyEmailPage.tsx
+// frontend/src/auth/pages/VerifyEmailPage.tsx
 import { useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { verifyEmail } from "../api/authApi";
+import { normalizeFrom } from "../../shared/normalizeFrom";
 
 type LocationState = {
     email?: string;
@@ -16,27 +17,16 @@ function isValidCode(v: string) {
     return /^\d{6}$/.test(v);
 }
 
-function normalizeFrom(from?: string): string {
-    const f = (from ?? "").trim();
-    if (!f) return "/";
-    if (!f.startsWith("/") || f.startsWith("//")) return "/";
-
-    if (f === "/votes") return "/me/votes";
-    if (f === "/identity/link") return "/me/identity";
-    if (f === "/identity/pending") return "/me/identity/pending";
-
-    return f;
-}
-
 export function VerifyEmailPage() {
     const nav = useNavigate();
     const loc = useLocation();
     const state = (loc.state ?? {}) as LocationState;
 
-    const from = normalizeFrom(state.from);
+    const from = normalizeFrom(state.from ?? "/");
 
     const [email, setEmail] = useState(state.email ?? "");
-    const [code, setCode] = useState("123456"); // デモ
+    const isDev = import.meta.env?.DEV;
+    const [code, setCode] = useState(isDev ? "123456" : "");
 
     const [msg, setMsg] = useState<string | null>(null);
     const [fieldErr, setFieldErr] = useState<{ email?: string; code?: string }>(
@@ -99,8 +89,6 @@ export function VerifyEmailPage() {
             setIsResending(false);
         }
     };
-
-    const isDev = import.meta.env?.DEV;
 
     return (
         <div style={{ padding: 16, display: "grid", gap: 12, maxWidth: 520 }}>

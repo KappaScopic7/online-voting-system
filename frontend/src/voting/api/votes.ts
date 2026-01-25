@@ -1,4 +1,4 @@
-// api/votes.ts
+// frontend/src/voting/api/votes.ts
 import { httpUser } from "../../shared/httpUser";
 
 /* ===== types ===== */

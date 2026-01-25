@@ -1,7 +1,9 @@
+// frontend/src/layout/PublicLayout.tsx
 import { Link, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import { useStaffAuth } from "../staff/StaffAuthContext";
-export function PortalLayout() {
+
+export function PublicLayout() {
     const nav = useNavigate();
     const { me: user, logout: userLogout } = useAuth();
     const { staff, logout: staffLogout } = useStaffAuth();

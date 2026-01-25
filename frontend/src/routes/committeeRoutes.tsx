@@ -1,26 +1,36 @@
+// frontend/src/routes/committeeRoutes.tsx
 import { Routes, Route } from "react-router-dom";
-import { RequireAdmin } from "../auth/routes/RequireAdmin";
-import { AdminLayout } from "../layout/AdminLayout";
-import { AdminHomePage } from "../staff/admin/pages/AdminHomePage";
-// 仮：後で実装
-function AdminElectionsPage() {
-    return <div style={{ padding: 16 }}>Admin Elections</div>;
-}
-function AdminStaffPage() {
-    return <div style={{ padding: 16 }}>Admin Staff</div>;
-}
-function AdminMePage() {
-    return <div style={{ padding: 16 }}>Admin Me</div>;
-}
+import { RequireStaff } from "../auth/routes/RequireStaff";
+import { CommitteeLayout } from "../layout/CommitteeLayout";
+
+import { CommitteeHomePage } from "../committee/pages/CommitteeHomePage";
+import { CommitteeElectionsPage } from "../committee/pages/CommitteeElectionsPage";
+import { CommitteeStaffPage } from "../committee/pages/CommitteeStaffPage";
+import { CommitteeMePage } from "../committee/pages/CommitteeMePage";
+
 export function CommitteeRoutes() {
     return (
-        <Route element={<RequireAdmin />}>
-            <Route element={<AdminLayout />}>
-                <Route path="" element={<AdminHomePage />} />
-                <Route path="elections" element={<AdminElectionsPage />} />
-                <Route path="staff" element={<AdminStaffPage />} />
-                <Route path="me" element={<AdminMePage />} />
+        <Routes>
+            <Route
+                element={
+                    <RequireStaff
+                        role="COMMITTEE"
+                        loginPath="/committee/login"
+                    />
+                }
+            >
+                <Route element={<CommitteeLayout />}>
+                    <Route index element={<CommitteeHomePage />} />
+                    <Route
+                        path="elections"
+                        element={<CommitteeElectionsPage />}
+                    />
+                    <Route path="staff" element={<CommitteeStaffPage />} />
+                    <Route path="me" element={<CommitteeMePage />} />
+                </Route>
             </Route>
-        </Route>
+
+            <Route path="*" element={<div>Not Found</div>} />
+        </Routes>
     );
 }

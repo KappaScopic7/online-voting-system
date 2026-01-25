@@ -1,4 +1,4 @@
-// elections/pages/CandidatesPage.tsx
+// frontend/src/elections/pages/CandidatesPage.tsx
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
 import { fetchCandidates, type CandidateItem } from "../api/elections";
