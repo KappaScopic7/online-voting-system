@@ -4,6 +4,7 @@ import { useLocation, useNavigate, Link } from "react-router-dom";
 import { login } from "../api/authApi";
 import { useAuth } from "../AuthContext";
 import { normalizeFrom } from "../../shared/normalizeFrom";
+import { demoPersonas } from "../../demo/personas";
 
 type LocationState = {
     email?: string;
@@ -67,9 +68,9 @@ export function LoginPage() {
             const apiCode = err?.response?.data?.code;
 
             if (apiCode === "EMAIL_NOT_VERIFIED") {
-                setMsg(
-                    "メール認証が完了していません。認証画面へ進んでください。",
-                );
+                // setMsg(
+                //     "メール認証が完了していません。認証画面へ進んでください。",
+                // );
                 nav("/verify", { state: { email: email.trim(), from } });
             } else {
                 setMsg(apiMsg);
@@ -136,6 +137,27 @@ export function LoginPage() {
                         </small>
                     )}
                 </label>
+
+                {isDev && (
+                    <button
+                        type="button"
+                        onClick={() => {
+                            setEmail(demoPersonas.voter.email);
+                            setPassword(demoPersonas.voter.password);
+                            setFieldErr({});
+                            setMsg(null);
+                        }}
+                        disabled={isSubmitting}
+                        style={{
+                            fontSize: 12,
+                            padding: "4px 8px",
+                            alignSelf: "flex-start",
+                        }}
+                        title="デモ用の有権者アカウントを入力します"
+                    >
+                        デモ入力（有権者）
+                    </button>
+                )}
 
                 <button type="submit" disabled={!canSubmit}>
                     {isSubmitting ? "Logging in..." : "Login"}

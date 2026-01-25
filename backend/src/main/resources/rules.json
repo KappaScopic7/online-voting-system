@@ -1,0 +1,35 @@
+[
+    { "electionKey": "upcoming_notvoted", "cityCode": "14100", "minAge": 18 },
+    { "electionKey": "open_notvoted", "cityCode": "14100", "minAge": 18 },
+    { "electionKey": "open_voted", "cityCode": "14100", "minAge": 18 },
+    { "electionKey": "ended_notvoted", "cityCode": "14100", "minAge": 18 },
+    { "electionKey": "ended_voted", "cityCode": "14100", "minAge": 18 },
+    {
+        "electionKey": "open_many_candidates",
+        "cityCode": "14100",
+        "minAge": 18
+    },
+    {
+        "electionKey": "ended_two_candidates_voted",
+        "cityCode": "14100",
+        "minAge": 18
+    },
+
+    {
+        "electionKey": "open_ineligible_by_city",
+        "cityCode": "13101",
+        "minAge": 18
+    },
+    {
+        "electionKey": "open_ineligible_by_age",
+        "cityCode": "14100",
+        "minAge": 30
+    },
+
+    {
+        "electionKey": "open_rule_multi_city",
+        "cityCode": "14100",
+        "minAge": 18
+    },
+    { "electionKey": "open_rule_multi_city", "cityCode": "13101", "minAge": 18 }
+]

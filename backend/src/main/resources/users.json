@@ -1,0 +1,20 @@
+[
+    {
+        "email": "0@example.com",
+        "password": "Passw0rd!!",
+        "role": "VOTER",
+        "emailVerified": true,
+        "enabled": true,
+        "locked": false,
+        "citizenId": "550e8400-e29b-41d4-a716-446655440000"
+    },
+    {
+        "email": "unlinked1@example.com",
+        "password": "Passw0rd!!",
+        "role": "VOTER",
+        "emailVerified": true,
+        "enabled": true,
+        "locked": false,
+        "citizenId": null
+    }
+]

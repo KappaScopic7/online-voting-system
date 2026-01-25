@@ -1,0 +1,75 @@
+[
+    {
+        "key": "upcoming_notvoted",
+        "title": "開催前（未投票）",
+        "startsAtOffsetSec": 3600,
+        "endsAtOffsetSec": 90000,
+        "candidates": ["候補A", "候補B", "候補C"]
+    },
+    {
+        "key": "open_notvoted",
+        "title": "開催中（未投票）",
+        "startsAtOffsetSec": -3600,
+        "endsAtOffsetSec": 86400,
+        "candidates": ["候補A", "候補B", "候補C"]
+    },
+    {
+        "key": "open_voted",
+        "title": "開催中（投票済み）",
+        "startsAtOffsetSec": -7200,
+        "endsAtOffsetSec": 86400,
+        "candidates": ["候補A", "候補B", "候補C"]
+    },
+    {
+        "key": "ended_notvoted",
+        "title": "終了済み（未投票）",
+        "startsAtOffsetSec": -259200,
+        "endsAtOffsetSec": -172800,
+        "candidates": ["候補A", "候補B", "候補C"]
+    },
+    {
+        "key": "ended_voted",
+        "title": "終了済み（投票済み）",
+        "startsAtOffsetSec": -172800,
+        "endsAtOffsetSec": -86400,
+        "candidates": ["候補A", "候補B", "候補C"]
+    },
+
+    {
+        "key": "open_many_candidates",
+        "title": "開催中（候補5人）",
+        "startsAtOffsetSec": -3600,
+        "endsAtOffsetSec": 86400,
+        "candidates": ["候補A", "候補B", "候補C", "候補D", "候補E"]
+    },
+    {
+        "key": "ended_two_candidates_voted",
+        "title": "終了済み（候補2人・投票済み）",
+        "startsAtOffsetSec": -172800,
+        "endsAtOffsetSec": -86400,
+        "candidates": ["賛成", "反対"]
+    },
+
+    {
+        "key": "open_ineligible_by_city",
+        "title": "開催中（投票不可：市コード不一致）",
+        "startsAtOffsetSec": -3600,
+        "endsAtOffsetSec": 86400,
+        "candidates": ["候補A", "候補B", "候補C"]
+    },
+    {
+        "key": "open_ineligible_by_age",
+        "title": "開催中（投票不可：年齢不足）",
+        "startsAtOffsetSec": -3600,
+        "endsAtOffsetSec": 86400,
+        "candidates": ["候補A", "候補B", "候補C"]
+    },
+
+    {
+        "key": "open_rule_multi_city",
+        "title": "開催中（複数ルール：市コード14100 or 13101）",
+        "startsAtOffsetSec": -3600,
+        "endsAtOffsetSec": 86400,
+        "candidates": ["候補A", "候補B", "候補C"]
+    }
+]

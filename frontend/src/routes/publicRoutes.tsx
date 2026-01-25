@@ -1,5 +1,6 @@
 // frontend/src/routes/publicRoutes.tsx
 import { Routes, Route, Navigate } from "react-router-dom";
+import { PublicHomePage } from "../public";
 import { ElectionsPage } from "../elections/pages/ElectionsPage";
 import { CandidatesPage } from "../elections/pages/CandidatesPage";
 import { ResultPage } from "../elections/pages/ResultPage";
@@ -21,6 +22,9 @@ import { RequireIdentityLinked } from "../auth/routes/RequireIdentityLinked";
 export function PublicRoutes() {
     return (
         <Routes>
+            {/* Home */}
+            <Route path="/" element={<PublicHomePage />} />
+
             {/* Public */}
             <Route path="/elections" element={<ElectionsPage />} />
             <Route

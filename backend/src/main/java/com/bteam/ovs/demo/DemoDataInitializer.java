@@ -17,18 +17,20 @@ import com.bteam.ovs.voting.entity.VoteCast;
 import com.bteam.ovs.voting.entity.VoteCurrent;
 import com.bteam.ovs.voting.repository.VoteCastRepository;
 import com.bteam.ovs.voting.repository.VoteCurrentRepository;
-
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.transaction.support.TransactionTemplate;
 
+import java.io.InputStream;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 @Profile("demo")
 @Configuration
@@ -36,16 +38,11 @@ public class DemoDataInitializer {
 
     private static final String DEMO_ELECTION_PREFIX = "デモ選挙";
 
-    private static final String DEMO_VOTER_EMAIL = "0@example.com";
-    private static final String DEMO_VOTER_PASSWORD = "Passw0rd!!";
-
     private static final String DEMO_ADMIN_LOGIN_ID = "admin";
     private static final String DEMO_ADMIN_PASSWORD = "Passw0rd!!";
 
     private static final String DEMO_COMMITTEE_LOGIN_ID = "committee";
     private static final String DEMO_COMMITTEE_PASSWORD = "Passw0rd!!";
-
-    private static final UUID DEMO_CITIZEN_ID = UUID.fromString("550e8400-e29b-41d4-a716-446655440000");
 
     @Bean
     CommandLineRunner demoInit(
@@ -58,7 +55,8 @@ public class DemoDataInitializer {
             CitizenRepository citizenRepo,
             ElectionEligibilityRuleRepository ruleRepo,
             PasswordEncoder passwordEncoder,
-            TransactionTemplate tx
+            TransactionTemplate tx,
+            ObjectMapper objectMapper
     ) {
         return args -> tx.executeWithoutResult(status ->
                 init(
@@ -70,7 +68,8 @@ public class DemoDataInitializer {
                         voteCurrentRepo,
                         citizenRepo,
                         ruleRepo,
-                        passwordEncoder
+                        passwordEncoder,
+                        objectMapper
                 )
         );
     }
@@ -84,28 +83,67 @@ public class DemoDataInitializer {
             VoteCurrentRepository voteCurrentRepo,
             CitizenRepository citizenRepo,
             ElectionEligibilityRuleRepository ruleRepo,
-            PasswordEncoder passwordEncoder
+            PasswordEncoder passwordEncoder,
+            ObjectMapper om
     ) {
         seedAdmin(staffRepo, passwordEncoder);
         seedCommittee(staffRepo, passwordEncoder);
 
-        UUID citizenId = seedCitizen(citizenRepo);
-        seedVoter(userRepo, passwordEncoder, citizenId);
+        // ===== JSON load =====
+        List<CitizenJson> citizens = readJson(om, "citizens.json", new TypeReference<>() {});
+        List<UserJson> users = readJson(om, "users.json", new TypeReference<>() {});
+        List<ElectionJson> elections = readJson(om, "elections.json", new TypeReference<>() {});
+        List<RuleJson> rules = readJson(om, "rules.json", new TypeReference<>() {});
+        List<VoteJson> votes = readJson(om, "votes.json", new TypeReference<>() {});
 
-        seedElectionsAndVotes(electionRepo, candidateRepo, voteCastRepo, voteCurrentRepo, ruleRepo, citizenId);
+        // ===== seed citizen/user =====
+        seedCitizensFromJson(citizenRepo, citizens);
+        seedUsersFromJson(userRepo, passwordEncoder, users);
+
+        // ===== seed elections/rules/votes =====
+        seedElectionsRulesVotesFromJson(
+                electionRepo, candidateRepo, ruleRepo,
+                voteCastRepo, voteCurrentRepo,
+                elections, rules, votes
+        );
     }
 
-    // =========================
-    // seed staff / user
-    // =========================
+    // -------------------------
+    // JSON DTOs
+    // -------------------------
+    record CitizenJson(UUID citizenId, LocalDate birthDate, String prefCode, String cityCode) {}
+    record UserJson(
+            String email,
+            String password,
+            Role role,
+            boolean emailVerified,
+            boolean enabled,
+            boolean locked,
+            UUID citizenId
+    ) {}
+    record ElectionJson(
+            String key,
+            String title,
+            long startsAtOffsetSec,
+            long endsAtOffsetSec,
+            List<String> candidates
+    ) {}
+    record RuleJson(String electionKey, String cityCode, Integer minAge) {}
+    record VoteJson(String electionKey, UUID citizenId, int candidateIndex, long castedAtOffsetSec) {}
 
-    private void seedAdmin(
-            StaffAccountRepository staffRepo,
-            PasswordEncoder passwordEncoder
-    ) {
-        if (staffRepo.existsByLoginId(DEMO_ADMIN_LOGIN_ID)) {
-            return;
+    private <T> T readJson(ObjectMapper om, String classpathFile, TypeReference<T> type) {
+        try (InputStream in = new ClassPathResource(classpathFile).getInputStream()) {
+            return om.readValue(in, type);
+        } catch (Exception e) {
+            throw new IllegalStateException("Failed to read " + classpathFile, e);
         }
+    }
+
+    // -------------------------
+    // seed staff
+    // -------------------------
+    private void seedAdmin(StaffAccountRepository staffRepo, PasswordEncoder passwordEncoder) {
+        if (staffRepo.existsByLoginId(DEMO_ADMIN_LOGIN_ID)) return;
 
         var admin = new StaffAccount();
         admin.setLoginId(DEMO_ADMIN_LOGIN_ID);
@@ -113,17 +151,11 @@ public class DemoDataInitializer {
         admin.setRole(Role.ADMIN);
         admin.setEnabled(true);
         admin.setLocked(false);
-
         staffRepo.save(admin);
     }
 
-    private void seedCommittee(
-            StaffAccountRepository staffRepo,
-            PasswordEncoder passwordEncoder
-    ) {
-        if (staffRepo.existsByLoginId(DEMO_COMMITTEE_LOGIN_ID)) {
-            return;
-        }
+    private void seedCommittee(StaffAccountRepository staffRepo, PasswordEncoder passwordEncoder) {
+        if (staffRepo.existsByLoginId(DEMO_COMMITTEE_LOGIN_ID)) return;
 
         var committee = new StaffAccount();
         committee.setLoginId(DEMO_COMMITTEE_LOGIN_ID);
@@ -131,211 +163,131 @@ public class DemoDataInitializer {
         committee.setRole(Role.COMMITTEE);
         committee.setEnabled(true);
         committee.setLocked(false);
-
         staffRepo.save(committee);
     }
 
-    private UUID seedVoter(UserAccountRepository userRepo, PasswordEncoder passwordEncoder, UUID citizenId) {
-        var opt = userRepo.findByEmail(DEMO_VOTER_EMAIL);
-
-        if (opt.isPresent()) {
-            var acc = opt.get();
-
-            // citizen は seedCitizen() が作ってる前提なので、ここは必ずそれに合わせる
-            acc.setCitizenId(citizenId);
-
-            acc.setRole(Role.VOTER);
-            acc.setEmailVerified(true);
-            acc.setEnabled(true);
-            acc.setLocked(false);
-            if (acc.getPasswordHash() == null || acc.getPasswordHash().isBlank()) {
-                acc.setPasswordHash(passwordEncoder.encode(DEMO_VOTER_PASSWORD));
-            }
-
-            userRepo.save(acc);
-            return acc.getCitizenId();
+    // -------------------------
+    // seed citizen/user from JSON
+    // -------------------------
+    private void seedCitizensFromJson(CitizenRepository citizenRepo, List<CitizenJson> items) {
+        for (var j : items) {
+            var citizen = citizenRepo.findById(j.citizenId()).orElseGet(Citizen::new);
+            citizen.setCitizenId(j.citizenId());
+            citizen.setBirthDate(j.birthDate());
+            citizen.setPrefCode(j.prefCode());
+            citizen.setCityCode(j.cityCode());
+            citizenRepo.save(citizen);
         }
-
-        var voter = new UserAccount();
-        voter.setEmail(DEMO_VOTER_EMAIL);
-        voter.setPasswordHash(passwordEncoder.encode(DEMO_VOTER_PASSWORD));
-        voter.setRole(Role.VOTER);
-        voter.setEnabled(true);
-        voter.setLocked(false);
-        voter.setEmailVerified(true);
-        voter.setCitizenId(citizenId);
-
-        userRepo.save(voter);
-        return citizenId;
     }
 
-    // =========================
-    // seed elections / candidates / votes / rules
-    // =========================
+    private void seedUsersFromJson(UserAccountRepository userRepo, PasswordEncoder passwordEncoder, List<UserJson> items) {
+        for (var j : items) {
+            var acc = userRepo.findByEmail(j.email()).orElseGet(UserAccount::new);
 
-    private void seedElectionsAndVotes(
+            acc.setEmail(j.email());
+            acc.setRole(j.role());
+            acc.setEmailVerified(j.emailVerified());
+            acc.setEnabled(j.enabled());
+            acc.setLocked(j.locked());
+
+            // citizenId は null を許す（未本人認証を作れる）
+            acc.setCitizenId(j.citizenId());
+
+            // 毎回上書きでもいいが、変更しない方が扱いやすいなら条件付きにしてもOK
+            acc.setPasswordHash(passwordEncoder.encode(j.password()));
+
+            userRepo.save(acc);
+        }
+    }
+
+    // -------------------------
+    // seed elections/rules/votes from JSON
+    // -------------------------
+    private void seedElectionsRulesVotesFromJson(
             ElectionRepository electionRepo,
             CandidateRepository candidateRepo,
+            ElectionEligibilityRuleRepository ruleRepo,
             VoteCastRepository voteCastRepo,
             VoteCurrentRepository voteCurrentRepo,
-            ElectionEligibilityRuleRepository ruleRepo,
-            UUID citizenId
+            List<ElectionJson> elections,
+            List<RuleJson> rules,
+            List<VoteJson> votes
     ) {
-
+        // 既存の票は掃除
         voteCurrentRepo.deleteAll();
         voteCastRepo.deleteAll();
 
-        // 既存デモ選挙を削除（前回分を掃除）
+        // 既存デモ選挙を掃除（prefix）
         electionRepo.deleteByTitleStartingWith(DEMO_ELECTION_PREFIX);
 
-        // デモ用ルールも掃除（簡易）
+        // ルールも掃除（簡易）
         ruleRepo.deleteAll();
 
         var now = Instant.now();
         String today = LocalDate.now().toString();
 
-        // 1) 開催前（startsAt が未来）
-        var upcoming = createElectionWithCandidates(
-                electionRepo, candidateRepo,
-                DEMO_ELECTION_PREFIX + " 開催前 " + today,
-                now.plusSeconds(60 * 60),          // starts +1h
-                now.plusSeconds(60 * 60 * 25),     // ends +25h
-                "開催前"
-        );
-        seedRule(ruleRepo, upcoming.electionId());
+        // key -> (electionId, candidateIds)
+        Map<String, CreatedElection> created = new HashMap<>();
 
-        // 2) 投票可能（開催中）
-        var voting = createElectionWithCandidates(
-                electionRepo, candidateRepo,
-                DEMO_ELECTION_PREFIX + " 投票可能 " + today,
-                now.minusSeconds(60 * 60),         // started -1h
-                now.plusSeconds(60 * 60 * 24),     // ends +24h
-                "投票可能"
-        );
-        seedRule(ruleRepo, voting.electionId());
+        for (var ej : elections) {
+            var election = new Election();
+            election.setTitle(DEMO_ELECTION_PREFIX + " " + ej.title() + " " + today);
+            election.setStartsAt(now.plusSeconds(ej.startsAtOffsetSec()));
+            election.setEndsAt(now.plusSeconds(ej.endsAtOffsetSec()));
+            electionRepo.save(election);
 
-        // 3) 終了済み（投票済み）
-        var endedVoted = createElectionWithCandidates(
-                electionRepo, candidateRepo,
-                DEMO_ELECTION_PREFIX + " 終了済み_投票済み " + today,
-                now.minusSeconds(60 * 60 * 48),    // started -48h
-                now.minusSeconds(60 * 60 * 24),    // ended -24h
-                "終了済み投票済み"
-        );
-        seedRule(ruleRepo, endedVoted.electionId());
+            List<UUID> candidateIds = new ArrayList<>();
+            for (String name : ej.candidates()) {
+                var c = new Candidate();
+                c.setElectionId(election.getId());
+                c.setName(name);
+                c = candidateRepo.save(c);
+                candidateIds.add(c.getId());
+            }
 
-        // endedVoted の候補Aに投票したことにする
-        UUID votedCandidateId = endedVoted.candidateIds().get(0);
+            created.put(ej.key(), new CreatedElection(election.getId(), candidateIds));
+        }
 
-        // 終了前に投票したことにする（終了後だと不自然なので endedAt より前）
-        Instant votedAt = now.minusSeconds(60 * 60 * 25); // ended(-24h) より前
+        // rules
+        for (var rj : rules) {
+            var ce = require(created, rj.electionKey(), "rules.json");
+            var r = new ElectionEligibilityRule();
+            r.setElectionId(ce.electionId());
+            r.setCityCode(rj.cityCode());
+            r.setMinAge(rj.minAge() == null ? 18 : rj.minAge());
+            ruleRepo.save(r);
+        }
 
-        seedVoteCast(voteCastRepo, endedVoted.electionId(), citizenId, votedCandidateId, votedAt);
-        seedVoteCurrent(voteCurrentRepo, endedVoted.electionId(), citizenId, votedCandidateId, votedAt);
+        // votes
+        for (var vj : votes) {
+            var ce = require(created, vj.electionKey(), "votes.json");
+            if (vj.candidateIndex() < 0 || vj.candidateIndex() >= ce.candidateIds().size()) {
+                throw new IllegalStateException("candidateIndex out of range: " + vj.electionKey());
+            }
+            UUID candidateId = ce.candidateIds().get(vj.candidateIndex());
+            Instant castedAt = now.plusSeconds(vj.castedAtOffsetSec());
 
-        // 4) 終了済み（未投票）
-        var endedNotVoted = createElectionWithCandidates(
-                electionRepo, candidateRepo,
-                DEMO_ELECTION_PREFIX + " 終了済み_未投票 " + today,
-                now.minusSeconds(60 * 60 * 72),    // started -72h
-                now.minusSeconds(60 * 60 * 48),    // ended -48h
-                "終了済み未投票"
-        );
-        seedRule(ruleRepo, endedNotVoted.electionId());
-    }
+            var cast = new VoteCast();
+            cast.setElectionId(ce.electionId());
+            cast.setCitizenId(vj.citizenId());
+            cast.setCandidateId(candidateId);
+            cast.setCastedAt(castedAt);
+            voteCastRepo.save(cast);
 
-    private void seedRule(
-            ElectionEligibilityRuleRepository ruleRepo,
-            UUID electionId
-    ) {
-        var r = new ElectionEligibilityRule();
-        r.setElectionId(electionId);
-        r.setCityCode("14100");  // citizen/self と合わせる
-        r.setMinAge(18);
-        ruleRepo.save(r);
-    }
-
-    private UUID seedCitizen(CitizenRepository citizenRepo) {
-        // デモでは固定にしておくと、毎回同じUUIDで本人認証/投票データが安定する
-        var citizen = citizenRepo.findById(DEMO_CITIZEN_ID).orElseGet(Citizen::new);
-
-        citizen.setCitizenId(DEMO_CITIZEN_ID);
-
-        // 例：20歳以上とかの判定に使えるように
-        citizen.setBirthDate(LocalDate.of(2000, 1, 1));
-
-        // とりあえず横浜っぽいコードを入れる、など（値は君のルール設計に合わせて統一）
-        citizen.setPrefCode("14");      // 神奈川(例)
-        citizen.setCityCode("14100");   // 横浜(例)
-
-        citizenRepo.save(citizen);
-        return citizen.getCitizenId();
+            var cur = new VoteCurrent();
+            cur.setElectionId(ce.electionId());
+            cur.setCitizenId(vj.citizenId());
+            cur.setCandidateId(candidateId);
+            cur.setCastedAt(castedAt);
+            voteCurrentRepo.save(cur);
+        }
     }
 
     private record CreatedElection(UUID electionId, List<UUID> candidateIds) {}
 
-    private CreatedElection createElectionWithCandidates(
-            ElectionRepository electionRepo,
-            CandidateRepository candidateRepo,
-            String title,
-            Instant startsAt,
-            Instant endsAt,
-            String suffix
-    ) {
-        var election = new Election();
-        election.setTitle(title);
-        election.setStartsAt(startsAt);
-        election.setEndsAt(endsAt);
-
-        electionRepo.save(election);
-
-        var candidateIds = createCandidates(candidateRepo, election.getId(),
-                List.of("候補A_" + suffix, "候補B_" + suffix, "候補C_" + suffix));
-
-        return new CreatedElection(election.getId(), candidateIds);
-    }
-
-    private List<UUID> createCandidates(
-            CandidateRepository candidateRepo,
-            UUID electionId,
-            List<String> names
-    ) {
-        return names.stream().map(name -> {
-            var c = new Candidate();
-            c.setElectionId(electionId);
-            c.setName(name);
-            c = candidateRepo.save(c);
-            return c.getId();
-        }).toList();
-    }
-
-    private void seedVoteCast(
-            VoteCastRepository voteCastRepo,
-            UUID electionId,
-            UUID citizenId,
-            UUID candidateId,
-            Instant castedAt
-    ) {
-        var v = new VoteCast();
-        v.setElectionId(electionId);
-        v.setCitizenId(citizenId);
-        v.setCandidateId(candidateId);
-        v.setCastedAt(castedAt);
-        voteCastRepo.save(v);
-    }
-
-    private void seedVoteCurrent(
-            VoteCurrentRepository voteCurrentRepo,
-            UUID electionId,
-            UUID citizenId,
-            UUID candidateId,
-            Instant castedAt
-    ) {
-        var v = new VoteCurrent();
-        v.setElectionId(electionId);
-        v.setCitizenId(citizenId);
-        v.setCandidateId(candidateId);
-        v.setCastedAt(castedAt);
-        voteCurrentRepo.save(v);
+    private CreatedElection require(Map<String, CreatedElection> map, String key, String file) {
+        var v = map.get(key);
+        if (v == null) throw new IllegalStateException("Unknown electionKey in " + file + ": " + key);
+        return v;
     }
 }
