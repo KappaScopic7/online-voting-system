@@ -2,18 +2,14 @@
 import { Link, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "../../user/UserAuthContext";
 import { useStaffAuth } from "../../staff/StaffAuthContext";
-import { useState } from "react";
+
 
 export function PublicHeaderLayout() {
     const nav = useNavigate();
     const { me: user, logout: userLogout } = useAuth();
     const { staff, logout: staffLogout } = useStaffAuth();
 
-    const isDev = import.meta.env?.DEV;
 
-    // ★ reset UI state
-    const [resetMsg, setResetMsg] = useState<string | null>(null);
-    const [resetting, setResetting] = useState(false);
 
     const onLogout = () => {
         if (staff) {
@@ -28,8 +24,7 @@ export function PublicHeaderLayout() {
     };
 
     // ★ 「demo + staff + admin」だけ見せる（staff.role が取れない場合は staff がいるだけでもOK）
-    const isAdminStaff =
-        !!staff && (String((staff as any)?.role ?? "") === "ADMIN");
+
 
 
 

@@ -1,31 +1,18 @@
 // frontend/src/layout/PublicFooterLayout.tsx
-import { Link, Outlet, useNavigate } from "react-router-dom";
-import { useAuth } from "../../user/UserAuthContext";
+
+
 import { useStaffAuth } from "../../staff/StaffAuthContext";
-import { useState } from "react";
+
 
 export function PublicFooterLayout() {
-    const nav = useNavigate();
-    const { me: user, logout: userLogout } = useAuth();
-    const { staff, logout: staffLogout } = useStaffAuth();
+  
+
+    const { staff} = useStaffAuth();
 
     const isDev = import.meta.env?.DEV;
 
     // ★ reset UI state
-    const [resetMsg, setResetMsg] = useState<string | null>(null);
-    const [resetting, setResetting] = useState(false);
 
-    const onLogout = () => {
-        if (staff) {
-            staffLogout();
-            nav("/", { replace: true });
-            return;
-        }
-        if (user) {
-            userLogout();
-            nav("/", { replace: true });
-        }
-    };
 
     // ★ 「demo + staff + admin」だけ見せる（staff.role が取れない場合は staff がいるだけでもOK）
     const isAdminStaff =
@@ -36,7 +23,7 @@ export function PublicFooterLayout() {
 
     return (
         <div style={{ padding: 16 }}>
-   
+
     
 
             <footer
@@ -59,9 +46,7 @@ export function PublicFooterLayout() {
                     <div style={{ marginLeft: "auto", display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
                         <button
                             type="button"
-                        
-                            disabled={!isAdminStaff || resetting}
-                            title={
+                                                    title={
                                 !isAdminStaff
                                     ? "ADMINでログインしたSTAFFのみ実行できます"
                                     : "DBをリセットしてデモデータを再投入します"
@@ -72,12 +57,10 @@ export function PublicFooterLayout() {
                                 border: "1px solid #d99",
                             }}
                         >
-                            {resetting ? "DBリセット中..." : "DBリセット（demo）"}
+                           
                         </button>
 
-                        {resetMsg && (
-                            <span style={{ color: "crimson" }}>{resetMsg}</span>
-                        )}
+                        
                     </div>
                 )}
             </footer>
