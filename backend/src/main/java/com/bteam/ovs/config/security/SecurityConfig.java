@@ -31,10 +31,7 @@ public class SecurityConfig {
     CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
 
-        config.setAllowedOriginPatterns(List.of(
-                "http://localhost:*",
-                "http://127.0.0.1:*"
-        ));
+        config.setAllowedOriginPatterns(List.of("http://localhost:*", "http://127.0.0.1:*"));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setExposedHeaders(List.of());
@@ -48,13 +45,10 @@ public class SecurityConfig {
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http, JwtService jwtService) throws Exception {
 
-        return http
-                .cors(withDefaults())
-                .csrf(csrf -> csrf.disable())
+        return http.cors(withDefaults()).csrf(csrf -> csrf.disable())
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                .authorizeHttpRequests(auth -> auth.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/error").permitAll()
 
                         // ---- public / user auth ----
@@ -67,40 +61,36 @@ public class SecurityConfig {
                         .requestMatchers("/api/staff/auth/login").permitAll()
 
                         // staff 用API（me や committee/admin の土台）
-                        .requestMatchers("/api/staff/**").access((authentication, context) ->
-                                new AuthorizationDecision(isStaff(authentication.get()))
-                        )
+                        .requestMatchers("/api/staff/**")
+                        .access((authentication, context) -> new AuthorizationDecision(isStaff(authentication.get())))
 
                         // ---- admin auth (互換で残すなら) ----
                         .requestMatchers("/api/admin/auth/login").permitAll()
 
                         // ★ /api/admin/** は「STAFF かつ ADMIN/COMMITTEE」
-                        .requestMatchers("/api/admin/**").access((authentication, context) ->
-                                new AuthorizationDecision(isStaff(authentication.get()) && hasAnyRole(authentication.get(), "ADMIN", "COMMITTEE"))
-                        )
+                        .requestMatchers("/api/admin/**")
+                        .access((authentication,
+                                context) -> new AuthorizationDecision(isStaff(authentication.get())
+                                        && hasAnyRole(authentication.get(), "ADMIN", "COMMITTEE")))
 
                         // ---- demo tools (demo profile前提) ----
-                        .requestMatchers("/api/demo/**").access((authentication, context) ->
-                                new AuthorizationDecision(
-                                        isStaff(authentication.get()) && hasRole(authentication.get(), "ADMIN")
-                                )
-                        )
+                        .requestMatchers("/api/demo/**")
+                        .access((authentication, context) -> new AuthorizationDecision(
+                                isStaff(authentication.get()) && hasRole(authentication.get(), "ADMIN")))
 
                         // ---- identity (user only) ----
-                        .requestMatchers("/api/identity/**").access((authentication, context) ->
-                                new AuthorizationDecision(isUser(authentication.get()))
-                        )
+                        .requestMatchers("/api/identity/**")
+                        .access((authentication, context) -> new AuthorizationDecision(isUser(authentication.get())))
 
                         // ---- voter only (user + voter role) ----
-                        .requestMatchers("/api/voting/**").access((authentication, context) ->
-                                new AuthorizationDecision(isUser(authentication.get()) && hasRole(authentication.get(), "VOTER"))
-                        )
-                        .requestMatchers("/api/votes/**").access((authentication, context) ->
-                                new AuthorizationDecision(isUser(authentication.get()) && hasRole(authentication.get(), "VOTER"))
-                        )
+                        .requestMatchers("/api/voting/**")
+                        .access((authentication, context) -> new AuthorizationDecision(
+                                isUser(authentication.get()) && hasRole(authentication.get(), "VOTER")))
+                        .requestMatchers("/api/votes/**")
+                        .access((authentication, context) -> new AuthorizationDecision(
+                                isUser(authentication.get()) && hasRole(authentication.get(), "VOTER")))
 
-                        .anyRequest().authenticated()
-                )
+                        .anyRequest().authenticated())
 
                 .addFilterBefore(new JwtAuthenticationFilter(jwtService), UsernamePasswordAuthenticationFilter.class)
                 .build();
@@ -109,24 +99,29 @@ public class SecurityConfig {
     // ===== helpers =====
 
     private static boolean isStaff(Authentication auth) {
-        if (auth == null) return false;
+        if (auth == null)
+            return false;
         return auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("KIND_STAFF"));
     }
 
     private static boolean isUser(Authentication auth) {
-        if (auth == null) return false;
+        if (auth == null)
+            return false;
         return auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("KIND_USER"));
     }
 
     private static boolean hasRole(Authentication auth, String role) {
-        if (auth == null) return false;
+        if (auth == null)
+            return false;
         return auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_" + role));
     }
 
     private static boolean hasAnyRole(Authentication auth, String... roles) {
-        if (auth == null) return false;
+        if (auth == null)
+            return false;
         for (String r : roles) {
-            if (hasRole(auth, r)) return true;
+            if (hasRole(auth, r))
+                return true;
         }
         return false;
     }

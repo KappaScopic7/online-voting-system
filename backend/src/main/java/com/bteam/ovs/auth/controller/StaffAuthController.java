@@ -16,17 +16,13 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Map;
 import java.util.UUID;
 
-@RestController
-@RequestMapping("/api/staff/auth")
+@RestController @RequestMapping("/api/staff/auth")
 public class StaffAuthController {
 
     private final StaffAuthService staffAuthService;
     private final StaffAccountRepository staffRepo;
 
-    public StaffAuthController(
-            StaffAuthService staffAuthService,
-            StaffAccountRepository staffRepo
-    ) {
+    public StaffAuthController(StaffAuthService staffAuthService, StaffAccountRepository staffRepo) {
         this.staffAuthService = staffAuthService;
         this.staffRepo = staffRepo;
     }
@@ -39,13 +35,7 @@ public class StaffAuthController {
     @GetMapping("/me")
     public StaffMeResponse me(Authentication authentication) {
         var acc = findMe(authentication);
-        return new StaffMeResponse(
-                acc.getId(),
-                acc.getLoginId(),
-                acc.getRole(),
-                acc.isEnabled(),
-                acc.isLocked()
-        );
+        return new StaffMeResponse(acc.getId(), acc.getLoginId(), acc.getRole(), acc.isEnabled(), acc.isLocked());
     }
 
     private StaffAccount findMe(Authentication authentication) {
