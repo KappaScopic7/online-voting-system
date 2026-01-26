@@ -2,7 +2,7 @@
 import { useMemo, useState, type FormEvent } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useStaffAuth } from "../../staff/StaffAuthContext";
-import { useAuth } from "../../auth/UserAuthContext";
+import { useAuth } from "../../user/UserAuthContext";
 import { normalizeFrom } from "../../shared/normalizeFrom";
 
 type LocationState = {
