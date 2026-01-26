@@ -1,6 +1,6 @@
 // frontend/src/app/routes.tsx
 import { Routes, Route } from "react-router-dom";
-import { PublicLayout } from "../layout/PublicLayout";
+import { PublicLayout } from "../layout/PublicLayout/PublicLayout";
 import { PublicRoutes } from "../routes/publicRoutes";
 import { AdminRoutes } from "../routes/adminRoutes";
 import { CommitteeRoutes } from "../routes/committeeRoutes";
