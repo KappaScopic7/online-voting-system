@@ -1,7 +1,8 @@
 // frontend/src/elections/pages/CandidatesPage.tsx
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
-import { fetchCandidates, type CandidateItem } from "../api/elections";
+import { fetchCandidates } from "../api/elections";
+import type { CandidateItem } from "../model/electionTypes";
 
 export function CandidatesPage() {
     const { electionId } = useParams<{ electionId: string }>();

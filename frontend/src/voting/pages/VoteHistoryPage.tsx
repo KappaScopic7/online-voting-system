@@ -21,16 +21,18 @@ type Group = {
     items: VoteHistoryItem[];
 };
 
+type LocationState = { from?: string };
+
 export function VoteHistoryPage() {
     const [items, setItems] = useState<VoteHistoryItem[] | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
 
-    type LocationState = { from?: string };
-
     const loc = useLocation();
     const state = (loc.state ?? {}) as LocationState;
+
     const backTo = state.from ?? "/me";
+    const from = loc.pathname + loc.search;
 
     // UI control（仮）
     const [q, setQ] = useState("");
@@ -53,6 +55,7 @@ export function VoteHistoryPage() {
 
     useEffect(() => {
         load();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const groups: Group[] = useMemo(() => {
@@ -194,6 +197,7 @@ export function VoteHistoryPage() {
                 <div style={{ display: "grid", gap: 12 }}>
                     {filteredGroups.map((g) => {
                         const latest = g.items[0];
+
                         return (
                             <section
                                 key={g.electionId}
@@ -214,8 +218,14 @@ export function VoteHistoryPage() {
                                     }}
                                 >
                                     <strong style={{ fontSize: 16 }}>
-                                        {g.electionTitle}
+                                        <Link
+                                            to={`/elections/${g.electionId}`}
+                                            state={{ from }}
+                                        >
+                                            {g.electionTitle}
+                                        </Link>
                                     </strong>
+
                                     <span style={{ opacity: 0.85 }}>
                                         回数: {g.items.length}
                                     </span>
@@ -253,6 +263,7 @@ export function VoteHistoryPage() {
                                             >
                                                 {formatJST(v.castedAt)}
                                             </span>
+
                                             <span>
                                                 投票先:{" "}
                                                 <strong>
@@ -303,11 +314,13 @@ export function VoteHistoryPage() {
                                 >
                                     <Link
                                         to={`/elections/${g.electionId}/candidates`}
+                                        state={{ from }}
                                     >
                                         候補者（公開）
                                     </Link>
                                     <Link
                                         to={`/elections/${g.electionId}/result`}
+                                        state={{ from }}
                                     >
                                         結果
                                     </Link>

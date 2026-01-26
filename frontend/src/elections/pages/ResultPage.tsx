@@ -1,7 +1,8 @@
 // frontend/src/elections/pages/ResultPage.tsx
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { fetchResult, type ElectionResultResponse } from "../api/elections";
+import { fetchResult } from "../api/elections";
+import type { ElectionResultResponse } from "../model/electionTypes";
 
 function percent(v: number, total: number) {
     if (total <= 0) return "0.0%";

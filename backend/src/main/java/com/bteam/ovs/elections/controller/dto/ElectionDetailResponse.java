@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.UUID;
 
 public record ElectionDetailResponse(
-        UUID id,
+        UUID electionId,
         String title,
         Instant startsAt,
         Instant endsAt,

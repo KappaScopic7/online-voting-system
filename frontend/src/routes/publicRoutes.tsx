@@ -2,6 +2,7 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import { PublicHomePage } from "../public";
 import { ElectionsPage } from "../elections/pages/ElectionsPage";
+import { ElectionDetailPage } from "../elections/pages/ElectionDetailPage";
 import { CandidatesPage } from "../elections/pages/CandidatesPage";
 import { ResultPage } from "../elections/pages/ResultPage";
 import { MyElectionsPage } from "../elections/pages/MyElectionsPage";
@@ -27,6 +28,10 @@ export function PublicRoutes() {
 
             {/* Public */}
             <Route path="/elections" element={<ElectionsPage />} />
+            <Route
+                path="/elections/:electionId"
+                element={<ElectionDetailPage />}
+            />
             <Route
                 path="/elections/:electionId/candidates"
                 element={<CandidatesPage />}

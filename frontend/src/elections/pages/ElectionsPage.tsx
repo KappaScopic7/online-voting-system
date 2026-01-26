@@ -1,7 +1,8 @@
 // frontend/src/elections/pages/ElectionsPage.tsx
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { fetchElections, type ElectionListItem } from "../api/elections";
+import { fetchElections } from "../api/elections";
+import type { ElectionListItem } from "../model/electionTypes";
 import { useAuth } from "../../user/UserAuthContext";
 import {
     formatJST,
@@ -14,6 +15,7 @@ type SortKey = "STATUS" | "STARTS_AT" | "ENDS_AT" | "TITLE";
 
 export function ElectionsPage() {
     const { me, isLoading: authLoading } = useAuth();
+
     const loc = useLocation();
     const from = loc.pathname + loc.search;
 
@@ -46,6 +48,7 @@ export function ElectionsPage() {
 
     useEffect(() => {
         load();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const filtered = useMemo(() => {
@@ -86,7 +89,7 @@ export function ElectionsPage() {
     const isDev = import.meta.env?.DEV;
 
     return (
-        <div style={{ padding: 12, display: "grid", gap: 12}}>
+        <div style={{ padding: 12, display: "grid", gap: 12 }}>
             {/* Header */}
             <header
                 style={{
@@ -96,7 +99,6 @@ export function ElectionsPage() {
                     flexWrap: "wrap",
                 }}
             >
-
                 <h2 style={{ margin: 0 }}>選挙一覧</h2>
 
                 <button onClick={load} disabled={isLoading}>
@@ -280,6 +282,7 @@ export function ElectionsPage() {
                 <div style={{ display: "grid", gap: 12 }}>
                     {filtered.map((e) => {
                         const voted = !!e.currentVote;
+
                         return (
                             <div
                                 key={e.electionId}
@@ -300,8 +303,15 @@ export function ElectionsPage() {
                                     }}
                                 >
                                     <strong style={{ fontSize: 16 }}>
-                                        {e.title}
+                                        {/* 詳細へ（戻り先from付き） */}
+                                        <Link
+                                            to={`/elections/${e.electionId}`}
+                                            state={{ from }}
+                                        >
+                                            {e.title}
+                                        </Link>
                                     </strong>
+
                                     <span
                                         style={{
                                             fontSize: 12,
@@ -347,8 +357,10 @@ export function ElectionsPage() {
                                         alignItems: "center",
                                     }}
                                 >
+                                    {/* 下位ページも from を渡す（戻りが一貫する） */}
                                     <Link
                                         to={`/elections/${e.electionId}/candidates`}
+                                        state={{ from }}
                                     >
                                         候補者一覧
                                     </Link>
@@ -356,6 +368,7 @@ export function ElectionsPage() {
                                     {e.hasResult ? (
                                         <Link
                                             to={`/elections/${e.electionId}/result`}
+                                            state={{ from }}
                                         >
                                             結果
                                         </Link>

@@ -121,11 +121,14 @@ public class ElectionService {
         final Instant now = Instant.now();
 
         var election = electionRepo.findById(electionId)
-                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "ELECTION_NOT_FOUND", "選挙が存在しません"));
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.NOT_FOUND,
+                        "ELECTION_NOT_FOUND",
+                        "選挙が存在しません"));
 
         String st = status(now, election.getStartsAt(), election.getEndsAt());
 
-        // 候補者（既存の candidates() 相当。ただし existsById は不要）
+        // 候補者
         var candidateEntities = candidateRepo.findByElectionId(electionId);
         var candidates = candidateEntities.stream()
                 .map(c -> new CandidateItem(c.getId(), c.getName()))
@@ -133,22 +136,27 @@ public class ElectionService {
 
         int candidateCount = candidates.size();
 
-        // ログインしてて本人認証済みなら「投票可/現在票」を計算
+        // 認証・本人確認
         boolean identityLinked = false;
         UUID citizenId = null;
 
         if (accountIdOrNull != null) {
             var acc = userRepo.findById(accountIdOrNull)
-                    .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "未ログインです"));
+                    .orElseThrow(() -> new ApiException(
+                            HttpStatus.UNAUTHORIZED,
+                            "UNAUTHORIZED",
+                            "未ログインです"));
             citizenId = acc.getCitizenId();
             identityLinked = (citizenId != null);
         }
 
         boolean canCast = identityLinked && "ONGOING".equals(st);
 
+        // 現在投票
         ElectionListItem.CurrentVote currentVote = null;
         if (identityLinked) {
-            var curOpt = voteCurrentRepo.findByCitizenIdAndElectionIdIn(citizenId, List.of(electionId))
+            var curOpt = voteCurrentRepo
+                    .findByCitizenIdAndElectionIdIn(citizenId, List.of(electionId))
                     .stream()
                     .findFirst();
 
@@ -156,14 +164,16 @@ public class ElectionService {
                 var cur = curOpt.get();
                 UUID cid = cur.getCandidateId();
 
-                // candidate名は candidates から引ける（追加クエリしない）
                 String candidateName = candidates.stream()
-                        .filter(x -> x.id().equals(cid))
+                        .filter(c -> c.id().equals(cid))
                         .map(CandidateItem::name)
                         .findFirst()
                         .orElse(null);
 
-                currentVote = new ElectionListItem.CurrentVote(cid, candidateName, cur.getCastedAt());
+                currentVote = new ElectionListItem.CurrentVote(
+                        cid,
+                        candidateName,
+                        cur.getCastedAt());
             }
         }
 

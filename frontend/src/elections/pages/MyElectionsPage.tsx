@@ -1,5 +1,6 @@
 // frontend/src/me/pages/MyElectionsPage.tsx
 import { useEffect, useState } from "react";
+import { Link, useLocation } from "react-router-dom";
 import { fetchMyElections, type MyElectionItem } from "../api/meElections";
 import {
     fetchMeEligibility,
@@ -28,6 +29,9 @@ function badgeStyle() {
 }
 
 export function MyElectionsPage() {
+    const loc = useLocation();
+    const from = loc.pathname + loc.search;
+
     const [items, setItems] = useState<MyElectionItem[] | null>(null);
     const [elig, setElig] = useState<MeEligibilityResponse | null>(null);
 
@@ -138,7 +142,15 @@ export function MyElectionsPage() {
                             key={e.electionId}
                             style={{ border: "1px solid #ccc", padding: 12 }}
                         >
-                            <div style={{ fontWeight: 700 }}>{e.title}</div>
+                            <div style={{ fontWeight: 700 }}>
+                                <Link
+                                    to={`/elections/${e.electionId}`}
+                                    state={{ from }}
+                                >
+                                    {e.title}
+                                </Link>
+                            </div>
+
                             <div style={{ marginTop: 6, fontSize: 13 }}>
                                 <div>開始: {fmt(e.startsAt)}</div>
                                 <div>終了: {fmt(e.endsAt)}</div>

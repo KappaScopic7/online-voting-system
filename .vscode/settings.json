@@ -1,6 +1,10 @@
 {
+    // インデントをスペース4つに統一
+    "editor.tabSize": 4,
     // 保存時フォーマットON
     "editor.formatOnSave": true,
+    // デフォルトフォーマッタを指定
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
     // Javaは Red Hat Java 拡張でフォーマット
     "[java]": {
         "editor.defaultFormatter": "redhat.java",
