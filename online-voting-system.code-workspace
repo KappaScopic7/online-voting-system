@@ -11,7 +11,7 @@
 
         "files.exclude": {
             // ===== root で非表示 =====
-            ".vscode": true,
+            // ".vscode": true,
             "graph-service": true,
             "docker-compose.yml": true,
             "package.json": true,

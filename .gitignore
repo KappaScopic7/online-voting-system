@@ -40,4 +40,4 @@ out/
 !.vscode/launch.json
 !.vscode/tasks.json
 !.vscode/online-voting-system.code-workspace
-
+!.vscode/eclipse-java-formatter.xml

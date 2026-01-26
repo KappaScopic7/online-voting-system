@@ -4,6 +4,7 @@ import com.bteam.ovs.auth.repository.UserAccountRepository;
 import com.bteam.ovs.elections.controller.dto.CandidateItem;
 import com.bteam.ovs.elections.controller.dto.ElectionListItem;
 import com.bteam.ovs.elections.controller.dto.ElectionResultResponse;
+import com.bteam.ovs.elections.controller.dto.ElectionDetailResponse;
 import com.bteam.ovs.elections.repository.CandidateRepository;
 import com.bteam.ovs.elections.repository.ElectionRepository;
 import com.bteam.ovs.shared.errors.ApiException;
@@ -31,8 +32,7 @@ public class ElectionService {
             ElectionRepository electionRepo,
             CandidateRepository candidateRepo,
             VoteCurrentRepository voteCurrentRepo,
-            UserAccountRepository userRepo
-    ) {
+            UserAccountRepository userRepo) {
         this.electionRepo = electionRepo;
         this.candidateRepo = candidateRepo;
         this.voteCurrentRepo = voteCurrentRepo;
@@ -43,22 +43,21 @@ public class ElectionService {
         final Instant now = Instant.now();
 
         var elections = electionRepo.findAllByOrderByStartsAtDesc();
-        if (elections.isEmpty()) return List.of();
+        if (elections.isEmpty())
+            return List.of();
 
         var electionIds = elections.stream().map(e -> e.getId()).toList();
 
         Map<UUID, Long> candidateCountByElectionId = candidateRepo.countByElectionIdIn(electionIds).stream()
                 .collect(Collectors.toMap(
                         CandidateRepository.ElectionCandidateCount::getElectionId,
-                        CandidateRepository.ElectionCandidateCount::getCnt
-                ));
+                        CandidateRepository.ElectionCandidateCount::getCnt));
 
         Map<UUID, String> candidateNameById = candidateRepo.findByElectionIdIn(electionIds).stream()
                 .collect(Collectors.toMap(
                         c -> c.getId(),
                         c -> c.getName(),
-                        (a, b) -> a
-                ));
+                        (a, b) -> a));
 
         UUID citizenId = null;
         boolean identityLinked = false;
@@ -76,8 +75,7 @@ public class ElectionService {
                     .collect(Collectors.toMap(
                             v -> v.getElectionId(),
                             Function.identity(),
-                            (a, b) -> a
-                    ));
+                            (a, b) -> a));
         }
 
         final boolean finalIdentityLinked = identityLinked;
@@ -101,8 +99,7 @@ public class ElectionService {
                             currentVote = new ElectionListItem.CurrentVote(
                                     cid,
                                     candidateNameById.get(cid),
-                                    cur.getCastedAt()
-                            );
+                                    cur.getCastedAt());
                         }
                     }
 
@@ -115,10 +112,71 @@ public class ElectionService {
                             hasResult,
                             candidateCount,
                             canCast,
-                            currentVote
-                    );
+                            currentVote);
                 })
                 .toList();
+    }
+
+    public ElectionDetailResponse detail(UUID electionId, UUID accountIdOrNull) {
+        final Instant now = Instant.now();
+
+        var election = electionRepo.findById(electionId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "ELECTION_NOT_FOUND", "選挙が存在しません"));
+
+        String st = status(now, election.getStartsAt(), election.getEndsAt());
+
+        // 候補者（既存の candidates() 相当。ただし existsById は不要）
+        var candidateEntities = candidateRepo.findByElectionId(electionId);
+        var candidates = candidateEntities.stream()
+                .map(c -> new CandidateItem(c.getId(), c.getName()))
+                .toList();
+
+        int candidateCount = candidates.size();
+
+        // ログインしてて本人認証済みなら「投票可/現在票」を計算
+        boolean identityLinked = false;
+        UUID citizenId = null;
+
+        if (accountIdOrNull != null) {
+            var acc = userRepo.findById(accountIdOrNull)
+                    .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "未ログインです"));
+            citizenId = acc.getCitizenId();
+            identityLinked = (citizenId != null);
+        }
+
+        boolean canCast = identityLinked && "ONGOING".equals(st);
+
+        ElectionListItem.CurrentVote currentVote = null;
+        if (identityLinked) {
+            var curOpt = voteCurrentRepo.findByCitizenIdAndElectionIdIn(citizenId, List.of(electionId))
+                    .stream()
+                    .findFirst();
+
+            if (curOpt.isPresent()) {
+                var cur = curOpt.get();
+                UUID cid = cur.getCandidateId();
+
+                // candidate名は candidates から引ける（追加クエリしない）
+                String candidateName = candidates.stream()
+                        .filter(x -> x.id().equals(cid))
+                        .map(CandidateItem::name)
+                        .findFirst()
+                        .orElse(null);
+
+                currentVote = new ElectionListItem.CurrentVote(cid, candidateName, cur.getCastedAt());
+            }
+        }
+
+        return new ElectionDetailResponse(
+                election.getId(),
+                election.getTitle(),
+                election.getStartsAt(),
+                election.getEndsAt(),
+                st,
+                candidateCount,
+                candidates,
+                canCast,
+                currentVote);
     }
 
     public List<CandidateItem> candidates(UUID electionId) {
@@ -145,8 +203,7 @@ public class ElectionService {
         var countMap = voteCurrentRepo.countByElectionGroupByCandidate(electionId).stream()
                 .collect(Collectors.toMap(
                         VoteCurrentRepository.VoteCount::getCandidateId,
-                        VoteCurrentRepository.VoteCount::getCnt
-                ));
+                        VoteCurrentRepository.VoteCount::getCnt));
 
         long totalVotes = countMap.values().stream().mapToLong(Long::longValue).sum();
 
@@ -154,8 +211,7 @@ public class ElectionService {
                 .map(c -> new ElectionResultResponse.CandidateResult(
                         c.getId(),
                         c.getName(),
-                        countMap.getOrDefault(c.getId(), 0L)
-                ))
+                        countMap.getOrDefault(c.getId(), 0L)))
                 .sorted((a, b) -> Long.compare(b.votes(), a.votes()))
                 .toList();
 
@@ -165,13 +221,14 @@ public class ElectionService {
                 "CURRENT",
                 totalVotes,
                 now,
-                results
-        );
+                results);
     }
 
     public static String status(Instant now, Instant startsAt, Instant endsAt) {
-        if (now.isBefore(startsAt)) return "UPCOMING";
-        if (!now.isBefore(endsAt)) return "ENDED";
+        if (now.isBefore(startsAt))
+            return "UPCOMING";
+        if (!now.isBefore(endsAt))
+            return "ENDED";
         return "ONGOING";
     }
 }
