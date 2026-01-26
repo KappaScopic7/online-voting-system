@@ -1,5 +1,5 @@
-// frontend/src/auth/model/authTypes.ts
-export type TokenResponse = {
+// frontend/src/user/model/userAuthTypes.ts
+export type UserTokenResponse = {
     accessToken: string;
     tokenType: string;
     expiresInSeconds: number;

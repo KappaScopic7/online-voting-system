@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { fetchMeDetail } from "../../user/api/userAuthApi";
-import type { MeDetailResponse } from "../../auth/model/authTypes";
+import type { MeDetailResponse } from "../../user/model/userAuthTypes";
 import { useAuth } from "../../user/UserAuthContext";
 import {
     getMeProfile,

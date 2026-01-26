@@ -3,8 +3,8 @@ import { httpUser } from "../../shared/httpUser";
 import type {
     MeDetailResponse,
     MeResponse,
-    TokenResponse,
-} from "../../auth/model/authTypes";
+    UserTokenResponse,
+} from "../model/userAuthTypes";
 
 export async function register(email: string, password: string): Promise<void> {
     await httpUser.post("/api/auth/register", { email, password });
@@ -17,8 +17,8 @@ export async function verifyEmail(email: string, code: string): Promise<void> {
 export async function login(
     email: string,
     password: string,
-): Promise<TokenResponse> {
-    const res = await httpUser.post<TokenResponse>("/api/auth/login", {
+): Promise<UserTokenResponse> {
+    const res = await httpUser.post<UserTokenResponse>("/api/auth/login", {
         email,
         password,
     });
