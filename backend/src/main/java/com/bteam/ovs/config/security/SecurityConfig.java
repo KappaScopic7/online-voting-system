@@ -79,6 +79,13 @@ public class SecurityConfig {
                                 new AuthorizationDecision(isStaff(authentication.get()) && hasAnyRole(authentication.get(), "ADMIN", "COMMITTEE"))
                         )
 
+                        // ---- demo tools (demo profile前提) ----
+                        .requestMatchers("/api/demo/**").access((authentication, context) ->
+                                new AuthorizationDecision(
+                                        isStaff(authentication.get()) && hasRole(authentication.get(), "ADMIN")
+                                )
+                        )
+
                         // ---- identity (user only) ----
                         .requestMatchers("/api/identity/**").access((authentication, context) ->
                                 new AuthorizationDecision(isUser(authentication.get()))
