@@ -2,22 +2,12 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "OVS Backend (demo)",
-            "type": "java",
-            "request": "launch",
-            "mainClass": "com.bteam.ovs.OnlineVotingSystemApplication",
-            "cwd": "${workspaceFolder}/backend",
-            "preLaunchTask": "ovs: db up",
-            "env": {
-                "SPRING_PROFILES_ACTIVE": "demo"
-            }
-        }
-    ],
-    "compounds": [
-        {
             "name": "OVS ALL (demo)",
-            "configurations": ["OVS Backend (demo)"],
-            "preLaunchTask": "ovs: frontend dev"
+            "type": "chrome",
+            "request": "launch",
+            "url": "http://localhost:5173",
+            "webRoot": "${workspaceFolder}/frontend",
+            "preLaunchTask": "ovs: all (demo)"
         }
     ]
 }

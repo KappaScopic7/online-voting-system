@@ -18,6 +18,37 @@
         },
 
         {
+            "label": "ovs: backend (demo)",
+            "type": "shell",
+            "command": "cmd.exe",
+            "args": [
+                "/c",
+                "set SPRING_PROFILES_ACTIVE=demo && gradlew.bat bootRun"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}/backend"
+            },
+            "isBackground": true,
+            "problemMatcher": {
+                "owner": "ovs-backend",
+                "pattern": {
+                    "regexp": ".+",
+                    "message": 0
+                },
+                "background": {
+                    "activeOnStart": true,
+                    "beginsPattern": ".+",
+                    "endsPattern": "Started .* in|Tomcat started on port\\(s\\):"
+                }
+            },
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated",
+                "clear": true
+            }
+        },
+
+        {
             "label": "ovs: frontend install (if needed)",
             "type": "shell",
             "command": "cmd.exe",
@@ -63,6 +94,17 @@
                 "panel": "dedicated",
                 "clear": true
             }
+        },
+
+        {
+            "label": "ovs: all (demo)",
+            "dependsOn": [
+                "ovs: db up",
+                "ovs: backend (demo)",
+                "ovs: frontend dev"
+            ],
+            "dependsOrder": "sequence",
+            "problemMatcher": []
         }
     ]
 }
