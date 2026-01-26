@@ -6,41 +6,8 @@
             "type": "shell",
             "command": "docker",
             "args": ["compose", "up", "-d"],
-            "options": {
-                "cwd": "${workspaceFolder}"
-            },
+            "options": { "cwd": "${workspaceFolder}" },
             "problemMatcher": [],
-            "presentation": {
-                "reveal": "always",
-                "panel": "dedicated",
-                "clear": true
-            }
-        },
-
-        {
-            "label": "ovs: backend (demo)",
-            "type": "shell",
-            "command": "cmd.exe",
-            "args": [
-                "/c",
-                "set SPRING_PROFILES_ACTIVE=demo && gradlew.bat bootRun"
-            ],
-            "options": {
-                "cwd": "${workspaceFolder}/backend"
-            },
-            "isBackground": true,
-            "problemMatcher": {
-                "owner": "ovs-backend",
-                "pattern": {
-                    "regexp": ".+",
-                    "message": 0
-                },
-                "background": {
-                    "activeOnStart": true,
-                    "beginsPattern": ".+",
-                    "endsPattern": "Started .* in|Tomcat started on port\\(s\\):"
-                }
-            },
             "presentation": {
                 "reveal": "always",
                 "panel": "dedicated",
@@ -56,9 +23,7 @@
                 "/c",
                 "if not exist node_modules (echo node_modules not found. installing... && npm install) else (echo node_modules already exists. skip install.)"
             ],
-            "options": {
-                "cwd": "${workspaceFolder}/frontend"
-            },
+            "options": { "cwd": "${workspaceFolder}/frontend" },
             "problemMatcher": [],
             "presentation": {
                 "reveal": "always",
@@ -72,17 +37,12 @@
             "type": "shell",
             "command": "npm",
             "args": ["run", "dev"],
-            "options": {
-                "cwd": "${workspaceFolder}/frontend"
-            },
+            "options": { "cwd": "${workspaceFolder}/frontend" },
             "dependsOn": ["ovs: frontend install (if needed)"],
             "isBackground": true,
             "problemMatcher": {
                 "owner": "ovs-frontend",
-                "pattern": {
-                    "regexp": ".+",
-                    "message": 0
-                },
+                "pattern": { "regexp": ".+", "message": 0 },
                 "background": {
                     "activeOnStart": true,
                     "beginsPattern": ".+",
@@ -97,11 +57,23 @@
         },
 
         {
+            "label": "ovs: open browser",
+            "type": "shell",
+            "command": "cmd.exe",
+            "args": [
+                "/c",
+                "start http://localhost:5173 || (where chrome >nul 2>nul && start chrome http://localhost:5173) || (where msedge >nul 2>nul && start msedge http://localhost:5173) || (where vivaldi >nul 2>nul && start vivaldi http://localhost:5173)"
+            ],
+            "problemMatcher": [],
+            "presentation": { "reveal": "never", "panel": "shared" }
+        },
+
+        {
             "label": "ovs: all (demo)",
             "dependsOn": [
                 "ovs: db up",
-                "ovs: backend (demo)",
-                "ovs: frontend dev"
+                "ovs: frontend dev",
+                "ovs: open browser"
             ],
             "dependsOrder": "sequence",
             "problemMatcher": []
