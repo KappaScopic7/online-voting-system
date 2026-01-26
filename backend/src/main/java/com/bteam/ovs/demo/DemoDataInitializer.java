@@ -25,7 +25,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.transaction.support.TransactionTemplate;
 
 import java.io.InputStream;
 import java.time.Instant;
@@ -45,33 +44,8 @@ public class DemoDataInitializer {
     private static final String DEMO_COMMITTEE_PASSWORD = "Passw0rd!!";
 
     @Bean
-    CommandLineRunner demoInit(
-            UserAccountRepository userRepo,
-            StaffAccountRepository staffRepo,
-            ElectionRepository electionRepo,
-            CandidateRepository candidateRepo,
-            VoteCastRepository voteCastRepo,
-            VoteCurrentRepository voteCurrentRepo,
-            CitizenRepository citizenRepo,
-            ElectionEligibilityRuleRepository ruleRepo,
-            PasswordEncoder passwordEncoder,
-            TransactionTemplate tx,
-            ObjectMapper objectMapper
-    ) {
-        return args -> tx.executeWithoutResult(status ->
-                init(
-                        userRepo,
-                        staffRepo,
-                        electionRepo,
-                        candidateRepo,
-                        voteCastRepo,
-                        voteCurrentRepo,
-                        citizenRepo,
-                        ruleRepo,
-                        passwordEncoder,
-                        objectMapper
-                )
-        );
+    CommandLineRunner demoInit(DemoDataService demoDataService) {
+        return args -> demoDataService.resetAndSeed();
     }
 
     void init(
