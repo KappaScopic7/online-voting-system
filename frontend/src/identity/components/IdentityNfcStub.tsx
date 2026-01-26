@@ -1,7 +1,7 @@
 // frontend/src/identity/components/IdentityNfcStub.tsx
 import { useMemo, useState } from "react";
 import { linkIdentity } from "../api/identity";
-import { useAuth } from "../../auth/AuthContext";
+import { useAuth } from "../../auth/UserAuthContext";
 import { demoPersonas } from "../../demo/personas";
 
 function isUuidLike(v: string) {

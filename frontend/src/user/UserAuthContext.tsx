@@ -1,4 +1,4 @@
-// frontend/src/auth/AuthContext.tsx
+// frontend/src/auth/UserAuthContext.tsx
 import React, {
     createContext,
     useContext,
@@ -6,8 +6,8 @@ import React, {
     useMemo,
     useState,
 } from "react";
-import type { MeResponse } from "./model/authTypes";
-import { fetchMe } from "./api/authApi";
+import type { MeResponse } from "../auth/model/authTypes";
+import { fetchMe } from "../user/api/userAuthApi";
 import { userToken } from "../shared/tokenStorage";
 
 type AuthState = {

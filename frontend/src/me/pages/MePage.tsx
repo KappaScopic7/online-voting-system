@@ -1,15 +1,15 @@
 // frontend/src/me/pages/MePage.tsx
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { fetchMeDetail } from "../../auth/api/authApi";
+import { fetchMeDetail } from "../../user/api/userAuthApi";
 import type { MeDetailResponse } from "../../auth/model/authTypes";
-import { useAuth } from "../../auth/AuthContext";
+import { useAuth } from "../../user/UserAuthContext";
 import {
     getMeProfile,
     putMeProfile,
-    type MeProfileResponse,
-} from "../../auth/api/meProfile";
-import { login } from "../../auth/api/authApi";
+} from "../../me/api/profile";
+import type { MeProfileResponse } from "../../me/model/profileTypes";
+import { login } from "../../user/api/userAuthApi";
 import { demoPersonas } from "../../demo/personas";
 
 export function MePage() {

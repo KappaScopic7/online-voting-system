@@ -1,7 +1,7 @@
 // frontend/src/auth/pages/VerifyEmailPage.tsx
 import { useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { verifyEmail } from "../api/authApi";
+import { verifyEmail } from "../../user/api/userAuthApi";
 import { normalizeFrom } from "../../shared/normalizeFrom";
 
 type LocationState = {

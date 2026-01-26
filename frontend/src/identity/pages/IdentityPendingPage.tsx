@@ -1,7 +1,7 @@
 // frontend/src/identity/pages/IdentityPendingPage.tsx
 import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { useAuth } from "../../auth/AuthContext";
+import { useAuth } from "../../auth/UserAuthContext";
 
 type LocationState = {
     from?: string;

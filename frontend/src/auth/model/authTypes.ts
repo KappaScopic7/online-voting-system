@@ -26,7 +26,7 @@ export type MeResponse = {
 export type MeDetailResponse = {
     accountId: string;
     email: string;
-    role: Role | null; // ← string|null だったけど揃えるのが気持ちいい
+    role: Role | null;
     emailVerified: boolean;
     enabled: boolean;
     locked: boolean;

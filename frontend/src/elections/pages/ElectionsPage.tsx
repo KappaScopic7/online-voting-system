@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { fetchElections, type ElectionListItem } from "../api/elections";
-import { useAuth } from "../../auth/AuthContext";
+import { useAuth } from "../../auth/UserAuthContext";
 import {
     formatJST,
     statusLabel,

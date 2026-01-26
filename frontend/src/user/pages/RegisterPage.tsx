@@ -1,7 +1,7 @@
 // frontend/src/auth/pages/RegisterPage.tsx
 import { useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { register } from "../api/authApi";
+import { register } from "../../user/api/userAuthApi";
 import { normalizeFrom } from "../../shared/normalizeFrom";
 
 function isValidEmail(v: string) {

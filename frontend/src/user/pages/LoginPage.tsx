@@ -1,8 +1,8 @@
 // frontend/src/auth/pages/LoginPage.tsx
 import { useMemo, useState } from "react";
 import { useLocation, useNavigate, Link } from "react-router-dom";
-import { login } from "../api/authApi";
-import { useAuth } from "../AuthContext";
+import { login } from "../../user/api/userAuthApi";
+import { useAuth } from "../../user/UserAuthContext";
 import { normalizeFrom } from "../../shared/normalizeFrom";
 import { demoPersonas } from "../../demo/personas";
 
