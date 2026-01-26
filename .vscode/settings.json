@@ -1,16 +1,18 @@
 {
-    "editor.tabSize": 4,
-    "editor.insertSpaces": true,
-    "editor.detectIndentation": false,
-
+    // 保存時フォーマットON
     "editor.formatOnSave": true,
-    "editor.defaultFormatter": "esbenp.prettier-vscode",
 
-    "editor.codeActionsOnSave": {
-        "source.fixAll.eslint": "never"
+    // Javaは Red Hat Java 拡張でフォーマット
+    "[java]": {
+        "editor.defaultFormatter": "redhat.java",
+        "editor.formatOnSave": true
     },
 
-    "prettier.tabWidth": 4,
-    "prettier.useTabs": false,
+    // Eclipse formatter を指定
+    "java.format.settings.url": "backend/eclipse-java-formatter.xml",
+    "java.format.settings.profile": "OVS-4spaces",
+
+    // 自動インデント検出を切る（超重要）
+    "editor.detectIndentation": false,
     "java.compile.nullAnalysis.mode": "disabled"
 }
