@@ -15,7 +15,8 @@ import java.util.Map;
 import java.util.List;
 import java.util.UUID;
 
-@RestController @RequestMapping("/api/elections")
+@RestController
+@RequestMapping("/api/elections")
 public class ElectionsController {
 
     private final ElectionService electionService;

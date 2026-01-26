@@ -1,22 +1,22 @@
 services:
-  db:
-    image: postgres:16
-    container_name: ovs-postgres
-    restart: always
-    environment:
-      POSTGRES_USER: ovs
-      POSTGRES_PASSWORD: ovs
-      POSTGRES_DB: ovs
-      TZ: Asia/Tokyo
-    ports:
-      - "5432:5432"
-    volumes:
-      - ovs_pg:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ovs -d ovs"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
+    db:
+        image: postgres:16
+        container_name: ovs-postgres
+        restart: always
+        environment:
+            POSTGRES_USER: ovs
+            POSTGRES_PASSWORD: ovs
+            POSTGRES_DB: ovs
+            TZ: Asia/Tokyo
+        ports:
+            - "5432:5432"
+        volumes:
+            - ovs_pg:/var/lib/postgresql/data
+        healthcheck:
+            test: ["CMD-SHELL", "pg_isready -U ovs -d ovs"]
+            interval: 5s
+            timeout: 5s
+            retries: 10
 
 volumes:
-  ovs_pg:
+    ovs_pg:

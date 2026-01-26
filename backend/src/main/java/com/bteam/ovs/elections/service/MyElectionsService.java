@@ -22,8 +22,7 @@ public class MyElectionsService {
     public MyElectionsService(
             EligibilityProfileResolver resolver,
             ElectionEligibilityRuleRepository ruleRepo,
-            ElectionRepository electionRepo
-    ) {
+            ElectionRepository electionRepo) {
         this.resolver = resolver;
         this.ruleRepo = ruleRepo;
         this.electionRepo = electionRepo;
@@ -48,12 +47,15 @@ public class MyElectionsService {
         // 年齢条件でさらに絞り、該当 electionId を集める
         Set<UUID> electionIds = new HashSet<>();
         for (var r : rules) {
-            if (r.getElectionId() == null) continue;
-            if (!passesMinAge(age, r.getMinAge())) continue;
+            if (r.getElectionId() == null)
+                continue;
+            if (!passesMinAge(age, r.getMinAge()))
+                continue;
             electionIds.add(r.getElectionId());
         }
 
-        if (electionIds.isEmpty()) return List.of();
+        if (electionIds.isEmpty())
+            return List.of();
 
         // election をまとめて引く
         // 戻り順はDB次第なので、必要なら並べ替える
@@ -65,7 +67,8 @@ public class MyElectionsService {
     }
 
     private Integer calcAge(LocalDate birthDate, LocalDate today) {
-        if (birthDate == null) return null;
+        if (birthDate == null)
+            return null;
         try {
             return Period.between(birthDate, today).getYears();
         } catch (Exception e) {
@@ -74,8 +77,10 @@ public class MyElectionsService {
     }
 
     private boolean passesMinAge(Integer age, Integer minAge) {
-        if (minAge == null) return true;   // 条件なし
-        if (age == null) return false;     // 年齢不明なら条件を満たせない
+        if (minAge == null)
+            return true; // 条件なし
+        if (age == null)
+            return false; // 年齢不明なら条件を満たせない
         return age >= minAge;
     }
 }

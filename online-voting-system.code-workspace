@@ -1,14 +1,25 @@
 {
     "folders": [
-        { "name": "workspace", "path": "." },
-        { "name": "frontend", "path": "frontend/src" },
-        { "name": "backend", "path": "backend/src/main/java/com/bteam/ovs" },
-        { "name": "resources", "path": "backend/src/main/resources" },
+        {
+            "name": "workspace",
+            "path": "."
+        },
+        {
+            "name": "frontend",
+            "path": "frontend/src"
+        },
+        {
+            "name": "backend",
+            "path": "backend/src/main/java/com/bteam/ovs"
+        },
+        {
+            "name": "resources",
+            "path": "backend/src/main/resources"
+        },
     ],
     "settings": {
         "java.compile.nullAnalysis.mode": "disabled",
         "java.configuration.updateBuildConfiguration": "interactive",
-
         "files.exclude": {
             // ===== root で非表示 =====
             // ".vscode": true,
@@ -18,18 +29,15 @@
             "package-lock.json": true,
             "frontend": true,
             "backend": true,
-
             // ===== dotfiles =====
             ".editorconfig": true,
             ".gitattributes": true,
             ".gitignore": true,
             ".prettierrc": true,
-
             // ===== どのフォルダから見ても確実に隠す =====
             "**/OnlineVotingSystemApplication.java": true,
             "**/application.yaml": true,
             "**/application.properties": true,
-
             // ===== 共通ノイズ =====
             "**/node_modules": true,
             "**/.gradle": true,
@@ -37,7 +45,6 @@
             "**/bin": true,
             "**/dist": true,
         },
-
         "search.exclude": {
             "**/node_modules": true,
             "**/.gradle": true,

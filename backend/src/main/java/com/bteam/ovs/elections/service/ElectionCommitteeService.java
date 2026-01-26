@@ -38,13 +38,10 @@ public class ElectionCommitteeService {
     @Transactional(readOnly = true)
     public ElectionResponse getElection(UUID electionId) {
         Election e = electionRepo.findById(electionId)
-                .orElseThrow(() ->
-                        new ApiException(
-                                HttpStatus.NOT_FOUND,
-                                "ELECTION_NOT_FOUND",
-                                "選挙が存在しません"
-                        )
-                );
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.NOT_FOUND,
+                        "ELECTION_NOT_FOUND",
+                        "選挙が存在しません"));
 
         return toResponse(e);
     }
@@ -54,7 +51,6 @@ public class ElectionCommitteeService {
                 e.getId(),
                 e.getTitle(),
                 e.getStartsAt(),
-                e.getEndsAt()
-        );
+                e.getEndsAt());
     }
 }

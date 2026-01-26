@@ -7,5 +7,5 @@ public record ElectionResponse(
         UUID electionId,
         String title,
         Instant startsAt,
-        Instant endsAt
-) {}
+        Instant endsAt) {
+}

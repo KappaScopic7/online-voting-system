@@ -7,5 +7,5 @@ public record MyElectionItem(
         UUID electionId,
         String title,
         Instant startsAt,
-        Instant endsAt
-) {}
+        Instant endsAt) {
+}

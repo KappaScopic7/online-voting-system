@@ -48,8 +48,7 @@ public class ElectionAdminService {
             throw new ApiException(
                     HttpStatus.BAD_REQUEST,
                     "INVALID_PERIOD",
-                    "startsAt は endsAt より前である必要があります"
-            );
+                    "startsAt は endsAt より前である必要があります");
         }
 
         var e = new Election();

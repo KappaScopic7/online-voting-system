@@ -9,13 +9,10 @@ import java.time.Instant;
 import java.util.UUID;
 
 @Entity
-@Table(
-        name = "election_eligibility_rule",
-        indexes = {
-                @Index(name = "ix_eer_election_id", columnList = "election_id"),
-                @Index(name = "ix_eer_city_code", columnList = "city_code")
-        }
-)
+@Table(name = "election_eligibility_rule", indexes = {
+        @Index(name = "ix_eer_election_id", columnList = "election_id"),
+        @Index(name = "ix_eer_city_code", columnList = "city_code")
+})
 @Getter
 @Setter
 @NoArgsConstructor
@@ -43,9 +40,11 @@ public class ElectionEligibilityRule {
 
     @PrePersist
     void onCreate() {
-        if (id == null) id = UUID.randomUUID();
+        if (id == null)
+            id = UUID.randomUUID();
         var now = Instant.now();
-        if (createdAt == null) createdAt = now;
+        if (createdAt == null)
+            createdAt = now;
         updatedAt = now;
     }
 

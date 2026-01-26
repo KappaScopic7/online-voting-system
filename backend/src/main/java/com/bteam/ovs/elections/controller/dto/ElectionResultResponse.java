@@ -10,11 +10,10 @@ public record ElectionResultResponse(
         String countingMethod,
         long totalVotes,
         Instant talliedAt,
-        List<CandidateResult> results
-) {
+        List<CandidateResult> results) {
     public record CandidateResult(
             UUID candidateId,
             String name,
-            long votes
-    ) {}
+            long votes) {
+    }
 }
