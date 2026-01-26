@@ -1,6 +1,6 @@
 // frontend/src/layout/PublicLayout.tsx
 import { Link, Outlet, useNavigate } from "react-router-dom";
-import { useAuth } from "../../auth/AuthContext";
+import { useAuth } from "../../user/UserAuthContext";
 import { useStaffAuth } from "../../staff/StaffAuthContext";
 import { useState } from "react";
 
