@@ -86,7 +86,7 @@ export function ElectionsPage() {
     const isDev = import.meta.env?.DEV;
 
     return (
-        <div style={{ padding: 16, display: "grid", gap: 12, maxWidth: 960 }}>
+        <div style={{ padding: 12, display: "grid", gap: 12}}>
             {/* Header */}
             <header
                 style={{
@@ -96,10 +96,11 @@ export function ElectionsPage() {
                     flexWrap: "wrap",
                 }}
             >
-                <h2 style={{ margin: 0 }}>Elections</h2>
+
+                <h2 style={{ margin: 0 }}>選挙一覧</h2>
 
                 <button onClick={load} disabled={isLoading}>
-                    {isLoading ? "Reloading..." : "Reload"}
+                    {isLoading ? "Reloading..." : "再読み込み"}
                 </button>
 
                 <div

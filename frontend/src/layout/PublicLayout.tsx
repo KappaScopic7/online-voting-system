@@ -60,7 +60,7 @@ export function PublicLayout() {
                             <Link to="/me/elections">My選挙</Link>
                             <Link to="/me/votes">投票履歴</Link>
                             <button type="button" onClick={onLogout}>
-                                Logout
+                                ログアウト
                             </button>
                         </>
                     )}
