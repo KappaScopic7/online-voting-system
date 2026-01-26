@@ -84,6 +84,7 @@ export function PublicLayout() {
         } finally {
             setResetting(false);
         }
+        
     };
 
     return (
