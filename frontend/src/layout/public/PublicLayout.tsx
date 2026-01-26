@@ -101,14 +101,14 @@ useEffect(() => {
             const y = window.scrollY;
             const lastY = lastYRef.current;
 
-            const diff = y - lastY; // +: down, -: up
-            const THRESHOLD = 20;   // 작은 흔들림 무시
-            const TOP_LOCK = 60;    // 맨 위 근처에선 항상 보이기
+            const diff = y - lastY;  
+            const THRESHOLD = 20;    
+            const TOP_LOCK = 60;     
 
             if (y <= TOP_LOCK) {
                 setShowTopBar(true);
             } else if (Math.abs(diff) >= THRESHOLD) {
-                setShowTopBar(diff < 0); // up이면 true, down이면 false
+                setShowTopBar(diff < 0);  
                 lastYRef.current = y;
             }
 
@@ -122,7 +122,7 @@ useEffect(() => {
 
     return (
          <div style={{ padding: 16 }}>
-    {/* ✅ header + nav 를 감싸는 sticky wrapper 추가 */}
+    
     <div
       style={{
         position: "sticky",
@@ -203,7 +203,7 @@ useEffect(() => {
     </div>
 
     <Outlet />
- 
+
 
             <footer
                 style={{
