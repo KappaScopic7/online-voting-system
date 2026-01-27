@@ -1,7 +1,6 @@
-// frontend/src/auth/routes/RequireAuth.tsx
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "../../user/UserAuthContext";
-import { normalizeFrom } from "../../shared/normalizeFrom";
+import { currentAsFrom, sanitizeReturnTo } from "./returnTo";
 
 export function RequireAuth() {
     const { isLoading, me } = useAuth();
@@ -10,8 +9,11 @@ export function RequireAuth() {
     if (isLoading) return <div>Loading...</div>;
 
     if (!me) {
-        const from = normalizeFrom(loc.pathname + loc.search);
-        return <Navigate to="/login" replace state={{ from }} />;
+        const returnTo = sanitizeReturnTo(
+            currentAsFrom(loc.pathname, loc.search),
+            "/",
+        );
+        return <Navigate to="/login" replace state={{ from: returnTo }} />;
     }
 
     return <Outlet />;
