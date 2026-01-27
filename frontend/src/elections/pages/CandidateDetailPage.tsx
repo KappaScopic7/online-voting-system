@@ -1,0 +1,184 @@
+// frontend/src/elections/pages/CandidateDetailPage.tsx
+import { useEffect, useState } from "react";
+import { Link, useLocation, useParams } from "react-router-dom";
+import { fetchCandidateDetail } from "../api/candidates";
+import type { CandidateDetailResponse } from "../model/candidateTypes";
+
+export function CandidateDetailPage() {
+    const { electionId, candidateId } = useParams();
+    const loc = useLocation();
+    const from = (loc.state as any)?.from ?? "/elections";
+
+    const [data, setData] = useState<CandidateDetailResponse | null>(null);
+    const [err, setErr] = useState<string | null>(null);
+    const [isLoading, setIsLoading] = useState(false);
+
+    const load = async () => {
+        if (!electionId || !candidateId) return;
+        setErr(null);
+        setIsLoading(true);
+        try {
+            const d = await fetchCandidateDetail(electionId, candidateId);
+            setData(d);
+        } catch (e: any) {
+            setErr(e?.response?.data?.message ?? "Failed to load candidate");
+            setData(null);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        load();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [electionId, candidateId]);
+
+    return (
+        <div style={{ padding: 12, display: "grid", gap: 12, maxWidth: 760 }}>
+            <header
+                style={{
+                    display: "flex",
+                    gap: 12,
+                    alignItems: "center",
+                    flexWrap: "wrap",
+                }}
+            >
+                <Link to={from}>&larr; 戻る</Link>
+                <h2 style={{ margin: 0 }}>候補者詳細</h2>
+                <button
+                    onClick={load}
+                    disabled={isLoading}
+                    style={{ marginLeft: "auto" }}
+                >
+                    {isLoading ? "Reloading..." : "再読み込み"}
+                </button>
+            </header>
+
+            {err && (
+                <div
+                    role="alert"
+                    style={{ padding: 8, border: "1px solid #ccc" }}
+                >
+                    {err}
+                </div>
+            )}
+
+            {!data ? (
+                <p>{isLoading ? "Loading..." : "Not loaded"}</p>
+            ) : (
+                <section
+                    style={{
+                        border: "1px solid #ddd",
+                        borderRadius: 8,
+                        padding: 12,
+                        display: "grid",
+                        gap: 10,
+                    }}
+                >
+                    <div
+                        style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            gap: 12,
+                            alignItems: "center",
+                        }}
+                    >
+                        <div style={{ display: "grid", gap: 4 }}>
+                            <strong style={{ fontSize: 18 }}>
+                                {data.name}
+                            </strong>
+                            <div style={{ fontSize: 13, opacity: 0.85 }}>
+                                {data.title}
+                                {data.age !== null ? ` / ${data.age}歳` : ""}
+                            </div>
+                        </div>
+
+                        {data.party ? (
+                            <Link
+                                to={`/parties/${data.party.partyKey}`}
+                                state={{ from: loc.pathname + loc.search }}
+                                style={{
+                                    fontSize: 12,
+                                    padding: "4px 10px",
+                                    border: "1px solid #ccc",
+                                    borderRadius: 999,
+                                    textDecoration: "none",
+                                }}
+                                title={data.party.name}
+                            >
+                                {data.party.shortName}
+                            </Link>
+                        ) : (
+                            <span style={{ fontSize: 12, opacity: 0.6 }}>
+                                無所属
+                            </span>
+                        )}
+                    </div>
+
+                    {data.imageUrl ? (
+                        <img
+                            src={data.imageUrl}
+                            alt={data.name}
+                            style={{
+                                width: "100%",
+                                maxWidth: 420,
+                                borderRadius: 8,
+                                border: "1px solid #eee",
+                            }}
+                        />
+                    ) : null}
+
+                    <div style={{ fontSize: 14, lineHeight: 1.6 }}>
+                        {data.bio}
+                    </div>
+
+                    {data.policies?.length ? (
+                        <div style={{ display: "grid", gap: 6 }}>
+                            <strong>主な政策</strong>
+                            <ul style={{ margin: 0, paddingLeft: 18 }}>
+                                {data.policies.map((x, i) => (
+                                    <li key={i}>{x}</li>
+                                ))}
+                            </ul>
+                        </div>
+                    ) : (
+                        <div style={{ opacity: 0.7, fontSize: 13 }}>
+                            政策情報はありません
+                        </div>
+                    )}
+
+                    <div
+                        style={{
+                            display: "flex",
+                            gap: 12,
+                            flexWrap: "wrap",
+                            alignItems: "center",
+                        }}
+                    >
+                        {data.websiteUrl ? (
+                            <a
+                                href={data.websiteUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                            >
+                                公式サイト
+                            </a>
+                        ) : (
+                            <span style={{ opacity: 0.6 }}>公式サイトなし</span>
+                        )}
+
+                        <span
+                            style={{
+                                marginLeft: "auto",
+                                fontSize: 12,
+                                opacity: 0.7,
+                            }}
+                        >
+                            key: {data.candidateKey} / sort: {data.sortOrder}
+                        </span>
+                    </div>
+                </section>
+            )}
+        </div>
+    );
+}

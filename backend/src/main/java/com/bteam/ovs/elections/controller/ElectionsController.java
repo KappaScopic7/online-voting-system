@@ -77,6 +77,7 @@ public class ElectionsController {
     @GetMapping("/{electionId}/result")
     public ElectionResultResponse result(@PathVariable("electionId") UUID electionId) {
         return electionService.result(electionId);
+    }
 
     @GetMapping("/{electionId}/candidates/{candidateId}")
     public CandidateDetailResponse candidateDetail(

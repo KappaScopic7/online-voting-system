@@ -4,14 +4,13 @@ package com.bteam.ovs.elections.controller.dto;
 import java.util.UUID;
 
 public record CandidateItem(
-        UUID candidateId,
+        UUID id,
         String candidateKey,
         String name,
         Integer age,
         String title,
         int sortOrder,
-        PartyEmbed party // 無所属なら null
-) {
+        PartyEmbed party) {
     public record PartyEmbed(
             String partyKey,
             String shortName,

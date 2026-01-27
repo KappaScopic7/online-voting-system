@@ -7,19 +7,21 @@ import java.util.UUID;
 public record CandidateDetailResponse(
         UUID candidateId,
         UUID electionId,
-
         String candidateKey,
         String name,
         Integer age,
-
-        PartySummary party, // ★ここ（無所属は null）
-
         String title,
         String bio,
         List<String> policies,
-
         String websiteUrl,
         String imageUrl,
-
-        int sortOrder) {
+        PartyEmbed party) {
+    public record PartyEmbed(
+            String partyKey,
+            String shortName,
+            String name,
+            String color,
+            String description,
+            List<String> ideologyTags) {
+    }
 }

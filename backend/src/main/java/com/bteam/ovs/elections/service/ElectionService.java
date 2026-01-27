@@ -4,7 +4,6 @@ import com.bteam.ovs.auth.repository.UserAccountRepository;
 import com.bteam.ovs.elections.controller.dto.CandidateDetailResponse;
 import com.bteam.ovs.elections.controller.dto.CandidateItem;
 import com.bteam.ovs.elections.controller.dto.ElectionDetailResponse;
-import com.bteam.ovs.elections.controller.dto.PartySummary;
 import com.bteam.ovs.elections.controller.dto.ElectionListItem;
 import com.bteam.ovs.elections.controller.dto.ElectionResultResponse;
 import com.bteam.ovs.elections.repository.CandidateRepository;
@@ -310,18 +309,23 @@ public class ElectionService {
                         "CANDIDATE_NOT_FOUND",
                         "候補者が存在しません"));
 
-        PartySummary party = null;
-        if (c.getPartyKey() != null && !c.getPartyKey().isBlank()) {
-            var p = partyRepo.findByPartyKey(c.getPartyKey()).orElse(null);
-            if (p != null) {
-                party = new PartySummary(
-                        p.getPartyKey(),
-                        p.getName(),
-                        p.getShortName(),
-                        p.getColor());
-            }
-            // ★partyKeyはDBにあるのに party が無いのはデータ不整合
-            // 厳密にしたいなら throw にしてもOK（demo seedで validate 済みならthrow推奨）
+        CandidateDetailResponse.PartyEmbed party = null;
+
+        String partyKey = blankToNull(c.getPartyKey());
+        if (partyKey != null) {
+            var p = partyRepo.findByPartyKey(partyKey)
+                    .orElseThrow(() -> new ApiException(
+                            HttpStatus.NOT_FOUND,
+                            "PARTY_NOT_FOUND",
+                            "政党が見つかりません: " + partyKey));
+
+            party = new CandidateDetailResponse.PartyEmbed(
+                    p.getPartyKey(),
+                    p.getShortName(),
+                    p.getName(),
+                    p.getColor(),
+                    p.getDescription(),
+                    (p.getIdeologyTags() == null) ? List.of() : p.getIdeologyTags());
         }
 
         return new CandidateDetailResponse(
@@ -330,12 +334,11 @@ public class ElectionService {
                 c.getCandidateKey(),
                 c.getName(),
                 c.getAge(),
-                party,
                 c.getTitle(),
                 c.getBio(),
                 (c.getPolicies() == null) ? List.of() : c.getPolicies(),
                 c.getWebsiteUrl(),
                 c.getImageUrl(),
-                c.getSortOrder());
+                party);
     }
 }
