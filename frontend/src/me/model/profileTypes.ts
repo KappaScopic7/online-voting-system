@@ -1,10 +1,10 @@
 // frontend/src/me/model/profileTypes.ts
-export type MeProfileSource = "SELF";
+export type MeProfileSource = "SELF" | "CITIZEN";
 
 export type MeProfileResponse = {
     accountId: string;
     source: MeProfileSource;
-    birthDate: string; // yyyy-MM-dd
+    birthDate: string;
     prefCode: string;
     cityCode: string;
     createdAt: string;

@@ -1,89 +1,109 @@
 [
     {
-        "key": "hr51_upcoming_notvoted",
-        "title": "第51回衆院選2026 小選挙区（開始前・未投票）",
+        "electionKey": "sangi_tokyo_2026_upcoming",
+        "title": "参議院議員通常選挙 2026（東京選挙区）(開始前)",
+        "summary": "東京都（町田市を含む）在住の有権者が投票できます。投票は候補者1名に投票する方式です。",
+        "electionType": "UPPER_HOUSE",
+        "district": {
+            "prefCode": "13",
+            "cityCode": "13209",
+            "label": "東京都 町田市（参考表示）"
+        },
+        "ballotType": "SINGLE_CHOICE",
         "startsAtOffsetSec": 86400,
         "endsAtOffsetSec": 172800,
-        "candidates": ["候補A_第51", "候補B_第51", "候補C_第51"]
+        "candidates": [
+            "cand_suzuki",
+            "cand_tanaka",
+            "cand_mori",
+            "cand_kato",
+            "cand_nakamura"
+        ]
     },
     {
-        "key": "hr51_open_notvoted",
-        "title": "第51回衆院選2026 小選挙区（開催中・未投票）",
+        "electionKey": "sangi_tokyo_2026_open",
+        "title": "参議院議員通常選挙 2026（東京選挙区）(開催中)",
+        "summary": "東京都（町田市を含む）在住の有権者が投票できます。投票は候補者1名に投票する方式です。",
+        "electionType": "UPPER_HOUSE",
+        "district": {
+            "prefCode": "13",
+            "cityCode": "13209",
+            "label": "東京都 町田市（参考表示）"
+        },
+        "ballotType": "SINGLE_CHOICE",
         "startsAtOffsetSec": -3600,
         "endsAtOffsetSec": 86400,
-        "candidates": ["候補A_第51", "候補B_第51", "候補C_第51"]
+        "candidates": [
+            "cand_suzuki",
+            "cand_tanaka",
+            "cand_mori",
+            "cand_kato",
+            "cand_nakamura"
+        ]
     },
     {
-        "key": "hr51_open_voted",
-        "title": "第51回衆院選2026 小選挙区（開催中・投票済み）",
-        "startsAtOffsetSec": -7200,
-        "endsAtOffsetSec": 86400,
-        "candidates": ["候補A_第51", "候補B_第51", "候補C_第51"]
-    },
-    {
-        "key": "hr51_ended_notvoted",
-        "title": "第51回衆院選2026 小選挙区（終了済み・未投票）",
+        "electionKey": "sangi_tokyo_2026_ended",
+        "title": "参議院議員通常選挙 2026（東京選挙区）(終了済み)",
+        "summary": "選挙終了後、結果が公開されます。",
+        "electionType": "UPPER_HOUSE",
+        "district": {
+            "prefCode": "13",
+            "cityCode": "13209",
+            "label": "東京都 町田市（参考表示）"
+        },
+        "ballotType": "SINGLE_CHOICE",
         "startsAtOffsetSec": -259200,
         "endsAtOffsetSec": -172800,
-        "candidates": ["候補A_第51", "候補B_第51", "候補C_第51"]
-    },
-    {
-        "key": "hr51_ended_voted",
-        "title": "第51回衆院選2026 小選挙区（終了済み・投票済み）",
-        "startsAtOffsetSec": -172800,
-        "endsAtOffsetSec": -86400,
-        "candidates": ["候補A_第51", "候補B_第51", "候補C_第51"]
-    },
-
-    {
-        "key": "hr51_open_two_choices_voted",
-        "title": "第51回衆院選2026 国民審査風（2択・投票済み）",
-        "startsAtOffsetSec": -3600,
-        "endsAtOffsetSec": 86400,
-        "candidates": ["信任", "不信任"]
-    },
-    {
-        "key": "hr51_open_many_candidates",
-        "title": "第51回衆院選2026 比例代表風（候補5・開催中）",
-        "startsAtOffsetSec": -3600,
-        "endsAtOffsetSec": 86400,
-        "candidates": ["候補A", "候補B", "候補C", "候補D", "候補E"]
+        "candidates": [
+            "cand_suzuki",
+            "cand_tanaka",
+            "cand_mori",
+            "cand_kato",
+            "cand_nakamura"
+        ]
     },
 
     {
-        "key": "hr51_open_target_yokohama",
-        "title": "第51回衆院選2026（対象：横浜14100）",
+        "electionKey": "demo_two_choices_open",
+        "title": "デモ：信任投票（2択・開催中）",
+        "summary": "システム動作確認用の2択投票です。",
+        "electionType": "DEMO",
+        "district": { "prefCode": "13", "cityCode": "13209", "label": "デモ" },
+        "ballotType": "TWO_CHOICES",
         "startsAtOffsetSec": -3600,
         "endsAtOffsetSec": 86400,
-        "candidates": ["候補A", "候補B", "候補C"]
-    },
-    {
-        "key": "hr51_open_minage30",
-        "title": "第51回衆院選2026（対象：町田13209 / minAge=30）",
-        "startsAtOffsetSec": -3600,
-        "endsAtOffsetSec": 86400,
-        "candidates": ["候補A", "候補B", "候補C"]
-    },
-    {
-        "key": "hr51_open_rules_multi_city_or",
-        "title": "第51回衆院選2026（複数ルール：町田13209 OR 横浜14100）",
-        "startsAtOffsetSec": -3600,
-        "endsAtOffsetSec": 86400,
-        "candidates": ["候補A", "候補B", "候補C"]
+        "candidates": ["cand_trust", "cand_distrust"]
     },
 
     {
-        "key": "hr50_ended_voted",
-        "title": "第50回衆院選2024（過去・投票済み履歴用）",
-        "startsAtOffsetSec": -31536000,
-        "endsAtOffsetSec": -31449600,
-        "candidates": ["候補A_第50", "候補B_第50", "候補C_第50"]
+        "electionKey": "demo_target_yokohama_open",
+        "title": "デモ：対象地域テスト（横浜14100のみ）",
+        "summary": "cityCode=14100 のみ投票可能なテスト選挙です。",
+        "electionType": "DEMO",
+        "district": {
+            "prefCode": "14",
+            "cityCode": "14100",
+            "label": "神奈川県 横浜市"
+        },
+        "ballotType": "SINGLE_CHOICE",
+        "startsAtOffsetSec": -3600,
+        "endsAtOffsetSec": 86400,
+        "candidates": ["cand_demo_a", "cand_demo_b", "cand_demo_c"]
     },
+
     {
-        "key": "hr50_ended_notvoted",
-        "title": "第50回衆院選2024（過去・未投票履歴用）",
-        "startsAtOffsetSec": -31622400,
-        "endsAtOffsetSec": -31536000,
-        "candidates": ["候補A_第50", "候補B_第50", "候補C_第50"]
+        "electionKey": "demo_machida_minage30_open",
+        "title": "デモ：町田13209 / minAge=30 テスト",
+        "summary": "30歳以上のみ投票可能なテスト選挙です。",
+        "electionType": "DEMO",
+        "district": {
+            "prefCode": "13",
+            "cityCode": "13209",
+            "label": "東京都 町田市"
+        },
+        "ballotType": "SINGLE_CHOICE",
+        "startsAtOffsetSec": -3600,
+        "endsAtOffsetSec": 86400,
+        "candidates": ["cand_demo_a", "cand_demo_b", "cand_demo_c"]
     }
 ]

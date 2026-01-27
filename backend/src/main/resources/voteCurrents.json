@@ -1,41 +1,34 @@
 [
     {
-        "electionKey": "hr51_open_voted",
+        "electionKey": "sangi_tokyo_2026_open",
         "citizenId": "550e8400-e29b-41d4-a716-446655440000",
         "candidateIndex": 1,
         "castedAtOffsetSec": -1800
     },
     {
-        "electionKey": "hr51_open_two_choices_voted",
+        "electionKey": "demo_two_choices_open",
         "citizenId": "550e8400-e29b-41d4-a716-446655440000",
         "candidateIndex": 0,
         "castedAtOffsetSec": -1200
     },
     {
-        "electionKey": "hr51_ended_voted",
+        "electionKey": "sangi_tokyo_2026_ended",
         "citizenId": "550e8400-e29b-41d4-a716-446655440000",
         "candidateIndex": 2,
         "castedAtOffsetSec": -90000
     },
 
     {
-        "electionKey": "hr51_open_target_yokohama",
+        "electionKey": "demo_target_yokohama_open",
         "citizenId": "550e8400-e29b-41d4-a716-446655440002",
         "candidateIndex": 0,
         "castedAtOffsetSec": -2400
     },
 
     {
-        "electionKey": "hr51_open_minage30",
+        "electionKey": "demo_machida_minage30_open",
         "citizenId": "550e8400-e29b-41d4-a716-446655440004",
         "candidateIndex": 2,
         "castedAtOffsetSec": -3000
-    },
-
-    {
-        "electionKey": "hr50_ended_voted",
-        "citizenId": "550e8400-e29b-41d4-a716-446655440000",
-        "candidateIndex": 0,
-        "castedAtOffsetSec": -31500000
     }
 ]

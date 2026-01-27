@@ -3,9 +3,7 @@ package com.bteam.ovs.demo;
 import com.bteam.ovs.auth.repository.StaffAccountRepository;
 import com.bteam.ovs.auth.repository.UserAccountRepository;
 import com.bteam.ovs.citizen.repository.CitizenRepository;
-import com.bteam.ovs.elections.repository.CandidateRepository;
-import com.bteam.ovs.elections.repository.ElectionEligibilityRuleRepository;
-import com.bteam.ovs.elections.repository.ElectionRepository;
+import com.bteam.ovs.elections.repository.*;
 import com.bteam.ovs.voting.repository.VoteCastRepository;
 import com.bteam.ovs.voting.repository.VoteCurrentRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -14,20 +12,24 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 
-@Profile("demo")
-@Service
+@Profile("demo") @Service
 public class DemoDataService {
 
     private final DemoDataInitializer initializer;
 
     private final UserAccountRepository userRepo;
     private final StaffAccountRepository staffRepo;
+
+    private final PartyRepository partyRepo;
     private final ElectionRepository electionRepo;
     private final CandidateRepository candidateRepo;
+    private final ElectionEligibilityRuleRepository ruleRepo;
+
     private final VoteCastRepository voteCastRepo;
     private final VoteCurrentRepository voteCurrentRepo;
+
     private final CitizenRepository citizenRepo;
-    private final ElectionEligibilityRuleRepository ruleRepo;
+
     private final PasswordEncoder passwordEncoder;
     private final ObjectMapper objectMapper;
     private final TransactionTemplate tx;
@@ -36,25 +38,26 @@ public class DemoDataService {
             DemoDataInitializer initializer,
             UserAccountRepository userRepo,
             StaffAccountRepository staffRepo,
+            PartyRepository partyRepo,
             ElectionRepository electionRepo,
             CandidateRepository candidateRepo,
+            ElectionEligibilityRuleRepository ruleRepo,
             VoteCastRepository voteCastRepo,
             VoteCurrentRepository voteCurrentRepo,
             CitizenRepository citizenRepo,
-            ElectionEligibilityRuleRepository ruleRepo,
             PasswordEncoder passwordEncoder,
             ObjectMapper objectMapper,
-            TransactionTemplate tx
-    ) {
+            TransactionTemplate tx) {
         this.initializer = initializer;
         this.userRepo = userRepo;
         this.staffRepo = staffRepo;
+        this.partyRepo = partyRepo;
         this.electionRepo = electionRepo;
         this.candidateRepo = candidateRepo;
+        this.ruleRepo = ruleRepo;
         this.voteCastRepo = voteCastRepo;
         this.voteCurrentRepo = voteCurrentRepo;
         this.citizenRepo = citizenRepo;
-        this.ruleRepo = ruleRepo;
         this.passwordEncoder = passwordEncoder;
         this.objectMapper = objectMapper;
         this.tx = tx;
@@ -63,27 +66,27 @@ public class DemoDataService {
     public void resetAndSeed() {
         tx.executeWithoutResult(status -> {
             wipeAll();
-            // 既存 init をそのまま再利用（JSON seed）
             initializer.init(
                     userRepo, staffRepo,
-                    electionRepo, candidateRepo,
+                    partyRepo, electionRepo, candidateRepo, ruleRepo,
                     voteCastRepo, voteCurrentRepo,
-                    citizenRepo, ruleRepo,
-                    passwordEncoder, objectMapper
-            );
+                    citizenRepo,
+                    passwordEncoder, objectMapper);
         });
     }
 
     private void wipeAll() {
+        // FK順で消す（あなたの initializer の順に合わせる）
         voteCurrentRepo.deleteAll();
         voteCastRepo.deleteAll();
 
-        candidateRepo.deleteAll();
         ruleRepo.deleteAll();
+        candidateRepo.deleteAll();
         electionRepo.deleteAll();
+        partyRepo.deleteAll();
 
         userRepo.deleteAll();
-        staffRepo.deleteAll();
+        staffRepo.deleteAll(); // admin/committeeを毎回作り直すならOK
         citizenRepo.deleteAll();
     }
 }

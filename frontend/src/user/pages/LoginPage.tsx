@@ -8,7 +8,7 @@ import { demoPersonas } from "../../demo/personas";
 
 type LocationState = {
     email?: string;
-    from?: string; // 保護ルートから来た場合の戻り先を入れる想定
+    from?: string; // 保護ルートから来た場合の戻り先
 };
 
 function isValidEmail(v: string) {
@@ -35,11 +35,30 @@ export function LoginPage() {
     }>({});
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    const fillDemo = (v: { email: string; password: string }) => {
-        setEmail(v.email);
-        setPassword(v.password);
-        setFieldErr({});
+    // ★ ボタン一つで即ログイン（デモ用）
+    const loginAs = async (p: { email: string; password: string }) => {
         setMsg(null);
+        setFieldErr({});
+        try {
+            setIsSubmitting(true);
+
+            const token = await login(p.email, p.password);
+            await setAccessToken(token.accessToken);
+
+            nav(from, { replace: true });
+        } catch (err: any) {
+            const apiMsg =
+                err?.response?.data?.message ?? err?.message ?? "Login failed";
+            const apiCode = err?.response?.data?.code;
+
+            if (apiCode === "EMAIL_NOT_VERIFIED") {
+                nav("/verify", { state: { email: p.email, from } });
+            } else {
+                setMsg(apiMsg);
+            }
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     const canSubmit = useMemo(() => {
@@ -71,13 +90,11 @@ export function LoginPage() {
             // from（正規化済み）へ
             nav(from, { replace: true });
         } catch (err: any) {
-            const apiMsg = err?.response?.data?.message ?? "Login failed";
+            const apiMsg =
+                err?.response?.data?.message ?? err?.message ?? "Login failed";
             const apiCode = err?.response?.data?.code;
 
             if (apiCode === "EMAIL_NOT_VERIFIED") {
-                // setMsg(
-                //     "メール認証が完了していません。認証画面へ進んでください。",
-                // );
                 nav("/verify", { state: { email: email.trim(), from } });
             } else {
                 setMsg(apiMsg);
@@ -111,6 +128,7 @@ export function LoginPage() {
                         placeholder="email"
                         autoComplete="email"
                         inputMode="email"
+                        disabled={isSubmitting}
                     />
                     {fieldErr.email && (
                         <small style={{ color: "crimson" }}>
@@ -129,11 +147,13 @@ export function LoginPage() {
                             type={showPw ? "text" : "password"}
                             autoComplete="current-password"
                             style={{ flex: 1 }}
+                            disabled={isSubmitting}
                         />
                         <button
                             type="button"
                             onClick={() => setShowPw((v) => !v)}
                             aria-pressed={showPw}
+                            disabled={isSubmitting}
                         >
                             {showPw ? "Hide" : "Show"}
                         </button>
@@ -145,15 +165,14 @@ export function LoginPage() {
                     )}
                 </label>
 
+                {/* ★ DEV: ワンクリックログイン */}
                 {isDev && (
                     <div style={{ display: "grid", gap: 6, marginTop: 8 }}>
                         {Object.values(demoPersonas.voter).map((p) => (
                             <button
                                 key={p.key}
                                 type="button"
-                                onClick={() => {
-                                    fillDemo(p);
-                                }}
+                                onClick={() => loginAs(p)}
                                 disabled={isSubmitting}
                                 style={{
                                     fontSize: 12,

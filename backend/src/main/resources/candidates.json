@@ -1,0 +1,134 @@
+[
+    {
+        "candidateKey": "cand_suzuki",
+        "name": "鈴木 恒一",
+        "age": 45,
+        "partyKey": "tokyo_reform",
+        "title": "元 都庁職員 / 行政DX推進",
+        "bio": "行政現場での手続き改善に従事。電子申請の普及と窓口混雑の解消を提案。",
+        "policies": [
+            "行政手続きのオンライン完結（ワンストップ化）",
+            "子育て世帯の負担軽減（保育・学用品支援）",
+            "都内インフラの老朽化対策（優先順位の透明化）"
+        ],
+        "websiteUrl": "https://example.com/cand/suzuki",
+        "imageUrl": "https://example.com/img/cand/suzuki.png"
+    },
+    {
+        "candidateKey": "cand_tanaka",
+        "name": "田中 由梨",
+        "age": 39,
+        "partyKey": "life_support",
+        "title": "看護師 / 地域医療の現場",
+        "bio": "地域医療に従事し、夜間救急や高齢者支援の課題を政策に反映したいと訴える。",
+        "policies": [
+            "物価高対策（生活必需品の負担軽減）",
+            "医療・介護の人材確保（待遇改善）",
+            "奨学金返済支援の拡充"
+        ],
+        "websiteUrl": "https://example.com/cand/tanaka",
+        "imageUrl": "https://example.com/img/cand/tanaka.png"
+    },
+    {
+        "candidateKey": "cand_mori",
+        "name": "森 恒一郎",
+        "age": 52,
+        "partyKey": "green_future",
+        "title": "再エネ事業 / 都市の緑化",
+        "bio": "再生可能エネルギー導入支援に携わり、都市と自然の共存をテーマに活動。",
+        "policies": [
+            "住宅の省エネ改修支援（断熱・給湯）",
+            "地域分散型エネルギー（災害時の電力確保）",
+            "都市の暑熱対策（緑化・公共空間改善）"
+        ],
+        "websiteUrl": "https://example.com/cand/mori",
+        "imageUrl": "https://example.com/img/cand/mori.png"
+    },
+    {
+        "candidateKey": "cand_kato",
+        "name": "加藤 恒一",
+        "age": 60,
+        "partyKey": null,
+        "title": "無所属 / 中小企業支援",
+        "bio": "地元企業の相談役として活動。規制対応・資金繰り支援の経験を持つ。",
+        "policies": [
+            "中小企業の資金繰り支援（手続き簡素化）",
+            "防災・減災の地域計画（避難所の改善）",
+            "教育のデジタル活用（家庭格差の是正）"
+        ],
+        "websiteUrl": "https://example.com/cand/kato",
+        "imageUrl": "https://example.com/img/cand/kato.png"
+    },
+    {
+        "candidateKey": "cand_nakamura",
+        "name": "中村 恒一",
+        "age": 33,
+        "partyKey": "tokyo_reform",
+        "title": "弁護士 / 消費者保護",
+        "bio": "消費者被害の救済に関わり、行政の透明性と情報公開を重視。",
+        "policies": [
+            "行政の情報公開（意思決定の記録化）",
+            "デジタル詐欺対策（相談窓口・教育）",
+            "若者の住まい支援（家賃負担の軽減）"
+        ],
+        "websiteUrl": "https://example.com/cand/nakamura",
+        "imageUrl": "https://example.com/img/cand/nakamura.png"
+    },
+
+    {
+        "candidateKey": "cand_trust",
+        "name": "信任",
+        "age": null,
+        "partyKey": null,
+        "title": "選択肢",
+        "bio": "デモ用",
+        "policies": [],
+        "websiteUrl": null,
+        "imageUrl": null
+    },
+    {
+        "candidateKey": "cand_distrust",
+        "name": "不信任",
+        "age": null,
+        "partyKey": null,
+        "title": "選択肢",
+        "bio": "デモ用",
+        "policies": [],
+        "websiteUrl": null,
+        "imageUrl": null
+    },
+
+    {
+        "candidateKey": "cand_demo_a",
+        "name": "候補A",
+        "age": null,
+        "partyKey": null,
+        "title": "デモ",
+        "bio": "デモ用",
+        "policies": [],
+        "websiteUrl": null,
+        "imageUrl": null
+    },
+    {
+        "candidateKey": "cand_demo_b",
+        "name": "候補B",
+        "age": null,
+        "partyKey": null,
+        "title": "デモ",
+        "bio": "デモ用",
+        "policies": [],
+        "websiteUrl": null,
+        "imageUrl": null
+    },
+    {
+        "candidateKey": "cand_demo_c",
+        "name": "候補C",
+        "age": null,
+        "partyKey": null,
+        "title": "デモ",
+        "bio": "デモ用",
+        "policies": [],
+        "websiteUrl": null,
+        "imageUrl": null
+    }
+]

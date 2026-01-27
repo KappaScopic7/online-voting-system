@@ -1,25 +1,24 @@
 // frontend/src/me/pages/MePage.tsx
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { fetchMeDetail } from "../../user/api/userAuthApi";
+
+import { fetchMeDetail, login } from "../../user/api/userAuthApi";
 import type { MeDetailResponse } from "../../user/model/userAuthTypes";
 import { useAuth } from "../../user/UserAuthContext";
-import {
-    getMeProfile,
-    putMeProfile,
-} from "../../me/api/profile";
+
+import { getMeProfile, putMeProfile } from "../../me/api/profile";
 import type { MeProfileResponse } from "../../me/model/profileTypes";
-import { login } from "../../user/api/userAuthApi";
+
 import { demoPersonas } from "../../demo/personas";
 
 export function MePage() {
-    const { refreshMe } = useAuth();
+    const { refreshMe, setAccessToken } = useAuth();
 
     const [me, setMe] = useState<MeDetailResponse | null>(null);
     const [msg, setMsg] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
 
-    // self profile
+    // profile
     const [profile, setProfile] = useState<MeProfileResponse | null>(null);
     const [profileMsg, setProfileMsg] = useState<string | null>(null);
 
@@ -39,7 +38,11 @@ export function MePage() {
             const data = await fetchMeDetail();
             setMe(data);
         } catch (err: any) {
-            setMsg(err?.message ?? "Failed to load");
+            setMsg(
+                err?.response?.data?.message ??
+                    err?.message ??
+                    "Failed to load",
+            );
         } finally {
             setIsLoading(false);
         }
@@ -50,13 +53,18 @@ export function MePage() {
         try {
             const p = await getMeProfile();
             setProfile(p);
+
+            // source に関わらず表示用に入れる（編集可否は別で判定）
             setBirthDate(p.birthDate ?? "");
             setPrefCode(p.prefCode ?? "");
             setCityCode(p.cityCode ?? "");
         } catch (err: any) {
             // 404=未入力は正常系として扱う
-            const m = err?.message ?? String(err);
-            if (String(m).includes("404")) {
+            const status = err?.response?.status;
+            const m =
+                err?.response?.data?.message ?? err?.message ?? String(err);
+
+            if (status === 404) {
                 setProfile(null);
                 setBirthDate("");
                 setPrefCode("");
@@ -68,10 +76,9 @@ export function MePage() {
         }
     };
 
-    const { setAccessToken } = useAuth();
-
     const loginAs = async (p: { email: string; password: string }) => {
         setMsg(null);
+        setProfileMsg(null);
         try {
             const token = await login(p.email, p.password);
             await setAccessToken(token.accessToken);
@@ -79,7 +86,9 @@ export function MePage() {
             await load();
             await loadProfile();
         } catch (err: any) {
-            setMsg(err?.response?.data?.message ?? "スタブログイン失敗");
+            setMsg(
+                err?.response?.data?.message ?? err?.message ?? "ログイン失敗",
+            );
         }
     };
 
@@ -95,6 +104,10 @@ export function MePage() {
     const isLinked = identityStatus === "LINKED";
     const isPending = identityStatus === "PENDING";
 
+    // ★ 追加: profile.source でも編集不可を判断（将来のズレ対策）
+    const isCitizenSource = profile?.source === "CITIZEN";
+    const disableSelfEdit = isLinked || isCitizenSource;
+
     const onRefreshAll = async () => {
         setMsg(null);
         setProfileMsg(null);
@@ -103,7 +116,11 @@ export function MePage() {
             await load();
             await loadProfile();
         } catch (err: any) {
-            setMsg(err?.message ?? "Failed to refresh");
+            setMsg(
+                err?.response?.data?.message ??
+                    err?.message ??
+                    "Failed to refresh",
+            );
         }
     };
 
@@ -121,7 +138,11 @@ export function MePage() {
             setProfile(p);
             setProfileMsg("保存しました");
         } catch (err: any) {
-            setProfileMsg(err?.message ?? "保存に失敗しました");
+            const m =
+                err?.response?.data?.message ??
+                err?.message ??
+                "保存に失敗しました";
+            setProfileMsg(m);
         } finally {
             setSaving(false);
         }
@@ -219,19 +240,33 @@ export function MePage() {
                         </div>
                     </section>
 
-                    {/* Self Profile (本人認証前の自己申告プロフィール) */}
+                    {/* Self Profile */}
                     <section style={{ padding: 12, border: "1px solid #ddd" }}>
                         <h3 style={{ marginTop: 0 }}>
                             プロフィール（本人認証前）
                         </h3>
 
-                        {isLinked ? (
+                        {disableSelfEdit ? (
                             <p style={{ margin: 0, opacity: 0.8 }}>
                                 本人認証済みのため、自己申告プロフィールは編集できません（市民情報が優先されます）
                             </p>
                         ) : (
                             <p style={{ margin: 0, opacity: 0.8 }}>
                                 My選挙の対象判定に使います（本人認証すると市民情報で上書きされます）
+                            </p>
+                        )}
+
+                        {/* 表示：source が CITIZEN なら軽く示す（DEVじゃなくてもOK） */}
+                        {profile?.source === "CITIZEN" && (
+                            <p
+                                style={{
+                                    marginTop: 8,
+                                    marginBottom: 0,
+                                    fontSize: 12,
+                                    opacity: 0.7,
+                                }}
+                            >
+                                ※ 現在の表示は市民情報（CITIZEN）由来です
                             </p>
                         )}
 
@@ -256,7 +291,7 @@ export function MePage() {
                                         setBirthDate(e.target.value)
                                     }
                                     placeholder="2000-01-01"
-                                    disabled={isLinked || saving}
+                                    disabled={disableSelfEdit || saving}
                                 />
                             </label>
 
@@ -267,8 +302,8 @@ export function MePage() {
                                     onChange={(e) =>
                                         setPrefCode(e.target.value)
                                     }
-                                    placeholder="14"
-                                    disabled={isLinked || saving}
+                                    placeholder="13"
+                                    disabled={disableSelfEdit || saving}
                                 />
                             </label>
 
@@ -279,8 +314,8 @@ export function MePage() {
                                     onChange={(e) =>
                                         setCityCode(e.target.value)
                                     }
-                                    placeholder="14100"
-                                    disabled={isLinked || saving}
+                                    placeholder="13209"
+                                    disabled={disableSelfEdit || saving}
                                 />
                             </label>
 
@@ -295,10 +330,11 @@ export function MePage() {
                                 <button
                                     type="button"
                                     onClick={onSaveProfile}
-                                    disabled={isLinked || saving}
+                                    disabled={disableSelfEdit || saving}
                                 >
                                     {saving ? "保存中..." : "保存"}
                                 </button>
+
                                 <button
                                     type="button"
                                     onClick={loadProfile}
@@ -306,6 +342,7 @@ export function MePage() {
                                 >
                                     プロフィール再取得
                                 </button>
+
                                 {profile && (
                                     <span
                                         style={{ fontSize: 12, opacity: 0.75 }}
@@ -433,6 +470,7 @@ export function MePage() {
                                 isLoading,
                                 profile,
                                 profileMsg,
+                                disableSelfEdit,
                             },
                             null,
                             2,

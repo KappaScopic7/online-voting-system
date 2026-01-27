@@ -8,6 +8,7 @@ import com.bteam.ovs.elections.entity.Election;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 public interface ElectionRepository extends JpaRepository<Election, UUID> {
@@ -29,4 +30,11 @@ public interface ElectionRepository extends JpaRepository<Election, UUID> {
     List<Election> findOngoing(@Param("now") Instant now);
 
     List<Election> findAllByOrderByStartsAtDesc();
+
+    Optional<Election> findByElectionKey(String electionKey);
+
+    boolean existsByElectionKey(String electionKey);
+
+    void deleteAll(); // 既にあるはず
+
 }

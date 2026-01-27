@@ -1,32 +1,52 @@
 [
     {
         "citizenId": "550e8400-e29b-41d4-a716-446655440000",
+        "familyName": "佐藤",
+        "givenName": "匠也",
         "birthDate": "2000-01-01",
         "prefCode": "13",
-        "cityCode": "13209"
+        "cityCode": "13209",
+        "addressLine": "東京都町田市 原町田",
+        "gender": "M"
     },
     {
         "citizenId": "550e8400-e29b-41d4-a716-446655440001",
+        "familyName": "高橋",
+        "givenName": "陽菜",
         "birthDate": "2010-01-01",
         "prefCode": "13",
-        "cityCode": "13209"
+        "cityCode": "13209",
+        "addressLine": "東京都町田市 鶴間",
+        "gender": "F"
     },
     {
         "citizenId": "550e8400-e29b-41d4-a716-446655440002",
+        "familyName": "伊藤",
+        "givenName": "航",
         "birthDate": "2000-01-01",
         "prefCode": "14",
-        "cityCode": "14100"
+        "cityCode": "14100",
+        "addressLine": "神奈川県横浜市 中区",
+        "gender": "M"
     },
     {
         "citizenId": "550e8400-e29b-41d4-a716-446655440003",
+        "familyName": "小林",
+        "givenName": "美咲",
         "birthDate": "2008-10-25",
         "prefCode": "13",
-        "cityCode": "13209"
+        "cityCode": "13209",
+        "addressLine": "東京都町田市 成瀬",
+        "gender": "F"
     },
     {
         "citizenId": "550e8400-e29b-41d4-a716-446655440004",
+        "familyName": "山本",
+        "givenName": "修司",
         "birthDate": "1960-01-01",
         "prefCode": "13",
-        "cityCode": "13209"
+        "cityCode": "13209",
+        "addressLine": "東京都町田市 玉川学園",
+        "gender": "M"
     }
 ]

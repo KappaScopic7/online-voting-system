@@ -1,6 +1,6 @@
 [
     {
-        "email": "voter_unlinked_01@example.com",
+        "email": "voter_guest_01@example.com",
         "password": "Passw0rd!!",
         "role": "VOTER",
         "emailVerified": true,
@@ -9,17 +9,17 @@
         "citizenId": null
     },
     {
-        "email": "voter_unlinked_02@example.com",
+        "email": "voter_guest_02@example.com",
         "password": "Passw0rd!!",
         "role": "VOTER",
-        "emailVerified": true,
+        "emailVerified": false,
         "enabled": true,
         "locked": false,
         "citizenId": null
     },
 
     {
-        "email": "voter_linked_ok@example.com",
+        "email": "voter_machida_ok@example.com",
         "password": "Passw0rd!!",
         "role": "VOTER",
         "emailVerified": true,
@@ -28,7 +28,7 @@
         "citizenId": "550e8400-e29b-41d4-a716-446655440000"
     },
     {
-        "email": "voter_linked_underage@example.com",
+        "email": "voter_machida_underage@example.com",
         "password": "Passw0rd!!",
         "role": "VOTER",
         "emailVerified": true,
@@ -37,7 +37,7 @@
         "citizenId": "550e8400-e29b-41d4-a716-446655440001"
     },
     {
-        "email": "voter_linked_outside_city@example.com",
+        "email": "voter_yokohama_outside@example.com",
         "password": "Passw0rd!!",
         "role": "VOTER",
         "emailVerified": true,
@@ -46,7 +46,7 @@
         "citizenId": "550e8400-e29b-41d4-a716-446655440002"
     },
     {
-        "email": "voter_linked_border18@example.com",
+        "email": "voter_machida_border18@example.com",
         "password": "Passw0rd!!",
         "role": "VOTER",
         "emailVerified": true,
@@ -55,7 +55,7 @@
         "citizenId": "550e8400-e29b-41d4-a716-446655440003"
     },
     {
-        "email": "voter_linked_senior30ok@example.com",
+        "email": "voter_machida_over30@example.com",
         "password": "Passw0rd!!",
         "role": "VOTER",
         "emailVerified": true,
@@ -65,7 +65,7 @@
     },
 
     {
-        "email": "disabled_user@example.com",
+        "email": "voter_disabled@example.com",
         "password": "Passw0rd!!",
         "role": "VOTER",
         "emailVerified": true,
@@ -74,7 +74,7 @@
         "citizenId": null
     },
     {
-        "email": "locked_user@example.com",
+        "email": "voter_locked@example.com",
         "password": "Passw0rd!!",
         "role": "VOTER",
         "emailVerified": true,
