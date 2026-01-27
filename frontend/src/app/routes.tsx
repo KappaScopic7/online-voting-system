@@ -16,6 +16,11 @@ export function AppRoutes() {
             <Route path="/admin/*" element={<AdminRoutes />} />
             <Route path="/committee/*" element={<CommitteeRoutes />} />
 
+             {/* Public は最後に受ける */}
+            <Route element={<PublicLayout />}>
+                <Route path="/*" element={<PublicRoutes />} />
+            </Route>
+
             <Route path="*" element={<div>Not Found</div>} />
         </Routes>
     );
