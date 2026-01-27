@@ -2,19 +2,19 @@
     "folders": [
         {
             "name": "workspace",
-            "path": "."
+            "path": ".",
         },
         {
             "name": "frontend",
-            "path": "frontend/src"
+            "path": "frontend/src",
         },
         {
             "name": "backend",
-            "path": "backend/src/main/java/com/bteam/ovs"
+            "path": "backend/src/main/java/com/bteam/ovs",
         },
         {
             "name": "resources",
-            "path": "backend/src/main/resources"
+            "path": "backend/src/main/resources",
         },
     ],
     "settings": {

@@ -61,49 +61,5 @@
             "cand_kato",
             "cand_nakamura"
         ]
-    },
-
-    {
-        "electionKey": "demo_two_choices_open",
-        "title": "デモ：信任投票（2択・開催中）",
-        "summary": "システム動作確認用の2択投票です。",
-        "electionType": "DEMO",
-        "district": { "prefCode": "13", "cityCode": "13209", "label": "デモ" },
-        "ballotType": "TWO_CHOICES",
-        "startsAtOffsetSec": -3600,
-        "endsAtOffsetSec": 86400,
-        "candidates": ["cand_trust", "cand_distrust"]
-    },
-
-    {
-        "electionKey": "demo_target_yokohama_open",
-        "title": "デモ：対象地域テスト（横浜14100のみ）",
-        "summary": "cityCode=14100 のみ投票可能なテスト選挙です。",
-        "electionType": "DEMO",
-        "district": {
-            "prefCode": "14",
-            "cityCode": "14100",
-            "label": "神奈川県 横浜市"
-        },
-        "ballotType": "SINGLE_CHOICE",
-        "startsAtOffsetSec": -3600,
-        "endsAtOffsetSec": 86400,
-        "candidates": ["cand_demo_a", "cand_demo_b", "cand_demo_c"]
-    },
-
-    {
-        "electionKey": "demo_machida_minage30_open",
-        "title": "デモ：町田13209 / minAge=30 テスト",
-        "summary": "30歳以上のみ投票可能なテスト選挙です。",
-        "electionType": "DEMO",
-        "district": {
-            "prefCode": "13",
-            "cityCode": "13209",
-            "label": "東京都 町田市"
-        },
-        "ballotType": "SINGLE_CHOICE",
-        "startsAtOffsetSec": -3600,
-        "endsAtOffsetSec": 86400,
-        "candidates": ["cand_demo_a", "cand_demo_b", "cand_demo_c"]
     }
 ]

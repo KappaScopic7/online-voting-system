@@ -13,23 +13,5 @@
         "electionKey": "sangi_tokyo_2026_ended",
         "cityCode": "13209",
         "minAge": 18
-    },
-
-    {
-        "electionKey": "demo_two_choices_open",
-        "cityCode": "13209",
-        "minAge": 18
-    },
-
-    {
-        "electionKey": "demo_target_yokohama_open",
-        "cityCode": "14100",
-        "minAge": 18
-    },
-
-    {
-        "electionKey": "demo_machida_minage30_open",
-        "cityCode": "13209",
-        "minAge": 30
     }
 ]
