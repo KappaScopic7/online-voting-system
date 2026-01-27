@@ -1,6 +1,5 @@
 package com.bteam.ovs.elections.service;
 
-import com.bteam.ovs.auth.repository.UserAccountRepository;
 import com.bteam.ovs.elections.controller.dto.CandidateDetailResponse;
 import com.bteam.ovs.elections.controller.dto.CandidateItem;
 import com.bteam.ovs.elections.controller.dto.ElectionDetailResponse;
@@ -9,8 +8,10 @@ import com.bteam.ovs.elections.controller.dto.ElectionResultResponse;
 import com.bteam.ovs.elections.repository.CandidateRepository;
 import com.bteam.ovs.elections.repository.ElectionRepository;
 import com.bteam.ovs.elections.repository.PartyRepository;
+import com.bteam.ovs.shared.auth.AccountResolver;
 import com.bteam.ovs.shared.errors.ApiException;
 import com.bteam.ovs.voting.repository.VoteCurrentRepository;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
@@ -26,19 +27,19 @@ public class ElectionService {
     private final CandidateRepository candidateRepo;
     private final PartyRepository partyRepo;
     private final VoteCurrentRepository voteCurrentRepo;
-    private final UserAccountRepository userRepo;
+    private final AccountResolver accountResolver;
 
     public ElectionService(
             ElectionRepository electionRepo,
             CandidateRepository candidateRepo,
             PartyRepository partyRepo,
             VoteCurrentRepository voteCurrentRepo,
-            UserAccountRepository userRepo) {
+            AccountResolver accountResolver) {
         this.electionRepo = electionRepo;
         this.candidateRepo = candidateRepo;
         this.partyRepo = partyRepo;
         this.voteCurrentRepo = voteCurrentRepo;
-        this.userRepo = userRepo;
+        this.accountResolver = accountResolver;
     }
 
     public List<ElectionListItem> list(UUID accountIdOrNull) {
@@ -63,13 +64,13 @@ public class ElectionService {
                         c -> c.getName(),
                         (a, b) -> a));
 
+        // 公開API：accountIdが来ても「見つからない/無効/ロック」は未ログイン扱い
         UUID citizenId = null;
         boolean identityLinked = false;
 
-        if (accountIdOrNull != null) {
-            var acc = userRepo.findById(accountIdOrNull)
-                    .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "未ログインです"));
-            citizenId = acc.getCitizenId();
+        var accOpt = accountResolver.findActiveAccount(accountIdOrNull);
+        if (accOpt.isPresent()) {
+            citizenId = accOpt.get().getCitizenId();
             identityLinked = (citizenId != null);
         }
 
@@ -130,9 +131,16 @@ public class ElectionService {
 
         String st = status(now, election.getStartsAt(), election.getEndsAt());
 
-        // 候補者（詳細画面で使い回せる程度に情報を返す：title/partyまで）
+        // 候補者
         var candidateEntities = candidateRepo.findByElectionId(electionId);
         candidateEntities.sort(Comparator.comparingInt(c -> c.getSortOrder()));
+
+        // ★追加：candidateId -> name（currentVote用）
+        Map<UUID, String> candidateNameById = candidateEntities.stream()
+                .collect(Collectors.toMap(
+                        c -> c.getId(),
+                        c -> c.getName(),
+                        (a, b) -> a));
 
         var partyMap = loadPartiesByCandidateEntities(candidateEntities);
 
@@ -142,40 +150,28 @@ public class ElectionService {
 
         int candidateCount = candidates.size();
 
-        // 認証・本人確認
+        // 公開API：accountIdが来ても「見つからない/無効/ロック」は未ログイン扱い
         boolean identityLinked = false;
         UUID citizenId = null;
 
-        if (accountIdOrNull != null) {
-            var acc = userRepo.findById(accountIdOrNull)
-                    .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "未ログインです"));
-            citizenId = acc.getCitizenId();
+        var accOpt = accountResolver.findActiveAccount(accountIdOrNull);
+        if (accOpt.isPresent()) {
+            citizenId = accOpt.get().getCitizenId();
             identityLinked = (citizenId != null);
         }
 
         boolean canCast = identityLinked && "ONGOING".equals(st);
 
-        // 現在投票
+        // 現在投票（★最適化：単発取得メソッド）
         ElectionListItem.CurrentVote currentVote = null;
         if (identityLinked) {
-            var curOpt = voteCurrentRepo
-                    .findByCitizenIdAndElectionIdIn(citizenId, List.of(electionId))
-                    .stream()
-                    .findFirst();
-
+            var curOpt = voteCurrentRepo.findByElectionIdAndCitizenId(electionId, citizenId);
             if (curOpt.isPresent()) {
                 var cur = curOpt.get();
                 UUID cid = cur.getCandidateId();
-
-                String candidateName = candidateEntities.stream()
-                        .filter(x -> x.getId().equals(cid))
-                        .map(x -> x.getName())
-                        .findFirst()
-                        .orElse(null);
-
                 currentVote = new ElectionListItem.CurrentVote(
                         cid,
-                        candidateName,
+                        candidateNameById.get(cid),
                         cur.getCastedAt());
             }
         }

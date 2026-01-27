@@ -4,7 +4,7 @@ import com.bteam.ovs.auth.controller.dto.StaffLoginRequest;
 import com.bteam.ovs.auth.controller.dto.TokenResponse;
 import com.bteam.ovs.auth.repository.StaffAccountRepository;
 import com.bteam.ovs.config.security.JwtService;
-import com.bteam.ovs.config.security.JwtService.AccountKind;
+import com.bteam.ovs.auth.entity.AccountKind;
 import com.bteam.ovs.shared.errors.ApiException;
 
 import org.springframework.http.HttpStatus;
@@ -21,8 +21,7 @@ public class StaffAuthService {
     public StaffAuthService(
             StaffAccountRepository staffRepo,
             PasswordEncoder passwordEncoder,
-            JwtService jwtService
-    ) {
+            JwtService jwtService) {
         this.staffRepo = staffRepo;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
@@ -45,7 +44,8 @@ public class StaffAuthService {
             throw new ApiException(HttpStatus.UNAUTHORIZED, "INVALID_CREDENTIALS", "IDまたはパスワードが違います");
         }
 
-        String token = jwtService.issueAccessToken(account.getId(), account.getLoginId(), account.getRole(), AccountKind.STAFF);
+        String token = jwtService.issueAccessToken(account.getId(), account.getLoginId(), account.getRole(),
+                AccountKind.STAFF);
         return new TokenResponse(token, "Bearer", jwtService.expiresInSeconds(), account.getRole().name());
     }
 

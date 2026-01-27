@@ -1,17 +1,17 @@
 package com.bteam.ovs.identity.controller;
 
 import com.bteam.ovs.auth.controller.dto.TokenResponse;
+import com.bteam.ovs.auth.entity.AccountKind;
 import com.bteam.ovs.config.security.JwtService;
 import com.bteam.ovs.identity.controller.dto.IdentityLinkRequest;
 import com.bteam.ovs.identity.service.IdentityLinkService;
-import com.bteam.ovs.shared.errors.ApiException;
+import com.bteam.ovs.shared.security.PrincipalExtractor;
+import static com.bteam.ovs.shared.validation.UuidParsers.parseOr400;
 
 import jakarta.validation.Valid;
-import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -28,26 +28,9 @@ public class IdentityController {
 
     @PostMapping("/link")
     public TokenResponse link(@Valid @RequestBody IdentityLinkRequest req, Authentication auth) {
-        if (auth == null || auth.getName() == null) {
-            throw new ApiException(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "未ログインです");
-        }
+        UUID accountId = PrincipalExtractor.requireAccountId(auth);
 
-        UUID accountId;
-        try {
-            @SuppressWarnings("unchecked")
-            var details = (Map<String, Object>) auth.getDetails();
-            accountId = UUID.fromString((String) details.get("aid"));
-        } catch (Exception e) {
-            throw new ApiException(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "未ログインです");
-        }
-
-        UUID citizenId;
-        try {
-            citizenId = UUID.fromString(req.citizenId());
-        } catch (Exception e) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_CITIZEN_ID", "citizenIdが不正です");
-        }
-
+        UUID citizenId = parseOr400(req.citizenId(), "INVALID_CITIZEN_ID", "citizenIdが不正です");
         // ★ DB更新（citizenIdセット & role=VOTER）
         var linked = identityLinkService.link(accountId, citizenId);
 
@@ -55,15 +38,13 @@ public class IdentityController {
         String token = jwtService.issueAccessToken(
                 linked.accountId(),
                 linked.email(),
-                linked.role(), // Role.VOTER（想定）
-                JwtService.AccountKind.USER
-        );
+                linked.role(),
+                AccountKind.USER);
 
         return new TokenResponse(
                 token,
                 "Bearer",
                 jwtService.expiresInSeconds(),
-                linked.role() == null ? null : linked.role().name()
-        );
+                linked.role() == null ? null : linked.role().name());
     }
 }

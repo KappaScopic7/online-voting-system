@@ -8,6 +8,7 @@ import com.bteam.ovs.auth.entity.UserAccount;
 import com.bteam.ovs.auth.repository.UserAccountRepository;
 import com.bteam.ovs.config.security.JwtService;
 import com.bteam.ovs.shared.errors.ApiException;
+import com.bteam.ovs.auth.entity.AccountKind;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -64,8 +65,10 @@ public class UserAuthService {
         var acc = userRepo.findByEmail(email)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "ACCOUNT_NOT_FOUND", "アカウントが存在しません"));
 
-        if (!acc.isEnabled()) throw new ApiException(HttpStatus.FORBIDDEN, "ACCOUNT_DISABLED", "アカウントが無効です");
-        if (acc.isLocked()) throw new ApiException(HttpStatus.FORBIDDEN, "ACCOUNT_LOCKED", "アカウントがロックされています");
+        if (!acc.isEnabled())
+            throw new ApiException(HttpStatus.FORBIDDEN, "ACCOUNT_DISABLED", "アカウントが無効です");
+        if (acc.isLocked())
+            throw new ApiException(HttpStatus.FORBIDDEN, "ACCOUNT_LOCKED", "アカウントがロックされています");
 
         if (acc.isEmailVerified()) {
             throw new ApiException(HttpStatus.CONFLICT, "ALREADY_VERIFIED", "既にメール認証済みです");
@@ -81,8 +84,10 @@ public class UserAuthService {
         var account = userRepo.findByEmail(email)
                 .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "ACCOUNT_NOT_FOUND", "アカウントが存在しません"));
 
-        if (!account.isEnabled()) throw new ApiException(HttpStatus.FORBIDDEN, "ACCOUNT_DISABLED", "アカウントが無効です");
-        if (account.isLocked()) throw new ApiException(HttpStatus.FORBIDDEN, "ACCOUNT_LOCKED", "アカウントがロックされています");
+        if (!account.isEnabled())
+            throw new ApiException(HttpStatus.FORBIDDEN, "ACCOUNT_DISABLED", "アカウントが無効です");
+        if (account.isLocked())
+            throw new ApiException(HttpStatus.FORBIDDEN, "ACCOUNT_LOCKED", "アカウントがロックされています");
 
         if (!passwordEncoder.matches(req.password(), account.getPasswordHash())) {
             throw new ApiException(HttpStatus.UNAUTHORIZED, "INVALID_CREDENTIALS", "IDまたはパスワードが違います");
@@ -96,15 +101,13 @@ public class UserAuthService {
                 account.getId(),
                 account.getEmail(),
                 account.getRole(),
-                JwtService.AccountKind.USER
-        );
+                AccountKind.USER);
 
         return new TokenResponse(
                 token,
                 "Bearer",
                 jwtService.expiresInSeconds(),
-                account.getRole() == null ? null : account.getRole().name()
-        );
+                account.getRole() == null ? null : account.getRole().name());
     }
 
     private String normalizeEmail(String email) {

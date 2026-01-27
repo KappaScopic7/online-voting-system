@@ -1,9 +1,9 @@
 package com.bteam.ovs.voting.service;
 
-import com.bteam.ovs.auth.repository.UserAccountRepository;
 import com.bteam.ovs.elections.repository.CandidateRepository;
 import com.bteam.ovs.elections.repository.ElectionRepository;
 import com.bteam.ovs.shared.errors.ApiException;
+import com.bteam.ovs.shared.identity.CitizenIdResolver;
 import com.bteam.ovs.voting.controller.dto.VoteHistoryItem;
 import com.bteam.ovs.voting.controller.dto.VoteStartResponse;
 import com.bteam.ovs.voting.entity.VoteCast;
@@ -25,20 +25,19 @@ import java.util.stream.Collectors;
 @Service
 public class VotingService {
 
-    private final UserAccountRepository userRepo;
+    private final CitizenIdResolver citizenIdResolver; // ★追加
     private final ElectionRepository electionRepo;
     private final CandidateRepository candidateRepo;
     private final VoteCastRepository voteCastRepo;
     private final VoteCurrentRepository voteCurrentRepo;
 
     public VotingService(
-            UserAccountRepository userRepo,
+            CitizenIdResolver citizenIdResolver, // ★追加
             ElectionRepository electionRepo,
             CandidateRepository candidateRepo,
             VoteCastRepository voteCastRepo,
-            VoteCurrentRepository voteCurrentRepo
-    ) {
-        this.userRepo = userRepo;
+            VoteCurrentRepository voteCurrentRepo) {
+        this.citizenIdResolver = citizenIdResolver;
         this.electionRepo = electionRepo;
         this.candidateRepo = candidateRepo;
         this.voteCastRepo = voteCastRepo;
@@ -46,12 +45,7 @@ public class VotingService {
     }
 
     public VoteStartResponse start(UUID accountId, UUID electionId) {
-        var acc = userRepo.findById(accountId)
-                .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "未ログインです"));
-
-        if (acc.getCitizenId() == null) {
-            throw new ApiException(HttpStatus.FORBIDDEN, "IDENTITY_NONE", "本人認証が完了していません");
-        }
+        citizenIdResolver.requireCitizenId(accountId);
 
         var election = electionRepo.findById(electionId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "ELECTION_NOT_FOUND", "選挙が存在しません"));
@@ -65,12 +59,7 @@ public class VotingService {
 
     @Transactional
     public VoteHistoryItem confirm(UUID accountId, UUID electionId, UUID candidateId) {
-        var acc = userRepo.findById(accountId)
-                .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "未ログインです"));
-
-        if (acc.getCitizenId() == null) {
-            throw new ApiException(HttpStatus.FORBIDDEN, "IDENTITY_NONE", "本人認証が完了していません");
-        }
+        UUID citizenId = citizenIdResolver.requireCitizenId(accountId); // ★集約
 
         var election = electionRepo.findById(electionId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "ELECTION_NOT_FOUND", "選挙が存在しません"));
@@ -87,8 +76,6 @@ public class VotingService {
 
         var candidate = candidateRepo.findById(candidateId)
                 .orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST, "INVALID_CANDIDATE", "候補が不正です"));
-
-        UUID citizenId = acc.getCitizenId();
 
         // ===== 1) 履歴：追記 =====
         var cast = new VoteCast();
@@ -113,7 +100,6 @@ public class VotingService {
         try {
             voteCurrentRepo.save(current);
         } catch (DataIntegrityViolationException ex) {
-            // 同時リクエスト等で insert がPK衝突する可能性があるため、取り直して update
             var retry = voteCurrentRepo.findByElectionIdAndCitizenId(electionId, citizenId)
                     .orElseThrow(() -> ex);
 
@@ -128,20 +114,15 @@ public class VotingService {
                 election.getTitle(),
                 candidate.getId(),
                 candidate.getName(),
-                now
-        );
+                now);
     }
 
     public List<VoteHistoryItem> history(UUID accountId) {
-        var acc = userRepo.findById(accountId)
-                .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "未ログインです"));
+        UUID citizenId = citizenIdResolver.requireCitizenId(accountId); // ★集約
 
-        if (acc.getCitizenId() == null) {
-            throw new ApiException(HttpStatus.FORBIDDEN, "IDENTITY_NOT_LINKED", "本人認証が完了していません");
-        }
-
-        var votes = voteCastRepo.findByCitizenIdOrderByCastedAtDesc(acc.getCitizenId());
-        if (votes.isEmpty()) return List.of();
+        var votes = voteCastRepo.findByCitizenIdOrderByCastedAtDesc(citizenId);
+        if (votes.isEmpty())
+            return List.of();
 
         var electionIds = votes.stream().map(VoteCast::getElectionId).collect(Collectors.toSet());
         var candidateIds = votes.stream().map(VoteCast::getCandidateId).collect(Collectors.toSet());
@@ -156,11 +137,14 @@ public class VotingService {
                 .map(v -> new VoteHistoryItem(
                         v.getId(),
                         v.getElectionId(),
-                        elections.containsKey(v.getElectionId()) ? elections.get(v.getElectionId()).getTitle() : "(unknown election)",
+                        elections.containsKey(v.getElectionId())
+                                ? elections.get(v.getElectionId()).getTitle()
+                                : "(unknown election)",
                         v.getCandidateId(),
-                        candidates.containsKey(v.getCandidateId()) ? candidates.get(v.getCandidateId()).getName() : "(unknown candidate)",
-                        v.getCastedAt()
-                ))
+                        candidates.containsKey(v.getCandidateId())
+                                ? candidates.get(v.getCandidateId()).getName()
+                                : "(unknown candidate)",
+                        v.getCastedAt()))
                 .toList();
     }
 }

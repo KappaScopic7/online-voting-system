@@ -19,20 +19,20 @@ public interface VoteCurrentRepository extends JpaRepository<VoteCurrent, VoteCu
     boolean existsByElectionIdAndCitizenId(UUID electionId, UUID citizenId);
 
     @Query("""
-        select v.candidateId as candidateId, count(v) as cnt
-        from #{#entityName} v
-        where v.electionId = :electionId
-        group by v.candidateId
-    """)
+                select v.candidateId as candidateId, count(v) as cnt
+                from #{#entityName} v
+                where v.electionId = :electionId
+                group by v.candidateId
+            """)
     List<VoteCount> countByElectionGroupByCandidate(@Param("electionId") UUID electionId);
 
     interface VoteCount {
         UUID getCandidateId();
+
         long getCnt();
     }
 
     List<VoteCurrent> findByCitizenIdAndElectionIdIn(
             UUID citizenId,
-            Collection<UUID> electionIds
-    );
+            Collection<UUID> electionIds);
 }
