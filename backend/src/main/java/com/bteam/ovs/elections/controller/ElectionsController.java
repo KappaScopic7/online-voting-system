@@ -1,6 +1,7 @@
 package com.bteam.ovs.elections.controller;
 
 import com.bteam.ovs.elections.controller.dto.CandidateItem;
+import com.bteam.ovs.elections.controller.dto.CandidateDetailResponse;
 import com.bteam.ovs.elections.controller.dto.ElectionListItem;
 import com.bteam.ovs.elections.controller.dto.ElectionResultResponse;
 import com.bteam.ovs.elections.controller.dto.ElectionDetailResponse;
@@ -15,8 +16,7 @@ import java.util.Map;
 import java.util.List;
 import java.util.UUID;
 
-@RestController
-@RequestMapping("/api/elections")
+@RestController @RequestMapping("/api/elections")
 public class ElectionsController {
 
     private final ElectionService electionService;
@@ -77,5 +77,11 @@ public class ElectionsController {
     @GetMapping("/{electionId}/result")
     public ElectionResultResponse result(@PathVariable("electionId") UUID electionId) {
         return electionService.result(electionId);
+
+    @GetMapping("/{electionId}/candidates/{candidateId}")
+    public CandidateDetailResponse candidateDetail(
+            @PathVariable UUID electionId,
+            @PathVariable UUID candidateId) {
+        return electionService.candidateDetail(electionId, candidateId);
     }
 }

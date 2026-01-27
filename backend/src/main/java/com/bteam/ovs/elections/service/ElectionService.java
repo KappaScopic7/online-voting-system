@@ -1,22 +1,22 @@
 package com.bteam.ovs.elections.service;
 
 import com.bteam.ovs.auth.repository.UserAccountRepository;
+import com.bteam.ovs.elections.controller.dto.CandidateDetailResponse;
 import com.bteam.ovs.elections.controller.dto.CandidateItem;
+import com.bteam.ovs.elections.controller.dto.ElectionDetailResponse;
+import com.bteam.ovs.elections.controller.dto.PartySummary;
 import com.bteam.ovs.elections.controller.dto.ElectionListItem;
 import com.bteam.ovs.elections.controller.dto.ElectionResultResponse;
-import com.bteam.ovs.elections.controller.dto.ElectionDetailResponse;
 import com.bteam.ovs.elections.repository.CandidateRepository;
 import com.bteam.ovs.elections.repository.ElectionRepository;
+import com.bteam.ovs.elections.repository.PartyRepository;
 import com.bteam.ovs.shared.errors.ApiException;
 import com.bteam.ovs.voting.repository.VoteCurrentRepository;
-
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -25,16 +25,19 @@ public class ElectionService {
 
     private final ElectionRepository electionRepo;
     private final CandidateRepository candidateRepo;
+    private final PartyRepository partyRepo;
     private final VoteCurrentRepository voteCurrentRepo;
     private final UserAccountRepository userRepo;
 
     public ElectionService(
             ElectionRepository electionRepo,
             CandidateRepository candidateRepo,
+            PartyRepository partyRepo,
             VoteCurrentRepository voteCurrentRepo,
             UserAccountRepository userRepo) {
         this.electionRepo = electionRepo;
         this.candidateRepo = candidateRepo;
+        this.partyRepo = partyRepo;
         this.voteCurrentRepo = voteCurrentRepo;
         this.userRepo = userRepo;
     }
@@ -48,11 +51,13 @@ public class ElectionService {
 
         var electionIds = elections.stream().map(e -> e.getId()).toList();
 
+        // 候補者数
         Map<UUID, Long> candidateCountByElectionId = candidateRepo.countByElectionIdIn(electionIds).stream()
                 .collect(Collectors.toMap(
                         CandidateRepository.ElectionCandidateCount::getElectionId,
                         CandidateRepository.ElectionCandidateCount::getCnt));
 
+        // 現在投票の candidateName 表示用（候補者名だけ必要）
         Map<UUID, String> candidateNameById = candidateRepo.findByElectionIdIn(electionIds).stream()
                 .collect(Collectors.toMap(
                         c -> c.getId(),
@@ -89,6 +94,7 @@ public class ElectionService {
                     long cnt = candidateCountByElectionId.getOrDefault(e.getId(), 0L);
                     int candidateCount = (cnt > Integer.MAX_VALUE) ? Integer.MAX_VALUE : (int) cnt;
 
+                    // 投票できるのは開催中かつ本人認証済み
                     boolean canCast = finalIdentityLinked && "ONGOING".equals(st);
 
                     ElectionListItem.CurrentVote currentVote = null;
@@ -121,17 +127,18 @@ public class ElectionService {
         final Instant now = Instant.now();
 
         var election = electionRepo.findById(electionId)
-                .orElseThrow(() -> new ApiException(
-                        HttpStatus.NOT_FOUND,
-                        "ELECTION_NOT_FOUND",
-                        "選挙が存在しません"));
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "ELECTION_NOT_FOUND", "選挙が存在しません"));
 
         String st = status(now, election.getStartsAt(), election.getEndsAt());
 
-        // 候補者
+        // 候補者（詳細画面で使い回せる程度に情報を返す：title/partyまで）
         var candidateEntities = candidateRepo.findByElectionId(electionId);
+        candidateEntities.sort(Comparator.comparingInt(c -> c.getSortOrder()));
+
+        var partyMap = loadPartiesByCandidateEntities(candidateEntities);
+
         var candidates = candidateEntities.stream()
-                .map(c -> new CandidateItem(c.getId(), c.getName()))
+                .map(c -> toCandidateItem(c, partyMap.get(blankToNull(c.getPartyKey()))))
                 .toList();
 
         int candidateCount = candidates.size();
@@ -142,10 +149,7 @@ public class ElectionService {
 
         if (accountIdOrNull != null) {
             var acc = userRepo.findById(accountIdOrNull)
-                    .orElseThrow(() -> new ApiException(
-                            HttpStatus.UNAUTHORIZED,
-                            "UNAUTHORIZED",
-                            "未ログインです"));
+                    .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "未ログインです"));
             citizenId = acc.getCitizenId();
             identityLinked = (citizenId != null);
         }
@@ -164,9 +168,9 @@ public class ElectionService {
                 var cur = curOpt.get();
                 UUID cid = cur.getCandidateId();
 
-                String candidateName = candidates.stream()
-                        .filter(c -> c.id().equals(cid))
-                        .map(CandidateItem::name)
+                String candidateName = candidateEntities.stream()
+                        .filter(x -> x.getId().equals(cid))
+                        .map(x -> x.getName())
                         .findFirst()
                         .orElse(null);
 
@@ -194,8 +198,13 @@ public class ElectionService {
             throw new ApiException(HttpStatus.NOT_FOUND, "ELECTION_NOT_FOUND", "選挙が存在しません");
         }
 
-        return candidateRepo.findByElectionId(electionId).stream()
-                .map(c -> new CandidateItem(c.getId(), c.getName()))
+        var candidateEntities = candidateRepo.findByElectionId(electionId);
+        candidateEntities.sort(Comparator.comparingInt(c -> c.getSortOrder()));
+
+        var partyMap = loadPartiesByCandidateEntities(candidateEntities);
+
+        return candidateEntities.stream()
+                .map(c -> toCandidateItem(c, partyMap.get(blankToNull(c.getPartyKey()))))
                 .toList();
     }
 
@@ -240,5 +249,93 @@ public class ElectionService {
         if (!now.isBefore(endsAt))
             return "ENDED";
         return "ONGOING";
+    }
+
+    // -------------------------
+    // helpers
+    // -------------------------
+    private CandidateItem toCandidateItem(
+            com.bteam.ovs.elections.entity.Candidate c,
+            com.bteam.ovs.elections.entity.Party pOrNull) {
+        CandidateItem.PartyEmbed party = null;
+        if (pOrNull != null) {
+            party = new CandidateItem.PartyEmbed(
+                    pOrNull.getPartyKey(),
+                    pOrNull.getShortName(),
+                    pOrNull.getName(),
+                    pOrNull.getColor());
+        }
+
+        return new CandidateItem(
+                c.getId(),
+                c.getCandidateKey(),
+                c.getName(),
+                c.getAge(),
+                c.getTitle(),
+                c.getSortOrder(),
+                party);
+    }
+
+    private Map<String, com.bteam.ovs.elections.entity.Party> loadPartiesByCandidateEntities(
+            List<com.bteam.ovs.elections.entity.Candidate> candidateEntities) {
+        var keys = candidateEntities.stream()
+                .map(c -> blankToNull(c.getPartyKey()))
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+
+        if (keys.isEmpty())
+            return Map.of();
+
+        return partyRepo.findByPartyKeyIn(keys).stream()
+                .collect(Collectors.toMap(
+                        p -> p.getPartyKey(),
+                        Function.identity()));
+    }
+
+    private String blankToNull(String v) {
+        if (v == null)
+            return null;
+        var t = v.trim();
+        return t.isEmpty() ? null : t;
+    }
+
+    public CandidateDetailResponse candidateDetail(UUID electionId, UUID candidateId) {
+        if (!electionRepo.existsById(electionId)) {
+            throw new ApiException(HttpStatus.NOT_FOUND, "ELECTION_NOT_FOUND", "選挙が存在しません");
+        }
+
+        var c = candidateRepo.findByIdAndElectionId(candidateId, electionId)
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.NOT_FOUND,
+                        "CANDIDATE_NOT_FOUND",
+                        "候補者が存在しません"));
+
+        PartySummary party = null;
+        if (c.getPartyKey() != null && !c.getPartyKey().isBlank()) {
+            var p = partyRepo.findByPartyKey(c.getPartyKey()).orElse(null);
+            if (p != null) {
+                party = new PartySummary(
+                        p.getPartyKey(),
+                        p.getName(),
+                        p.getShortName(),
+                        p.getColor());
+            }
+            // ★partyKeyはDBにあるのに party が無いのはデータ不整合
+            // 厳密にしたいなら throw にしてもOK（demo seedで validate 済みならthrow推奨）
+        }
+
+        return new CandidateDetailResponse(
+                c.getId(),
+                c.getElectionId(),
+                c.getCandidateKey(),
+                c.getName(),
+                c.getAge(),
+                party,
+                c.getTitle(),
+                c.getBio(),
+                (c.getPolicies() == null) ? List.of() : c.getPolicies(),
+                c.getWebsiteUrl(),
+                c.getImageUrl(),
+                c.getSortOrder());
     }
 }

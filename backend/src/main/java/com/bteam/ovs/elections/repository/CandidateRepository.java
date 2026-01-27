@@ -6,6 +6,7 @@ import org.springframework.data.repository.query.Param;
 
 import com.bteam.ovs.elections.entity.Candidate;
 
+import java.util.Optional;
 import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
@@ -33,4 +34,8 @@ public interface CandidateRepository extends JpaRepository<Candidate, UUID> {
                 group by c.electionId
             """)
     List<ElectionCandidateCount> countByElectionIdIn(@Param("electionIds") Collection<UUID> electionIds);
+
+    List<Candidate> findByPartyKeyOrderByElectionIdAscSortOrderAsc(String partyKey);
+
+    Optional<Candidate> findByIdAndElectionId(UUID id, UUID electionId);
 }

@@ -12,8 +12,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
 
-@RestController
-@RequestMapping("/api/admin/elections")
+@RestController @RequestMapping("/api/admin/elections")
 public class AdminElectionsController {
 
     private final ElectionAdminService adminService;
@@ -22,14 +21,12 @@ public class AdminElectionsController {
         this.adminService = adminService;
     }
 
-    @PostMapping
-    @ResponseStatus(HttpStatus.CREATED)
+    @PostMapping @ResponseStatus(HttpStatus.CREATED)
     public ElectionResponse create(@Valid @RequestBody ElectionCreateRequest req) {
         return adminService.create(req);
     }
 
-    @PostMapping("/{electionId}/candidates")
-    @ResponseStatus(HttpStatus.CREATED)
+    @PostMapping("/{electionId}/candidates") @ResponseStatus(HttpStatus.CREATED)
     public CandidateResponse addCandidate(
             @PathVariable("electionId") UUID electionId,
             @Valid @RequestBody CandidateCreateRequest req) {
