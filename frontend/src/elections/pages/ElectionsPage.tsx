@@ -379,20 +379,42 @@ export function ElectionsPage() {
                                     )}
 
                                     <span style={{ marginLeft: "auto" }}>
-                                        {!me ? (
-                                            <Link to="/login" state={{ from }}>
-                                                ログインして投票
-                                            </Link>
-                                        ) : e.canCast ? (
-                                            <Link
-                                                to={`/voting/start?electionId=${e.electionId}`}
-                                                state={{ from }}
-                                            >
-                                                <b>投票する →</b>
-                                            </Link>
+                                        {e.status === "ONGOING" ? (
+                                            !me ? (
+                                                <Link
+                                                    to="/login"
+                                                    state={{ from }}
+                                                >
+                                                    ログインして投票
+                                                </Link>
+                                            ) : e.canCast ? (
+                                                <Link
+                                                    to={`/voting/start?electionId=${e.electionId}`}
+                                                    state={{ from }}
+                                                >
+                                                    <b>投票する →</b>
+                                                </Link>
+                                            ) : (
+                                                <span style={{ opacity: 0.5 }}>
+                                                    投票不可
+                                                </span>
+                                            )
+                                        ) : e.status === "ENDED" ? (
+                                            e.hasResult ? (
+                                                <Link
+                                                    to={`/elections/${e.electionId}/result`}
+                                                    state={{ from }}
+                                                >
+                                                    結果を見る →
+                                                </Link>
+                                            ) : (
+                                                <span style={{ opacity: 0.5 }}>
+                                                    終了（結果未公開）
+                                                </span>
+                                            )
                                         ) : (
                                             <span style={{ opacity: 0.5 }}>
-                                                投票不可
+                                                開始前
                                             </span>
                                         )}
                                     </span>
