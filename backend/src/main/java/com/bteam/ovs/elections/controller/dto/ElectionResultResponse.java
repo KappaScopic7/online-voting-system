@@ -13,7 +13,7 @@ public record ElectionResultResponse(
         List<CandidateResult> results) {
     public record CandidateResult(
             UUID candidateId,
-            String name,
+            String candidateName,
             long votes) {
     }
 }

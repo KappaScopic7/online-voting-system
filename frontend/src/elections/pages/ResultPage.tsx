@@ -13,6 +13,10 @@ function percent(v: number, total: number) {
     return `${p.toFixed(1)}%`;
 }
 
+function clamp(n: number, min: number, max: number) {
+    return Math.max(min, Math.min(max, n));
+}
+
 export function ResultPage() {
     const { electionId } = useParams<{ electionId: string }>();
 
@@ -20,7 +24,6 @@ export function ResultPage() {
     const state = (loc.state ?? {}) as LocationState;
 
     const backTo = normalizeFrom(state.from ?? "/elections");
-
     const from = loc.pathname + loc.search;
 
     const [data, setData] = useState<ElectionResultResponse | null>(null);
@@ -82,9 +85,20 @@ export function ResultPage() {
         return map;
     }, [sorted]);
 
+    // 1位（同率）を強調
+    const topRank = useMemo(() => {
+        if (sorted.length === 0) return null;
+        // sorted[0] がトップ票数
+        const topVotes = sorted[0].votes;
+        if (topVotes <= 0) return null;
+        return { votes: topVotes };
+    }, [sorted]);
+
     const isDev = import.meta.env?.DEV;
 
     if (!electionId) return <div>Invalid electionId</div>;
+
+    const title = data?.title ?? "Result";
 
     return (
         <div style={{ padding: 16, display: "grid", gap: 12, maxWidth: 860 }}>
@@ -105,28 +119,33 @@ export function ResultPage() {
                     候補者へ
                 </Link>
 
-                <h2 style={{ margin: 0 }}>Result</h2>
+                <h2 style={{ margin: 0 }}>{title}</h2>
 
                 <button
                     onClick={load}
                     style={{ marginLeft: "auto" }}
                     disabled={isLoading}
                 >
-                    {isLoading ? "Reloading..." : "Reload"}
+                    {isLoading ? "Reloading..." : "再読み込み"}
                 </button>
             </header>
 
-            {/* 状態カード */}
+            {/* 状態カード（エラー / 公開前） */}
             {error && (
                 <div
                     style={{
                         border: "1px solid #ddd",
-                        borderRadius: 8,
+                        borderRadius: 10,
                         padding: 12,
+                        background: "#fafafa",
                     }}
                     role="alert"
                 >
-                    <p style={{ marginTop: 0, marginBottom: 8 }}>{error}</p>
+                    <div style={{ fontWeight: 700, marginBottom: 6 }}>
+                        {isForbidden ? "結果は未公開です" : "エラー"}
+                    </div>
+
+                    <p style={{ marginTop: 0, marginBottom: 10 }}>{error}</p>
 
                     <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
                         <button onClick={load}>再試行</button>
@@ -145,9 +164,10 @@ export function ResultPage() {
                         <p
                             style={{
                                 marginBottom: 0,
-                                marginTop: 8,
-                                fontSize: 13,
-                                opacity: 0.8,
+                                marginTop: 10,
+                                fontSize: 12,
+                                opacity: 0.85,
+                                lineHeight: 1.6,
                             }}
                         >
                             ※
@@ -158,17 +178,28 @@ export function ResultPage() {
             )}
 
             {/* Loading */}
-            {!error && isLoading && <p>Loading...</p>}
+            {!error && isLoading && (
+                <div
+                    style={{
+                        border: "1px solid #ddd",
+                        borderRadius: 10,
+                        padding: 12,
+                        background: "#fafafa",
+                    }}
+                >
+                    読み込み中…
+                </div>
+            )}
 
             {/* Result */}
             {!error && !isLoading && data && (
                 <section
                     style={{
                         border: "1px solid #ddd",
-                        borderRadius: 8,
+                        borderRadius: 10,
                         padding: 12,
                         display: "grid",
-                        gap: 10,
+                        gap: 12,
                     }}
                 >
                     <div
@@ -177,29 +208,54 @@ export function ResultPage() {
                             justifyContent: "space-between",
                             gap: 12,
                             flexWrap: "wrap",
+                            alignItems: "baseline",
                         }}
                     >
                         <strong style={{ fontSize: 16 }}>{data.title}</strong>
                         <span style={{ opacity: 0.85 }}>
-                            総投票数: {data.totalVotes}
+                            総投票数: <b>{data.totalVotes}</b>
                         </span>
                     </div>
 
                     {sorted.length === 0 ? (
-                        <p style={{ margin: 0 }}>結果データがありません</p>
+                        <div
+                            style={{
+                                border: "1px solid #eee",
+                                borderRadius: 10,
+                                padding: 12,
+                                background: "#fafafa",
+                            }}
+                        >
+                            結果データがありません。
+                        </div>
                     ) : (
                         <div style={{ display: "grid", gap: 10 }}>
                             {sorted.map((r) => {
+                                const rank = ranks.get(r.candidateId) ?? null;
+                                const isTop =
+                                    topRank?.votes != null &&
+                                    r.votes === topRank.votes &&
+                                    r.votes > 0;
+
+                                // 見た目のバー幅（最小2%で「見えない」を防ぐ）
                                 const ratioToTop =
                                     maxVotes > 0
                                         ? (r.votes / maxVotes) * 100
                                         : 0;
+                                const barW = clamp(ratioToTop, 2, 100);
+
                                 const p = percent(r.votes, data.totalVotes);
 
                                 return (
                                     <div
                                         key={r.candidateId}
-                                        style={{ display: "grid", gap: 4 }}
+                                        style={{
+                                            border: "1px solid #eee",
+                                            borderRadius: 10,
+                                            padding: 10,
+                                            display: "grid",
+                                            gap: 8,
+                                        }}
                                     >
                                         <div
                                             style={{
@@ -207,38 +263,123 @@ export function ResultPage() {
                                                 justifyContent: "space-between",
                                                 gap: 12,
                                                 alignItems: "baseline",
-                                            }}
-                                        >
-                                            <span>
-                                                <b>
-                                                    #
-                                                    {ranks.get(r.candidateId) ??
-                                                        "-"}
-                                                </b>{" "}
-                                                {r.candidateName}
-                                            </span>
-                                            <span style={{ opacity: 0.9 }}>
-                                                {r.votes}票（{p}）
-                                            </span>
-                                        </div>
-
-                                        <div
-                                            style={{
-                                                height: 10,
-                                                border: "1px solid #ddd",
-                                                borderRadius: 999,
-                                                overflow: "hidden",
+                                                flexWrap: "wrap",
                                             }}
                                         >
                                             <div
                                                 style={{
-                                                    width: `${ratioToTop}%`,
+                                                    display: "flex",
+                                                    gap: 10,
+                                                    alignItems: "baseline",
+                                                }}
+                                            >
+                                                <span
+                                                    style={{
+                                                        display: "inline-flex",
+                                                        alignItems: "center",
+                                                        gap: 6,
+                                                        fontWeight: isTop
+                                                            ? 800
+                                                            : 700,
+                                                    }}
+                                                >
+                                                    <span
+                                                        style={{
+                                                            display:
+                                                                "inline-flex",
+                                                            alignItems:
+                                                                "center",
+                                                            justifyContent:
+                                                                "center",
+                                                            minWidth: 34,
+                                                            padding: "2px 8px",
+                                                            border: "1px solid #ddd",
+                                                            borderRadius: 999,
+                                                            fontSize: 12,
+                                                            background: isTop
+                                                                ? "#fff"
+                                                                : "#fafafa",
+                                                        }}
+                                                        title="順位"
+                                                    >
+                                                        #{rank ?? "-"}
+                                                    </span>
+
+                                                    <span
+                                                        style={{ fontSize: 14 }}
+                                                    >
+                                                        {r.candidateName}
+                                                    </span>
+
+                                                    {isTop && (
+                                                        <span
+                                                            style={{
+                                                                fontSize: 12,
+                                                                padding:
+                                                                    "2px 8px",
+                                                                border: "1px solid #ddd",
+                                                                borderRadius: 999,
+                                                                background:
+                                                                    "#fff",
+                                                            }}
+                                                            title="トップ（同率含む）"
+                                                        >
+                                                            🏆 1位
+                                                        </span>
+                                                    )}
+                                                </span>
+                                            </div>
+
+                                            <span style={{ opacity: 0.95 }}>
+                                                <b>{r.votes}</b> 票（{p}）
+                                            </span>
+                                        </div>
+
+                                        {/* bar */}
+                                        <div
+                                            role="progressbar"
+                                            aria-label={`${r.candidateName} の得票率`}
+                                            aria-valuenow={
+                                                data.totalVotes > 0
+                                                    ? (r.votes /
+                                                          data.totalVotes) *
+                                                      100
+                                                    : 0
+                                            }
+                                            aria-valuemin={0}
+                                            aria-valuemax={100}
+                                            style={{
+                                                height: 12,
+                                                border: "1px solid #ddd",
+                                                borderRadius: 999,
+                                                overflow: "hidden",
+                                                background: "#fafafa",
+                                            }}
+                                        >
+                                            <div
+                                                style={{
+                                                    width: `${barW}%`,
                                                     height: "100%",
                                                     borderRadius: 999,
-                                                    background: "#999", // 仮
+                                                    // 色ではなく濃淡で差を作る（テーマ依存を避ける）
+                                                    background: isTop
+                                                        ? "#666"
+                                                        : "#999",
                                                 }}
                                             />
                                         </div>
+
+                                        {/* meta */}
+                                        {isDev && (
+                                            <div
+                                                style={{
+                                                    fontSize: 12,
+                                                    opacity: 0.75,
+                                                }}
+                                            >
+                                                candidateId: {r.candidateId}
+                                            </div>
+                                        )}
                                     </div>
                                 );
                             })}
