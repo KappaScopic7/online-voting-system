@@ -34,6 +34,7 @@
             ".gitattributes": true,
             ".gitignore": true,
             ".prettierrc": true,
+            ".github": true,
             // ===== どのフォルダから見ても確実に隠す =====
             "**/OnlineVotingSystemApplication.java": true,
             "**/application.yaml": true,
