@@ -1,10 +1,9 @@
-// frontend/src/auth/pages/LoginPage.tsx
 import { useMemo, useState } from "react";
 import { useLocation, useNavigate, Link } from "react-router-dom";
 import { login } from "../../user/api/userAuthApi";
 import { useAuth } from "../../user/UserAuthContext";
-import { normalizeFrom } from "../../shared/normalizeFrom";
 import { demoPersonas } from "../../demo/personas";
+import { sanitizeReturnTo } from "../../auth/routes/returnTo";
 
 type LocationState = {
     email?: string;
@@ -20,9 +19,10 @@ export function LoginPage() {
     const loc = useLocation();
     const state = (loc.state ?? {}) as LocationState;
 
-    const { setAccessToken } = useAuth();
+    // ★ auth全体で統一：戻り先は returnTo のみ
+    const returnTo = sanitizeReturnTo(state.from, "/");
 
-    const from = normalizeFrom(state.from ?? "/");
+    const { setAccessToken } = useAuth();
 
     const [email, setEmail] = useState(state.email ?? "");
     const [password, setPassword] = useState("");
@@ -45,14 +45,15 @@ export function LoginPage() {
             const token = await login(p.email, p.password);
             await setAccessToken(token.accessToken);
 
-            nav(from, { replace: true });
+            nav(returnTo, { replace: true });
         } catch (err: any) {
             const apiMsg =
                 err?.response?.data?.message ?? err?.message ?? "Login failed";
             const apiCode = err?.response?.data?.code;
 
             if (apiCode === "EMAIL_NOT_VERIFIED") {
-                nav("/verify", { state: { email: p.email, from } });
+                // ★ verify へも returnTo を渡す（authページを戻り先にしない）
+                nav("/verify", { state: { email: p.email, from: returnTo } });
             } else {
                 setMsg(apiMsg);
             }
@@ -87,15 +88,16 @@ export function LoginPage() {
             const token = await login(email.trim(), password);
             await setAccessToken(token.accessToken);
 
-            // from（正規化済み）へ
-            nav(from, { replace: true });
+            nav(returnTo, { replace: true });
         } catch (err: any) {
             const apiMsg =
                 err?.response?.data?.message ?? err?.message ?? "Login failed";
             const apiCode = err?.response?.data?.code;
 
             if (apiCode === "EMAIL_NOT_VERIFIED") {
-                nav("/verify", { state: { email: email.trim(), from } });
+                nav("/verify", {
+                    state: { email: email.trim(), from: returnTo },
+                });
             } else {
                 setMsg(apiMsg);
             }
@@ -191,14 +193,18 @@ export function LoginPage() {
                     {isSubmitting ? "Logging in..." : "Login"}
                 </button>
 
+                {/* ★ auth間リンクは常に returnTo を引き回す */}
                 <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-                    <Link to="/register" state={{ email, from }}>
+                    <Link to="/register" state={{ email, from: returnTo }}>
                         新規登録
                     </Link>
-                    <Link to="/password/forgot" state={{ email, from }}>
+                    <Link
+                        to="/password/forgot"
+                        state={{ email, from: returnTo }}
+                    >
                         パスワードを忘れた
                     </Link>
-                    <Link to="/verify" state={{ email, from }}>
+                    <Link to="/verify" state={{ email, from: returnTo }}>
                         メール認証へ
                     </Link>
                 </div>
@@ -215,7 +221,7 @@ export function LoginPage() {
                                 isSubmitting,
                                 fieldErr,
                                 locationState: state,
-                                normalizedFrom: from,
+                                returnTo,
                             },
                             null,
                             2,

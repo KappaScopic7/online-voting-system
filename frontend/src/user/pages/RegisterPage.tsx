@@ -1,8 +1,12 @@
-// frontend/src/auth/pages/RegisterPage.tsx
 import { useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { register } from "../../user/api/userAuthApi";
-import { normalizeFrom } from "../../shared/normalizeFrom";
+import { sanitizeReturnTo } from "../../auth/routes/returnTo";
+
+type LocationState = {
+    email?: string;
+    from?: string;
+};
 
 function isValidEmail(v: string) {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
@@ -11,11 +15,12 @@ function isValidEmail(v: string) {
 export function RegisterPage() {
     const nav = useNavigate();
     const loc = useLocation();
-    const state = (loc.state ?? {}) as { from?: string } | null;
+    const state = (loc.state ?? {}) as LocationState;
 
-    const from = normalizeFrom(state?.from ?? "/");
+    // ★ Register自身をfromにしない。受け取ったfromだけをsanitizeして保持
+    const returnTo = sanitizeReturnTo(state.from, "/");
 
-    const [email, setEmail] = useState("");
+    const [email, setEmail] = useState(state.email ?? "");
     const [password, setPassword] = useState("");
     const [password2, setPassword2] = useState("");
 
@@ -55,7 +60,7 @@ export function RegisterPage() {
 
         if (!password2)
             nextErr.password2 = "確認用パスワードを入力してください";
-        else if (password && password2 && password !== password2)
+        else if (password !== password2)
             nextErr.password2 = "パスワードが一致しません";
 
         if (nextErr.email || nextErr.password || nextErr.password2) {
@@ -67,9 +72,16 @@ export function RegisterPage() {
             setIsSubmitting(true);
             await register(em, password);
 
-            nav("/verify", { replace: true, state: { email: em, from } });
+            // ★ verify へ returnTo を渡す
+            nav("/verify", {
+                replace: true,
+                state: { email: em, from: returnTo },
+            });
         } catch (err: any) {
-            const apiMsg = err?.response?.data?.message ?? "Register failed";
+            const apiMsg =
+                err?.response?.data?.message ??
+                err?.message ??
+                "Register failed";
             setMsg(apiMsg);
         } finally {
             setIsSubmitting(false);
@@ -100,6 +112,7 @@ export function RegisterPage() {
                         placeholder="email"
                         autoComplete="email"
                         inputMode="email"
+                        disabled={isSubmitting}
                     />
                     {fieldErr.email && (
                         <small style={{ color: "crimson" }}>
@@ -118,11 +131,13 @@ export function RegisterPage() {
                             type={showPw ? "text" : "password"}
                             autoComplete="new-password"
                             style={{ flex: 1 }}
+                            disabled={isSubmitting}
                         />
                         <button
                             type="button"
                             onClick={() => setShowPw((v) => !v)}
                             aria-pressed={showPw}
+                            disabled={isSubmitting}
                         >
                             {showPw ? "Hide" : "Show"}
                         </button>
@@ -143,6 +158,7 @@ export function RegisterPage() {
                         placeholder="password (confirm)"
                         type={showPw ? "text" : "password"}
                         autoComplete="new-password"
+                        disabled={isSubmitting}
                     />
                     {fieldErr.password2 && (
                         <small style={{ color: "crimson" }}>
@@ -156,7 +172,10 @@ export function RegisterPage() {
                 </button>
 
                 <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-                    <Link to="/login" state={{ email: email.trim(), from }}>
+                    <Link
+                        to="/login"
+                        state={{ email: email.trim(), from: returnTo }}
+                    >
                         ログインへ
                     </Link>
                 </div>
@@ -167,7 +186,7 @@ export function RegisterPage() {
                     <summary>Debug</summary>
                     <pre style={{ whiteSpace: "pre-wrap" }}>
                         {JSON.stringify(
-                            { email, msg, isSubmitting, fieldErr, from },
+                            { email, msg, isSubmitting, fieldErr, returnTo },
                             null,
                             2,
                         )}

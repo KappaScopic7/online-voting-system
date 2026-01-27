@@ -1,8 +1,7 @@
-// frontend/src/auth/pages/VerifyEmailPage.tsx
 import { useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { verifyEmail } from "../../user/api/userAuthApi";
-import { normalizeFrom } from "../../shared/normalizeFrom";
+import { sanitizeReturnTo } from "../../auth/routes/returnTo";
 
 type LocationState = {
     email?: string;
@@ -22,7 +21,8 @@ export function VerifyEmailPage() {
     const loc = useLocation();
     const state = (loc.state ?? {}) as LocationState;
 
-    const from = normalizeFrom(state.from ?? "/");
+    // ★ auth全体で統一：戻り先は returnTo のみ
+    const returnTo = sanitizeReturnTo(state.from, "/");
 
     const [email, setEmail] = useState(state.email ?? "");
     const isDev = import.meta.env?.DEV;
@@ -68,8 +68,11 @@ export function VerifyEmailPage() {
         try {
             await verifyEmail(em, cd);
 
-            // verify後は login に戻して、ログイン後は from へ
-            nav("/login", { replace: true, state: { email: em, from } });
+            // ★ verify後は login に戻す。login後は returnTo へ。
+            nav("/login", {
+                replace: true,
+                state: { email: em, from: returnTo },
+            });
         } catch (err: any) {
             setMsg(err?.response?.data?.message ?? "Verify failed");
         } finally {
@@ -118,6 +121,7 @@ export function VerifyEmailPage() {
                         onChange={(e) => setEmail(e.target.value)}
                         placeholder="email"
                         autoComplete="email"
+                        disabled={isSubmitting}
                     />
                     {fieldErr.email && (
                         <small style={{ color: "crimson" }}>
@@ -134,6 +138,7 @@ export function VerifyEmailPage() {
                         placeholder="6-digit code"
                         inputMode="numeric"
                         autoComplete="one-time-code"
+                        disabled={isSubmitting}
                     />
                     {fieldErr.code && (
                         <small style={{ color: "crimson" }}>
@@ -150,23 +155,30 @@ export function VerifyEmailPage() {
                     <button
                         type="button"
                         onClick={onResend}
-                        disabled={isResending || !email.trim()}
+                        disabled={isResending || !email.trim() || isSubmitting}
                     >
                         {isResending ? "Sending..." : "コードを再送"}
                     </button>
                 </div>
 
+                {/* ★ auth間リンクは常に returnTo */}
                 <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-                    <Link to="/login" state={{ email: email.trim(), from }}>
+                    <Link
+                        to="/login"
+                        state={{ email: email.trim(), from: returnTo }}
+                    >
                         ログインへ戻る
                     </Link>
-                    <Link to="/register" state={{ email: email.trim(), from }}>
+                    <Link
+                        to="/register"
+                        state={{ email: email.trim(), from: returnTo }}
+                    >
                         新規登録へ
                     </Link>
                 </div>
             </form>
 
-            {isDev && (
+            {import.meta.env?.DEV && (
                 <details>
                     <summary>Debug</summary>
                     <pre style={{ whiteSpace: "pre-wrap" }}>
@@ -176,7 +188,7 @@ export function VerifyEmailPage() {
                                 code,
                                 msg,
                                 locationState: state,
-                                normalizedFrom: from,
+                                returnTo,
                                 isSubmitting,
                                 isResending,
                             },
