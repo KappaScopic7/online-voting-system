@@ -1,5 +1,6 @@
 // frontend/src/routes/adminRoutes.tsx
 import { Routes, Route } from "react-router-dom";
+import { AdminLoginPage } from "../admin/pages/AdminLoginPage";
 import { RequireStaff } from "../auth/routes/RequireStaff";
 import { AdminLayout } from "../layout/AdminLayout";
 import { AdminHomePage } from "../admin/pages/AdminHomePage";
@@ -10,6 +11,8 @@ import { AdminMePage } from "../admin/pages/AdminMePage";
 export function AdminRoutes() {
     return (
         <Routes>
+            <Route path="login" element={<AdminLoginPage />} />
+
             <Route
                 element={<RequireStaff role="ADMIN" loginPath="/admin/login" />}
             >
