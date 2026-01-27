@@ -4,9 +4,15 @@ import { Link, useLocation, useParams } from "react-router-dom";
 import { fetchCandidates } from "../api/elections";
 import type { CandidateItem } from "../model/electionTypes";
 
+type LocationState = { from?: string };
+
 export function CandidatesPage() {
     const { electionId } = useParams<{ electionId: string }>();
+
     const loc = useLocation();
+    const state = (loc.state ?? {}) as LocationState;
+
+    const backTo = state.from ?? "/elections";
     const from = loc.pathname + loc.search;
 
     const [items, setItems] = useState<CandidateItem[] | null>(null);
@@ -49,7 +55,7 @@ export function CandidatesPage() {
     return (
         <div style={{ padding: 16, display: "grid", gap: 12, maxWidth: 860 }}>
             <header style={{ display: "flex", gap: 12, alignItems: "center" }}>
-                <Link to="/">← 戻る（選挙一覧）</Link>
+                <Link to={backTo}>← 戻る</Link>
                 <h2 style={{ margin: 0 }}>Candidates</h2>
 
                 <button
@@ -77,6 +83,7 @@ export function CandidatesPage() {
 
                 <Link
                     to={`/elections/${electionId}/result`}
+                    state={{ from }}
                     style={{ marginLeft: "auto" }}
                 >
                     結果ページへ →
@@ -170,7 +177,7 @@ export function CandidatesPage() {
                         flexWrap: "wrap",
                     }}
                 >
-                    {/* ★ 投票導線を /voting/start に統一 + from を付与 */}
+                    {/* ★ /voting/start に統一 + from を付与 */}
                     <Link
                         to={`/voting/start?electionId=${electionId}`}
                         state={{ from }}
@@ -191,7 +198,11 @@ export function CandidatesPage() {
                 <details>
                     <summary>Debug</summary>
                     <pre style={{ whiteSpace: "pre-wrap" }}>
-                        {JSON.stringify({ items, error, isLoading }, null, 2)}
+                        {JSON.stringify(
+                            { items, error, isLoading, backTo, from },
+                            null,
+                            2,
+                        )}
                     </pre>
                 </details>
             )}

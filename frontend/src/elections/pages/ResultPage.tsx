@@ -1,8 +1,10 @@
 // frontend/src/elections/pages/ResultPage.tsx
 import { useEffect, useMemo, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useLocation, useParams } from "react-router-dom";
 import { fetchResult } from "../api/elections";
 import type { ElectionResultResponse } from "../model/electionTypes";
+
+type LocationState = { from?: string };
 
 function percent(v: number, total: number) {
     if (total <= 0) return "0.0%";
@@ -12,6 +14,12 @@ function percent(v: number, total: number) {
 
 export function ResultPage() {
     const { electionId } = useParams<{ electionId: string }>();
+
+    const loc = useLocation();
+    const state = (loc.state ?? {}) as LocationState;
+
+    const backTo = state.from ?? "/elections";
+    const from = loc.pathname + loc.search;
 
     const [data, setData] = useState<ElectionResultResponse | null>(null);
     const [error, setError] = useState<string | null>(null);
@@ -86,8 +94,15 @@ export function ResultPage() {
                     flexWrap: "wrap",
                 }}
             >
-                <Link to="/">← 戻る（選挙一覧）</Link>
-                <Link to={`/elections/${electionId}/candidates`}>候補者へ</Link>
+                <Link to={backTo}>← 戻る</Link>
+
+                <Link
+                    to={`/elections/${electionId}/candidates`}
+                    state={{ from }}
+                >
+                    候補者へ
+                </Link>
+
                 <h2 style={{ margin: 0 }}>Result</h2>
 
                 <button
@@ -113,10 +128,15 @@ export function ResultPage() {
 
                     <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
                         <button onClick={load}>再試行</button>
-                        <Link to={`/elections/${electionId}/candidates`}>
+
+                        <Link
+                            to={`/elections/${electionId}/candidates`}
+                            state={{ from }}
+                        >
                             候補者へ
                         </Link>
-                        <Link to="/">選挙一覧へ</Link>
+
+                        <Link to={backTo}>戻る</Link>
                     </div>
 
                     {isForbidden && (
@@ -200,7 +220,6 @@ export function ResultPage() {
                                             </span>
                                         </div>
 
-                                        {/* バー（仮）：色指定は後でCSSクラスへ逃がすのが理想 */}
                                         <div
                                             style={{
                                                 height: 10,
@@ -240,6 +259,8 @@ export function ResultPage() {
                                 electionId,
                                 isForbidden,
                                 isLoading,
+                                backTo,
+                                from,
                             },
                             null,
                             2,
