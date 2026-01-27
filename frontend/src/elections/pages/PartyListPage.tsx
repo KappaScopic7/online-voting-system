@@ -3,10 +3,11 @@ import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { fetchParties } from "../api/parties";
 import type { PartyListItem } from "../model/partyTypes";
+import { normalizeFrom } from "../../shared/normalizeFrom";
 
 export function PartyListPage() {
     const loc = useLocation();
-    const from = (loc.state as any)?.from ?? "/";
+    const from = normalizeFrom((loc.state as any)?.from ?? "/");
 
     const [items, setItems] = useState<PartyListItem[] | null>(null);
     const [err, setErr] = useState<string | null>(null);

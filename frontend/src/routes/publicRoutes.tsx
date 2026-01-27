@@ -4,6 +4,7 @@ import { PublicHomePage } from "../public";
 import { ElectionsPage } from "../elections/pages/ElectionsPage";
 import { ElectionDetailPage } from "../elections/pages/ElectionDetailPage";
 import { CandidatesPage } from "../elections/pages/CandidatesPage";
+import { CandidateDetailPage } from "../elections/pages/CandidateDetailPage";
 import { ResultPage } from "../elections/pages/ResultPage";
 import { MyElectionsPage } from "../elections/pages/MyElectionsPage";
 import { RegisterPage } from "../user/pages/RegisterPage";
@@ -35,6 +36,10 @@ export function PublicRoutes() {
             <Route
                 path="/elections/:electionId/candidates"
                 element={<CandidatesPage />}
+            />
+            <Route
+                path="/elections/:electionId/candidates/:candidateId"
+                element={<CandidateDetailPage />}
             />
             <Route
                 path="/elections/:electionId/result"

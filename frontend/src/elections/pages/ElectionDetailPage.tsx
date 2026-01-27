@@ -16,6 +16,14 @@ function fmt(iso: string) {
     }
 }
 
+function resolveCandidateName(
+    candidateId: string,
+    candidates: { id: string; name: string }[],
+): string {
+    const hit = candidates.find((c) => c.id === candidateId);
+    return hit?.name ?? candidateId;
+}
+
 export function ElectionDetailPage() {
     const { electionId } = useParams<{ electionId: string }>();
 
@@ -118,8 +126,12 @@ export function ElectionDetailPage() {
                     </div>
                     <div>
                         {data.currentVote.candidateName ??
-                            data.currentVote.candidateId}
+                            resolveCandidateName(
+                                data.currentVote.candidateId,
+                                data.candidates,
+                            )}
                     </div>
+
                     <div>castedAt: {fmt(data.currentVote.castedAt)}</div>
                 </div>
             )}
@@ -136,16 +148,32 @@ export function ElectionDetailPage() {
                 </div>
                 <div style={{ display: "grid", gap: 8 }}>
                     {data.candidates.map((c) => (
-                        <div
+                        <Link
                             key={c.id}
+                            to={`/elections/${data.electionId}/candidates/${c.id}`}
+                            state={{ from: self }}
                             style={{
                                 border: "1px solid #eee",
                                 padding: 10,
                                 borderRadius: 8,
+                                textDecoration: "none",
+                                color: "inherit",
+                                display: "block",
                             }}
                         >
-                            {c.name}
-                        </div>
+                            <div
+                                style={{
+                                    display: "flex",
+                                    justifyContent: "space-between",
+                                    gap: 12,
+                                }}
+                            >
+                                <span>{c.name}</span>
+                                <span style={{ fontSize: 12, opacity: 0.6 }}>
+                                    →
+                                </span>
+                            </div>
+                        </Link>
                     ))}
                 </div>
             </div>

@@ -335,7 +335,7 @@ export function ElectionsPage() {
                                         <span style={{ marginLeft: 12 }}>
                                             現在の投票:{" "}
                                             {e.currentVote?.candidateName ??
-                                                `候補ID: ${e.currentVote?.candidateId}`}
+                                                "投票済み"}
                                         </span>
                                     ) : (
                                         <span

@@ -14,17 +14,8 @@ export function createHttpClient(tokenStore: TokenStore) {
     http.interceptors.request.use((config) => {
         const token = tokenStore.get();
         if (token) {
-            if (
-                config.headers &&
-                typeof (config.headers as any).set === "function"
-            ) {
-                (config.headers as any).set("Authorization", `Bearer ${token}`);
-            } else {
-                config.headers = {
-                    ...(config.headers ?? {}),
-                    Authorization: `Bearer ${token}`,
-                } as any;
-            }
+            config.headers = config.headers ?? {};
+            (config.headers as any).Authorization = `Bearer ${token}`;
         }
         return config;
     });

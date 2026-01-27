@@ -3,11 +3,24 @@ import { useEffect, useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
 import { fetchCandidateDetail } from "../api/candidates";
 import type { CandidateDetailResponse } from "../model/candidateTypes";
+import { normalizeFrom } from "../../shared/normalizeFrom";
+
+type LocationState = { from?: string };
 
 export function CandidateDetailPage() {
-    const { electionId, candidateId } = useParams();
+    const { electionId, candidateId } = useParams<{
+        electionId: string;
+        candidateId: string;
+    }>();
+
     const loc = useLocation();
-    const from = (loc.state as any)?.from ?? "/elections";
+    const state = (loc.state ?? {}) as LocationState;
+
+    // 戻り先（CandidatesPage が state.from を渡してくる想定）
+    const backTo = normalizeFrom(state.from ?? "/elections");
+
+    // このページ自身（party 詳細などに渡すため）
+    const self = loc.pathname + loc.search;
 
     const [data, setData] = useState<CandidateDetailResponse | null>(null);
     const [err, setErr] = useState<string | null>(null);
@@ -33,6 +46,15 @@ export function CandidateDetailPage() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [electionId, candidateId]);
 
+    if (!electionId || !candidateId) {
+        return (
+            <div style={{ padding: 12, display: "grid", gap: 12 }}>
+                <Link to="/elections">← 戻る</Link>
+                <div>Invalid params</div>
+            </div>
+        );
+    }
+
     return (
         <div style={{ padding: 12, display: "grid", gap: 12, maxWidth: 760 }}>
             <header
@@ -43,7 +65,7 @@ export function CandidateDetailPage() {
                     flexWrap: "wrap",
                 }}
             >
-                <Link to={from}>&larr; 戻る</Link>
+                <Link to={backTo}>← 戻る</Link>
                 <h2 style={{ margin: 0 }}>候補者詳細</h2>
                 <button
                     onClick={load}
@@ -96,7 +118,7 @@ export function CandidateDetailPage() {
                         {data.party ? (
                             <Link
                                 to={`/parties/${data.party.partyKey}`}
-                                state={{ from: loc.pathname + loc.search }}
+                                state={{ from: self }}
                                 style={{
                                     fontSize: 12,
                                     padding: "4px 10px",

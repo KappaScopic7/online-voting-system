@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
 import { fetchCandidates } from "../api/elections";
 import type { CandidateItem } from "../model/electionTypes";
+import { normalizeFrom } from "../../shared/normalizeFrom";
 
 type LocationState = { from?: string };
 
@@ -12,7 +13,7 @@ export function CandidatesPage() {
     const loc = useLocation();
     const state = (loc.state ?? {}) as LocationState;
 
-    const backTo = state.from ?? "/elections";
+    const backTo = normalizeFrom(state.from ?? "/elections");
     const from = loc.pathname + loc.search;
 
     const [items, setItems] = useState<CandidateItem[] | null>(null);
@@ -41,12 +42,9 @@ export function CandidatesPage() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [electionId]);
 
-    const canStartVote = useMemo(() => {
-        if (!electionId) return false;
-        if (items === null) return false;
-        if (items.length === 0) return false;
-        return true;
-    }, [electionId, items]);
+    const hasCandidates = useMemo(() => {
+        return items !== null && items.length > 0;
+    }, [items]);
 
     const isDev = import.meta.env?.DEV;
 
@@ -56,14 +54,14 @@ export function CandidatesPage() {
         <div style={{ padding: 16, display: "grid", gap: 12, maxWidth: 860 }}>
             <header style={{ display: "flex", gap: 12, alignItems: "center" }}>
                 <Link to={backTo}>← 戻る</Link>
-                <h2 style={{ margin: 0 }}>Candidates</h2>
+                <h2 style={{ margin: 0 }}>候補者一覧</h2>
 
                 <button
                     onClick={load}
                     style={{ marginLeft: "auto" }}
                     disabled={isLoading}
                 >
-                    {isLoading ? "Reloading..." : "Reload"}
+                    {isLoading ? "Reloading..." : "再読み込み"}
                 </button>
             </header>
 
@@ -128,42 +126,53 @@ export function CandidatesPage() {
                 </div>
             ) : (
                 <section style={{ display: "grid", gap: 8 }}>
-                    {items.map((c) => (
-                        <div
-                            key={c.candidateId}
-                            style={{
-                                border: "1px solid #ddd",
-                                borderRadius: 8,
-                                padding: 12,
-                                display: "grid",
-                                gap: 6,
-                            }}
-                        >
-                            <div
+                    {items.map((c) => {
+                        const detailUrl = `/elections/${electionId}/candidates/${c.id}`;
+
+                        return (
+                            <Link
+                                key={c.id}
+                                to={detailUrl}
+                                state={{ from }}
                                 style={{
-                                    display: "flex",
-                                    justifyContent: "space-between",
-                                    gap: 12,
-                                    alignItems: "center",
+                                    border: "1px solid #ddd",
+                                    borderRadius: 8,
+                                    padding: 12,
+                                    display: "grid",
+                                    gap: 6,
+                                    textDecoration: "none",
+                                    color: "inherit",
                                 }}
                             >
-                                <strong style={{ fontSize: 16 }}>
-                                    {c.name}
-                                </strong>
-                                {isDev && (
-                                    <span
-                                        style={{ fontSize: 12, opacity: 0.6 }}
-                                    >
-                                        {c.candidateId}
-                                    </span>
-                                )}
-                            </div>
+                                <div
+                                    style={{
+                                        display: "flex",
+                                        justifyContent: "space-between",
+                                        gap: 12,
+                                        alignItems: "center",
+                                    }}
+                                >
+                                    <strong style={{ fontSize: 16 }}>
+                                        {c.name}
+                                    </strong>
+                                    {isDev && (
+                                        <span
+                                            style={{
+                                                fontSize: 12,
+                                                opacity: 0.6,
+                                            }}
+                                        >
+                                            {c.id}
+                                        </span>
+                                    )}
+                                </div>
 
-                            <div style={{ fontSize: 13, opacity: 0.85 }}>
-                                候補者の詳細（所属・公約など）はここに表示（仮）
-                            </div>
-                        </div>
-                    ))}
+                                <div style={{ fontSize: 13, opacity: 0.85 }}>
+                                    候補者の詳細（所属・公約など）を見る →
+                                </div>
+                            </Link>
+                        );
+                    })}
                 </section>
             )}
 
@@ -177,14 +186,22 @@ export function CandidatesPage() {
                         flexWrap: "wrap",
                     }}
                 >
-                    {/* ★ /voting/start に統一 + from を付与 */}
                     <Link
                         to={`/voting/start?electionId=${electionId}`}
                         state={{ from }}
+                        style={{
+                            display: "inline-block",
+                            padding: "8px 12px",
+                            border: "1px solid #ccc",
+                            borderRadius: 8,
+                            textDecoration: "none",
+                            color: "inherit",
+                            opacity: hasCandidates ? 1 : 0.5,
+                            pointerEvents: hasCandidates ? "auto" : "none",
+                        }}
+                        aria-disabled={!hasCandidates}
                     >
-                        <button disabled={!canStartVote}>
-                            {canStartVote ? "投票を開始" : "投票を開始（不可）"}
-                        </button>
+                        {hasCandidates ? "投票を開始" : "投票を開始（不可）"}
                     </Link>
 
                     <span style={{ fontSize: 12, opacity: 0.7 }}>

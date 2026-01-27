@@ -18,8 +18,18 @@ export type ElectionListItem = {
 };
 
 export type CandidateItem = {
-    candidateId: string;
+    id: string;
+    candidateKey: string;
     name: string;
+    age: number | null;
+    title: string | null;
+    sortOrder: number;
+    party: {
+        partyKey: string;
+        shortName: string;
+        name: string;
+        color?: string | null;
+    } | null;
 };
 
 export type ElectionResultResponse = {

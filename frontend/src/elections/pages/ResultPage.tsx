@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
 import { fetchResult } from "../api/elections";
 import type { ElectionResultResponse } from "../model/electionTypes";
+import { normalizeFrom } from "../../shared/normalizeFrom";
 
 type LocationState = { from?: string };
 
@@ -18,7 +19,8 @@ export function ResultPage() {
     const loc = useLocation();
     const state = (loc.state ?? {}) as LocationState;
 
-    const backTo = state.from ?? "/elections";
+    const backTo = normalizeFrom(state.from ?? "/elections");
+
     const from = loc.pathname + loc.search;
 
     const [data, setData] = useState<ElectionResultResponse | null>(null);
