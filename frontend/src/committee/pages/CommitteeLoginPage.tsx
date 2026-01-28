@@ -1,9 +1,7 @@
-// frontend/src/committee/pages/CommitteeLoginPage.tsx
-import { useMemo, useState, type FormEvent } from "react";
+// frontend/src/Committee/pages/CommitteeLoginPage.tsx
+import { useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useStaffAuth } from "../../staff/StaffAuthContext";
-import { useAuth } from "../../user/UserAuthContext";
-import { normalizeFrom } from "../../shared/normalizeFrom";
 
 type LocationState = {
     loginId?: string;
@@ -15,10 +13,7 @@ export function CommitteeLoginPage() {
     const loc = useLocation();
     const state = (loc.state ?? {}) as LocationState;
 
-    const from = normalizeFrom(state.from ?? "/committee");
-
-    const { login: staffLogin, refreshMe, staff } = useStaffAuth();
-    const { logout: userLogout } = useAuth();
+    const { login } = useStaffAuth();
 
     const [loginId, setLoginId] = useState(state.loginId ?? "");
     const [password, setPassword] = useState("");
@@ -36,7 +31,7 @@ export function CommitteeLoginPage() {
         return !isSubmitting;
     }, [loginId, password, isSubmitting]);
 
-    const onSubmit = async (e: FormEvent) => {
+    const onSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setMsg(null);
         setFieldErr({});
@@ -44,6 +39,7 @@ export function CommitteeLoginPage() {
         const nextErr: typeof fieldErr = {};
         if (!loginId.trim()) nextErr.loginId = "ログインIDを入力してください";
         if (!password) nextErr.password = "パスワードを入力してください";
+
         if (nextErr.loginId || nextErr.password) {
             setFieldErr(nextErr);
             return;
@@ -51,21 +47,11 @@ export function CommitteeLoginPage() {
 
         try {
             setIsSubmitting(true);
-
-            userLogout();
-            await staffLogin(loginId.trim(), password);
-            await refreshMe();
-
-            if (staff?.role !== "COMMITTEE") {
-                setMsg("委員会アカウントではありません");
-                return;
-            }
-
-            nav(from, { replace: true });
+            await login(loginId.trim(), password);
+            nav("/committee/me", { replace: true }); 
         } catch (err: any) {
-            console.error("committee login error", err);
             setMsg(
-                err?.response?.data?.message ?? "委員会ログインに失敗しました",
+                err?.response?.data?.message ?? "管理者ログインに失敗しました",
             );
         } finally {
             setIsSubmitting(false);
@@ -86,7 +72,7 @@ export function CommitteeLoginPage() {
             )}
 
             <form onSubmit={onSubmit} style={{ display: "grid", gap: 8 }}>
-                <label style={{ display: "grid", gap: 4 }}>
+                <label>
                     <span>Login ID</span>
                     <input
                         value={loginId}
@@ -100,7 +86,7 @@ export function CommitteeLoginPage() {
                     )}
                 </label>
 
-                <label style={{ display: "grid", gap: 4 }}>
+                <label>
                     <span>Password</span>
                     <div style={{ display: "flex", gap: 8 }}>
                         <input
@@ -113,7 +99,6 @@ export function CommitteeLoginPage() {
                         <button
                             type="button"
                             onClick={() => setShowPw((v) => !v)}
-                            aria-pressed={showPw}
                         >
                             {showPw ? "Hide" : "Show"}
                         </button>
