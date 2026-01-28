@@ -47,11 +47,20 @@ public final class PrincipalExtractor {
         return requirePrincipal(auth).role();
     }
 
-    // 公開API用：未ログインならnull、USER以外もnull
-    public static UUID optionalUserAccountId(Authentication auth) {
-        if (auth == null || auth.getPrincipal() == null)
+    public static UUID optionalAccountId(Authentication auth) {
+        if (auth == null)
             return null;
-        if (!(auth.getPrincipal() instanceof AuthPrincipal ap))
+        Object p = auth.getPrincipal();
+        if (p instanceof AuthPrincipal ap)
+            return ap.accountId();
+        return null;
+    }
+
+    public static UUID optionalUserAccountId(Authentication auth) {
+        if (auth == null)
+            return null;
+        Object p = auth.getPrincipal();
+        if (!(p instanceof AuthPrincipal ap))
             return null;
         if (ap.kind() != AccountKind.USER)
             return null;

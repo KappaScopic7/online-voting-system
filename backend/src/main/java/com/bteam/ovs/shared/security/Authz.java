@@ -4,6 +4,7 @@ package com.bteam.ovs.shared.security;
 import com.bteam.ovs.auth.entity.AccountKind;
 import com.bteam.ovs.auth.entity.Role;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.authorization.AuthorizationDecision;
 
 public final class Authz {
     private Authz() {
@@ -27,9 +28,21 @@ public final class Authz {
         if (auth == null || roles == null)
             return false;
         for (Role r : roles) {
-            if (r != null && hasRole(auth, r))
+            if (hasRole(auth, r))
                 return true;
         }
         return false;
+    }
+
+    public static AuthorizationDecision decide(boolean allowed) {
+        return new AuthorizationDecision(allowed);
+    }
+
+    public static AuthorizationDecision decide(Authentication auth, AccountKind kind) {
+        return decide(isKind(auth, kind));
+    }
+
+    public static AuthorizationDecision decide(Authentication auth, AccountKind kind, Role role) {
+        return decide(isKind(auth, kind) && hasRole(auth, role));
     }
 }

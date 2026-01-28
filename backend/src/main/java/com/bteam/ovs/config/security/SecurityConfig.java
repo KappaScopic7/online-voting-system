@@ -8,7 +8,6 @@ import com.bteam.ovs.auth.entity.Role;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
-import org.springframework.security.authorization.AuthorizationDecision;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -68,34 +67,30 @@ public class SecurityConfig {
 
                         // staff 用API
                         .requestMatchers("/api/staff/**")
-                        .access((authentication, context) -> new AuthorizationDecision(
-                                isKind(authentication.get(), AccountKind.STAFF)))
+                        .access((a, c) -> decide(a.get(), AccountKind.STAFF))
 
                         // ---- admin auth (互換で残すなら) ----
                         .requestMatchers("/api/admin/auth/login").permitAll()
 
                         // /api/admin/** は「STAFF かつ ADMIN/COMMITTEE」
                         .requestMatchers("/api/admin/**")
-                        .access((authentication, context) -> new AuthorizationDecision(
-                                isKind(authentication.get(), AccountKind.STAFF)
-                                        && hasAnyRole(authentication.get(), Role.ADMIN, Role.COMMITTEE)))
+                        .access((a, c) -> decide(
+                                isKind(a.get(), AccountKind.STAFF)
+                                        && hasAnyRole(a.get(), Role.ADMIN, Role.COMMITTEE)))
 
                         // ---- demo tools ----
                         .requestMatchers("/api/demo/**")
-                        .access((authentication, context) -> new AuthorizationDecision(
-                                isKind(authentication.get(), AccountKind.STAFF)
-                                        && hasRole(authentication.get(), Role.ADMIN)))
+                        .access((a, c) -> decide(a.get(), AccountKind.STAFF, Role.ADMIN))
 
                         // ---- identity (user only) ----
                         .requestMatchers("/api/identity/**")
-                        .access((authentication, context) -> new AuthorizationDecision(
-                                isKind(authentication.get(), AccountKind.USER)))
+                        .access((a, c) -> decide(a.get(), AccountKind.USER))
 
                         // ---- voter only (user + voter role) ----
                         .requestMatchers("/api/voting/**", "/api/votes/**")
-                        .access((authentication, context) -> new AuthorizationDecision(
-                                isKind(authentication.get(), AccountKind.USER)
-                                        && hasRole(authentication.get(), Role.VOTER)))
+                        .access((a, c) -> decide(
+                                isKind(a.get(), AccountKind.USER)
+                                        && hasRole(a.get(), Role.VOTER)))
 
                         .anyRequest().authenticated())
 
