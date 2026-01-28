@@ -13,12 +13,12 @@ import java.util.UUID;
 @Service
 public class EligibilityProfileResolver {
 
-    private final AccountResolver accountResolver; // ★変更
+    private final AccountResolver accountResolver;
     private final CitizenRepository citizenRepo;
     private final VoterProfileSelfRepository selfRepo;
 
     public EligibilityProfileResolver(
-            AccountResolver accountResolver, // ★変更
+            AccountResolver accountResolver,
             CitizenRepository citizenRepo,
             VoterProfileSelfRepository selfRepo) {
         this.accountResolver = accountResolver;
@@ -28,7 +28,7 @@ public class EligibilityProfileResolver {
 
     @Transactional(readOnly = true)
     public EligibilitySnapshot resolve(UUID accountId) {
-        var acc = accountResolver.requireActiveAccount(accountId); // ★集約
+        var acc = accountResolver.requireActiveAccount(accountId);
 
         // 本人認証済み -> citizen優先
         if (acc.getCitizenId() != null) {
