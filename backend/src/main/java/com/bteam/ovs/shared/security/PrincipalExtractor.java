@@ -47,15 +47,6 @@ public final class PrincipalExtractor {
         return requirePrincipal(auth).role();
     }
 
-    public static UUID optionalAccountId(Authentication auth) {
-        if (auth == null)
-            return null;
-        Object p = auth.getPrincipal();
-        if (p instanceof AuthPrincipal ap)
-            return ap.accountId();
-        return null;
-    }
-
     public static UUID optionalUserAccountId(Authentication auth) {
         if (auth == null)
             return null;

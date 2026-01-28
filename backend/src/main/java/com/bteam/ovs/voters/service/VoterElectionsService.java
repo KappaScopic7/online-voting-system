@@ -17,13 +17,13 @@ import java.util.stream.Collectors;
 @Service
 public class VoterElectionsService {
 
-    private final CitizenIdResolver citizenIdResolver; // ★追加
+    private final CitizenIdResolver citizenIdResolver;
     private final ElectionRepository electionRepo;
     private final CandidateRepository candidateRepo;
     private final VoteCurrentRepository voteCurrentRepo;
 
     public VoterElectionsService(
-            CitizenIdResolver citizenIdResolver, // ★追加
+            CitizenIdResolver citizenIdResolver,
             ElectionRepository electionRepo,
             CandidateRepository candidateRepo,
             VoteCurrentRepository voteCurrentRepo) {
@@ -33,14 +33,14 @@ public class VoterElectionsService {
         this.voteCurrentRepo = voteCurrentRepo;
     }
 
-    // Controller はこれだけ呼べばいい（accountIdから内部で解決）
+    // accountId版：Controllerはこれだけ呼べばいい
     public List<ElectionListItem> listMyElectionsByAccount(UUID accountId) {
         UUID citizenId = citizenIdResolver.requireCitizenId(accountId);
-        return listMyElections(citizenId);
+        return listMyElectionsByCitizen(citizenId);
     }
 
-    // citizenId版（既存ロジックは維持）
-    public List<ElectionListItem> listMyElections(UUID citizenId) {
+    // citizenId版：既存ロジック（維持）
+    public List<ElectionListItem> listMyElectionsByCitizen(UUID citizenId) {
         List<Election> elections = electionRepo.findAll();
         if (elections.isEmpty())
             return List.of();
@@ -54,8 +54,9 @@ public class VoterElectionsService {
 
         List<VoteCurrent> currents = voteCurrentRepo.findByCitizenIdAndElectionIdIn(citizenId, electionIds);
         Map<UUID, VoteCurrent> currentByElectionId = new HashMap<>();
-        for (VoteCurrent v : currents)
+        for (VoteCurrent v : currents) {
             currentByElectionId.put(v.getElectionId(), v);
+        }
 
         Set<UUID> candidateIds = currents.stream()
                 .map(VoteCurrent::getCandidateId)
@@ -83,7 +84,7 @@ public class VoterElectionsService {
                     ElectionListItem.CurrentVote currentVote = null;
                     if (v != null) {
                         UUID cid = v.getCandidateId();
-                        String cname = cid == null ? null : candidateNameById.get(cid);
+                        String cname = (cid == null) ? null : candidateNameById.get(cid);
                         currentVote = new ElectionListItem.CurrentVote(cid, cname, v.getCastedAt());
                     }
 

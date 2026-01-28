@@ -27,10 +27,10 @@ public class CitizenIdResolver {
         return citizenId;
     }
 
+    // 公開API用：未ログイン/無効/ロックは null、本人認証なしも null
     public UUID optionalCitizenId(UUID accountIdOrNull) {
-        var accOpt = accountResolver.findActiveAccount(accountIdOrNull);
-        if (accOpt.isEmpty())
-            return null;
-        return accOpt.get().getCitizenId();
+        return accountResolver.findActiveAccount(accountIdOrNull)
+                .map(a -> a.getCitizenId())
+                .orElse(null);
     }
 }
