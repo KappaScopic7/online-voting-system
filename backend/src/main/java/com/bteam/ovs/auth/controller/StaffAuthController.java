@@ -1,10 +1,10 @@
 package com.bteam.ovs.auth.controller;
 
-import com.bteam.ovs.auth.controller.dto.MeDetailResponse;
+//import com.bteam.ovs.auth.controller.dto.MeDetailResponse;生田目追記
 import com.bteam.ovs.auth.controller.dto.StaffLoginRequest;
 import com.bteam.ovs.auth.controller.dto.StaffMeResponse;
 import com.bteam.ovs.auth.controller.dto.TokenResponse;
-import com.bteam.ovs.auth.entity.IdentityStatus;
+//import com.bteam.ovs.auth.entity.IdentityStatus; 生田目追記
 import com.bteam.ovs.auth.entity.StaffAccount;
 import com.bteam.ovs.auth.repository.StaffAccountRepository;
 import com.bteam.ovs.auth.service.StaffAuthService;
@@ -41,23 +41,24 @@ public class StaffAuthController {
         return new StaffMeResponse(acc.getId(), acc.getLoginId(), acc.getRole(), acc.isEnabled(), acc.isLocked());
     }
 
-//    @GetMapping("/me/detail")
-//    public MeDetailResponse meDetail(Authentication authentication) {
-//        var acc = findMe(authentication);
-//        var identityStatus = (acc.getCitizenId() == null) ? IdentityStatus.NONE : IdentityStatus.LINKED;
+    // @GetMapping("/me/detail")
+    // public MeDetailResponse meDetail(Authentication authentication) {
+    // var acc = findMe(authentication);
+    // var identityStatus = (acc.getCitizenId() == null) ? IdentityStatus.NONE :
+    // IdentityStatus.LINKED;
 
-//        return new MeDetailResponse(
-//                acc.getId(),
-//                acc.getEmail(),
-//                acc.getRole() == null ? null : acc.getRole().name(),
-//                acc.isEmailVerified(),
-//                acc.isEnabled(),
-//                acc.isLocked(),
-//                acc.getCitizenId(),
-//                identityStatus,
-//                acc.getCreatedAt(),
-//                acc.getUpdatedAt());
-//    }
+    // return new MeDetailResponse(
+    // acc.getId(),
+    // acc.getEmail(),
+    // acc.getRole() == null ? null : acc.getRole().name(),
+    // acc.isEmailVerified(),
+    // acc.isEnabled(),
+    // acc.isLocked(),
+    // acc.getCitizenId(),
+    // identityStatus,
+    // acc.getCreatedAt(),
+    // acc.getUpdatedAt());
+    // }
 
     private StaffAccount findMe(Authentication authentication) {
         UUID accountId = PrincipalExtractor.requireAccountId(authentication);

@@ -6,7 +6,7 @@ import {
     type IdentityMethod,
 } from "../components/IdentityMethodTabs";
 import { IdentityManualForm } from "../components/IdentityManualForm";
-import { IdentityNfcStub } from "../components/IdentityNfcStub";
+import { IdentityNfcScanner } from "../components/IdentityNfcScanner";
 
 type LocationState = { from?: string };
 
@@ -57,7 +57,7 @@ export function IdentityLinkPage() {
                 {method === "MANUAL" ? (
                     <IdentityManualForm onLinked={onLinked} />
                 ) : (
-                    <IdentityNfcStub onLinked={onLinked} />
+                    <IdentityNfcScanner onLinked={onLinked} />
                 )}
 
                 {state.from && (
