@@ -35,6 +35,10 @@ public interface ElectionRepository extends JpaRepository<Election, UUID> {
 
     boolean existsByElectionKey(String electionKey);
 
-    void deleteAll(); // 既にあるはず
+    void deleteAll();
+
+    List<Election> findByDistrictPrefCodeAndDistrictCityCodeOrderByStartsAtDesc(
+            String districtPrefCode,
+            String districtCityCode);
 
 }

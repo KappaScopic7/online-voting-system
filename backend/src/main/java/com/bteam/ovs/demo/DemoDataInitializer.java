@@ -33,7 +33,8 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.*;
 
-@Profile("demo") @Configuration
+@Profile("demo")
+@Configuration
 public class DemoDataInitializer {
 
     private static final String DEMO_ADMIN_LOGIN_ID = "admin";
@@ -202,12 +203,17 @@ public class DemoDataInitializer {
     private void seedCommittee(StaffAccountRepository staffRepo, PasswordEncoder passwordEncoder) {
         if (staffRepo.existsByLoginId(DEMO_COMMITTEE_LOGIN_ID))
             return;
+
         var committee = new StaffAccount();
         committee.setLoginId(DEMO_COMMITTEE_LOGIN_ID);
         committee.setPasswordHash(passwordEncoder.encode(DEMO_COMMITTEE_PASSWORD));
         committee.setRole(Role.COMMITTEE);
         committee.setEnabled(true);
         committee.setLocked(false);
+
+        committee.setAssignedPrefCode("13");
+        committee.setAssignedCityCode("13209");
+
         staffRepo.save(committee);
     }
 

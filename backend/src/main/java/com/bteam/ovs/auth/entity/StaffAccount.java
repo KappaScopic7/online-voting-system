@@ -9,12 +9,9 @@ import java.time.Instant;
 import java.util.UUID;
 
 @Entity
-@Table(
-        name = "staff_account",
-        uniqueConstraints = {
-                @UniqueConstraint(name = "uk_staff_account_login_id", columnNames = {"login_id"})
-        }
-)
+@Table(name = "staff_account", uniqueConstraints = {
+        @UniqueConstraint(name = "uk_staff_account_login_id", columnNames = { "login_id" })
+})
 @Getter
 @Setter
 @NoArgsConstructor
@@ -34,6 +31,12 @@ public class StaffAccount {
     @Column(name = "role", nullable = false, length = 30)
     private Role role; // COMMITTEE or ADMIN
 
+    @Column(name = "assigned_pref_code", length = 10)
+    private String assignedPrefCode;
+
+    @Column(name = "assigned_city_code", length = 10)
+    private String assignedCityCode;
+
     @Column(name = "is_enabled", nullable = false)
     private boolean enabled;
 
@@ -48,9 +51,11 @@ public class StaffAccount {
 
     @PrePersist
     void onCreate() {
-        if (id == null) id = UUID.randomUUID();
+        if (id == null)
+            id = UUID.randomUUID();
         var now = Instant.now();
-        if (createdAt == null) createdAt = now;
+        if (createdAt == null)
+            createdAt = now;
         updatedAt = now;
     }
 

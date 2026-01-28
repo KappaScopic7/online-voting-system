@@ -2,6 +2,7 @@ package com.bteam.ovs.elections.controller;
 
 import com.bteam.ovs.elections.controller.dto.ElectionResponse;
 import com.bteam.ovs.elections.service.ElectionCommitteeService;
+import org.springframework.security.core.Authentication;
 
 import org.springframework.web.bind.annotation.*;
 
@@ -18,7 +19,7 @@ public class CommitteeElectionsController {
     }
 
     @GetMapping
-    public List<ElectionResponse> list() {
-        return committeeService.listElections();
+    public List<ElectionResponse> list(Authentication auth) {
+        return committeeService.listElections(auth);
     }
 }
