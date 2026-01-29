@@ -22,16 +22,13 @@
   background-color:#ffffff;
   color: #000000;
   border-radius:4px;
-  min-width: 40px;
-  min-height: 37px;
+  min-width: 30px;
+  min-height: 27px;
   border-width: 2px;
   cursor: pointer;
-  margin-right: 8px;
-  margin-top: 6px;   
-  border-color: #ccc;  
-  font-size: 16px;   /* 숫자를 키우면 커지고, 줄이면 작아집니다 */
-  color: #333;       /* 아이콘 색상도 여기서 바꿀 수 있어요 */
-  display: block;    /* 정렬을 깔끔하게 맞추기 위해 추가 */
+  margin-right: 5px;
+  margin-top: 5px;   
+  border-color: #ccc   
 }
 
 .logoImage {

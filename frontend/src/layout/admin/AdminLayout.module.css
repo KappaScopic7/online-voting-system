@@ -26,20 +26,13 @@
   min-height: 37px;
   border-width: 2px;
   cursor: pointer;
-  margin-right: 8px;
-  margin-top: 6px;   
+  margin-right: 8px; 
   border-color: #ccc;  
   font-size: 16px;    
   color: #333;       
   display: block;     
 }
 
-.logoImage {
-  align-items: center;
-  width: 150px;   
-  height: auto;
-  object-fit: contain;
-}
 
 .menuopen{
     position: absolute;
@@ -69,9 +62,10 @@
 .header {
         display: flex;
         gap: 12px;
-        margin-Bottom: 16px;
         align-Items: center;
         flex-Wrap: wrap;
+        align-items: center;
+        height: 64px;
 }
 
 .headerin {
@@ -80,6 +74,7 @@
         gap: 12px;
         align-Items: center;
         flex-Wrap: wrap;
+        align-items: center;
 }
 
 .nav {
@@ -98,6 +93,20 @@
     color: #000000;
     text-decoration-line: none;
     font-weight :500;
+}
+
+.adminlogo { 
+  height: 60px;
+    display: flex;  
+    align-items: center;    
+    justify-content: left;  
+    font-size: 24px;
+    text-align: center;   
+    padding: 0px 12px;
+    color: #000000;
+    text-decoration: none;  
+    font-weight: 700;
+    gap: 10px;
 }
 
 .footer {
