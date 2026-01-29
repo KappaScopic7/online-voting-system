@@ -22,13 +22,16 @@
   background-color:#ffffff;
   color: #000000;
   border-radius:4px;
-  min-width: 30px;
-  min-height: 27px;
+  min-width: 40px;
+  min-height: 37px;
   border-width: 2px;
   cursor: pointer;
-  margin-right: 5px;
-  margin-top: 5px;   
-  border-color: #ccc   
+  margin-right: 8px;
+  margin-top: 6px;   
+  border-color: #ccc;  
+  font-size: 16px;    
+  color: #333;       
+  display: block;     
 }
 
 .logoImage {
@@ -57,10 +60,10 @@
 
 .divider {
   border: 0;
-  border-top: 1px solid #eee; /* 선 두께와 색상 */
-  margin: 10px 0;             /* 위아래 간격 */
-  width: 100%;                /* 점이 선으로 변하는 핵심! */
-  box-sizing: border-box;     /* 패딩 때문에 삐져나가는 것 방지 */
+  border-top: 1px solid #eee;  
+  margin: 10px 0;              
+  width: 100%;                 
+  box-sizing: border-box;      
 }
 
 .header {

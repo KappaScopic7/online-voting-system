@@ -103,7 +103,7 @@ return (
         {!user && (<>
         <span style={{ fontSize: 12, opacity: 0.7 }}>未ログイン状態</span>
             <Link className={styles.navlink} to="/login">ログイン</Link>
-            <Link className={styles.navlink} to="/register">新規登録</Link>
+            <Link className={styles.navlink} style={{marginRight:10}} to="/register">新規登録</Link>
         </>)}
         {/* ログイン状態 */}
         {user && (<>

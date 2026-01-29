@@ -2,7 +2,7 @@
 import { Routes, Route } from "react-router-dom";
 import { AdminLoginPage } from "../admin/pages/AdminLoginPage";
 import { RequireStaff } from "../auth/routes/RequireStaff";
-import { AdminLayout } from "../layout/AdminLayout";
+import { AdminLayout } from "../layout/admin/AdminLayout";
 import { AdminHomePage } from "../admin/pages/AdminHomePage";
 import { AdminElectionsPage } from "../admin/pages/AdminElectionsPage";
 import { AdminStaffPage } from "../admin/pages/AdminStaffPage";
