@@ -27,7 +27,8 @@
   border-width: 2px;
   cursor: pointer;
   margin-right: 5px;
-  margin-top: 5px;      
+  margin-top: 5px;   
+  border-color: #ccc   
 }
 
 .logoImage {
