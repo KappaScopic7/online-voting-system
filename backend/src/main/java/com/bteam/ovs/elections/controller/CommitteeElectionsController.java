@@ -1,7 +1,7 @@
 package com.bteam.ovs.elections.controller;
 
 import com.bteam.ovs.elections.controller.dto.ElectionResponse;
-import com.bteam.ovs.elections.service.ElectionCommitteeService;
+import com.bteam.ovs.elections.service.CommitteeElectionService;
 import org.springframework.security.core.Authentication;
 
 import org.springframework.web.bind.annotation.*;
@@ -12,9 +12,9 @@ import java.util.List;
 @RequestMapping("/api/committee/elections")
 public class CommitteeElectionsController {
 
-    private final ElectionCommitteeService committeeService;
+    private final CommitteeElectionService committeeService;
 
-    public CommitteeElectionsController(ElectionCommitteeService committeeService) {
+    public CommitteeElectionsController(CommitteeElectionService committeeService) {
         this.committeeService = committeeService;
     }
 

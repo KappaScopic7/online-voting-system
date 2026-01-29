@@ -17,12 +17,12 @@ import java.util.List;
 import java.util.UUID;
 
 @Service
-public class ElectionCommitteeService {
+public class CommitteeElectionService {
 
     private final ElectionRepository electionRepo;
     private final StaffAccountRepository staffRepo;
 
-    public ElectionCommitteeService(ElectionRepository electionRepo, StaffAccountRepository staffRepo) {
+    public CommitteeElectionService(ElectionRepository electionRepo, StaffAccountRepository staffRepo) {
         this.electionRepo = electionRepo;
         this.staffRepo = staffRepo;
     }
