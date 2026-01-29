@@ -116,17 +116,17 @@ return (
 
             {isMenuOpen && (
                 <div className={`${styles.menuopen} ${showTopBar ? styles.withShadow : ""}`}>
-                    <div><Link to="/me">マイページ →</Link></div>
+                    <div><Link className={styles.navlink} to="/me">マイページ →</Link></div>
                     <hr className={styles.divider} />
-                    <div><Link to="/login">お知らせ →</Link></div>  
+                    <div><Link className={styles.navlink} to="/notice">お知らせ →</Link></div>  
                     <hr className={styles.divider} />
-                    <div><Link to="/me/votes">投票履歴 →</Link></div> 
+                    <div><Link className={styles.navlink} to="/me/votes">投票履歴 →</Link></div> 
                     <hr className={styles.divider} />
-                    <div><Link to="/login">アカウント設定 →</Link></div>
+                    <div><Link className={styles.navlink} to="/account-setting">アカウント設定 →</Link></div>
                     <hr className={styles.divider} />
-                    <div><Link to="/login">プロフィール編集 →</Link></div>
+                    <div><Link className={styles.navlink} to="/profil-eEdit">プロフィール編集 →</Link></div>
                     <hr className={styles.divider} />
-                    <div><Link to="/me/identity">本人確認 →</Link></div>
+                    <div><Link className={styles.navlink} to="/me/identity">本人確認 →</Link></div>
                     <hr className={styles.divider} />
                     <div><button className={styles.menubutton} type="button" onClick={onLogout}>ログアウト</button></div>
                 </div>
@@ -138,14 +138,14 @@ return (
     <nav className={styles.nav}>
         {!user && (<>
         <Link to="/elections" className={styles.navlink}>選挙一覧</Link>|
-        <Link to="/" className={styles.navlink}>政党一覧</Link>|
-        <Link to="/login" className={styles.navlink}>問い合わせ</Link>
+        <Link to="/partys" className={styles.navlink}>政党一覧</Link>|
+        <Link to="/help" className={styles.navlink}>問い合わせ</Link>
         </>)}
         {user && (<>
         <Link to="/elections" className={styles.navlink}>選挙一覧</Link>|
-        <Link to="/" className={styles.navlink}>政党一覧</Link>|
+        <Link to="/partys" className={styles.navlink}>政党一覧</Link>|
         <Link to="/me/elections" className={styles.navlink}>My選挙</Link>|
-        <Link to="/login" className={styles.navlink}>問い合わせ</Link>
+        <Link to="/help" className={styles.navlink}>問い合わせ</Link>
         </>)}
     </nav>      
     </div>

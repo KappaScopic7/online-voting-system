@@ -49,7 +49,10 @@
     min-Width: 200px;         
     white-Space: nowrap;      
     display: flex;          
-    flex-Direction: column
+    flex-Direction: column;
+    color: #000000;
+    text-decoration-line: none;
+    font-weight :500;
 }    
 
 .divider {
@@ -82,12 +85,16 @@
     display: flex;         /* 、はNG */
     align-items: center;   /* ハイフン(-) 必須　及び  、はNG*/
     border: 1px solid #ccc; /* 色指定 */
+    color: #000000;
 }
 
 .navlink { 
     flex: 1px; 
     padding: 12px; 
-    text-Align: center
+    text-Align: center;
+    color: #000000;
+    text-decoration-line: none;
+    font-weight :500;
 }
 
 .footer {
