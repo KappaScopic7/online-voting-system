@@ -1,14 +1,14 @@
 // frontend/src/layout/PublicLayout.tsx
 import { Link, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "../../user/UserAuthContext";
-import { useStaffAuth } from "../../staff/StaffAuthContext";
+//import { useStaffAuth } from "../../staff/StaffAuthContext";
 import { useEffect, useRef, useState } from "react";
 import styles from "./PublicLayout.module.css";
 
 export function PublicLayout() {
     const nav = useNavigate();
     const { me: user, logout: userLogout } = useAuth();
-    const { staff, logout: staffLogout } = useStaffAuth();
+    //const { staff, logout: staffLogout } = useStaffAuth();
 
     //const isDev = import.meta.env?.DEV;
 
@@ -22,11 +22,11 @@ export function PublicLayout() {
     const menuRef = useRef<HTMLDivElement>(null);   
 
     const onLogout = () => {
-        if (staff) {
-            staffLogout();
-            nav("/", { replace: true });
-            return;
-        }
+        //if (staff) {
+            //staffLogout();
+            //nav("/", { replace: true });
+            //return;
+        //}
         if (user) {
             userLogout();
             nav("/", { replace: true });
