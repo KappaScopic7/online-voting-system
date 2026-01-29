@@ -88,6 +88,11 @@ export function ElectionsPage() {
 
     const isDev = import.meta.env?.DEV;
 
+    const debugValue = useMemo(
+        () => JSON.stringify({ items, error, isLoading }, null, 2),
+        [items, error, isLoading],
+    );
+
     return (
         <div style={{ padding: 12, display: "grid", gap: 12 }}>
             {/* Header */}
@@ -428,9 +433,7 @@ export function ElectionsPage() {
             {isDev && (
                 <details>
                     <summary>Debug</summary>
-                    <pre style={{ whiteSpace: "pre-wrap" }}>
-                        {JSON.stringify({ items, error, me }, null, 2)}
-                    </pre>
+                    <pre style={{ whiteSpace: "pre-wrap" }}>{debugValue}</pre>
                 </details>
             )}
         </div>

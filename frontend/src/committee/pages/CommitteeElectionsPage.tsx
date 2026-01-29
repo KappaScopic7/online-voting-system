@@ -1,5 +1,5 @@
 // frontend/src/committee/pages/CommitteeElectionsPage.tsx
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { ElectionListView } from "../../shared/components/ElectionListView";
 import {
     fetchCommitteeElections,
@@ -7,6 +7,8 @@ import {
 } from "../api/elections";
 
 export function CommitteeElectionsPage() {
+    const isDev = import.meta.env?.DEV === true;
+
     const [items, setItems] = useState<CommitteeElectionListItem[] | null>(
         null,
     );
@@ -17,10 +19,11 @@ export function CommitteeElectionsPage() {
         setError(null);
         setIsLoading(true);
         try {
-            setItems(await fetchCommitteeElections());
+            const data = await fetchCommitteeElections();
+            setItems(data);
         } catch (e: any) {
             setError(e?.response?.data?.message ?? "Failed to load");
-            setItems([]); // 失敗時は空配列で表示を成立させる
+            setItems([]);
         } finally {
             setIsLoading(false);
         }
@@ -30,14 +33,28 @@ export function CommitteeElectionsPage() {
         load();
     }, [load]);
 
+    const debugValue = useMemo(
+        () => JSON.stringify({ items, error, isLoading }, null, 2),
+        [items, error, isLoading],
+    );
+
     return (
-        <ElectionListView
-            title="担当選挙一覧"
-            items={items}
-            error={error}
-            isLoading={isLoading}
-            onReload={load}
-            detailsHref={(e) => `/committee/elections/${e.electionId}`}
-        />
+        <div>
+            <ElectionListView
+                title="担当選挙一覧"
+                items={items}
+                error={error}
+                isLoading={isLoading}
+                onReload={load}
+                detailsHref={(e) => `/committee/elections/${e.electionId}`}
+            />
+
+            {isDev && (
+                <details style={{ marginTop: 12 }}>
+                    <summary>Debug</summary>
+                    <pre style={{ whiteSpace: "pre-wrap" }}>{debugValue}</pre>
+                </details>
+            )}
+        </div>
     );
 }
