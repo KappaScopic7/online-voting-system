@@ -4,6 +4,7 @@ import { Link, useLocation, useParams } from "react-router-dom";
 import { fetchCandidates } from "../api/elections";
 import type { CandidateItem } from "../model/electionTypes";
 import { normalizeFrom } from "../../shared/normalizeFrom";
+import { resolveCandidateImageUrlById } from "../ui/candidateImages";
 
 type LocationState = { from?: string };
 
@@ -155,6 +156,28 @@ export function CandidatesPage() {
                                     <strong style={{ fontSize: 16 }}>
                                         {c.name}
                                     </strong>
+                                    {(() => {
+                                        const thumb =
+                                            resolveCandidateImageUrlById(c.id);
+                                        return thumb ? (
+                                            <img
+                                                src={thumb}
+                                                alt={c.name}
+                                                onError={(e) => {
+                                                    (
+                                                        e.currentTarget as HTMLImageElement
+                                                    ).style.display = "none";
+                                                }}
+                                                style={{
+                                                    width: 64,
+                                                    height: 64,
+                                                    objectFit: "cover",
+                                                    borderRadius: 8,
+                                                    border: "1px solid #eee",
+                                                }}
+                                            />
+                                        ) : null;
+                                    })()}
                                     {isDev && (
                                         <span
                                             style={{

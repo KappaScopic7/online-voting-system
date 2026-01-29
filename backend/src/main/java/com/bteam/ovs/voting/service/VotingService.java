@@ -2,6 +2,7 @@ package com.bteam.ovs.voting.service;
 
 import com.bteam.ovs.elections.repository.CandidateRepository;
 import com.bteam.ovs.elections.repository.ElectionRepository;
+import com.bteam.ovs.elections.service.ElectionEligibilityService;
 import com.bteam.ovs.shared.errors.ApiException;
 import com.bteam.ovs.shared.identity.CitizenIdResolver;
 import com.bteam.ovs.voting.controller.dto.VoteHistoryItem;
@@ -25,19 +26,22 @@ import java.util.stream.Collectors;
 @Service
 public class VotingService {
 
-    private final CitizenIdResolver citizenIdResolver; // ★追加
+    private final CitizenIdResolver citizenIdResolver;
+    private final ElectionEligibilityService electionEligibilityService;
     private final ElectionRepository electionRepo;
     private final CandidateRepository candidateRepo;
     private final VoteCastRepository voteCastRepo;
     private final VoteCurrentRepository voteCurrentRepo;
 
     public VotingService(
-            CitizenIdResolver citizenIdResolver, // ★追加
+            CitizenIdResolver citizenIdResolver,
+            ElectionEligibilityService electionEligibilityService,
             ElectionRepository electionRepo,
             CandidateRepository candidateRepo,
             VoteCastRepository voteCastRepo,
             VoteCurrentRepository voteCurrentRepo) {
         this.citizenIdResolver = citizenIdResolver;
+        this.electionEligibilityService = electionEligibilityService;
         this.electionRepo = electionRepo;
         this.candidateRepo = candidateRepo;
         this.voteCastRepo = voteCastRepo;
@@ -45,6 +49,8 @@ public class VotingService {
     }
 
     public VoteStartResponse start(UUID accountId, UUID electionId) {
+        electionEligibilityService.requireEligible(accountId, electionId);
+
         citizenIdResolver.requireCitizenId(accountId);
 
         var election = electionRepo.findById(electionId)
@@ -59,7 +65,9 @@ public class VotingService {
 
     @Transactional
     public VoteHistoryItem confirm(UUID accountId, UUID electionId, UUID candidateId) {
-        UUID citizenId = citizenIdResolver.requireCitizenId(accountId); // ★集約
+        electionEligibilityService.requireEligible(accountId, electionId);
+
+        UUID citizenId = citizenIdResolver.requireCitizenId(accountId);
 
         var election = electionRepo.findById(electionId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "ELECTION_NOT_FOUND", "選挙が存在しません"));
@@ -77,7 +85,6 @@ public class VotingService {
         var candidate = candidateRepo.findById(candidateId)
                 .orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST, "INVALID_CANDIDATE", "候補が不正です"));
 
-        // ===== 1) 履歴：追記 =====
         var cast = new VoteCast();
         cast.setElectionId(electionId);
         cast.setCitizenId(citizenId);
@@ -85,7 +92,6 @@ public class VotingService {
         cast.setCastedAt(now);
         voteCastRepo.save(cast);
 
-        // ===== 2) 最新：upsert =====
         var current = voteCurrentRepo.findByElectionIdAndCitizenId(electionId, citizenId)
                 .orElseGet(() -> {
                     var v = new VoteCurrent();
@@ -118,7 +124,7 @@ public class VotingService {
     }
 
     public List<VoteHistoryItem> history(UUID accountId) {
-        UUID citizenId = citizenIdResolver.requireCitizenId(accountId); // ★集約
+        UUID citizenId = citizenIdResolver.requireCitizenId(accountId);
 
         var votes = voteCastRepo.findByCitizenIdOrderByCastedAtDesc(citizenId);
         if (votes.isEmpty())

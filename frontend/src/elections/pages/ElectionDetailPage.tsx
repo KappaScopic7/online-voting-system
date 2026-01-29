@@ -5,6 +5,7 @@ import { fetchElectionDetail } from "../api/elections";
 import type { ElectionDetailResponse } from "../model/electionTypes";
 import { normalizeFrom } from "../../shared/normalizeFrom";
 import { useAuth } from "../../user/UserAuthContext";
+import { resolveCandidateImageUrlById } from "../ui/candidateImages";
 
 type LocationState = { from?: string };
 
@@ -158,14 +159,41 @@ export function ElectionDetailPage() {
                                 borderRadius: 8,
                                 textDecoration: "none",
                                 color: "inherit",
-                                display: "block",
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 12,
                             }}
                         >
+                            {(() => {
+                                const thumb = resolveCandidateImageUrlById(
+                                    c.id,
+                                );
+                                return thumb ? (
+                                    <img
+                                        src={thumb}
+                                        alt={c.name}
+                                        onError={(e) => {
+                                            (
+                                                e.currentTarget as HTMLImageElement
+                                            ).style.display = "none";
+                                        }}
+                                        style={{
+                                            width: 48,
+                                            height: 48,
+                                            objectFit: "cover",
+                                            borderRadius: 8,
+                                            border: "1px solid #eee",
+                                        }}
+                                    />
+                                ) : null;
+                            })()}
+
                             <div
                                 style={{
                                     display: "flex",
                                     justifyContent: "space-between",
                                     gap: 12,
+                                    flex: 1,
                                 }}
                             >
                                 <span>{c.name}</span>

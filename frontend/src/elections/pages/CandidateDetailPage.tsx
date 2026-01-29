@@ -4,6 +4,7 @@ import { Link, useLocation, useParams } from "react-router-dom";
 import { fetchCandidateDetail } from "../api/candidates";
 import type { CandidateDetailResponse } from "../model/candidateTypes";
 import { normalizeFrom } from "../../shared/normalizeFrom";
+import { resolveCandidateImageUrl } from "../ui/candidateImages";
 
 type LocationState = { from?: string };
 
@@ -137,10 +138,18 @@ export function CandidateDetailPage() {
                         )}
                     </div>
 
-                    {data.imageUrl ? (
+                    {(() => {
+                        const imgSrc = data.imageUrl ?? resolveCandidateImageUrl(data.candidateKey);
+                        return imgSrc ? (
                         <img
-                            src={data.imageUrl}
+                            src={imgSrc}
                             alt={data.name}
+                            onError={(e) => {
+                                // 画像404等で崩れないように
+                                (
+                                    e.currentTarget as HTMLImageElement
+                                ).style.display = "none";
+                            }}
                             style={{
                                 width: "100%",
                                 maxWidth: 420,
@@ -148,12 +157,11 @@ export function CandidateDetailPage() {
                                 border: "1px solid #eee",
                             }}
                         />
-                    ) : null}
-
+                        ) : null;
+                    })()}
                     <div style={{ fontSize: 14, lineHeight: 1.6 }}>
                         {data.bio}
                     </div>
-
                     {data.policies?.length ? (
                         <div style={{ display: "grid", gap: 6 }}>
                             <strong>主な政策</strong>
@@ -168,7 +176,6 @@ export function CandidateDetailPage() {
                             政策情報はありません
                         </div>
                     )}
-
                     <div
                         style={{
                             display: "flex",
