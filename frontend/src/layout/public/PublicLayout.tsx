@@ -20,6 +20,9 @@ export function PublicLayout() {
     const tickingRef = useRef(false);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);   
+    const handleMenuClick = () => {
+    setIsMenuOpen(false);
+};
 
     const onLogout = () => {
         //if (staff) {
@@ -175,17 +178,17 @@ return (
 
             {isMenuOpen && (
                 <div className={`${styles.menuopen} ${showTopBar ? styles.withShadow : ""}`}>
-                    <div><Link className={styles.navlink} to="/me">マイページ →</Link></div>
+                    <div><Link className={styles.navlink} onClick={handleMenuClick} to="/me">マイページ →</Link></div>
                     <hr className={styles.divider} />
-                    <div><Link className={styles.navlink} to="/notice">お知らせ →</Link></div>  
+                    <div><Link className={styles.navlink} onClick={handleMenuClick} to="/notice">お知らせ →</Link></div>  
                     <hr className={styles.divider} />
-                    <div><Link className={styles.navlink} to="/me/votes">投票履歴 →</Link></div> 
+                    <div><Link className={styles.navlink} onClick={handleMenuClick} to="/me/votes">投票履歴 →</Link></div> 
                     <hr className={styles.divider} />
-                    <div><Link className={styles.navlink} to="/account-setting">アカウント設定 →</Link></div>
+                    <div><Link className={styles.navlink} onClick={handleMenuClick} to="/account-setting">アカウント設定 →</Link></div>
                     <hr className={styles.divider} />
-                    <div><Link className={styles.navlink} to="/profil-eEdit">プロフィール編集 →</Link></div>
+                    <div><Link className={styles.navlink} onClick={handleMenuClick} to="/profil-eEdit">プロフィール編集 →</Link></div>
                     <hr className={styles.divider} />
-                    <div><Link className={styles.navlink} to="/me/identity">本人確認 →</Link></div>
+                    <div><Link className={styles.navlink} onClick={handleMenuClick} to="/me/identity">本人確認 →</Link></div>
                     <hr className={styles.divider} />
                     <div><button className={styles.menubutton} type="button" onClick={onLogout}>ログアウト</button></div>
                 </div>

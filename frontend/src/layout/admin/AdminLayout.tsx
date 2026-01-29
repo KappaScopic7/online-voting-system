@@ -12,76 +12,80 @@ export function AdminLayout() {
     const tickingRef = useRef(false);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);   
-    const isDev = import.meta.env?.DEV;
+    const handleMenuClick = () => {
+    setIsMenuOpen(false);
+};
+   // const isDev = import.meta.env?.DEV;
 
-    // ★ reset UI state
-    const [resetMsg, setResetMsg] = useState<string | null>(null);
-    const [resetting, setResetting] = useState(false);
+    // // ★ reset UI state
+    // const [resetMsg, setResetMsg] = useState<string | null>(null);
+    // const [resetting, setResetting] = useState(false);
 
     const onLogout = () => {
-        logout();
-        nav("/", { replace: true });
-        };
+            logout();
+            setIsMenuOpen(false);
+            nav("/", { replace: true });
+        }
 
          // ★ 「demo + staff + admin」だけ見せる（staff.role が取れない場合は staff がいるだけでもOK）
-    const isAdminStaff =
-        !!staff && (String((staff as any)?.role ?? "") === "ADMIN");
+    // const isAdminStaff =
+    //     !!staff && (String((staff as any)?.role ?? "") === "ADMIN");
 
-    // ★ DB reset action
-    const onResetDemoDb = async () => {
-        setResetMsg(null);
+    // // ★ DB reset action
+    // const onResetDemoDb = async () => {
+    //     setResetMsg(null);
 
-        if (!staff) {
-            setResetMsg("STAFFでログインしていません");
-            return;
-        }
-        if (!isAdminStaff) {
-            setResetMsg("ADMIN権限が必要です");
-            return;
-        }
+    //     if (!staff) {
+    //         setResetMsg("STAFFでログインしていません");
+    //         return;
+    //     }
+    //     if (!isAdminStaff) {
+    //         setResetMsg("ADMIN権限が必要です");
+    //         return;
+    //     }
 
-        const ok = window.confirm(
-            "DBをリセットしてデモデータを入れ直します。\n本当に実行しますか？",
-        );
-        if (!ok) return;
+    //     const ok = window.confirm(
+    //         "DBをリセットしてデモデータを入れ直します。\n本当に実行しますか？",
+    //     );
+    //     if (!ok) return;
 
-        try {
-            setResetting(true);
+    //     try {
+    //         setResetting(true);
 
-            // StaffAuthContext の持ち方に合わせてここを調整してね（例: staff.accessToken / staff.token など）
-            const accessToken =
-                (staff as any)?.accessToken ??
-                (staff as any)?.token?.accessToken ??
-                (staff as any)?.token;
+    //         // StaffAuthContext の持ち方に合わせてここを調整してね（例: staff.accessToken / staff.token など）
+    //         const accessToken =
+    //             (staff as any)?.accessToken ??
+    //             (staff as any)?.token?.accessToken ??
+    //             (staff as any)?.token;
 
-            if (!accessToken) {
-                setResetMsg("STAFFのアクセストークンが見つかりません");
-                return;
-            }
+    //         if (!accessToken) {
+    //             setResetMsg("STAFFのアクセストークンが見つかりません");
+    //             return;
+    //         }
 
-            const res = await fetch("/api/demo/reset", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${accessToken}`,
-                },
-                body: JSON.stringify({ confirm: "RESET" }),
-            });
+    //         const res = await fetch("/api/demo/reset", {
+    //             method: "POST",
+    //             headers: {
+    //                 "Content-Type": "application/json",
+    //                 Authorization: `Bearer ${accessToken}`,
+    //             },
+    //             body: JSON.stringify({ confirm: "RESET" }),
+    //         });
 
-            if (!res.ok) {
-                const text = await res.text().catch(() => "");
-                throw new Error(text || `HTTP ${res.status}`);
-            }
+    //         if (!res.ok) {
+    //             const text = await res.text().catch(() => "");
+    //             throw new Error(text || `HTTP ${res.status}`);
+    //         }
 
-            // ログイン状態は残したまま画面だけ更新（データ取り直し）
-            window.location.reload();
-        } catch (e: any) {
-            setResetMsg(e?.message ?? "DBリセットに失敗しました");
-        } finally {
-            setResetting(false);
-        }
+    //         // ログイン状態は残したまま画面だけ更新（データ取り直し）
+    //         window.location.reload();
+    //     } catch (e: any) {
+    //         setResetMsg(e?.message ?? "DBリセットに失敗しました");
+    //     } finally {
+    //         setResetting(false);
+    //     }
         
-    };
+    // };
 
     useEffect(() => {
  
@@ -142,23 +146,19 @@ return (
 
 
             <button className={styles.menubutton} onClick={() => setIsMenuOpen(!isMenuOpen)}>
-                <i className="fa-regular fa-user"></i>
+                <i className="fa-solid fa-wrench"></i>
             </button>
             
 
             {isMenuOpen && (
                 <div className={`${styles.menuopen} ${showTopBar ? styles.withShadow : ""}`}>
-                    <div><Link className={styles.navlink} to="/me">マイページ →</Link></div>
+                    <div><Link className={styles.navlink} onClick={handleMenuClick} to="/admin/me">管理者情報 →</Link></div>
                     <hr className={styles.divider} />
-                    <div><Link className={styles.navlink} to="/notice">お知らせ →</Link></div>  
+                    <div><Link className={styles.navlink} onClick={handleMenuClick} to="/admin/elections">セキュリティー設定 →</Link></div>  
                     <hr className={styles.divider} />
-                    <div><Link className={styles.navlink} to="/me/votes">投票履歴 →</Link></div> 
+                    <div><Link className={styles.navlink} onClick={handleMenuClick} to="/admin/elections">障害検知/アラート対応 →</Link></div> 
                     <hr className={styles.divider} />
-                    <div><Link className={styles.navlink} to="/account-setting">アカウント設定 →</Link></div>
-                    <hr className={styles.divider} />
-                    <div><Link className={styles.navlink} to="/profil-eEdit">プロフィール編集 →</Link></div>
-                    <hr className={styles.divider} />
-                    <div><Link className={styles.navlink} to="/me/identity">本人確認 →</Link></div>
+                    <div><Link className={styles.navlink} onClick={handleMenuClick} to="/admin/elections">バックアップ/リストア →</Link></div>
                     <hr className={styles.divider} />
                     <div><button className={styles.menubutton} type="button" onClick={onLogout}>ログアウト</button></div>
                 </div>
@@ -168,17 +168,18 @@ return (
     </header>
 
     <nav className={styles.nav}>
-        <Link to="/admin/elections" className={styles.navlink}>選挙一覧</Link>|
-        <Link to="/admin/partys" className={styles.navlink}>政党一覧</Link>|
-        <Link to="/admin/staff" className={styles.navlink}>STAFF</Link>|
-        <Link to="/admin/me" className={styles.navlink}>Me</Link>
+        <Link to="/admin/elections" className={styles.navlink}>選挙管理</Link>|
+        <Link to="/admin/elections" className={styles.navlink}>政党管理</Link>|
+        <Link to="/admin/elections" className={styles.navlink}>候補者管理</Link>|
+        <Link to="/admin/staff" className={styles.navlink}>アカウント管理</Link>|
+        <Link to="/admin/elections" className={styles.navlink}>ログ一覧</Link>
     </nav>      
     </div>
     <Outlet />
         <footer className={styles.footer}>
         <span style={{ opacity: 0.7 }}>© OVS / B-team</span>
 
-        {/* ★ DB reset button */}
+        {/* ★ DB reset button 
         {isDev && staff && (
             <div style={{ marginLeft: "auto", display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
                 <button
@@ -203,7 +204,7 @@ return (
                     <span style={{ color: "crimson" }}>{resetMsg}</span>
                 )}
             </div>
-        )}
+        )}*/}
     </footer>
     </div>
     );
