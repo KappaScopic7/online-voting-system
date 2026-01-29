@@ -1,6 +1,6 @@
 // frontend/src/layout/AdminLayout.tsx
 import { Link, Outlet, useNavigate } from "react-router-dom";
-import { useStaffAuth } from "../staff/StaffAuthContext";
+import { useStaffAuth } from "../../staff/StaffAuthContext";
 
 export function AdminLayout() {
     const nav = useNavigate();

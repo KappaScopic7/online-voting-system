@@ -1,0 +1,116 @@
+.publicLayout {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  background-color: white;
+  transition: transform 180ms ease, box-shadow 180ms ease;
+  width: 100%;
+}
+
+/* ヘッダー見える、見えない調節 */
+.headerVisible {
+  transform: translateY(0);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+}
+/* ヘッダー見える、見えない調節 */
+.headerHidden {
+  transform: translateY(-110%);
+  box-shadow: none;
+}
+
+.menubutton {
+  background-color:#ffffff;
+  color: #000000;
+  border-radius:4px;
+  min-width: 30px;
+  min-height: 27px;
+  border-width: 2px;
+  cursor: pointer;
+  margin-right: 5px;
+  margin-top: 5px;   
+  border-color: #ccc   
+}
+
+.logoImage {
+  align-items: center;
+  width: 150px;   
+  height: auto;
+  object-fit: contain;
+}
+
+.menuopen{
+    position: absolute;
+    top: calc(100%); 
+    right: 0px;
+    background-Color: #ffffff; 
+    padding: 10px;
+
+    border: 1px solid #ddd;
+    min-Width: 200px;         
+    white-Space: nowrap;      
+    display: flex;          
+    flex-Direction: column;
+    color: #000000;
+    text-decoration-line: none;
+    font-weight :500;
+}    
+
+.divider {
+  border: 0;
+  border-top: 1px solid #eee; /* 선 두께와 색상 */
+  margin: 10px 0;             /* 위아래 간격 */
+  width: 100%;                /* 점이 선으로 변하는 핵심! */
+  box-sizing: border-box;     /* 패딩 때문에 삐져나가는 것 방지 */
+}
+
+.header {
+        display: flex;
+        gap: 12px;
+        margin-Bottom: 16px;
+        align-Items: center;
+        flex-Wrap: wrap;
+}
+
+.headerin {
+        margin-Left: auto;
+        display: flex;
+        gap: 12px;
+        align-Items: center;
+        flex-Wrap: wrap;
+}
+
+.nav {
+    gap: 0;
+    font-size: 16px;       /* ハイフン(-) 必須　及び px単位必須 */
+    display: flex;         /* 、はNG */
+    align-items: center;   /* ハイフン(-) 必須　及び  、はNG*/
+    border: 1px solid #ccc; /* 色指定 */
+    color: #000000;
+}
+
+.navlink { 
+    flex: 1px; 
+    padding: 12px; 
+    text-Align: center;
+    color: #000000;
+    text-decoration-line: none;
+    font-weight :500;
+}
+
+.footer {
+    margin-Top: 24px;
+    opacity: 0.85px;
+    font-Size: 12px;
+    display: flex;
+    gap: 12px;
+    flex-Wrap: wrap;
+    align-Items: center;
+    border-Top: 1px solid #eee;
+    padding-Top: 12px;
+}
+
+
+
+.withShadow {
+    box-shadow: 0px 2px 10px rgba(0, 0, 0, 0.06);
+}
