@@ -7,7 +7,7 @@ export function AdminStaffPage() {
     const [msg, setMsg] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
 
-    // 一覧取得処理（AdminLoginPage の onSubmit 風）
+    // 一覧取得処理
     const load = useCallback(async () => {
         setMsg(null);
         try {
@@ -26,7 +26,7 @@ export function AdminStaffPage() {
         load();
     }, [load]);
 
-    // 表示用フラグ（LoginPage の canSubmit 風）
+    // 表示用フラグ
     const hasItems = useMemo(() => {
         return items !== null && items.length > 0;
     }, [items]);
