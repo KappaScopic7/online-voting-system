@@ -39,8 +39,6 @@ public class DemoDataInitializer {
 
     private static final String DEMO_ADMIN_LOGIN_ID = "admin";
     private static final String DEMO_ADMIN_PASSWORD = "Passw0rd!!";
-    private static final String DEMO_COMMITTEE_LOGIN_ID = "committee";
-    private static final String DEMO_COMMITTEE_PASSWORD = "Passw0rd!!";
 
     @Bean
     CommandLineRunner demoInit(DemoDataService demoDataService) {
@@ -63,7 +61,6 @@ public class DemoDataInitializer {
             PasswordEncoder passwordEncoder,
             ObjectMapper om) {
         seedAdmin(staffRepo, passwordEncoder);
-        seedCommittee(staffRepo, passwordEncoder);
 
         // ===== JSON load =====
         List<CitizenJson> citizens = readJson(om, "citizens.json", new TypeReference<>() {
@@ -80,6 +77,8 @@ public class DemoDataInitializer {
         });
         List<VoteJson> votes = readJson(om, "voteCurrents.json", new TypeReference<>() {
         });
+        List<CommitteeJson> committee = readJson(om, "committeeAccounts.json", new TypeReference<>() {
+        });
 
         // ===== index + validate =====
         var citizenMap = indexCitizens(citizens);
@@ -87,7 +86,7 @@ public class DemoDataInitializer {
         var candidateMap = indexCandidates(candidates);
         var electionMap = indexElections(elections);
 
-        validateAll(citizenMap, partyMap, candidateMap, electionMap, rules, votes, users);
+        validateAll(citizenMap, partyMap, candidateMap, electionMap, rules, votes, users, committee);
 
         // // ===== DB reset (全部作り直し) =====
         // voteCurrentRepo.deleteAll();
@@ -109,6 +108,7 @@ public class DemoDataInitializer {
 
         seedRules(ruleRepo, rules, createdElections);
         seedVotes(voteCastRepo, voteCurrentRepo, votes, createdElections);
+        seedCommittee(staffRepo, passwordEncoder, committee);
     }
 
     // -------------------------
@@ -177,6 +177,16 @@ public class DemoDataInitializer {
     record VoteJson(String electionKey, UUID citizenId, int candidateIndex, long castedAtOffsetSec) {
     }
 
+    record CommitteeJson(
+            String loginId,
+            String password,
+            Role role,
+            String assignedPrefCode,
+            String assignedCityCode,
+            boolean enabled,
+            boolean locked
+        ) {
+    }
     private <T> T readJson(ObjectMapper om, String classpathFile, TypeReference<T> type) {
         try (InputStream in = new ClassPathResource(classpathFile).getInputStream()) {
             return om.readValue(in, type);
@@ -200,21 +210,20 @@ public class DemoDataInitializer {
         staffRepo.save(admin);
     }
 
-    private void seedCommittee(StaffAccountRepository staffRepo, PasswordEncoder passwordEncoder) {
-        if (staffRepo.existsByLoginId(DEMO_COMMITTEE_LOGIN_ID))
-            return;
-
-        var committee = new StaffAccount();
-        committee.setLoginId(DEMO_COMMITTEE_LOGIN_ID);
-        committee.setPasswordHash(passwordEncoder.encode(DEMO_COMMITTEE_PASSWORD));
-        committee.setRole(Role.COMMITTEE);
-        committee.setEnabled(true);
-        committee.setLocked(false);
-
-        committee.setAssignedPrefCode("13");
-        committee.setAssignedCityCode("13209");
-
-        staffRepo.save(committee);
+    private void seedCommittee(StaffAccountRepository staffRepo, PasswordEncoder passwordEncoder, List<CommitteeJson> items) {
+        for (var j : items) {
+            if (staffRepo.existsByLoginId(j.loginId())) continue;
+            
+            var c = new StaffAccount();
+            c.setLoginId(j.loginId());
+            c.setRole(j.role());
+            c.setAssignedPrefCode(j.assignedPrefCode());
+            c.setAssignedCityCode(j.assignedCityCode());
+            c.setEnabled(j.enabled());
+            c.setLocked(j.locked());
+            c.setPasswordHash(passwordEncoder.encode(j.password()));
+            staffRepo.save(c);
+        }
     }
 
     // -------------------------
@@ -275,7 +284,9 @@ public class DemoDataInitializer {
             Map<String, ElectionJson> electionMap,
             List<RuleJson> rules,
             List<VoteJson> votes,
-            List<UserJson> users) {
+            List<UserJson> users,
+            List<CommitteeJson> committiee
+        ) {
         // users: citizenId があるなら citizens に存在する
         for (var u : users) {
             if (u.citizenId() != null && !citizenMap.containsKey(u.citizenId())) {
@@ -338,6 +349,23 @@ public class DemoDataInitializer {
                                 + " index=" + v.candidateIndex() + " size=" + size);
             }
         }
+
+        // committeeAccounts.json
+        for (var c : committiee) {
+            mustNonBlank(c.loginId(), "committeeAccounts.json: loginId blank");
+            mustNonBlank(c.password(), "committeeAccounts.json: password blank");
+
+            if (c.role() != Role.COMMITTEE) {
+                throw new IllegalStateException(
+                    "committeeAccounts.json: role must be COMMITTEE loginId=" + c.loginId());
+            }
+
+            if (c.assignedPrefCode() == null || c.assignedPrefCode().isBlank()) {
+                throw new IllegalStateException(
+                    "committeeAccounts.json: assignedPrefCode blank loginId=" + c.loginId());
+            }
+        }
+
     }
 
     private void mustNonBlank(String v, String msg) {
