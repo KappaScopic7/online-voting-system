@@ -12,7 +12,7 @@ export function AdminLoginPage() {
     const nav = useNavigate();
     const loc = useLocation();
     const state = (loc.state ?? {}) as LocationState;
-    const from = state.from ?? "/admin";
+//    const from = state.from ?? "/admin";
 
     const { login } = useStaffAuth();
 
