@@ -33,7 +33,8 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.*;
 
-@Profile("demo") @Configuration
+@Profile("demo")
+@Configuration
 public class DemoDataInitializer {
 
     private static final String DEMO_ADMIN_LOGIN_ID = "admin";
@@ -104,21 +105,21 @@ public class DemoDataInitializer {
     }
 
     // -------------------------
-                    // JSON DTOs
-                    // -------------------------
-                    record CitizenJson(UUID citizenId, String familyName, String givenName, LocalDate birthDate, String prefCode,
-                            String cityCode, String addressLine, String gender) {
-                    }
+    // JSON DTOs
+    // -------------------------
+    record CitizenJson(UUID citizenId, String familyName, String givenName, LocalDate birthDate, String prefCode,
+            String cityCode, String addressLine, String gender) {
+    }
 
-                    record UserJson(String email, String password, Role role, boolean emailVerified, boolean enabled, boolean locked,
-                            UUID citizenId) {
-                    }
+    record UserJson(String email, String password, Role role, boolean emailVerified, boolean enabled, boolean locked,
+            UUID citizenId) {
+    }
 
-                    record PartyJson(String partyKey, String name, String shortName, List<String> ideologyTags, String description,
-                            String color) {
-                    }
+    record PartyJson(String partyKey, String name, String shortName, List<String> ideologyTags, String description,
+            String color) {
+    }
 
-                    record CandidateJson(String candidateKey, String name, Integer age, String partyKey, String title, String bio,
+    record CandidateJson(String candidateKey, String name, Integer age, String partyKey, String title, String bio,
             List<String> policies, String websiteUrl, String imageUrl) {
     }
 
