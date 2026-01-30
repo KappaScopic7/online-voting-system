@@ -290,6 +290,10 @@ export function PublicLayout() {
                                 政党一覧
                             </Link>
                             |
+                            <Link to="/" className={styles.navlink}>
+                                候補者一覧
+                            </Link>
+                            |
                             <Link to="/help" className={styles.navlink}>
                                 問い合わせ
                             </Link>
@@ -303,6 +307,10 @@ export function PublicLayout() {
                             |
                             <Link to="/partys" className={styles.navlink}>
                                 政党一覧
+                            </Link>
+                            |
+                            <Link to="/" className={styles.navlink}>
+                                候補者一覧
                             </Link>
                             |
                             <Link to="/me/elections" className={styles.navlink}>

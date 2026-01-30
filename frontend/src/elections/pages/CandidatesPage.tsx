@@ -1,10 +1,11 @@
 // frontend/src/elections/pages/CandidatesPage.tsx
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
-import { fetchCandidates } from "../api/elections";
+import { fetchElectionDetail } from "../api/elections";
 import type { CandidateItem } from "../model/electionTypes";
 import { normalizeFrom } from "../../shared/normalizeFrom";
 import { resolveCandidateImageUrlById } from "../ui/candidateImages";
+
 
 type LocationState = { from?: string };
 
@@ -20,14 +21,18 @@ export function CandidatesPage() {
     const [items, setItems] = useState<CandidateItem[] | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
+    
 
     const load = async () => {
         if (!electionId) return;
         setError(null);
         setIsLoading(true);
         try {
-            const data = await fetchCandidates(electionId);
-            setItems(data);
+            const detail = await fetchElectionDetail(electionId);
+// detail.candidates가 {id, name} 구조라면 그대로 사용 가능
+// 만약 CandidateItem에 더 많은 필드가 필요하면 여기서 매핑하면 됨
+            setItems(detail.candidates as CandidateItem[]);
+
         } catch (err: any) {
             setError(
                 err?.response?.data?.message ?? "Failed to load candidates",
@@ -156,9 +161,12 @@ export function CandidatesPage() {
                                     <strong style={{ fontSize: 16 }}>
                                         {c.name}
                                     </strong>
+
+
                                     {(() => {
-                                        const thumb =
-                                            resolveCandidateImageUrlById(c.id);
+                                        const thumb = resolveCandidateImageUrlById(c.id);
+console.log("candidate", c.id, "thumb:", thumb);
+
                                         return thumb ? (
                                             <img
                                                 src={thumb}
@@ -178,6 +186,9 @@ export function CandidatesPage() {
                                             />
                                         ) : null;
                                     })()}
+
+
+                                    
                                     {isDev && (
                                         <span
                                             style={{

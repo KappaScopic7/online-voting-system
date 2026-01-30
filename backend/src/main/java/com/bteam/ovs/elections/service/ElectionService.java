@@ -209,6 +209,11 @@ public class ElectionService {
                 .toList();
     }
 
+    public List<CandidateItem> candidatesAll(UUID electionIdOrNull, String partyKeyOrNull) {
+        // 全候補者を表示する
+        return List.of();
+    }
+
     public ElectionResultResponse result(UUID electionId) {
         var election = electionRepo.findById(electionId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "ELECTION_NOT_FOUND", "選挙が存在しません"));
@@ -343,4 +348,5 @@ public class ElectionService {
                 c.getImageUrl(),
                 party);
     }
+
 }
