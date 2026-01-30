@@ -33,8 +33,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.*;
 
-@Profile("demo")
-@Configuration
+@Profile("demo") @Configuration
 public class DemoDataInitializer {
 
     private static final String DEMO_ADMIN_LOGIN_ID = "admin";
@@ -45,21 +44,14 @@ public class DemoDataInitializer {
         return args -> demoDataService.resetAndSeed();
     }
 
-    void init(
-            UserAccountRepository userRepo,
-            StaffAccountRepository staffRepo,
+    void init(UserAccountRepository userRepo, StaffAccountRepository staffRepo,
 
-            PartyRepository partyRepo,
-            ElectionRepository electionRepo,
-            CandidateRepository candidateRepo,
+            PartyRepository partyRepo, ElectionRepository electionRepo, CandidateRepository candidateRepo,
             ElectionEligibilityRuleRepository ruleRepo,
 
-            VoteCastRepository voteCastRepo,
-            VoteCurrentRepository voteCurrentRepo,
+            VoteCastRepository voteCastRepo, VoteCurrentRepository voteCurrentRepo,
 
-            CitizenRepository citizenRepo,
-            PasswordEncoder passwordEncoder,
-            ObjectMapper om) {
+            CitizenRepository citizenRepo, PasswordEncoder passwordEncoder, ObjectMapper om) {
         seedAdmin(staffRepo, passwordEncoder);
 
         // ===== JSON load =====
@@ -103,8 +95,8 @@ public class DemoDataInitializer {
         seedUsers(userRepo, passwordEncoder, users);
         seedParties(partyRepo, parties);
 
-        Map<String, ElectionCreated> createdElections = seedElectionsAndCandidates(
-                electionRepo, candidateRepo, elections, candidateMap);
+        Map<String, ElectionCreated> createdElections = seedElectionsAndCandidates(electionRepo, candidateRepo,
+                elections, candidateMap);
 
         seedRules(ruleRepo, rules, createdElections);
         seedVotes(voteCastRepo, voteCurrentRepo, votes, createdElections);
@@ -112,63 +104,29 @@ public class DemoDataInitializer {
     }
 
     // -------------------------
-    // JSON DTOs
-    // -------------------------
-    record CitizenJson(
-            UUID citizenId,
-            String familyName,
-            String givenName,
-            LocalDate birthDate,
-            String prefCode,
-            String cityCode,
-            String addressLine,
-            String gender) {
-    }
+                    // JSON DTOs
+                    // -------------------------
+                    record CitizenJson(UUID citizenId, String familyName, String givenName, LocalDate birthDate, String prefCode,
+                            String cityCode, String addressLine, String gender) {
+                    }
 
-    record UserJson(
-            String email,
-            String password,
-            Role role,
-            boolean emailVerified,
-            boolean enabled,
-            boolean locked,
-            UUID citizenId) {
-    }
+                    record UserJson(String email, String password, Role role, boolean emailVerified, boolean enabled, boolean locked,
+                            UUID citizenId) {
+                    }
 
-    record PartyJson(
-            String partyKey,
-            String name,
-            String shortName,
-            List<String> ideologyTags,
-            String description,
-            String color) {
-    }
+                    record PartyJson(String partyKey, String name, String shortName, List<String> ideologyTags, String description,
+                            String color) {
+                    }
 
-    record CandidateJson(
-            String candidateKey,
-            String name,
-            Integer age,
-            String partyKey,
-            String title,
-            String bio,
-            List<String> policies,
-            String websiteUrl,
-            String imageUrl) {
+                    record CandidateJson(String candidateKey, String name, Integer age, String partyKey, String title, String bio,
+            List<String> policies, String websiteUrl, String imageUrl) {
     }
 
     record DistrictJson(String prefCode, String cityCode, String label) {
     }
 
-    record ElectionJson(
-            String electionKey,
-            String title,
-            String summary,
-            String electionType,
-            DistrictJson district,
-            String ballotType,
-            long startsAtOffsetSec,
-            long endsAtOffsetSec,
-            List<String> candidates) {
+    record ElectionJson(String electionKey, String title, String summary, String electionType, DistrictJson district,
+            String ballotType, long startsAtOffsetSec, long endsAtOffsetSec, List<String> candidates) {
     }
 
     record RuleJson(String electionKey, String cityCode, Integer minAge) {
@@ -177,16 +135,10 @@ public class DemoDataInitializer {
     record VoteJson(String electionKey, UUID citizenId, int candidateIndex, long castedAtOffsetSec) {
     }
 
-    record CommitteeJson(
-            String loginId,
-            String password,
-            Role role,
-            String assignedPrefCode,
-            String assignedCityCode,
-            boolean enabled,
-            boolean locked
-        ) {
+    record CommitteeJson(String loginId, String password, Role role, String assignedPrefCode, String assignedCityCode,
+            boolean enabled, boolean locked) {
     }
+
     private <T> T readJson(ObjectMapper om, String classpathFile, TypeReference<T> type) {
         try (InputStream in = new ClassPathResource(classpathFile).getInputStream()) {
             return om.readValue(in, type);
@@ -210,10 +162,12 @@ public class DemoDataInitializer {
         staffRepo.save(admin);
     }
 
-    private void seedCommittee(StaffAccountRepository staffRepo, PasswordEncoder passwordEncoder, List<CommitteeJson> items) {
+    private void seedCommittee(StaffAccountRepository staffRepo, PasswordEncoder passwordEncoder,
+            List<CommitteeJson> items) {
         for (var j : items) {
-            if (staffRepo.existsByLoginId(j.loginId())) continue;
-            
+            if (staffRepo.existsByLoginId(j.loginId()))
+                continue;
+
             var c = new StaffAccount();
             c.setLoginId(j.loginId());
             c.setRole(j.role());
@@ -277,16 +231,9 @@ public class DemoDataInitializer {
     // -------------------------
     // validation
     // -------------------------
-    private void validateAll(
-            Map<UUID, CitizenJson> citizenMap,
-            Map<String, PartyJson> partyMap,
-            Map<String, CandidateJson> candidateMap,
-            Map<String, ElectionJson> electionMap,
-            List<RuleJson> rules,
-            List<VoteJson> votes,
-            List<UserJson> users,
-            List<CommitteeJson> committiee
-        ) {
+    private void validateAll(Map<UUID, CitizenJson> citizenMap, Map<String, PartyJson> partyMap,
+            Map<String, CandidateJson> candidateMap, Map<String, ElectionJson> electionMap, List<RuleJson> rules,
+            List<VoteJson> votes, List<UserJson> users, List<CommitteeJson> committiee) {
         // users: citizenId があるなら citizens に存在する
         for (var u : users) {
             if (u.citizenId() != null && !citizenMap.containsKey(u.citizenId())) {
@@ -344,9 +291,8 @@ public class DemoDataInitializer {
             }
             int size = electionMap.get(v.electionKey()).candidates().size();
             if (v.candidateIndex() < 0 || v.candidateIndex() >= size) {
-                throw new IllegalStateException(
-                        "voteCurrents.json: candidateIndex out of range electionKey=" + v.electionKey()
-                                + " index=" + v.candidateIndex() + " size=" + size);
+                throw new IllegalStateException("voteCurrents.json: candidateIndex out of range electionKey="
+                        + v.electionKey() + " index=" + v.candidateIndex() + " size=" + size);
             }
         }
 
@@ -357,12 +303,12 @@ public class DemoDataInitializer {
 
             if (c.role() != Role.COMMITTEE) {
                 throw new IllegalStateException(
-                    "committeeAccounts.json: role must be COMMITTEE loginId=" + c.loginId());
+                        "committeeAccounts.json: role must be COMMITTEE loginId=" + c.loginId());
             }
 
             if (c.assignedPrefCode() == null || c.assignedPrefCode().isBlank()) {
                 throw new IllegalStateException(
-                    "committeeAccounts.json: assignedPrefCode blank loginId=" + c.loginId());
+                        "committeeAccounts.json: assignedPrefCode blank loginId=" + c.loginId());
             }
         }
 
@@ -432,11 +378,8 @@ public class DemoDataInitializer {
     private record ElectionCreated(UUID electionId, List<UUID> candidateIds) {
     }
 
-    private Map<String, ElectionCreated> seedElectionsAndCandidates(
-            ElectionRepository electionRepo,
-            CandidateRepository candidateRepo,
-            List<ElectionJson> elections,
-            Map<String, CandidateJson> candidateMap) {
+    private Map<String, ElectionCreated> seedElectionsAndCandidates(ElectionRepository electionRepo,
+            CandidateRepository candidateRepo, List<ElectionJson> elections, Map<String, CandidateJson> candidateMap) {
         var now = Instant.now();
         Map<String, ElectionCreated> created = new HashMap<>();
 
@@ -481,9 +424,7 @@ public class DemoDataInitializer {
         return created;
     }
 
-    private void seedRules(
-            ElectionEligibilityRuleRepository ruleRepo,
-            List<RuleJson> rules,
+    private void seedRules(ElectionEligibilityRuleRepository ruleRepo, List<RuleJson> rules,
             Map<String, ElectionCreated> created) {
         for (var rj : rules) {
             var ce = created.get(rj.electionKey());
@@ -498,10 +439,7 @@ public class DemoDataInitializer {
         }
     }
 
-    private void seedVotes(
-            VoteCastRepository voteCastRepo,
-            VoteCurrentRepository voteCurrentRepo,
-            List<VoteJson> votes,
+    private void seedVotes(VoteCastRepository voteCastRepo, VoteCurrentRepository voteCurrentRepo, List<VoteJson> votes,
             Map<String, ElectionCreated> created) {
         var now = Instant.now();
 
