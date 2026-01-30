@@ -11,7 +11,7 @@
         "editor.formatOnSave": true
     },
     // Eclipse formatter を指定
-    "java.format.settings.url": "eclipse-java-formatter.xml",
+    "java.format.settings.url": "${workspaceFolder}/backend/eclipse-java-formatter.xml",
     "java.format.settings.profile": "OVS-4spaces",
     // 自動インデント検出を切る（超重要）
     "editor.detectIndentation": false,

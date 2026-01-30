@@ -45,10 +45,7 @@ public class ElectionAdminService {
         }
 
         if (!startsAt.isBefore(endsAt)) {
-            throw new ApiException(
-                    HttpStatus.BAD_REQUEST,
-                    "INVALID_PERIOD",
-                    "startsAt は endsAt より前である必要があります");
+            throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_PERIOD", "startsAt は endsAt より前である必要があります");
         }
 
         var e = new Election();
@@ -108,9 +105,7 @@ public class ElectionAdminService {
             }
         }
 
-        return reqs.stream()
-                .map(r -> addCandidate(electionId, r))
-                .toList();
+        return reqs.stream().map(r -> addCandidate(electionId, r)).toList();
     }
 
     private String normalize(String s) {
