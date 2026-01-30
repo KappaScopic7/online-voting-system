@@ -6,7 +6,6 @@ import type { CandidateItem } from "../model/electionTypes";
 import { normalizeFrom } from "../../shared/normalizeFrom";
 import { resolveCandidateImageUrlById } from "../ui/candidateImages";
 
-
 type LocationState = { from?: string };
 
 export function CandidatesPage() {
@@ -21,7 +20,6 @@ export function CandidatesPage() {
     const [items, setItems] = useState<CandidateItem[] | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
-    
 
     const load = async () => {
         if (!electionId) return;
@@ -29,10 +27,9 @@ export function CandidatesPage() {
         setIsLoading(true);
         try {
             const detail = await fetchElectionDetail(electionId);
-// detail.candidates가 {id, name} 구조라면 그대로 사용 가능
-// 만약 CandidateItem에 더 많은 필드가 필요하면 여기서 매핑하면 됨
+            // detail.candidates가 {id, name} 구조라면 그대로 사용 가능
+            // 만약 CandidateItem에 더 많은 필드가 필요하면 여기서 매핑하면 됨
             setItems(detail.candidates as CandidateItem[]);
-
         } catch (err: any) {
             setError(
                 err?.response?.data?.message ?? "Failed to load candidates",
@@ -42,7 +39,12 @@ export function CandidatesPage() {
             setIsLoading(false);
         }
     };
-
+    function resolveCandidateThumbByIndex(index: number): string | null {
+        const n = index + 1;
+        if (n < 1 || n > 999) return null;
+        const padded = String(n).padStart(3, "0");
+        return `/assets/candidates/candidate-${padded}.png`;
+    }
     useEffect(() => {
         load();
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -132,7 +134,7 @@ export function CandidatesPage() {
                 </div>
             ) : (
                 <section style={{ display: "grid", gap: 8 }}>
-                    {items.map((c) => {
+                    {items.map((c, idx) => {
                         const detailUrl = `/elections/${electionId}/candidates/${c.id}`;
 
                         return (
@@ -162,19 +164,22 @@ export function CandidatesPage() {
                                         {c.name}
                                     </strong>
 
-
                                     {(() => {
-                                        const thumb = resolveCandidateImageUrlById(c.id);
-console.log("candidate", c.id, "thumb:", thumb);
+                                        const n = idx + 1;
+                                        const padded = String(n).padStart(
+                                            3,
+                                            "0",
+                                        );
+                                        const thumb = `/assets/candidates/candidate-${padded}.png`;
 
-                                        return thumb ? (
+                                        return (
                                             <img
                                                 src={thumb}
                                                 alt={c.name}
                                                 onError={(e) => {
-                                                    (
-                                                        e.currentTarget as HTMLImageElement
-                                                    ).style.display = "none";
+                                                    // 디버그용: 안 보이게만 처리
+                                                    e.currentTarget.style.display =
+                                                        "none";
                                                 }}
                                                 style={{
                                                     width: 64,
@@ -184,11 +189,9 @@ console.log("candidate", c.id, "thumb:", thumb);
                                                     border: "1px solid #eee",
                                                 }}
                                             />
-                                        ) : null;
+                                        );
                                     })()}
 
-
-                                    
                                     {isDev && (
                                         <span
                                             style={{
