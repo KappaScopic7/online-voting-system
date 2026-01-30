@@ -15,6 +15,7 @@
         "eamodio.gitlens",
         "esbenp.prettier-vscode",
         "oderwat.indent-rainbow",
-        "ms-ceintl.vscode-language-pack-ja"
+        "ms-ceintl.vscode-language-pack-ja",
+        "vscjava.vscode-java-pack"
     ]
 }
