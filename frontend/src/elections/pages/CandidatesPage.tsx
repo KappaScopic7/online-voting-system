@@ -4,7 +4,6 @@ import { Link, useLocation, useParams } from "react-router-dom";
 import { fetchElectionDetail } from "../api/elections";
 import type { CandidateItem } from "../model/electionTypes";
 import { normalizeFrom } from "../../shared/normalizeFrom";
-import { resolveCandidateImageUrlById } from "../ui/candidateImages";
 
 type LocationState = { from?: string };
 
@@ -39,12 +38,7 @@ export function CandidatesPage() {
             setIsLoading(false);
         }
     };
-    function resolveCandidateThumbByIndex(index: number): string | null {
-        const n = index + 1;
-        if (n < 1 || n > 999) return null;
-        const padded = String(n).padStart(3, "0");
-        return `/assets/candidates/candidate-${padded}.png`;
-    }
+
     useEffect(() => {
         load();
         // eslint-disable-next-line react-hooks/exhaustive-deps
