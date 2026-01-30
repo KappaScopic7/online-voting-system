@@ -12,7 +12,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 
-@Profile("demo") @Service
+@Profile("demo")
+@Service
 public class DemoDataService {
 
     private final DemoDataInitializer initializer;

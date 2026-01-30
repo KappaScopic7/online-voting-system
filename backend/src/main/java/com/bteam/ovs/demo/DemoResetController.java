@@ -15,7 +15,8 @@ public class DemoResetController {
         this.demoDataService = demoDataService;
     }
 
-    public record ResetRequest(String confirm) {}
+    public record ResetRequest(String confirm) {
+    }
 
     @PostMapping("/reset")
     @ResponseStatus(HttpStatus.NO_CONTENT)
