@@ -1,28 +1,20 @@
 // frontend/src/elections/ui/candidateImages.ts
-import c001 from "../../assets/candidates/candidate-001.png";
-import c002 from "../../assets/candidates/candidate-002.png";
-import c003 from "../../assets/candidates/candidate-003.png";
-import c004 from "../../assets/candidates/candidate-004.png";
-import c005 from "../../assets/candidates/candidate-005.png";
 
-const byCandidateKey: Record<string, string> = {
-    "candidate-001": c001,
-    "candidate-002": c002,
-    "candidate-003": c003,
-    "candidate-004": c004,
-    "candidate-005": c005,
+// candidateKey → public の URL
+const byKey: Record<string, string> = {
+    candidate_001: "/assets/candidates/candidate-001.png",
+    candidate_002: "/assets/candidates/candidate-002.png",
+    candidate_003: "/assets/candidates/candidate-003.png",
+    candidate_004: "/assets/candidates/candidate-004.png",
+    candidate_005: "/assets/candidates/candidate-005.png",
 };
 
 export function resolveCandidateImageUrl(candidateKey?: string | null) {
     if (!candidateKey) return null;
-    return byCandidateKey[candidateKey] ?? null;
+    return byKey[candidateKey] ?? null;
 }
 
-const byCandidateId: Record<string, string> = {
-    // "uuid-string": c001,
-};
-
-export function resolveCandidateImageUrlById(candidateId?: string | null) {
-    if (!candidateId) return null;
-    return byCandidateId[candidateId] ?? null;
+// いまは id→画像の対応がないと一覧では出せないので一旦 null 返す
+export function resolveCandidateImageUrlById(_candidateId: string) {
+    return null;
 }

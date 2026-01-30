@@ -1,11 +1,10 @@
 // frontend/src/elections/pages/ElectionDetailPage.tsx
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { fetchElectionDetail } from "../api/elections";
 import type { ElectionDetailResponse } from "../model/electionTypes";
 import { normalizeFrom } from "../../shared/normalizeFrom";
 import { useAuth } from "../../user/UserAuthContext";
-import { resolveCandidateImageUrlById } from "../ui/candidateImages";
 
 type LocationState = { from?: string };
 
@@ -23,6 +22,19 @@ function resolveCandidateName(
 ): string {
     const hit = candidates.find((c) => c.id === candidateId);
     return hit?.name ?? candidateId;
+}
+
+/**
+ * デモ用:
+ * 候補者一覧の表示順(index)から candidate-001.png～ を割り当てる。
+ * 画像は Vite の public 配下に置く:
+ *   frontend/public/assets/candidates/candidate-001.png
+ */
+function resolveCandidateThumbByIndex(index: number): string | null {
+    const n = index + 1; // 1-based
+    if (n < 1 || n > 999) return null;
+    const padded = String(n).padStart(3, "0");
+    return `/assets/candidates/candidate-${padded}.png`;
 }
 
 export function ElectionDetailPage() {
@@ -60,7 +72,6 @@ export function ElectionDetailPage() {
                 if (!cancelled) setData(d);
             })
             .catch((e) => {
-                // axios の場合は e.response.data.message がある
                 const apiMsg = e?.response?.data?.message;
                 if (!cancelled) setErr(apiMsg ?? String(e?.message ?? e));
             })
@@ -72,6 +83,11 @@ export function ElectionDetailPage() {
             cancelled = true;
         };
     }, [electionId]);
+
+    const canStartVote = useMemo(() => {
+        if (!data) return false;
+        return data.canCast && data.status === "ONGOING";
+    }, [data]);
 
     if (loading) return <div>Loading...</div>;
 
@@ -96,8 +112,6 @@ export function ElectionDetailPage() {
             </div>
         );
     }
-
-    const canStartVote = data.canCast && data.status === "ONGOING";
 
     return (
         <div style={{ padding: 12, display: "grid", gap: 16 }}>
@@ -147,35 +161,44 @@ export function ElectionDetailPage() {
                 <div style={{ marginBottom: 8 }}>
                     <b>候補者</b>
                 </div>
+
                 <div style={{ display: "grid", gap: 8 }}>
-                    {data.candidates.map((c) => (
-                        <Link
-                            key={c.id}
-                            to={`/elections/${data.electionId}/candidates/${c.id}`}
-                            state={{ from: self }}
-                            style={{
-                                border: "1px solid #eee",
-                                padding: 10,
-                                borderRadius: 8,
-                                textDecoration: "none",
-                                color: "inherit",
-                                display: "flex",
-                                alignItems: "center",
-                                gap: 12,
-                            }}
-                        >
-                            {(() => {
-                                const thumb = resolveCandidateImageUrlById(
-                                    c.id,
-                                );
-                                return thumb ? (
+                    {data.candidates.map((c, idx) => {
+                        const thumb = resolveCandidateThumbByIndex(idx);
+
+                        return (
+                            <Link
+                                key={c.id}
+                                to={`/elections/${data.electionId}/candidates/${c.id}`}
+                                state={{ from: self }}
+                                style={{
+                                    border: "1px solid #eee",
+                                    padding: 10,
+                                    borderRadius: 8,
+                                    textDecoration: "none",
+                                    color: "inherit",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: 12,
+                                }}
+                            >
+                                {thumb ? (
                                     <img
                                         src={thumb}
                                         alt={c.name}
                                         onError={(e) => {
-                                            (
-                                                e.currentTarget as HTMLImageElement
-                                            ).style.display = "none";
+                                            // 消すと「何も出てない」になるので、デバッグできるように残す
+                                            console.error(
+                                                "thumb load failed:",
+                                                thumb,
+                                                "candidateId:",
+                                                c.id,
+                                                "index:",
+                                                idx,
+                                            );
+                                            e.currentTarget.style.outline =
+                                                "2px solid red";
+                                            e.currentTarget.title = `LOAD FAILED: ${thumb}`;
                                         }}
                                         style={{
                                             width: 48,
@@ -183,26 +206,45 @@ export function ElectionDetailPage() {
                                             objectFit: "cover",
                                             borderRadius: 8,
                                             border: "1px solid #eee",
+                                            flexShrink: 0,
                                         }}
                                     />
-                                ) : null;
-                            })()}
+                                ) : (
+                                    <div
+                                        style={{
+                                            width: 48,
+                                            height: 48,
+                                            borderRadius: 8,
+                                            border: "1px dashed #ccc",
+                                            display: "grid",
+                                            placeItems: "center",
+                                            fontSize: 10,
+                                            opacity: 0.7,
+                                            flexShrink: 0,
+                                        }}
+                                    >
+                                        NO IMG
+                                    </div>
+                                )}
 
-                            <div
-                                style={{
-                                    display: "flex",
-                                    justifyContent: "space-between",
-                                    gap: 12,
-                                    flex: 1,
-                                }}
-                            >
-                                <span>{c.name}</span>
-                                <span style={{ fontSize: 12, opacity: 0.6 }}>
-                                    →
-                                </span>
-                            </div>
-                        </Link>
-                    ))}
+                                <div
+                                    style={{
+                                        display: "flex",
+                                        justifyContent: "space-between",
+                                        gap: 12,
+                                        flex: 1,
+                                    }}
+                                >
+                                    <span>{c.name}</span>
+                                    <span
+                                        style={{ fontSize: 12, opacity: 0.6 }}
+                                    >
+                                        →
+                                    </span>
+                                </div>
+                            </Link>
+                        );
+                    })}
                 </div>
             </div>
 
@@ -242,8 +284,8 @@ export function ElectionDetailPage() {
                                     marginTop: 2,
                                 }}
                             >
-                                投票開始できません（本人認証未完了 / 期間外
-                                など）
+                                投票開始できません（本人認証未完了 /
+                                期間外など）
                             </div>
                         )}
                     </>

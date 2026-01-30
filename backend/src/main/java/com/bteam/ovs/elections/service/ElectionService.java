@@ -28,18 +28,21 @@ public class ElectionService {
     private final PartyRepository partyRepo;
     private final VoteCurrentRepository voteCurrentRepo;
     private final AccountResolver accountResolver;
+    private final ElectionEligibilityService electionEligibilityService;
 
     public ElectionService(
             ElectionRepository electionRepo,
             CandidateRepository candidateRepo,
             PartyRepository partyRepo,
             VoteCurrentRepository voteCurrentRepo,
-            AccountResolver accountResolver) {
+            AccountResolver accountResolver,
+            ElectionEligibilityService electionEligibilityService) {
         this.electionRepo = electionRepo;
         this.candidateRepo = candidateRepo;
         this.partyRepo = partyRepo;
         this.voteCurrentRepo = voteCurrentRepo;
         this.accountResolver = accountResolver;
+        this.electionEligibilityService = electionEligibilityService;
     }
 
     public List<ElectionListItem> list(UUID accountIdOrNull) {
@@ -95,7 +98,10 @@ public class ElectionService {
                     int candidateCount = (cnt > Integer.MAX_VALUE) ? Integer.MAX_VALUE : (int) cnt;
 
                     // 投票できるのは開催中かつ本人認証済み
-                    boolean canCast = finalIdentityLinked && "ONGOING".equals(st);
+                    boolean canCast = finalIdentityLinked
+                            && "ONGOING".equals(st)
+                            && accountIdOrNull != null
+                            && electionEligibilityService.isEligible(accountIdOrNull, e.getId());
 
                     ElectionListItem.CurrentVote currentVote = null;
                     if (finalIdentityLinked) {
