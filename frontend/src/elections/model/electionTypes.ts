@@ -19,6 +19,7 @@ export type ElectionListItem = {
 
 export type CandidateItem = {
     id: string;
+    electionId: string;
     candidateKey: string;
     name: string;
     age: number | null;
@@ -52,10 +53,7 @@ export type ElectionDetailResponse = {
     endsAt: string;
     status: ElectionStatus;
     candidateCount: number;
-    candidates: {
-        id: string;
-        name: string;
-    }[];
+    candidates: CandidateItem[];
     canCast: boolean;
     currentVote: null | {
         candidateId: string;

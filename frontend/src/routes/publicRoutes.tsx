@@ -3,7 +3,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import { PublicHomePage } from "../public";
 import { ElectionsPage } from "../elections/pages/ElectionsPage";
 import { ElectionDetailPage } from "../elections/pages/ElectionDetailPage";
-import { CandidatesPage } from "../elections/pages/CandidatesPage";
+import { ElectionCandidatesPage } from "../elections/pages/ElectionCandidatesPage";
 import { CandidateDetailPage } from "../elections/pages/CandidateDetailPage";
 import { ResultPage } from "../elections/pages/ResultPage";
 import { MyElectionsPage } from "../elections/pages/MyElectionsPage";
@@ -20,6 +20,7 @@ import { VoteHistoryPage } from "../voting/pages/VoteHistoryPage";
 import { RequireAuth } from "../auth/routes/RequireAuth";
 import { RequireVerifiedEmail } from "../auth/routes/RequireVerifiedEmail";
 import { RequireIdentityLinked } from "../auth/routes/RequireIdentityLinked";
+import { CandidatesPage } from "../elections/pages/CandidatesPage";
 
 export function PublicRoutes() {
     return (
@@ -35,7 +36,7 @@ export function PublicRoutes() {
             />
             <Route
                 path="/elections/:electionId/candidates"
-                element={<CandidatesPage />}
+                element={<ElectionCandidatesPage />}
             />
             <Route
                 path="/elections/:electionId/candidates/:candidateId"
@@ -45,6 +46,7 @@ export function PublicRoutes() {
                 path="/elections/:electionId/result"
                 element={<ResultPage />}
             />
+            <Route path="/candidates" element={<CandidatesPage />} />
 
             {/* Auth */}
             <Route path="/register" element={<RegisterPage />} />

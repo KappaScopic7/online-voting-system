@@ -1,4 +1,4 @@
-// frontend/src/elections/pages/PartyListPage.tsx
+// frontend/src/elections/pages/PartiesPage.tsx
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { fetchParties } from "../api/parties";

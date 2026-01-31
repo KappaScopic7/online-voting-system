@@ -38,4 +38,7 @@ public interface CandidateRepository extends JpaRepository<Candidate, UUID> {
     List<Candidate> findByPartyKeyOrderByElectionIdAscSortOrderAsc(String partyKey);
 
     Optional<Candidate> findByIdAndElectionId(UUID id, UUID electionId);
+
+    List<Candidate> findAllByOrderByElectionIdAscSortOrderAsc();
+
 }

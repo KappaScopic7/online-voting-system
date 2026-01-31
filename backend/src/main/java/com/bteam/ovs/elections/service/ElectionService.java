@@ -210,8 +210,28 @@ public class ElectionService {
     }
 
     public List<CandidateItem> candidatesAll(UUID electionIdOrNull, String partyKeyOrNull) {
-        // 全候補者を表示する
-        return List.of();
+
+        List<com.bteam.ovs.elections.entity.Candidate> candidateEntities;
+
+        if (electionIdOrNull != null) {
+            if (!electionRepo.existsById(electionIdOrNull)) {
+                throw new ApiException(HttpStatus.NOT_FOUND, "ELECTION_NOT_FOUND", "選挙が存在しません");
+            }
+            candidateEntities = candidateRepo.findByElectionId(electionIdOrNull);
+            candidateEntities.sort(Comparator.comparingInt(c -> c.getSortOrder()));
+
+        } else if (partyKeyOrNull != null && !partyKeyOrNull.isBlank()) {
+            candidateEntities = candidateRepo.findByPartyKeyOrderByElectionIdAscSortOrderAsc(partyKeyOrNull.trim());
+
+        } else {
+            candidateEntities = candidateRepo.findAllByOrderByElectionIdAscSortOrderAsc();
+        }
+
+        var partyMap = loadPartiesByCandidateEntities(candidateEntities);
+
+        return candidateEntities.stream()
+                .map(c -> toCandidateItem(c, partyMap.get(blankToNull(c.getPartyKey()))))
+                .toList();
     }
 
     public ElectionResultResponse result(UUID electionId) {
@@ -257,12 +277,10 @@ public class ElectionService {
         return "ONGOING";
     }
 
-    // -------------------------
-    // helpers
-    // -------------------------
     private CandidateItem toCandidateItem(
             com.bteam.ovs.elections.entity.Candidate c,
             com.bteam.ovs.elections.entity.Party pOrNull) {
+
         CandidateItem.PartyEmbed party = null;
         if (pOrNull != null) {
             party = new CandidateItem.PartyEmbed(
@@ -274,6 +292,7 @@ public class ElectionService {
 
         return new CandidateItem(
                 c.getId(),
+                c.getElectionId(),
                 c.getCandidateKey(),
                 c.getName(),
                 c.getAge(),

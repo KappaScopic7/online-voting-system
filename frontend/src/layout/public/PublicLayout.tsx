@@ -1,113 +1,61 @@
 // frontend/src/layout/PublicLayout.tsx
 import { Link, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "../../user/UserAuthContext";
-//import { useStaffAuth } from "../../staff/StaffAuthContext";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import styles from "./PublicLayout.module.css";
 import logo from "../../assets/logo/ovs-logo.png";
+
+type NavItem = { to: string; label: string };
 
 export function PublicLayout() {
     const nav = useNavigate();
     const { me: user, logout: userLogout } = useAuth();
-    //const { staff, logout: staffLogout } = useStaffAuth();
 
-    //const isDev = import.meta.env?.DEV;
-
-    // ★ reset UI state
-    //const [resetMsg, setResetMsg] = useState<string | null>(null);
-    //const [resetting, setResetting] = useState(false);
     const [showTopBar, setShowTopBar] = useState(true);
     const lastYRef = useRef(0);
     const tickingRef = useRef(false);
+
     const [isMenuOpen, setIsMenuOpen] = useState(false);
-    const menuRef = useRef<HTMLDivElement>(null);
-    const handleMenuClick = () => {
-        setIsMenuOpen(false);
-    };
+    const menuWrapRef = useRef<HTMLDivElement>(null);
+
+    const closeMenu = () => setIsMenuOpen(false);
+    const toggleMenu = () => setIsMenuOpen((v) => !v);
 
     const onLogout = () => {
-        //if (staff) {
-        //staffLogout();
-        //nav("/", { replace: true });
-        //return;
-        //}
-        if (user) {
-            userLogout();
-            setIsMenuOpen(false);
-            nav("/", { replace: true });
-        }
+        if (!user) return;
+        userLogout();
+        closeMenu();
+        nav("/", { replace: true });
     };
 
-    // ★ 「demo + staff + admin」だけ見せる（staff.role が取れない場合は staff がいるだけでもOK）
-    //const isAdminStaff =
-    //!!staff && (String((staff as any)?.role ?? "") === "ADMIN");
-    // ★ 「demo + staff + admin」だけ見せる（staff.role が取れない場合は staff がいるだけでもOK）
-    // const isAdminStaff =
-    //     !!staff && (String((staff as any)?.role ?? "") === "ADMIN");
+    const navItems = useMemo<NavItem[]>(() => {
+        const common: NavItem[] = [
+            { to: "/elections", label: "選挙一覧" },
+            { to: "/parties", label: "政党一覧" },
+            { to: "/candidates", label: "候補者一覧" },
+            { to: "/help", label: "問い合わせ" },
+        ];
 
-    // // ★ DB reset action
-    // const onResetDemoDb = async () => {
-    //     setResetMsg(null);
+        if (!user) return common;
 
-    //     if (!staff) {
-    //         setResetMsg("STAFFでログインしていません");
-    //         return;
-    //     }
-    //     if (!isAdminStaff) {
-    //         setResetMsg("ADMIN権限が必要です");
-    //         return;
-    //     }
+        return [
+            ...common.slice(0, 3),
+            { to: "/me/elections", label: "My選挙" },
+            common[3],
+        ];
+    }, [user]);
 
-    //     const ok = window.confirm(
-    //         "DBをリセットしてデモデータを入れ直します。\n本当に実行しますか？",
-    //     );
-    //     if (!ok) return;
-
-    //     try {
-    //         setResetting(true);
-
-    //         // StaffAuthContext の持ち方に合わせてここを調整してね（例: staff.accessToken / staff.token など）
-    //         const accessToken =
-    //             (staff as any)?.accessToken ??
-    //             (staff as any)?.token?.accessToken ??
-    //             (staff as any)?.token;
-
-    //         if (!accessToken) {
-    //             setResetMsg("STAFFのアクセストークンが見つかりません");
-    //             return;
-    //         }
-
-    //         const res = await fetch("/api/demo/reset", {
-    //             method: "POST",
-    //             headers: {
-    //                 "Content-Type": "application/json",
-    //                 Authorization: `Bearer ${accessToken}`,
-    //             },
-    //             body: JSON.stringify({ confirm: "RESET" }),
-    //         });
-
-    //         if (!res.ok) {
-    //             const text = await res.text().catch(() => "");
-    //             throw new Error(text || `HTTP ${res.status}`);
-    //         }
-
-    //         // ログイン状態は残したまま画面だけ更新（データ取り直し）
-    //         window.location.reload();
-    //     } catch (e: any) {
-    //         setResetMsg(e?.message ?? "DBリセットに失敗しました");
-    //     } finally {
-    //         setResetting(false);
-    //     }
-
-    // };
+    // ---- header show/hide on scroll ----
     useEffect(() => {
         const onScroll = () => {
             if (tickingRef.current) return;
             tickingRef.current = true;
+
             window.requestAnimationFrame(() => {
                 const y = window.scrollY;
                 const lastY = lastYRef.current;
                 const diff = y - lastY;
+
                 const THRESHOLD = 20;
                 const TOP_LOCK = 60;
 
@@ -117,243 +65,172 @@ export function PublicLayout() {
                     setShowTopBar(diff < 0);
                     lastYRef.current = y;
                 }
+
                 tickingRef.current = false;
             });
         };
 
+        window.addEventListener("scroll", onScroll, { passive: true });
+        return () => window.removeEventListener("scroll", onScroll);
+    }, []);
+
+    // ---- close menu on outside click / Esc ----
+    useEffect(() => {
+        if (!isMenuOpen) return;
+
         const handleClickOutside = (event: MouseEvent) => {
             if (
-                menuRef.current &&
-                !menuRef.current.contains(event.target as Node)
+                menuWrapRef.current &&
+                !menuWrapRef.current.contains(event.target as Node)
             ) {
-                setIsMenuOpen(false);
+                closeMenu();
             }
         };
 
-        window.addEventListener("scroll", onScroll, { passive: true });
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if (event.key === "Escape") closeMenu();
+        };
 
-        if (isMenuOpen) {
-            document.addEventListener("mousedown", handleClickOutside);
-        }
+        document.addEventListener("mousedown", handleClickOutside);
+        document.addEventListener("keydown", handleKeyDown);
 
         return () => {
-            window.removeEventListener("scroll", onScroll);
             document.removeEventListener("mousedown", handleClickOutside);
+            document.removeEventListener("keydown", handleKeyDown);
         };
     }, [isMenuOpen]);
 
     return (
         <div style={{ padding: 16 }}>
             <div
-                className={`${styles.publicLayout} ${showTopBar ? styles.headerVisible : styles.headerHidden}`}
+                className={`${styles.publicLayout} ${
+                    showTopBar ? styles.headerVisible : styles.headerHidden
+                }`}
             >
-                <link
-                    rel="stylesheet"
-                    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
-                />
-
                 <header className={styles.header}>
-                    <Link to="/" style={{ display: "flex", gap: 10 }}>
+                    <Link
+                        to="/"
+                        className={styles.brand}
+                        onClick={closeMenu}
+                        aria-label="トップページへ"
+                    >
                         <img
                             className={styles.logoImage}
                             src={logo}
-                            alt="Logo+トップページへ"
+                            alt="OVS"
                         />
                     </Link>
-                    {/* 任意の写真を使いました */}
+
                     <div className={styles.headerin}>
-                        {/* 未ログイン状態 */}
-                        {!user && (
+                        {!user ? (
                             <>
                                 <span style={{ fontSize: 12, opacity: 0.7 }}>
-                                    未ログイン状態
+                                    未ログイン
                                 </span>
-                                <Link className={styles.navlink} to="/login">
+                                <Link
+                                    className={styles.headerLink}
+                                    to="/login"
+                                    onClick={closeMenu}
+                                >
                                     ログイン
                                 </Link>
                                 <Link
-                                    className={styles.navlink}
+                                    className={styles.headerLink}
                                     style={{ marginRight: 10 }}
                                     to="/register"
+                                    onClick={closeMenu}
                                 >
                                     新規登録
                                 </Link>
                             </>
-                        )}
-                        {/* ログイン状態 */}
-                        {user && (
-                            <>
-                                <div
-                                    className={styles.menubutton}
-                                    ref={menuRef}
+                        ) : (
+                            <div ref={menuWrapRef} className={styles.menuWrap}>
+                                <button
+                                    type="button"
+                                    className={styles.menuButton}
+                                    onClick={toggleMenu}
+                                    aria-haspopup="menu"
+                                    aria-expanded={isMenuOpen}
+                                    aria-label="ユーザーメニュー"
                                 >
-                                    <button
-                                        className={styles.menubutton}
-                                        onClick={() =>
-                                            setIsMenuOpen(!isMenuOpen)
-                                        }
-                                    >
-                                        <i className="fa-regular fa-user"></i>
-                                    </button>
+                                    <span aria-hidden>👤</span>
+                                </button>
 
-                                    {isMenuOpen && (
-                                        <div
-                                            className={`${styles.menuopen} ${showTopBar ? styles.withShadow : ""}`}
-                                        >
-                                            <div>
-                                                <Link
-                                                    className={styles.navlink}
-                                                    onClick={handleMenuClick}
-                                                    to="/me"
-                                                >
-                                                    マイページ →
-                                                </Link>
-                                            </div>
-                                            <hr className={styles.divider} />
-                                            <div>
-                                                <Link
-                                                    className={styles.navlink}
-                                                    onClick={handleMenuClick}
-                                                    to="/notice"
-                                                >
-                                                    お知らせ →
-                                                </Link>
-                                            </div>
-                                            <hr className={styles.divider} />
-                                            <div>
-                                                <Link
-                                                    className={styles.navlink}
-                                                    onClick={handleMenuClick}
-                                                    to="/me/votes"
-                                                >
-                                                    投票履歴 →
-                                                </Link>
-                                            </div>
-                                            <hr className={styles.divider} />
-                                            <div>
-                                                <Link
-                                                    className={styles.navlink}
-                                                    onClick={handleMenuClick}
-                                                    to="/account-setting"
-                                                >
-                                                    アカウント設定 →
-                                                </Link>
-                                            </div>
-                                            <hr className={styles.divider} />
-                                            <div>
-                                                <Link
-                                                    className={styles.navlink}
-                                                    onClick={handleMenuClick}
-                                                    to="/profil-eEdit"
-                                                >
-                                                    プロフィール編集 →
-                                                </Link>
-                                            </div>
-                                            <hr className={styles.divider} />
-                                            <div>
-                                                <Link
-                                                    className={styles.navlink}
-                                                    onClick={handleMenuClick}
-                                                    to="/me/identity"
-                                                >
-                                                    本人確認 →
-                                                </Link>
-                                            </div>
-                                            <hr className={styles.divider} />
-                                            <div>
-                                                <button
-                                                    className={
-                                                        styles.menubutton
-                                                    }
-                                                    type="button"
-                                                    onClick={onLogout}
-                                                >
-                                                    ログアウト
-                                                </button>
-                                            </div>
+                                {isMenuOpen && (
+                                    <div
+                                        className={`${styles.menuopen} ${
+                                            showTopBar ? styles.withShadow : ""
+                                        }`}
+                                        role="menu"
+                                    >
+                                        <div>
+                                            <Link
+                                                className={styles.menuLink}
+                                                to="/me"
+                                                onClick={closeMenu}
+                                            >
+                                                マイページ →
+                                            </Link>
                                         </div>
-                                    )}
-                                </div>
-                            </>
+                                        <hr className={styles.divider} />
+
+                                        <div>
+                                            <Link
+                                                className={styles.menuLink}
+                                                to="/me/votes"
+                                                onClick={closeMenu}
+                                            >
+                                                投票履歴 →
+                                            </Link>
+                                        </div>
+                                        <hr className={styles.divider} />
+
+                                        <div>
+                                            <Link
+                                                className={styles.menuLink}
+                                                to="/me/identity"
+                                                onClick={closeMenu}
+                                            >
+                                                本人確認 →
+                                            </Link>
+                                        </div>
+                                        <hr className={styles.divider} />
+
+                                        <div>
+                                            <button
+                                                className={styles.logoutButton}
+                                                type="button"
+                                                onClick={onLogout}
+                                            >
+                                                ログアウト
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
                         )}
                     </div>
                 </header>
 
-                <nav className={styles.nav}>
-                    {!user && (
-                        <>
-                            <Link to="/elections" className={styles.navlink}>
-                                選挙一覧
-                            </Link>
-                            |
-                            <Link to="/partys" className={styles.navlink}>
-                                政党一覧
-                            </Link>
-                            |
-                            <Link to="/" className={styles.navlink}>
-                                候補者一覧
-                            </Link>
-                            |
-                            <Link to="/help" className={styles.navlink}>
-                                問い合わせ
-                            </Link>
-                        </>
-                    )}
-                    {user && (
-                        <>
-                            <Link to="/elections" className={styles.navlink}>
-                                選挙一覧
-                            </Link>
-                            |
-                            <Link to="/partys" className={styles.navlink}>
-                                政党一覧
-                            </Link>
-                            |
-                            <Link to="/" className={styles.navlink}>
-                                候補者一覧
-                            </Link>
-                            |
-                            <Link to="/me/elections" className={styles.navlink}>
-                                My選挙
-                            </Link>
-                            |
-                            <Link to="/help" className={styles.navlink}>
-                                問い合わせ
-                            </Link>
-                        </>
-                    )}
+                {/* ★ ここが修正点：| を消して、CSSで区切る */}
+                <nav className={styles.nav} aria-label="グローバルナビ">
+                    {navItems.map((item) => (
+                        <Link
+                            key={item.to}
+                            to={item.to}
+                            className={styles.navlink}
+                            onClick={closeMenu}
+                        >
+                            {item.label}
+                        </Link>
+                    ))}
                 </nav>
             </div>
+
             <Outlet />
 
             <footer className={styles.footer}>
                 <span style={{ opacity: 0.7 }}>© OVS / B-team</span>
-                {/* ★ DB reset button
-        {isDev && staff && (
-            <div style={{ marginLeft: "auto", display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-                <button
-                    type="button"
-                    onClick={onResetDemoDb}
-                    disabled={!isAdminStaff || resetting}
-                    title={
-                        !isAdminStaff
-                            ? "ADMINでログインしたSTAFFのみ実行できます"
-                            : "DBをリセットしてデモデータを再投入します"
-                    }
-                    style={{
-                        fontSize: 12,
-                        padding: "4px 8px",
-                        border: "1px solid #d99",
-                    }}
-                >
-                    {resetting ? "DBリセット中..." : "DBリセット（demo）"}
-                </button>
-
-                {resetMsg && (
-                    <span style={{ color: "crimson" }}>{resetMsg}</span>
-                )}
-            </div>
-        )} */}
             </footer>
         </div>
     );
