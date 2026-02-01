@@ -1,8 +1,8 @@
 package com.bteam.ovs.voters.service;
 
+import com.bteam.ovs.candidates.repository.CandidateRepository;
 import com.bteam.ovs.elections.controller.dto.ElectionListItem;
 import com.bteam.ovs.elections.entity.Election;
-import com.bteam.ovs.elections.repository.CandidateRepository;
 import com.bteam.ovs.elections.repository.ElectionRepository;
 import com.bteam.ovs.shared.identity.CitizenIdResolver;
 import com.bteam.ovs.voting.entity.VoteCurrent;

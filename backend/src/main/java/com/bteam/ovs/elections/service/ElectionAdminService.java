@@ -1,12 +1,12 @@
 package com.bteam.ovs.elections.service;
 
-import com.bteam.ovs.elections.controller.dto.CandidateCreateRequest;
-import com.bteam.ovs.elections.controller.dto.CandidateResponse;
+import com.bteam.ovs.candidates.controller.dto.CandidateCreateRequest;
+import com.bteam.ovs.candidates.controller.dto.CandidateResponse;
+import com.bteam.ovs.candidates.entity.Candidate;
+import com.bteam.ovs.candidates.repository.CandidateRepository;
 import com.bteam.ovs.elections.controller.dto.ElectionCreateRequest;
 import com.bteam.ovs.elections.controller.dto.ElectionResponse;
-import com.bteam.ovs.elections.entity.Candidate;
 import com.bteam.ovs.elections.entity.Election;
-import com.bteam.ovs.elections.repository.CandidateRepository;
 import com.bteam.ovs.elections.repository.ElectionRepository;
 import com.bteam.ovs.shared.errors.ApiException;
 

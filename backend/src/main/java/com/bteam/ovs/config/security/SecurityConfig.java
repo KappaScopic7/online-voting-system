@@ -65,6 +65,9 @@ public class SecurityConfig {
                         // candidates は GET だけ公開
                         .requestMatchers(HttpMethod.GET, "/api/candidates/**").permitAll()
 
+                        // parties は GET だけ公開
+                        .requestMatchers(HttpMethod.GET, "/api/parties/**").permitAll()
+
                         // ---- staff auth ----
                         .requestMatchers("/api/staff/auth/login").permitAll()
 

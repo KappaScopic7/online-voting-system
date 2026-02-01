@@ -4,6 +4,8 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
+import com.bteam.ovs.candidates.controller.dto.CandidateItem;
+
 public record ElectionDetailResponse(
         UUID electionId,
         String title,

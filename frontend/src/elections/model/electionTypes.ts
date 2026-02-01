@@ -1,5 +1,9 @@
-// frontend/src/elections/model/electionsTypes.ts
 export type ElectionStatus = "UPCOMING" | "ONGOING" | "ENDED" | string;
+
+export type ElectionCandidateSummary = {
+    id: string;
+    name: string;
+};
 
 export type ElectionListItem = {
     electionId: string;
@@ -15,22 +19,6 @@ export type ElectionListItem = {
         candidateName: string | null;
         castedAt: string;
     };
-};
-
-export type CandidateItem = {
-    id: string;
-    electionId: string;
-    candidateKey: string;
-    name: string;
-    age: number | null;
-    title: string | null;
-    sortOrder: number;
-    party: {
-        partyKey: string;
-        shortName: string;
-        name: string;
-        color?: string | null;
-    } | null;
 };
 
 export type ElectionResultResponse = {
@@ -53,7 +41,7 @@ export type ElectionDetailResponse = {
     endsAt: string;
     status: ElectionStatus;
     candidateCount: number;
-    candidates: CandidateItem[];
+    candidates: ElectionCandidateSummary[];
     canCast: boolean;
     currentVote: null | {
         candidateId: string;

@@ -1,6 +1,6 @@
 package com.bteam.ovs.voting.service;
 
-import com.bteam.ovs.elections.repository.CandidateRepository;
+import com.bteam.ovs.candidates.repository.CandidateRepository;
 import com.bteam.ovs.elections.repository.ElectionRepository;
 import com.bteam.ovs.elections.service.ElectionEligibilityService;
 import com.bteam.ovs.shared.errors.ApiException;

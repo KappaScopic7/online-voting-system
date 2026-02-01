@@ -1,5 +1,5 @@
-// frontend/src/parties/api/parties.ts
-import axios from "axios";
+// frontend/src/elections/api/parties.ts
+import { httpUser } from "../../shared/httpUser";
 import type {
     PartyCandidateItem,
     PartyDetailResponse,
@@ -7,21 +7,23 @@ import type {
 } from "../model/partyTypes";
 
 export async function fetchParties(): Promise<PartyListItem[]> {
-    const res = await axios.get("/api/parties");
+    const res = await httpUser.get("/api/parties");
     return res.data;
 }
 
-export async function fetchParty(
+export async function fetchPartyDetail(
     partyKey: string,
 ): Promise<PartyDetailResponse> {
-    const res = await axios.get(`/api/parties/${encodeURIComponent(partyKey)}`);
+    const res = await httpUser.get(
+        `/api/parties/${encodeURIComponent(partyKey)}`,
+    );
     return res.data;
 }
 
 export async function fetchPartyCandidates(
     partyKey: string,
 ): Promise<PartyCandidateItem[]> {
-    const res = await axios.get(
+    const res = await httpUser.get(
         `/api/parties/${encodeURIComponent(partyKey)}/candidates`,
     );
     return res.data;

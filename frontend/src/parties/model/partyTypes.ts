@@ -1,12 +1,14 @@
-// frontend/src/parties/model/partyTypes.ts
+// frontend/src/elections/model/partyTypes.ts
 export type PartyListItem = {
+    partyId: string;
     partyKey: string;
     name: string;
     shortName: string;
-    color: string; // "#RRGGBB"
+    color: string;
 };
 
 export type PartyDetailResponse = {
+    partyId: string;
     partyKey: string;
     name: string;
     shortName: string;
@@ -21,6 +23,6 @@ export type PartyCandidateItem = {
     candidateKey: string;
     name: string;
     age: number | null;
-    title: string;
+    title: string | null;
     imageUrl: string | null;
 };

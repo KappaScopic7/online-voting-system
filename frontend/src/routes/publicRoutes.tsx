@@ -3,8 +3,8 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import { PublicHomePage } from "../public";
 import { ElectionsPage } from "../elections/pages/ElectionsPage";
 import { ElectionDetailPage } from "../elections/pages/ElectionDetailPage";
-import { ElectionCandidatesPage } from "../elections/pages/ElectionCandidatesPage";
-import { CandidateDetailPage } from "../elections/pages/CandidateDetailPage";
+import { ElectionCandidatesPage } from "../candidates/pages/ElectionCandidatesPage";
+import { CandidateDetailPage } from "../candidates/pages/CandidateDetailPage";
 import { ResultPage } from "../elections/pages/ResultPage";
 import { MyElectionsPage } from "../elections/pages/MyElectionsPage";
 import { RegisterPage } from "../user/pages/RegisterPage";
@@ -20,7 +20,7 @@ import { VoteHistoryPage } from "../voting/pages/VoteHistoryPage";
 import { RequireAuth } from "../auth/routes/RequireAuth";
 import { RequireVerifiedEmail } from "../auth/routes/RequireVerifiedEmail";
 import { RequireIdentityLinked } from "../auth/routes/RequireIdentityLinked";
-import { CandidatesPage } from "../elections/pages/CandidatesPage";
+import { CandidatesPage } from "../candidates/pages/CandidatesPage";
 import { PartiesPage } from "../parties/pages/PartiesPage";
 import { PartyDetailPage } from "../parties/pages/PartyDetailPage";
 
@@ -50,6 +50,10 @@ export function PublicRoutes() {
             />
 
             <Route path="/candidates" element={<CandidatesPage />} />
+            <Route
+                path="/candidates/:candidateId"
+                element={<CandidateDetailPage />}
+            />
 
             <Route path="/parties" element={<PartiesPage />} />
             <Route path="/parties/:partyKey" element={<PartyDetailPage />} />

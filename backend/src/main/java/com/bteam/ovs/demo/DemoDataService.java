@@ -2,8 +2,10 @@ package com.bteam.ovs.demo;
 
 import com.bteam.ovs.auth.repository.StaffAccountRepository;
 import com.bteam.ovs.auth.repository.UserAccountRepository;
+import com.bteam.ovs.candidates.repository.CandidateRepository;
 import com.bteam.ovs.citizen.repository.CitizenRepository;
 import com.bteam.ovs.elections.repository.*;
+import com.bteam.ovs.parties.repository.PartyRepository;
 import com.bteam.ovs.voting.repository.VoteCastRepository;
 import com.bteam.ovs.voting.repository.VoteCurrentRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
