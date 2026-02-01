@@ -11,16 +11,7 @@ export async function linkIdentity(
     return res.data;
 }
 
-//NFC追記文
-export async function linkIdentityByNfc(
-    serialNumber: string,
-): Promise<UserTokenResponse> {
-    // NFCのシリアルナンバーを送信するエンドポイント（サーバー側の実装に合わせてURLは調整してください）
-    const res = await httpUser.post<UserTokenResponse>(
-        "/api/identity/link/nfc",
-        {
-            serialNumber,
-        },
-    );
-    return res.data;
-}
+// export async function linkIdentityByNfc(serialNumber: string): Promise<UserTokenResponse> {
+//     const res = await httpUser.post<UserTokenResponse>("/api/identity/link/nfc", { serialNumber });
+//     return res.data;
+// }

@@ -6,9 +6,8 @@ export type IdentityMethod = "MANUAL" | "NFC";
 export function IdentityMethodTabs(props: {
     value: IdentityMethod;
     onChange: (v: IdentityMethod) => void;
-    nfcEnabled?: boolean;
 }) {
-    const { value, onChange, nfcEnabled = false } = props;
+    const { value, onChange } = props;
 
     const isDev = import.meta.env?.DEV;
 
@@ -36,8 +35,6 @@ export function IdentityMethodTabs(props: {
                 type="button"
                 onClick={() => onChange("NFC")}
                 style={tabStyle(value === "NFC")}
-                disabled={!nfcEnabled}
-                title={nfcEnabled ? "" : "準備中"}
             >
                 NFC
             </button>

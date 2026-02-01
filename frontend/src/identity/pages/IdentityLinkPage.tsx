@@ -7,8 +7,13 @@ import {
 } from "../components/IdentityMethodTabs";
 import { IdentityManualForm } from "../components/IdentityManualForm";
 import { IdentityNfcScanner } from "../components/IdentityNfcScanner";
+import { IdentityNfcKeyboardReader } from "../components/IdentityNfcKeyboardReader";
 
 type LocationState = { from?: string };
+
+function hasWebNfc() {
+    return typeof (window as any).NDEFReader !== "undefined";
+}
 
 export function IdentityLinkPage() {
     const nav = useNavigate();
@@ -19,7 +24,6 @@ export function IdentityLinkPage() {
 
     const fallback = "/me/elections";
     const to = useMemo(() => {
-        // 自分自身に戻るのは避ける
         return state.from && state.from !== loc.pathname
             ? state.from
             : fallback;
@@ -27,6 +31,7 @@ export function IdentityLinkPage() {
 
     const onLinked = (_accessToken: string) => {
         nav(to, { replace: true });
+        // もし「審査中(PENDING)へ」運用に寄せるならこっち
         // nav("/identity/pending", { replace: true, state: { from: to } });
     };
 
@@ -41,11 +46,7 @@ export function IdentityLinkPage() {
                 </span>
             </header>
 
-            <IdentityMethodTabs
-                value={method}
-                onChange={setMethod}
-                nfcEnabled={isDev}
-            />
+            <IdentityMethodTabs value={method} onChange={setMethod} />
 
             <div
                 style={{
@@ -56,8 +57,10 @@ export function IdentityLinkPage() {
             >
                 {method === "MANUAL" ? (
                     <IdentityManualForm onLinked={onLinked} />
-                ) : (
+                ) : hasWebNfc() ? (
                     <IdentityNfcScanner onLinked={onLinked} />
+                ) : (
+                    <IdentityNfcKeyboardReader onLinked={onLinked} />
                 )}
 
                 {state.from && (
@@ -71,7 +74,11 @@ export function IdentityLinkPage() {
                 <details>
                     <summary>Debug</summary>
                     <pre style={{ whiteSpace: "pre-wrap" }}>
-                        {JSON.stringify({ method, state }, null, 2)}
+                        {JSON.stringify(
+                            { method, state, hasWebNfc: hasWebNfc() },
+                            null,
+                            2,
+                        )}
                     </pre>
                 </details>
             )}

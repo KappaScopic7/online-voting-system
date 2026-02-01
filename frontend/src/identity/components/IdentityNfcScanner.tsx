@@ -1,11 +1,55 @@
-import { useState, useEffect } from "react";
-import { linkIdentityByNfc } from "../api/identity";
+// frontend/src/identity/components/IdentityNfcScanner.tsx
+import { useEffect, useState } from "react";
+import { linkIdentity } from "../api/identity";
+import { useAuth } from "../../user/UserAuthContext";
 
 type Props = {
-    onLinked: (token: string) => void; // 成功時のコールバック
+    onLinked: (token: string) => void;
 };
 
+function looksLikeUuid(v: string) {
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+        v,
+    );
+}
+
+function extractUuidFromNdef(event: any): string | null {
+    const msg = event?.message;
+    const records = msg?.records;
+    if (!records || !Array.isArray(records)) return null;
+
+    for (const rec of records) {
+        try {
+            // Text record（推奨：タグにはUUID文字列だけ）
+            if (rec.recordType === "text") {
+                const encoding = rec.encoding ?? "utf-8";
+                const text = rec.data
+                    ? new TextDecoder(encoding).decode(rec.data)
+                    : "";
+                const v = String(text).trim();
+                if (looksLikeUuid(v)) return v;
+            }
+
+            // URL record（UUIDを埋め込む方式にも対応）
+            if (rec.recordType === "url") {
+                const url = rec.data
+                    ? new TextDecoder("utf-8").decode(rec.data)
+                    : "";
+                const m = String(url).match(
+                    /[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}/i,
+                );
+                if (m?.[0]) return m[0];
+            }
+        } catch {
+            // ignore and continue
+        }
+    }
+    return null;
+}
+
 export function IdentityNfcScanner({ onLinked }: Props) {
+    const { setAccessToken } = useAuth();
+
     const [status, setStatus] = useState<
         "IDLE" | "SCANNING" | "PROCESSING" | "SUCCESS" | "ERROR"
     >("IDLE");
@@ -14,12 +58,11 @@ export function IdentityNfcScanner({ onLinked }: Props) {
     );
     const [isSupported, setIsSupported] = useState(true);
 
-    // ブラウザがNFCに対応しているかチェック
     useEffect(() => {
         if (!("NDEFReader" in window)) {
             setIsSupported(false);
             setMessage(
-                "このブラウザはNFCに対応していません (Android Chromeを使用してください)",
+                "このブラウザはNFCに対応していません（Android Chrome推奨）。",
             );
         }
     }, []);
@@ -31,51 +74,50 @@ export function IdentityNfcScanner({ onLinked }: Props) {
         setMessage("カードをスマートフォンの背面に近づけてください...");
 
         try {
-            // @ts-ignore (TypeScriptの型定義が標準で含まれていない場合があるため)
+            // @ts-ignore
             const ndef = new NDEFReader();
-
-            // スキャン開始
             await ndef.scan();
 
-            // 読み取りイベント
             ndef.onreading = async (event: any) => {
-                const serialNumber = event.serialNumber;
+                if (status === "PROCESSING" || status === "SUCCESS") return;
 
-                if (!serialNumber) {
+                const uuid = extractUuidFromNdef(event);
+                if (!uuid) {
+                    setStatus("ERROR");
                     setMessage(
-                        "シリアルナンバーが読み取れませんでした。もう一度試してください。",
+                        "タグから citizenId(UUID) を読み取れませんでした。TextレコードにUUIDが入っているか確認してください。",
                     );
                     return;
                 }
 
-                // 読み取り成功 -> バックエンド送信処理へ
+                if (!looksLikeUuid(uuid)) {
+                    setStatus("ERROR");
+                    setMessage("読み取り結果がUUID形式ではありません。");
+                    return;
+                }
+
                 setStatus("PROCESSING");
-                setMessage(
-                    `読み取り成功: ${serialNumber}\nサーバーに送信中...`,
-                );
+                setMessage(`読み取り成功: ${uuid}\nサーバーに送信中...`);
 
                 try {
-                    // ここでバックエンドAPIを叩く
-                    await linkIdentityByNfc(serialNumber);
+                    const token = await linkIdentity(uuid);
+                    await setAccessToken(token.accessToken);
 
                     setStatus("SUCCESS");
                     setMessage("認証に成功しました！");
 
-                    // 少し待ってから画面遷移させる
                     setTimeout(() => {
-                        onLinked("dummy_token"); // 必要なら新しいトークンを渡す
-                    }, 1000);
+                        onLinked(token.accessToken);
+                    }, 500);
                 } catch (err: any) {
                     setStatus("ERROR");
                     setMessage(
                         err?.response?.data?.message ??
                             "サーバー認証に失敗しました",
                     );
-                    // エラーが出ても再スキャンできるようにボタンを表示
                 }
             };
 
-            // エラーハンドリング
             ndef.onreadingerror = () => {
                 setStatus("ERROR");
                 setMessage(
@@ -101,7 +143,7 @@ export function IdentityNfcScanner({ onLinked }: Props) {
         <div style={{ textAlign: "center", display: "grid", gap: 16 }}>
             <div
                 style={{
-                    height: 120,
+                    height: 140,
                     background: status === "SCANNING" ? "#e6f7ff" : "#f5f5f5",
                     borderRadius: 8,
                     display: "flex",
@@ -109,9 +151,9 @@ export function IdentityNfcScanner({ onLinked }: Props) {
                     justifyContent: "center",
                     flexDirection: "column",
                     border: "2px dashed #ccc",
+                    padding: 12,
                 }}
             >
-                {/* 状態に応じたアイコンやテキスト */}
                 {status === "SCANNING" && (
                     <span style={{ fontSize: 24 }}>📡</span>
                 )}
@@ -128,7 +170,6 @@ export function IdentityNfcScanner({ onLinked }: Props) {
                 </p>
             </div>
 
-            {/* スキャン開始ボタン (スキャン中や処理中は無効化) */}
             <button
                 onClick={startScan}
                 disabled={
