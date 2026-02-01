@@ -2,8 +2,9 @@
 package com.bteam.ovs.parties.controller.dto;
 
 public record PartyListItem(
-        String partyKey,
-        String name,
-        String shortName,
-        String color) {
+                String partyKey,
+                String name,
+                String shortName,
+                String color,
+                String description) {
 }

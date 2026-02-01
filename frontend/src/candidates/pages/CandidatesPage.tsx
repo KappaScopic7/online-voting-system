@@ -6,6 +6,8 @@ import type { ElectionListItem } from "../../elections/model/electionTypes";
 import { fetchCandidates } from "../api/candidates";
 import { fetchElections } from "../../elections/api/elections";
 import { normalizeFrom } from "../../shared/normalizeFrom";
+import { Card, DevDebug, Page } from "../../shared/ui/page";
+import { formatJST, statusLabel } from "../../shared/elections/format";
 
 type LocationState = { from?: string };
 
@@ -15,6 +17,104 @@ type ElectionMeta = {
     endsAt?: string;
     status?: string;
 };
+
+function PartyBadge({
+    shortName,
+    name,
+    color,
+}: {
+    shortName: string;
+    name?: string;
+    color?: string | null;
+}) {
+    // color は " #RRGGBB " を想定。無ければ薄い枠のみ
+    return (
+        <span
+            title={name ?? shortName}
+            style={{
+                fontSize: 12,
+                padding: "2px 10px",
+                borderRadius: 999,
+                border: "1px solid #eee",
+                background: "#fafafa",
+                // 党カラーを「左ボーダー」で控えめに使う
+                boxShadow: color ? `inset 4px 0 0 0 ${color}` : undefined,
+            }}
+        >
+            {shortName}
+        </span>
+    );
+}
+
+function CandidateCard({ c, from }: { c: CandidateItem; from: string }) {
+    const partyColor = c.party?.color ?? null;
+
+    return (
+        <Link
+            to={`/elections/${c.electionId}/candidates/${c.id}`}
+            state={{ from }}
+            style={{
+                textDecoration: "none",
+                color: "inherit",
+            }}
+        >
+            <div
+                style={{
+                    border: "1px solid #eee",
+                    borderRadius: 12,
+                    padding: 12,
+                    display: "grid",
+                    gap: 6,
+                    background: "#fff",
+                    // 党カラーがある時だけアクセント
+                    boxShadow: partyColor
+                        ? `inset 4px 0 0 0 ${partyColor}`
+                        : undefined,
+                }}
+            >
+                <div
+                    style={{
+                        display: "flex",
+                        gap: 10,
+                        alignItems: "center",
+                        flexWrap: "wrap",
+                    }}
+                >
+                    <strong style={{ fontSize: 16 }}>{c.name}</strong>
+
+                    {c.party ? (
+                        <PartyBadge
+                            shortName={c.party.shortName}
+                            name={c.party.name}
+                            color={c.party.color}
+                        />
+                    ) : (
+                        <span style={{ fontSize: 12, opacity: 0.6 }}>
+                            無所属
+                        </span>
+                    )}
+
+                    <span
+                        style={{
+                            marginLeft: "auto",
+                            fontSize: 12,
+                            opacity: 0.7,
+                        }}
+                        title="表示順"
+                    >
+                        #{c.sortOrder}
+                    </span>
+                </div>
+
+                <div style={{ fontSize: 13, opacity: 0.85 }}>{c.title}</div>
+
+                <div style={{ fontSize: 13, opacity: 0.85 }}>
+                    候補者の詳細を見る →
+                </div>
+            </div>
+        </Link>
+    );
+}
 
 export function CandidatesPage() {
     const loc = useLocation();
@@ -31,41 +131,53 @@ export function CandidatesPage() {
     const [electionMetaById, setElectionMetaById] = useState<
         Record<string, ElectionMeta>
     >({});
+    const [metaLoading, setMetaLoading] = useState(false);
 
     // filters (server-side: electionId/partyKey, local: q)
     const [electionId, setElectionId] = useState("");
     const [partyKey, setPartyKey] = useState("");
     const [q, setQ] = useState("");
 
-    const isDev = import.meta.env?.DEV;
+    // 初回だけ：elections meta を取る（毎回やると無駄が多い）
+    useEffect(() => {
+        let cancelled = false;
+        setMetaLoading(true);
+        fetchElections()
+            .then((elections: ElectionListItem[]) => {
+                if (cancelled) return;
+                const map: Record<string, ElectionMeta> = {};
+                elections.forEach((e) => {
+                    map[e.electionId] = {
+                        title: e.title,
+                        startsAt: e.startsAt,
+                        endsAt: e.endsAt,
+                        status: e.status,
+                    };
+                });
+                setElectionMetaById(map);
+            })
+            .catch(() => {
+                // meta は落ちても致命的ではない（候補者表示はできる）
+            })
+            .finally(() => {
+                if (!cancelled) setMetaLoading(false);
+            });
 
-    const load = async () => {
+        return () => {
+            cancelled = true;
+        };
+    }, []);
+
+    const loadCandidates = async () => {
         setError(null);
         setIsLoading(true);
 
         try {
-            // candidates + elections meta を並列取得
-            const [cands, elections] = await Promise.all([
-                fetchCandidates({
-                    electionId: electionId.trim() || undefined,
-                    partyKey: partyKey.trim() || undefined,
-                }),
-                fetchElections(), // 公開GET
-            ]);
-
-            setItems(cands);
-
-            // id -> meta
-            const map: Record<string, ElectionMeta> = {};
-            (elections as ElectionListItem[]).forEach((e) => {
-                map[e.electionId] = {
-                    title: e.title,
-                    startsAt: e.startsAt,
-                    endsAt: e.endsAt,
-                    status: e.status,
-                };
+            const cands = await fetchCandidates({
+                electionId: electionId.trim() || undefined,
+                partyKey: partyKey.trim() || undefined,
             });
-            setElectionMetaById(map);
+            setItems(cands);
         } catch (err: any) {
             setError(
                 err?.response?.data?.message ?? "Failed to load candidates",
@@ -77,7 +189,7 @@ export function CandidatesPage() {
     };
 
     useEffect(() => {
-        load();
+        loadCandidates();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
@@ -103,12 +215,12 @@ export function CandidatesPage() {
             m.get(key)!.push(c);
         }
 
-        // 見た目の順序：選挙タイトル（あれば）→ electionId
         const entries = Array.from(m.entries()).map(([id, list]) => ({
             electionId: id,
             list: [...list].sort((a, b) => a.sortOrder - b.sortOrder),
         }));
 
+        // 見た目の順序：選挙タイトル（あれば）→ electionId
         entries.sort((a, b) => {
             const ta = electionMetaById[a.electionId]?.title ?? a.electionId;
             const tb = electionMetaById[b.electionId]?.title ?? b.electionId;
@@ -121,120 +233,140 @@ export function CandidatesPage() {
     const totalCount = filtered?.length ?? 0;
 
     return (
-        <div style={{ padding: 16, display: "grid", gap: 12, maxWidth: 980 }}>
-            <header style={{ display: "flex", gap: 12, alignItems: "center" }}>
-                <Link to={backTo}>← 戻る</Link>
-                <h2 style={{ margin: 0 }}>候補者一覧</h2>
-
-                <button
-                    onClick={load}
-                    style={{ marginLeft: "auto" }}
-                    disabled={isLoading}
+        <Page
+            title={<h1 style={{ margin: 0, fontSize: 20 }}>候補者一覧</h1>}
+            actions={
+                <div
+                    style={{
+                        display: "flex",
+                        gap: 12,
+                        alignItems: "center",
+                        flexWrap: "wrap",
+                    }}
                 >
-                    {isLoading ? "Reloading..." : "再読み込み"}
-                </button>
-            </header>
-
-            {/* Filters */}
-            <section
-                style={{
-                    display: "grid",
-                    gap: 10,
-                    border: "1px solid #eee",
-                    borderRadius: 10,
-                    padding: 12,
-                }}
-            >
-                <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                    <label style={{ display: "grid", gap: 4 }}>
-                        <span style={{ fontSize: 12, opacity: 0.7 }}>
-                            electionId（任意）
-                        </span>
-                        <input
-                            value={electionId}
-                            onChange={(e) => setElectionId(e.target.value)}
-                            placeholder="UUID"
-                            style={{ padding: 8, minWidth: 320 }}
-                        />
-                    </label>
-
-                    <label style={{ display: "grid", gap: 4 }}>
-                        <span style={{ fontSize: 12, opacity: 0.7 }}>
-                            partyKey（任意）
-                        </span>
-                        <input
-                            value={partyKey}
-                            onChange={(e) => setPartyKey(e.target.value)}
-                            placeholder="tokyo_reform など"
-                            style={{ padding: 8, minWidth: 220 }}
-                        />
-                    </label>
-
-                    <button onClick={load} disabled={isLoading}>
-                        絞り込み
-                    </button>
+                    <Link to={backTo}>← 戻る</Link>
 
                     <button
-                        onClick={() => {
-                            setElectionId("");
-                            setPartyKey("");
-                            setQ("");
-                            setTimeout(load, 0);
-                        }}
+                        onClick={loadCandidates}
                         disabled={isLoading}
+                        style={{ marginLeft: 8 }}
                     >
-                        解除
+                        {isLoading ? "Reloading..." : "再読み込み"}
                     </button>
                 </div>
-
-                <label style={{ display: "grid", gap: 4 }}>
-                    <span style={{ fontSize: 12, opacity: 0.7 }}>
-                        検索（ローカル：名前/肩書き）
-                    </span>
-                    <input
-                        value={q}
-                        onChange={(e) => setQ(e.target.value)}
-                        placeholder="例：DX / 子育て / 鈴木"
-                        style={{ padding: 8 }}
-                    />
-                </label>
-            </section>
-
-            {error && (
-                <div
-                    role="alert"
-                    style={{ padding: 8, border: "1px solid #ccc" }}
-                >
+            }
+            maxWidth={980}
+        >
+            <Card>
+                <div style={{ display: "grid", gap: 10 }}>
                     <div
                         style={{
                             display: "flex",
-                            gap: 8,
-                            alignItems: "center",
+                            gap: 10,
+                            flexWrap: "wrap",
+                            alignItems: "end",
                         }}
                     >
-                        <span>{error}</span>
-                        <button onClick={load} style={{ marginLeft: "auto" }}>
+                        <label style={{ display: "grid", gap: 4 }}>
+                            <span style={{ fontSize: 12, opacity: 0.7 }}>
+                                electionId（任意）
+                            </span>
+                            <input
+                                value={electionId}
+                                onChange={(e) => setElectionId(e.target.value)}
+                                placeholder="UUID"
+                                style={{ padding: 8, minWidth: 320 }}
+                            />
+                        </label>
+
+                        <label style={{ display: "grid", gap: 4 }}>
+                            <span style={{ fontSize: 12, opacity: 0.7 }}>
+                                partyKey（任意）
+                            </span>
+                            <input
+                                value={partyKey}
+                                onChange={(e) => setPartyKey(e.target.value)}
+                                placeholder="tokyo_reform など"
+                                style={{ padding: 8, minWidth: 220 }}
+                            />
+                        </label>
+
+                        <button onClick={loadCandidates} disabled={isLoading}>
+                            絞り込み
+                        </button>
+
+                        <button
+                            onClick={() => {
+                                setElectionId("");
+                                setPartyKey("");
+                                setQ("");
+                                setTimeout(loadCandidates, 0);
+                            }}
+                            disabled={isLoading}
+                        >
+                            解除
+                        </button>
+
+                        <span
+                            style={{
+                                marginLeft: "auto",
+                                fontSize: 12,
+                                opacity: 0.7,
+                            }}
+                        >
+                            {metaLoading ? "選挙情報読み込み中…" : " "}
+                        </span>
+                    </div>
+
+                    <label style={{ display: "grid", gap: 4 }}>
+                        <span style={{ fontSize: 12, opacity: 0.7 }}>
+                            検索（ローカル：名前/肩書き）
+                        </span>
+                        <input
+                            value={q}
+                            onChange={(e) => setQ(e.target.value)}
+                            placeholder="例：DX / 子育て / 鈴木"
+                            style={{ padding: 8 }}
+                        />
+                    </label>
+                </div>
+            </Card>
+
+            {error && (
+                <Card role="alert">
+                    <div
+                        style={{
+                            display: "flex",
+                            gap: 12,
+                            alignItems: "center",
+                            flexWrap: "wrap",
+                        }}
+                    >
+                        <div>
+                            <div style={{ fontWeight: 800 }}>エラー</div>
+                            <div style={{ opacity: 0.9 }}>{error}</div>
+                        </div>
+                        <button
+                            onClick={loadCandidates}
+                            style={{ marginLeft: "auto" }}
+                        >
                             再試行
                         </button>
                     </div>
-                </div>
+                </Card>
             )}
 
             {groups === null ? (
-                <p>Loading...</p>
+                <Card>読み込み中…</Card>
             ) : totalCount === 0 ? (
-                <div
-                    style={{
-                        padding: 12,
-                        border: "1px solid #ddd",
-                        borderRadius: 8,
-                    }}
-                >
-                    <p style={{ marginTop: 0 }}>候補者がいません</p>
-                    <p style={{ marginBottom: 0, opacity: 0.8, fontSize: 13 }}>
+                <Card>
+                    <p style={{ marginTop: 0, marginBottom: 6 }}>
+                        候補者がいません
+                    </p>
+                    <p style={{ margin: 0, opacity: 0.8, fontSize: 13 }}>
                         条件に一致する候補者がいないか、まだ登録されていません。
                     </p>
-                </div>
+                </Card>
             ) : (
                 <section style={{ display: "grid", gap: 14 }}>
                     <div style={{ fontSize: 12, opacity: 0.7 }}>
@@ -246,155 +378,96 @@ export function CandidatesPage() {
                         const title = meta?.title ?? `選挙: ${g.electionId}`;
 
                         return (
-                            <div
-                                key={g.electionId}
-                                style={{
-                                    border: "1px solid #eee",
-                                    borderRadius: 12,
-                                    padding: 12,
-                                    display: "grid",
-                                    gap: 10,
-                                }}
-                            >
-                                <div
-                                    style={{
-                                        display: "flex",
-                                        gap: 10,
-                                        alignItems: "baseline",
-                                        flexWrap: "wrap",
-                                    }}
-                                >
-                                    <h3 style={{ margin: 0 }}>{title}</h3>
-
-                                    <span
-                                        style={{ fontSize: 12, opacity: 0.7 }}
-                                    >
-                                        候補者: {g.list.length}
-                                    </span>
-
-                                    <Link
-                                        to={`/elections/${g.electionId}`}
-                                        state={{ from }}
+                            <Card key={g.electionId}>
+                                <div style={{ display: "grid", gap: 10 }}>
+                                    <div
                                         style={{
-                                            marginLeft: "auto",
-                                            fontSize: 13,
+                                            display: "flex",
+                                            gap: 10,
+                                            alignItems: "baseline",
+                                            flexWrap: "wrap",
                                         }}
                                     >
-                                        選挙詳細へ →
-                                    </Link>
-                                </div>
+                                        <h2 style={{ margin: 0, fontSize: 16 }}>
+                                            {title}
+                                        </h2>
 
-                                {isDev && (
-                                    <div style={{ fontSize: 12, opacity: 0.6 }}>
-                                        electionId: {g.electionId}
-                                    </div>
-                                )}
+                                        <span
+                                            style={{
+                                                fontSize: 12,
+                                                opacity: 0.7,
+                                            }}
+                                        >
+                                            候補者: {g.list.length}
+                                        </span>
 
-                                <div style={{ display: "grid", gap: 8 }}>
-                                    {g.list.map((c) => {
-                                        const detailUrl = `/elections/${c.electionId}/candidates/${c.id}`;
-                                        return (
-                                            <Link
-                                                key={c.id}
-                                                to={detailUrl}
-                                                state={{ from }}
+                                        {meta?.status ? (
+                                            <span
                                                 style={{
-                                                    border: "1px solid #ddd",
-                                                    borderRadius: 10,
-                                                    padding: 12,
-                                                    display: "grid",
-                                                    gap: 6,
-                                                    textDecoration: "none",
-                                                    color: "inherit",
+                                                    fontSize: 12,
+                                                    opacity: 0.7,
                                                 }}
                                             >
-                                                <div
-                                                    style={{
-                                                        display: "flex",
-                                                        gap: 10,
-                                                        alignItems: "center",
-                                                    }}
-                                                >
-                                                    <strong
-                                                        style={{ fontSize: 16 }}
-                                                    >
-                                                        {c.name}
-                                                    </strong>
-
-                                                    {c.party ? (
-                                                        <span
-                                                            style={{
-                                                                fontSize: 12,
-                                                                padding:
-                                                                    "2px 8px",
-                                                                border: "1px solid #eee",
-                                                                borderRadius: 999,
-                                                                opacity: 0.9,
-                                                            }}
-                                                            title={c.party.name}
-                                                        >
-                                                            {c.party.shortName}
-                                                        </span>
-                                                    ) : (
-                                                        <span
-                                                            style={{
-                                                                fontSize: 12,
-                                                                opacity: 0.6,
-                                                            }}
-                                                        >
-                                                            無所属
-                                                        </span>
+                                                状態:{" "}
+                                                <b>
+                                                    {statusLabel(
+                                                        meta.status as any,
                                                     )}
+                                                </b>
+                                            </span>
+                                        ) : null}
 
-                                                    <span
-                                                        style={{
-                                                            marginLeft: "auto",
-                                                            fontSize: 12,
-                                                            opacity: 0.7,
-                                                        }}
-                                                    >
-                                                        # {c.sortOrder}
-                                                    </span>
-                                                </div>
+                                        {meta?.startsAt ? (
+                                            <span
+                                                style={{
+                                                    fontSize: 12,
+                                                    opacity: 0.7,
+                                                }}
+                                            >
+                                                {formatJST(meta.startsAt)} 〜{" "}
+                                                {formatJST(meta.endsAt)}
+                                            </span>
+                                        ) : null}
 
-                                                <div
-                                                    style={{
-                                                        fontSize: 13,
-                                                        opacity: 0.85,
-                                                    }}
-                                                >
-                                                    {c.title}
-                                                </div>
+                                        <Link
+                                            to={`/elections/${g.electionId}`}
+                                            state={{ from }}
+                                            style={{
+                                                marginLeft: "auto",
+                                                fontSize: 13,
+                                            }}
+                                        >
+                                            選挙詳細へ →
+                                        </Link>
+                                    </div>
 
-                                                {isDev && (
-                                                    <div
-                                                        style={{
-                                                            fontSize: 12,
-                                                            opacity: 0.6,
-                                                        }}
-                                                    >
-                                                        candidateId: {c.id} /
-                                                        key: {c.candidateKey}
-                                                    </div>
-                                                )}
-
-                                                <div
-                                                    style={{
-                                                        fontSize: 13,
-                                                        opacity: 0.85,
-                                                    }}
-                                                >
-                                                    候補者の詳細を見る →
-                                                </div>
-                                            </Link>
-                                        );
-                                    })}
+                                    <div style={{ display: "grid", gap: 10 }}>
+                                        {g.list.map((c) => (
+                                            <CandidateCard
+                                                key={c.id}
+                                                c={c}
+                                                from={from}
+                                            />
+                                        ))}
+                                    </div>
                                 </div>
-                            </div>
+                            </Card>
                         );
                     })}
                 </section>
             )}
-        </div>
+
+            <DevDebug
+                value={{
+                    items,
+                    error,
+                    isLoading,
+                    electionId,
+                    partyKey,
+                    q,
+                    groupsLen: groups?.length ?? null,
+                }}
+            />
+        </Page>
     );
 }

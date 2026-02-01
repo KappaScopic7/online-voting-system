@@ -5,6 +5,8 @@ export type PartyListItem = {
     name: string;
     shortName: string;
     color: string;
+    description: string;
+    ideologyTags: string[];
 };
 
 export type PartyDetailResponse = {

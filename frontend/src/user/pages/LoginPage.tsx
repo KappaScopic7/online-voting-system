@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useLocation, useNavigate, Link } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { login } from "../../user/api/userAuthApi";
 import { useAuth } from "../../user/UserAuthContext";
 import { demoPersonas } from "../../demo/personas";
@@ -7,7 +7,8 @@ import { sanitizeReturnTo } from "../../auth/routes/returnTo";
 
 type LocationState = {
     email?: string;
-    from?: string; // 保護ルートから来た場合の戻り先
+    from?: string;
+    verified?: boolean; // Verifyから戻ってきた合図（任意）
 };
 
 function isValidEmail(v: string) {
@@ -20,7 +21,10 @@ export function LoginPage() {
     const state = (loc.state ?? {}) as LocationState;
 
     // ★ auth全体で統一：戻り先は returnTo のみ
-    const returnTo = sanitizeReturnTo(state.from, "/");
+    const returnTo = useMemo(
+        () => sanitizeReturnTo(state.from, "/"),
+        [state.from],
+    );
 
     const { setAccessToken } = useAuth();
 
@@ -28,21 +32,31 @@ export function LoginPage() {
     const [password, setPassword] = useState("");
     const [showPw, setShowPw] = useState(false);
 
-    const [msg, setMsg] = useState<string | null>(null);
+    const [msg, setMsg] = useState<string | null>(
+        state.verified
+            ? "メール認証が完了しました。ログインしてください。"
+            : null,
+    );
     const [fieldErr, setFieldErr] = useState<{
         email?: string;
         password?: string;
     }>({});
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    // ★ ボタン一つで即ログイン（デモ用）
-    const loginAs = async (p: { email: string; password: string }) => {
+    const canSubmit = useMemo(() => {
+        const em = email.trim();
+        if (!em || !password) return false;
+        if (!isValidEmail(em)) return false;
+        return !isSubmitting;
+    }, [email, password, isSubmitting]);
+
+    const doLogin = async (em: string, pw: string) => {
         setMsg(null);
         setFieldErr({});
         try {
             setIsSubmitting(true);
 
-            const token = await login(p.email, p.password);
+            const token = await login(em, pw);
             await setAccessToken(token.accessToken);
 
             nav(returnTo, { replace: true });
@@ -53,75 +67,66 @@ export function LoginPage() {
 
             if (apiCode === "EMAIL_NOT_VERIFIED") {
                 // ★ verify へも returnTo を渡す（authページを戻り先にしない）
-                nav("/verify", { state: { email: p.email, from: returnTo } });
-            } else {
-                setMsg(apiMsg);
+                nav("/verify", { state: { email: em, from: returnTo } });
+                return;
             }
+
+            if (apiCode === "INVALID_CREDENTIALS") {
+                setMsg("メールアドレスまたはパスワードが違います");
+                setPassword("");
+                return;
+            }
+
+            setMsg(apiMsg);
         } finally {
             setIsSubmitting(false);
         }
     };
-
-    const canSubmit = useMemo(() => {
-        if (!email.trim() || !password) return false;
-        if (!isValidEmail(email.trim())) return false;
-        return !isSubmitting;
-    }, [email, password, isSubmitting]);
 
     const onSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setMsg(null);
         setFieldErr({});
 
+        const em = email.trim();
         const nextErr: typeof fieldErr = {};
-        if (!email.trim()) nextErr.email = "メールアドレスを入力してください";
-        else if (!isValidEmail(email.trim()))
+        if (!em) nextErr.email = "メールアドレスを入力してください";
+        else if (!isValidEmail(em))
             nextErr.email = "メールアドレスの形式が不正です";
         if (!password) nextErr.password = "パスワードを入力してください";
+
         if (nextErr.email || nextErr.password) {
             setFieldErr(nextErr);
             return;
         }
 
-        try {
-            setIsSubmitting(true);
-            const token = await login(email.trim(), password);
-            await setAccessToken(token.accessToken);
-
-            nav(returnTo, { replace: true });
-        } catch (err: any) {
-            const apiMsg =
-                err?.response?.data?.message ?? err?.message ?? "Login failed";
-            const apiCode = err?.response?.data?.code;
-
-            if (apiCode === "EMAIL_NOT_VERIFIED") {
-                nav("/verify", {
-                    state: { email: email.trim(), from: returnTo },
-                });
-            } else {
-                setMsg(apiMsg);
-            }
-        } finally {
-            setIsSubmitting(false);
-        }
+        await doLogin(em, password);
     };
 
     const isDev = import.meta.env?.DEV;
 
     return (
         <div style={{ padding: 16, display: "grid", gap: 12, maxWidth: 420 }}>
-            <h2>Login</h2>
+            <h2 style={{ margin: 0 }}>Login</h2>
 
             {msg && (
                 <div
                     role="alert"
-                    style={{ padding: 8, border: "1px solid #ccc" }}
+                    style={{
+                        padding: 10,
+                        border: "1px solid #ddd",
+                        borderRadius: 10,
+                    }}
                 >
                     {msg}
                 </div>
             )}
 
-            <form onSubmit={onSubmit} style={{ display: "grid", gap: 8 }}>
+            <form
+                onSubmit={onSubmit}
+                aria-busy={isSubmitting}
+                style={{ display: "grid", gap: 10 }}
+            >
                 <label style={{ display: "grid", gap: 4 }}>
                     <span>Email</span>
                     <input
@@ -169,16 +174,16 @@ export function LoginPage() {
 
                 {/* ★ DEV: ワンクリックログイン */}
                 {isDev && (
-                    <div style={{ display: "grid", gap: 6, marginTop: 8 }}>
+                    <div style={{ display: "grid", gap: 6, marginTop: 6 }}>
                         {Object.values(demoPersonas.voter).map((p) => (
                             <button
                                 key={p.key}
                                 type="button"
-                                onClick={() => loginAs(p)}
+                                onClick={() => doLogin(p.email, p.password)}
                                 disabled={isSubmitting}
                                 style={{
                                     fontSize: 12,
-                                    padding: "4px 8px",
+                                    padding: "6px 10px",
                                     textAlign: "left",
                                 }}
                                 title={p.description}
@@ -189,7 +194,7 @@ export function LoginPage() {
                     </div>
                 )}
 
-                <button type="submit" disabled={!canSubmit}>
+                <button type="submit" disabled={!canSubmit || isSubmitting}>
                     {isSubmitting ? "Logging in..." : "Login"}
                 </button>
 
@@ -215,14 +220,7 @@ export function LoginPage() {
                     <summary>Debug</summary>
                     <pre style={{ whiteSpace: "pre-wrap" }}>
                         {JSON.stringify(
-                            {
-                                email,
-                                msg,
-                                isSubmitting,
-                                fieldErr,
-                                locationState: state,
-                                returnTo,
-                            },
+                            { email, isSubmitting, fieldErr, state, returnTo },
                             null,
                             2,
                         )}

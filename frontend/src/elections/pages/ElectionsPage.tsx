@@ -9,9 +9,177 @@ import {
     statusLabel,
     statusRank,
 } from "../../shared/elections/format";
+import { Card, DevDebug, Page } from "../../shared/ui/page";
 
 type StatusFilter = "ALL" | "UPCOMING" | "ONGOING" | "ENDED";
 type SortKey = "STATUS" | "STARTS_AT" | "ENDS_AT" | "TITLE";
+
+function ElectionItemCard({
+    e,
+    from,
+    meExists,
+}: {
+    e: ElectionListItem;
+    from: string;
+    meExists: boolean;
+}) {
+    const voted = !!e.currentVote;
+
+    const [hover, setHover] = useState(false);
+
+    const statusPillStyle: React.CSSProperties = {
+        fontSize: 12,
+        padding: "2px 10px",
+        border: "1px solid #eee",
+        borderRadius: 999,
+        background: "#fafafa",
+        whiteSpace: "nowrap",
+        opacity: 0.95,
+    };
+
+    const action = (() => {
+        if (e.status === "ONGOING") {
+            if (!meExists) {
+                return (
+                    <Link
+                        to="/login"
+                        state={{ from }}
+                        style={{ textDecoration: "none" }}
+                    >
+                        <b>ログインして投票 →</b>
+                    </Link>
+                );
+            }
+            if (e.canCast) {
+                return (
+                    <Link
+                        to={`/voting/start?electionId=${e.electionId}`}
+                        state={{ from }}
+                        style={{ textDecoration: "none" }}
+                    >
+                        <b>投票する →</b>
+                    </Link>
+                );
+            }
+            return <span style={{ opacity: 0.6 }}>投票不可</span>;
+        }
+
+        if (e.status === "ENDED") {
+            if (e.hasResult) {
+                return (
+                    <Link
+                        to={`/elections/${e.electionId}/result`}
+                        state={{ from }}
+                        style={{ textDecoration: "none" }}
+                    >
+                        結果を見る →
+                    </Link>
+                );
+            }
+            return <span style={{ opacity: 0.6 }}>終了（結果未公開）</span>;
+        }
+
+        return <span style={{ opacity: 0.6 }}>開始前</span>;
+    })();
+
+    return (
+        <Card>
+            <div
+                onMouseEnter={() => setHover(true)}
+                onMouseLeave={() => setHover(false)}
+                style={{
+                    border: "1px solid #eee",
+                    borderRadius: 12,
+                    padding: 12,
+                    display: "grid",
+                    gap: 10,
+                    background: hover ? "#fafafa" : "#fff",
+                    transition: "background 120ms ease",
+                }}
+            >
+                {/* top row */}
+                <div
+                    style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        gap: 12,
+                        alignItems: "center",
+                        flexWrap: "wrap",
+                    }}
+                >
+                    <strong style={{ fontSize: 16 }}>
+                        <Link
+                            to={`/elections/${e.electionId}`}
+                            state={{ from }}
+                            style={{ textDecoration: "none", color: "inherit" }}
+                        >
+                            {e.title}
+                        </Link>
+                    </strong>
+
+                    <span style={statusPillStyle}>{statusLabel(e.status)}</span>
+                </div>
+
+                {/* dates */}
+                <div style={{ fontSize: 13, opacity: 0.85, lineHeight: 1.6 }}>
+                    <div>開始: {formatJST(e.startsAt)}</div>
+                    <div>終了: {formatJST(e.endsAt)}</div>
+                </div>
+
+                {/* meta */}
+                <div
+                    style={{
+                        fontSize: 13,
+                        display: "flex",
+                        gap: 12,
+                        flexWrap: "wrap",
+                        alignItems: "center",
+                    }}
+                >
+                    <span>候補者数: {e.candidateCount}</span>
+                    {voted ? (
+                        <span>
+                            現在の投票:{" "}
+                            {e.currentVote?.candidateName ?? "投票済み"}
+                        </span>
+                    ) : (
+                        <span style={{ opacity: 0.6 }}>現在の投票: なし</span>
+                    )}
+                </div>
+
+                {/* links row */}
+                <div
+                    style={{
+                        display: "flex",
+                        gap: 12,
+                        flexWrap: "wrap",
+                        alignItems: "center",
+                    }}
+                >
+                    <Link
+                        to={`/elections/${e.electionId}/candidates`}
+                        state={{ from }}
+                    >
+                        候補者一覧
+                    </Link>
+
+                    {e.hasResult ? (
+                        <Link
+                            to={`/elections/${e.electionId}/result`}
+                            state={{ from }}
+                        >
+                            結果
+                        </Link>
+                    ) : (
+                        <span style={{ opacity: 0.5 }}>結果（未公開）</span>
+                    )}
+
+                    <span style={{ marginLeft: "auto" }}>{action}</span>
+                </div>
+            </div>
+        </Card>
+    );
+}
 
 export function ElectionsPage() {
     const { me, isLoading: authLoading } = useAuth();
@@ -23,7 +191,7 @@ export function ElectionsPage() {
     const [error, setError] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
 
-    // UI controls (仮)
+    // UI controls
     const [q, setQ] = useState("");
     const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
     const [onlyCanCast, setOnlyCanCast] = useState(false);
@@ -40,7 +208,7 @@ export function ElectionsPage() {
             setError(
                 err?.response?.data?.message ?? "Failed to load elections",
             );
-            setItems([]);
+            setItems([]); // 画面は空扱いにする（error card で理由は見せる）
         } finally {
             setIsLoading(false);
         }
@@ -78,47 +246,28 @@ export function ElectionsPage() {
                 return (a.startsAt ?? "").localeCompare(b.startsAt ?? "");
             if (sortKey === "ENDS_AT")
                 return (a.endsAt ?? "").localeCompare(b.endsAt ?? "");
-            if (sortKey === "TITLE")
-                return (a.title ?? "").localeCompare(b.title ?? "");
-            return 0;
+            return (a.title ?? "").localeCompare(b.title ?? "");
         });
 
         return arr;
     }, [items, q, statusFilter, onlyCanCast, onlyHasResult, sortKey]);
 
-    const isDev = import.meta.env?.DEV;
-
-    const debugValue = useMemo(
-        () => JSON.stringify({ items, error, isLoading }, null, 2),
-        [items, error, isLoading],
-    );
-
     return (
-        <div style={{ padding: 12, display: "grid", gap: 12 }}>
-            {/* Header */}
-            <header
-                style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 12,
-                    flexWrap: "wrap",
-                }}
-            >
-                <h2 style={{ margin: 0 }}>選挙一覧</h2>
-
-                <button onClick={load} disabled={isLoading}>
-                    {isLoading ? "Reloading..." : "再読み込み"}
-                </button>
-
+        <Page
+            title={<h1 style={{ margin: 0, fontSize: 20 }}>選挙一覧</h1>}
+            actions={
                 <div
                     style={{
-                        marginLeft: "auto",
                         display: "flex",
                         gap: 12,
                         alignItems: "center",
                         flexWrap: "wrap",
                     }}
                 >
+                    <button onClick={load} disabled={isLoading}>
+                        {isLoading ? "Reloading..." : "再読み込み"}
+                    </button>
+
                     {authLoading ? (
                         <span style={{ fontSize: 12, opacity: 0.75 }}>
                             認証確認中...
@@ -138,18 +287,9 @@ export function ElectionsPage() {
                         </span>
                     )}
                 </div>
-            </header>
-
-            {/* Controls */}
-            <section
-                style={{
-                    padding: 12,
-                    border: "1px solid #ddd",
-                    borderRadius: 8,
-                    display: "grid",
-                    gap: 10,
-                }}
-            >
+            }
+        >
+            <Card>
                 <div
                     style={{
                         display: "flex",
@@ -243,199 +383,61 @@ export function ElectionsPage() {
                         </select>
                     </label>
                 </div>
-            </section>
+            </Card>
 
-            {/* Error */}
             {error && (
-                <div
-                    role="alert"
-                    style={{ padding: 8, border: "1px solid #ccc" }}
-                >
+                <Card role="alert">
                     <div
                         style={{
                             display: "flex",
-                            gap: 8,
+                            gap: 12,
                             alignItems: "center",
                             flexWrap: "wrap",
                         }}
                     >
-                        <span>{error}</span>
+                        <div>
+                            <div style={{ fontWeight: 700 }}>エラー</div>
+                            <div style={{ opacity: 0.9 }}>{error}</div>
+                        </div>
                         <button onClick={load} style={{ marginLeft: "auto" }}>
                             再試行
                         </button>
                     </div>
-                </div>
+                </Card>
             )}
 
-            {/* List */}
             {filtered === null ? (
-                <p>Loading...</p>
+                <Card>読み込み中…</Card>
             ) : filtered.length === 0 ? (
-                <div
-                    style={{
-                        padding: 12,
-                        border: "1px solid #ddd",
-                        borderRadius: 8,
-                    }}
-                >
-                    <p style={{ marginTop: 0 }}>選挙がありません</p>
-                    <p style={{ marginBottom: 0, opacity: 0.8, fontSize: 13 }}>
+                <Card>
+                    <p style={{ marginTop: 0, marginBottom: 6 }}>
+                        選挙がありません
+                    </p>
+                    <p style={{ margin: 0, opacity: 0.8, fontSize: 13 }}>
                         条件を変えるか、管理者に確認してください。
                     </p>
-                </div>
+                </Card>
             ) : (
                 <div style={{ display: "grid", gap: 12 }}>
-                    {filtered.map((e) => {
-                        const voted = !!e.currentVote;
-
-                        return (
-                            <div
-                                key={e.electionId}
-                                style={{
-                                    border: "1px solid #ddd",
-                                    borderRadius: 8,
-                                    padding: 12,
-                                    display: "grid",
-                                    gap: 8,
-                                }}
-                            >
-                                <div
-                                    style={{
-                                        display: "flex",
-                                        justifyContent: "space-between",
-                                        gap: 12,
-                                        alignItems: "center",
-                                    }}
-                                >
-                                    <strong style={{ fontSize: 16 }}>
-                                        {/* 詳細へ（戻り先from付き） */}
-                                        <Link
-                                            to={`/elections/${e.electionId}`}
-                                            state={{ from }}
-                                        >
-                                            {e.title}
-                                        </Link>
-                                    </strong>
-
-                                    <span
-                                        style={{
-                                            fontSize: 12,
-                                            padding: "2px 8px",
-                                            border: "1px solid #ccc",
-                                            borderRadius: 999,
-                                        }}
-                                    >
-                                        {statusLabel(e.status)}
-                                    </span>
-                                </div>
-
-                                <div style={{ fontSize: 13, opacity: 0.85 }}>
-                                    <div>開始: {formatJST(e.startsAt)}</div>
-                                    <div>終了: {formatJST(e.endsAt)}</div>
-                                </div>
-
-                                <div style={{ fontSize: 13 }}>
-                                    候補者数: {e.candidateCount}
-                                    {voted ? (
-                                        <span style={{ marginLeft: 12 }}>
-                                            現在の投票:{" "}
-                                            {e.currentVote?.candidateName ??
-                                                "投票済み"}
-                                        </span>
-                                    ) : (
-                                        <span
-                                            style={{
-                                                marginLeft: 12,
-                                                opacity: 0.6,
-                                            }}
-                                        >
-                                            現在の投票: なし
-                                        </span>
-                                    )}
-                                </div>
-
-                                <div
-                                    style={{
-                                        display: "flex",
-                                        gap: 12,
-                                        flexWrap: "wrap",
-                                        alignItems: "center",
-                                    }}
-                                >
-                                    {/* 下位ページも from を渡す（戻りが一貫する） */}
-                                    <Link
-                                        to={`/elections/${e.electionId}/candidates`}
-                                        state={{ from }}
-                                    >
-                                        候補者一覧
-                                    </Link>
-
-                                    {e.hasResult ? (
-                                        <Link
-                                            to={`/elections/${e.electionId}/result`}
-                                            state={{ from }}
-                                        >
-                                            結果
-                                        </Link>
-                                    ) : (
-                                        <span style={{ opacity: 0.5 }}>
-                                            結果（未公開）
-                                        </span>
-                                    )}
-
-                                    <span style={{ marginLeft: "auto" }}>
-                                        {e.status === "ONGOING" ? (
-                                            !me ? (
-                                                <Link
-                                                    to="/login"
-                                                    state={{ from }}
-                                                >
-                                                    ログインして投票
-                                                </Link>
-                                            ) : e.canCast ? (
-                                                <Link
-                                                    to={`/voting/start?electionId=${e.electionId}`}
-                                                    state={{ from }}
-                                                >
-                                                    <b>投票する →</b>
-                                                </Link>
-                                            ) : (
-                                                <span style={{ opacity: 0.5 }}>
-                                                    投票不可
-                                                </span>
-                                            )
-                                        ) : e.status === "ENDED" ? (
-                                            e.hasResult ? (
-                                                <Link
-                                                    to={`/elections/${e.electionId}/result`}
-                                                    state={{ from }}
-                                                >
-                                                    結果を見る →
-                                                </Link>
-                                            ) : (
-                                                <span style={{ opacity: 0.5 }}>
-                                                    終了（結果未公開）
-                                                </span>
-                                            )
-                                        ) : (
-                                            <span style={{ opacity: 0.5 }}>
-                                                開始前
-                                            </span>
-                                        )}
-                                    </span>
-                                </div>
-                            </div>
-                        );
-                    })}
+                    {filtered.map((e) => (
+                        <ElectionItemCard
+                            key={e.electionId}
+                            e={e}
+                            from={from}
+                            meExists={!!me}
+                        />
+                    ))}
                 </div>
             )}
 
-            {isDev && (
-                <details>
-                    <summary>Debug</summary>
-                    <pre style={{ whiteSpace: "pre-wrap" }}>{debugValue}</pre>
-                </details>
-            )}
-        </div>
+            <DevDebug
+                value={{
+                    items,
+                    error,
+                    isLoading,
+                    filteredLen: filtered?.length ?? null,
+                }}
+            />
+        </Page>
     );
 }

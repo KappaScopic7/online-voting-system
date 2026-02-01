@@ -11,7 +11,6 @@ type LocationState = {
 function isValidEmail(v: string) {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
 }
-
 function isValidCode(v: string) {
     return /^\d{6}$/.test(v);
 }
@@ -21,8 +20,10 @@ export function VerifyEmailPage() {
     const loc = useLocation();
     const state = (loc.state ?? {}) as LocationState;
 
-    // ★ auth全体で統一：戻り先は returnTo のみ
-    const returnTo = sanitizeReturnTo(state.from, "/");
+    const returnTo = useMemo(
+        () => sanitizeReturnTo(state.from, "/"),
+        [state.from],
+    );
 
     const [email, setEmail] = useState(state.email ?? "");
     const isDev = import.meta.env?.DEV;
@@ -71,7 +72,7 @@ export function VerifyEmailPage() {
             // ★ verify後は login に戻す。login後は returnTo へ。
             nav("/login", {
                 replace: true,
-                state: { email: em, from: returnTo },
+                state: { email: em, from: returnTo, verified: true },
             });
         } catch (err: any) {
             setMsg(err?.response?.data?.message ?? "Verify failed");
@@ -95,7 +96,7 @@ export function VerifyEmailPage() {
 
     return (
         <div style={{ padding: 16, display: "grid", gap: 12, maxWidth: 520 }}>
-            <h2>Verify Email</h2>
+            <h2 style={{ margin: 0 }}>Verify Email</h2>
 
             <p style={{ marginTop: 0 }}>
                 登録したメールに確認コードを送った想定です（デモでは何でもOK）。
@@ -104,7 +105,11 @@ export function VerifyEmailPage() {
             {msg && (
                 <div
                     role="alert"
-                    style={{ padding: 8, border: "1px solid #ccc" }}
+                    style={{
+                        padding: 10,
+                        border: "1px solid #ddd",
+                        borderRadius: 10,
+                    }}
                 >
                     {msg}
                 </div>
@@ -112,6 +117,7 @@ export function VerifyEmailPage() {
 
             <form
                 onSubmit={onSubmit}
+                aria-busy={isSubmitting}
                 style={{ display: "grid", gap: 10, maxWidth: 420 }}
             >
                 <label style={{ display: "grid", gap: 4 }}>
@@ -148,14 +154,18 @@ export function VerifyEmailPage() {
                 </label>
 
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                    <button type="submit" disabled={!canSubmit}>
+                    <button type="submit" disabled={!canSubmit || isSubmitting}>
                         {isSubmitting ? "Verifying..." : "Verify"}
                     </button>
 
                     <button
                         type="button"
                         onClick={onResend}
-                        disabled={isResending || !email.trim() || isSubmitting}
+                        disabled={
+                            isResending ||
+                            isSubmitting ||
+                            !isValidEmail(email.trim())
+                        }
                     >
                         {isResending ? "Sending..." : "コードを再送"}
                     </button>
@@ -178,7 +188,7 @@ export function VerifyEmailPage() {
                 </div>
             </form>
 
-            {import.meta.env?.DEV && (
+            {isDev && (
                 <details>
                     <summary>Debug</summary>
                     <pre style={{ whiteSpace: "pre-wrap" }}>
@@ -187,7 +197,7 @@ export function VerifyEmailPage() {
                                 email,
                                 code,
                                 msg,
-                                locationState: state,
+                                state,
                                 returnTo,
                                 isSubmitting,
                                 isResending,

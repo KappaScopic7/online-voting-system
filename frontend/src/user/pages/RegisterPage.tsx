@@ -18,12 +18,14 @@ export function RegisterPage() {
     const state = (loc.state ?? {}) as LocationState;
 
     // ★ Register自身をfromにしない。受け取ったfromだけをsanitizeして保持
-    const returnTo = sanitizeReturnTo(state.from, "/");
+    const returnTo = useMemo(
+        () => sanitizeReturnTo(state.from, "/"),
+        [state.from],
+    );
 
     const [email, setEmail] = useState(state.email ?? "");
     const [password, setPassword] = useState("");
     const [password2, setPassword2] = useState("");
-
     const [showPw, setShowPw] = useState(false);
 
     const [msg, setMsg] = useState<string | null>(null);
@@ -35,9 +37,9 @@ export function RegisterPage() {
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const canSubmit = useMemo(() => {
-        const e = email.trim();
-        if (!e || !password || !password2) return false;
-        if (!isValidEmail(e)) return false;
+        const em = email.trim();
+        if (!em || !password || !password2) return false;
+        if (!isValidEmail(em)) return false;
         if (password !== password2) return false;
         return !isSubmitting;
     }, [email, password, password2, isSubmitting]);
@@ -92,18 +94,26 @@ export function RegisterPage() {
 
     return (
         <div style={{ padding: 16, display: "grid", gap: 12, maxWidth: 420 }}>
-            <h2>Register</h2>
+            <h2 style={{ margin: 0 }}>Register</h2>
 
             {msg && (
                 <div
                     role="alert"
-                    style={{ padding: 8, border: "1px solid #ccc" }}
+                    style={{
+                        padding: 10,
+                        border: "1px solid #ddd",
+                        borderRadius: 10,
+                    }}
                 >
                     {msg}
                 </div>
             )}
 
-            <form onSubmit={onSubmit} style={{ display: "grid", gap: 8 }}>
+            <form
+                onSubmit={onSubmit}
+                aria-busy={isSubmitting}
+                style={{ display: "grid", gap: 10 }}
+            >
                 <label style={{ display: "grid", gap: 4 }}>
                     <span>Email</span>
                     <input
@@ -142,7 +152,11 @@ export function RegisterPage() {
                             {showPw ? "Hide" : "Show"}
                         </button>
                     </div>
-                    <small>※ 仮：8文字以上</small>
+
+                    <small style={{ fontSize: 12, opacity: 0.7 }}>
+                        ※ 仮：8文字以上
+                    </small>
+
                     {fieldErr.password && (
                         <small style={{ color: "crimson" }}>
                             {fieldErr.password}
@@ -167,7 +181,7 @@ export function RegisterPage() {
                     )}
                 </label>
 
-                <button type="submit" disabled={!canSubmit}>
+                <button type="submit" disabled={!canSubmit || isSubmitting}>
                     {isSubmitting ? "Creating..." : "Create"}
                 </button>
 

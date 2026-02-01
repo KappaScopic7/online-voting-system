@@ -14,7 +14,16 @@ function emitStaff() {
     for (const fn of staffListeners) fn();
 }
 
-// 別タブ/別ウィンドウ同期（同一タブでの set/remove では発火しない点に注意）
+function normalize(v: string | null): string | null {
+    if (!v) return null;
+    const t = v.trim();
+    if (!t) return null;
+    if (t === "null" || t === "undefined") return null;
+    // もし誤って Bearer 付きで保存してたら剥がす（保険）
+    if (t.toLowerCase().startsWith("bearer ")) return t.slice(7).trim() || null;
+    return t;
+}
+
 window.addEventListener("storage", (e) => {
     if (e.key === USER_KEY) emitUser();
     if (e.key === STAFF_KEY) emitStaff();
@@ -22,15 +31,20 @@ window.addEventListener("storage", (e) => {
 
 export const userToken = {
     get(): string | null {
-        return localStorage.getItem(USER_KEY);
+        return normalize(localStorage.getItem(USER_KEY));
     },
     set(token: string): void {
-        localStorage.setItem(USER_KEY, token);
-        emitUser(); // 同一タブ即時反映
+        const t = normalize(token);
+        if (!t) {
+            localStorage.removeItem(USER_KEY);
+        } else {
+            localStorage.setItem(USER_KEY, t);
+        }
+        emitUser();
     },
     clear(): void {
         localStorage.removeItem(USER_KEY);
-        emitUser(); // 同一タブ即時反映
+        emitUser();
     },
     subscribe(listener: TokenListener): () => void {
         userListeners.add(listener);
@@ -40,10 +54,15 @@ export const userToken = {
 
 export const staffToken = {
     get(): string | null {
-        return localStorage.getItem(STAFF_KEY);
+        return normalize(localStorage.getItem(STAFF_KEY));
     },
     set(token: string): void {
-        localStorage.setItem(STAFF_KEY, token);
+        const t = normalize(token);
+        if (!t) {
+            localStorage.removeItem(STAFF_KEY);
+        } else {
+            localStorage.setItem(STAFF_KEY, t);
+        }
         emitStaff();
     },
     clear(): void {

@@ -1,0 +1,11 @@
+[
+    { "prefCode": "13", "cityCode": "13101", "cityName": "千代田区" },
+    { "prefCode": "13", "cityCode": "13102", "cityName": "中央区" },
+    { "prefCode": "13", "cityCode": "13103", "cityName": "港区" },
+    { "prefCode": "13", "cityCode": "13104", "cityName": "新宿区" },
+    { "prefCode": "13", "cityCode": "13209", "cityName": "町田市" },
+
+    { "prefCode": "14", "cityCode": "14100", "cityName": "横浜市" },
+    { "prefCode": "14", "cityCode": "14130", "cityName": "川崎市" },
+    { "prefCode": "14", "cityCode": "14201", "cityName": "横須賀市" }
+]

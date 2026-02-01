@@ -1,0 +1,34 @@
+[
+    {
+        "zip": "1000001",
+        "prefCode": "13",
+        "prefName": "東京都",
+        "cityCode": "13101",
+        "cityName": "千代田区",
+        "town": "千代田"
+    },
+    {
+        "zip": "1940001",
+        "prefCode": "13",
+        "prefName": "東京都",
+        "cityCode": "13209",
+        "cityName": "町田市",
+        "town": "つくし野"
+    },
+    {
+        "zip": "1940022",
+        "prefCode": "13",
+        "prefName": "東京都",
+        "cityCode": "13209",
+        "cityName": "町田市",
+        "town": "森野"
+    },
+    {
+        "zip": "2200000",
+        "prefCode": "14",
+        "prefName": "神奈川県",
+        "cityCode": "14100",
+        "cityName": "横浜市",
+        "town": ""
+    }
+]

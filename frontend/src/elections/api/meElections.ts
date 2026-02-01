@@ -6,8 +6,17 @@ export type MyElectionItem = {
     title: string;
     startsAt: string;
     endsAt: string;
+    status: "UPCOMING" | "ONGOING" | "ENDED";
+    hasResult: boolean;
+    canCast: boolean;
+    currentVote?: {
+        candidateId: string;
+        candidateName?: string;
+        castedAt?: string;
+    } | null;
 };
 
 export async function fetchMyElections(): Promise<MyElectionItem[]> {
-    return httpUser.get("/api/me/elections").then((res) => res.data);
+    const res = await httpUser.get<MyElectionItem[]>("/api/me/elections");
+    return res.data;
 }

@@ -12,7 +12,7 @@ export type MeProfileResponse = {
 };
 
 export type MeProfileUpdateRequest = {
-    birthDate: string; // yyyy-MM-dd
-    prefCode: string;
-    cityCode: string;
+    birthDate?: string;
+    prefCode?: string;
+    cityCode?: string;
 };

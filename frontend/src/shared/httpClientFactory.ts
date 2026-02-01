@@ -23,7 +23,13 @@ export function createHttpClient(tokenStore: TokenStore) {
     http.interceptors.response.use(
         (res) => res,
         (err) => {
-            if (err?.response?.status === 401) tokenStore.clear();
+            const status = err?.response?.status;
+            const url: string | undefined = err?.config?.url;
+
+            if (status === 401 && url && url.includes("/api/auth/me")) {
+                tokenStore.clear();
+            }
+
             return Promise.reject(err);
         },
     );

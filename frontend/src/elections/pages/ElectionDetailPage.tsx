@@ -5,6 +5,8 @@ import { fetchElectionDetail } from "../api/elections";
 import type { ElectionDetailResponse } from "../model/electionTypes";
 import { normalizeFrom } from "../../shared/normalizeFrom";
 import { useAuth } from "../../user/UserAuthContext";
+import { Card, DevDebug, Page } from "../../shared/ui/page";
+import { formatJST, statusLabel } from "../../shared/elections/format";
 
 type LocationState = { from?: string };
 
@@ -24,14 +26,8 @@ function resolveCandidateName(
     return hit?.name ?? candidateId;
 }
 
-/**
- * デモ用:
- * 候補者一覧の表示順(index)から candidate-001.png～ を割り当てる。
- * 画像は Vite の public 配下に置く:
- *   frontend/public/assets/candidates/candidate-001.png
- */
 function resolveCandidateThumbByIndex(index: number): string | null {
-    const n = index + 1; // 1-based
+    const n = index + 1;
     if (n < 1 || n > 999) return null;
     const padded = String(n).padStart(3, "0");
     return `/assets/candidates/candidate-${padded}.png`;
@@ -45,11 +41,7 @@ export function ElectionDetailPage() {
     const { me, isLoading: authLoading } = useAuth();
 
     const state = (loc.state ?? {}) as LocationState;
-
-    // 「戻る」先：遷移元が渡してくれた from を最優先。無ければ安全に /elections
     const backTo = normalizeFrom(state.from ?? "/elections");
-
-    // 「ログイン」「投票開始」へ渡す from：この詳細ページ自身
     const self = loc.pathname + loc.search;
 
     const [data, setData] = useState<ElectionDetailResponse | null>(null);
@@ -89,208 +81,251 @@ export function ElectionDetailPage() {
         return data.canCast && data.status === "ONGOING";
     }, [data]);
 
-    if (loading) return <div>Loading...</div>;
-
-    if (err) {
-        return (
-            <div style={{ padding: 12, display: "grid", gap: 12 }}>
-                <div>
-                    <Link to={backTo}>← 戻る</Link>
-                </div>
-                <div style={{ color: "crimson" }}>Error: {err}</div>
-            </div>
-        );
-    }
-
-    if (!data) {
-        return (
-            <div style={{ padding: 12, display: "grid", gap: 12 }}>
-                <div>
-                    <Link to={backTo}>← 戻る</Link>
-                </div>
-                <div>Not found</div>
-            </div>
-        );
-    }
-
     return (
-        <div style={{ padding: 12, display: "grid", gap: 16 }}>
-            <div>
-                <Link to={backTo}>← 戻る</Link>
-            </div>
-
-            <div>
-                <h2 style={{ margin: 0 }}>{data.title}</h2>
-                <div>status: {data.status}</div>
-                <div>
-                    期間: {fmt(data.startsAt)} 〜 {fmt(data.endsAt)}
-                </div>
-                <div>候補者数: {data.candidateCount}</div>
-            </div>
-
-            {data.currentVote && (
+        <Page
+            title={
+                <h1 style={{ margin: 0, fontSize: 20 }}>
+                    {data?.title ?? "選挙詳細"}
+                </h1>
+            }
+            actions={
                 <div
                     style={{
-                        border: "1px solid #ddd",
-                        padding: 12,
-                        borderRadius: 8,
+                        display: "flex",
+                        gap: 12,
+                        flexWrap: "wrap",
+                        alignItems: "center",
                     }}
                 >
-                    <div>
-                        <b>現在の投票</b>
-                    </div>
-                    <div>
-                        {data.currentVote.candidateName ??
-                            resolveCandidateName(
-                                data.currentVote.candidateId,
-                                data.candidates,
-                            )}
-                    </div>
-
-                    <div>castedAt: {fmt(data.currentVote.castedAt)}</div>
+                    <Link to={backTo}>← 戻る</Link>
+                    {electionId ? (
+                        <>
+                            <Link
+                                to={`/elections/${electionId}/candidates`}
+                                state={{ from: self }}
+                            >
+                                候補者へ
+                            </Link>
+                            <Link
+                                to={`/elections/${electionId}/result`}
+                                state={{ from: self }}
+                            >
+                                結果へ
+                            </Link>
+                        </>
+                    ) : null}
                 </div>
+            }
+        >
+            {loading && <Card>読み込み中…</Card>}
+
+            {!loading && err && (
+                <Card role="alert">
+                    <div style={{ fontWeight: 700, marginBottom: 6 }}>
+                        エラー
+                    </div>
+                    <div style={{ color: "crimson" }}>{err}</div>
+                </Card>
             )}
 
-            <div
-                style={{
-                    border: "1px solid #ddd",
-                    padding: 12,
-                    borderRadius: 8,
-                }}
-            >
-                <div style={{ marginBottom: 8 }}>
-                    <b>候補者</b>
-                </div>
+            {!loading && !err && !data && <Card>Not found</Card>}
 
-                <div style={{ display: "grid", gap: 8 }}>
-                    {data.candidates.map((c, idx) => {
-                        const thumb = resolveCandidateThumbByIndex(idx);
+            {!loading && !err && data && (
+                <>
+                    <Card>
+                        <div style={{ display: "grid", gap: 8 }}>
+                            <div style={{ opacity: 0.9 }}>
+                                状態: <b>{statusLabel(data.status as any)}</b>
+                            </div>
+                            <div style={{ opacity: 0.9 }}>
+                                期間: {formatJST(data.startsAt)} 〜{" "}
+                                {formatJST(data.endsAt)}
+                            </div>
+                            <div style={{ opacity: 0.9 }}>
+                                候補者数: <b>{data.candidateCount}</b>
+                            </div>
+                        </div>
+                    </Card>
 
-                        return (
-                            <Link
-                                key={c.id}
-                                to={`/elections/${data.electionId}/candidates/${c.id}`}
-                                state={{ from: self }}
-                                style={{
-                                    border: "1px solid #eee",
-                                    padding: 10,
-                                    borderRadius: 8,
-                                    textDecoration: "none",
-                                    color: "inherit",
-                                    display: "flex",
-                                    alignItems: "center",
-                                    gap: 12,
-                                }}
-                            >
-                                {thumb ? (
-                                    <img
-                                        src={thumb}
-                                        alt={c.name}
-                                        onError={(e) => {
-                                            // 消すと「何も出てない」になるので、デバッグできるように残す
-                                            console.error(
-                                                "thumb load failed:",
-                                                thumb,
-                                                "candidateId:",
-                                                c.id,
-                                                "index:",
-                                                idx,
-                                            );
-                                            e.currentTarget.style.outline =
-                                                "2px solid red";
-                                            e.currentTarget.title = `LOAD FAILED: ${thumb}`;
-                                        }}
-                                        style={{
-                                            width: 48,
-                                            height: 48,
-                                            objectFit: "cover",
-                                            borderRadius: 8,
-                                            border: "1px solid #eee",
-                                            flexShrink: 0,
-                                        }}
-                                    />
-                                ) : (
-                                    <div
-                                        style={{
-                                            width: 48,
-                                            height: 48,
-                                            borderRadius: 8,
-                                            border: "1px dashed #ccc",
-                                            display: "grid",
-                                            placeItems: "center",
-                                            fontSize: 10,
-                                            opacity: 0.7,
-                                            flexShrink: 0,
-                                        }}
-                                    >
-                                        NO IMG
-                                    </div>
-                                )}
-
-                                <div
-                                    style={{
-                                        display: "flex",
-                                        justifyContent: "space-between",
-                                        gap: 12,
-                                        flex: 1,
-                                    }}
-                                >
-                                    <span>{c.name}</span>
-                                    <span
-                                        style={{ fontSize: 12, opacity: 0.6 }}
-                                    >
-                                        →
-                                    </span>
+                    {data.currentVote && (
+                        <Card>
+                            <div style={{ display: "grid", gap: 6 }}>
+                                <div style={{ fontWeight: 800 }}>
+                                    現在の投票
                                 </div>
-                            </Link>
-                        );
-                    })}
-                </div>
-            </div>
+                                <div>
+                                    {data.currentVote.candidateName ??
+                                        resolveCandidateName(
+                                            data.currentVote.candidateId,
+                                            data.candidates,
+                                        )}
+                                </div>
+                                <div style={{ fontSize: 12, opacity: 0.8 }}>
+                                    castedAt: {fmt(data.currentVote.castedAt)}
+                                </div>
+                            </div>
+                        </Card>
+                    )}
 
-            <div style={{ display: "grid", gap: 6 }}>
-                {authLoading ? (
-                    <div style={{ fontSize: 12, opacity: 0.75 }}>
-                        認証確認中...
-                    </div>
-                ) : !me ? (
-                    <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-                        <Link to="/login" state={{ from: self }}>
-                            ログインして投票
-                        </Link>
-                        <span style={{ fontSize: 12, opacity: 0.7 }}>
-                            ログイン後、この詳細に戻ります
-                        </span>
-                    </div>
-                ) : (
-                    <>
-                        <button
-                            disabled={!canStartVote}
-                            onClick={() => {
-                                nav(
-                                    `/voting/start?electionId=${data.electionId}`,
-                                    { state: { from: self } },
+                    <Card>
+                        <div style={{ marginBottom: 10, fontWeight: 800 }}>
+                            候補者
+                        </div>
+
+                        <div style={{ display: "grid", gap: 10 }}>
+                            {data.candidates.map((c, idx) => {
+                                const thumb = resolveCandidateThumbByIndex(idx);
+
+                                return (
+                                    <Link
+                                        key={c.id}
+                                        to={`/elections/${data.electionId}/candidates/${c.id}`}
+                                        state={{ from: self }}
+                                        style={{
+                                            textDecoration: "none",
+                                            color: "inherit",
+                                        }}
+                                    >
+                                        <div
+                                            style={{
+                                                border: "1px solid #eee",
+                                                borderRadius: 12,
+                                                padding: 12,
+                                                display: "flex",
+                                                alignItems: "center",
+                                                gap: 12,
+                                                background: "#fff",
+                                            }}
+                                        >
+                                            {thumb ? (
+                                                <img
+                                                    src={thumb}
+                                                    alt={c.name}
+                                                    onError={(e) => {
+                                                        console.error(
+                                                            "thumb load failed:",
+                                                            thumb,
+                                                            c.id,
+                                                            idx,
+                                                        );
+                                                        e.currentTarget.style.outline =
+                                                            "2px solid red";
+                                                        e.currentTarget.title = `LOAD FAILED: ${thumb}`;
+                                                    }}
+                                                    style={{
+                                                        width: 48,
+                                                        height: 48,
+                                                        objectFit: "cover",
+                                                        borderRadius: 10,
+                                                        border: "1px solid #eee",
+                                                        flexShrink: 0,
+                                                    }}
+                                                />
+                                            ) : (
+                                                <div
+                                                    style={{
+                                                        width: 48,
+                                                        height: 48,
+                                                        borderRadius: 10,
+                                                        border: "1px dashed #ccc",
+                                                        display: "grid",
+                                                        placeItems: "center",
+                                                        fontSize: 10,
+                                                        opacity: 0.7,
+                                                        flexShrink: 0,
+                                                    }}
+                                                >
+                                                    NO IMG
+                                                </div>
+                                            )}
+
+                                            <div
+                                                style={{
+                                                    display: "flex",
+                                                    justifyContent:
+                                                        "space-between",
+                                                    gap: 12,
+                                                    flex: 1,
+                                                    alignItems: "center",
+                                                }}
+                                            >
+                                                <span
+                                                    style={{ fontWeight: 650 }}
+                                                >
+                                                    {c.name}
+                                                </span>
+                                                <span
+                                                    style={{
+                                                        fontSize: 12,
+                                                        opacity: 0.6,
+                                                    }}
+                                                >
+                                                    →
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </Link>
                                 );
-                            }}
-                        >
-                            投票を開始
-                        </button>
+                            })}
+                        </div>
+                    </Card>
 
-                        {!canStartVote && (
+                    <Card>
+                        {authLoading ? (
+                            <div style={{ fontSize: 12, opacity: 0.75 }}>
+                                認証確認中...
+                            </div>
+                        ) : !me ? (
                             <div
                                 style={{
-                                    fontSize: 12,
-                                    opacity: 0.7,
-                                    marginTop: 2,
+                                    display: "flex",
+                                    gap: 12,
+                                    flexWrap: "wrap",
                                 }}
                             >
-                                投票開始できません（本人認証未完了 /
-                                期間外など）
+                                <Link to="/login" state={{ from: self }}>
+                                    ログインして投票
+                                </Link>
+                                <span style={{ fontSize: 12, opacity: 0.7 }}>
+                                    ログイン後、この詳細に戻ります
+                                </span>
                             </div>
+                        ) : (
+                            <>
+                                <button
+                                    disabled={!canStartVote}
+                                    onClick={() => {
+                                        nav(
+                                            `/voting/start?electionId=${data.electionId}`,
+                                            {
+                                                state: { from: self },
+                                            },
+                                        );
+                                    }}
+                                >
+                                    投票を開始
+                                </button>
+                                {!canStartVote && (
+                                    <div
+                                        style={{
+                                            fontSize: 12,
+                                            opacity: 0.7,
+                                            marginTop: 6,
+                                        }}
+                                    >
+                                        投票開始できません（本人認証未完了 /
+                                        期間外など）
+                                    </div>
+                                )}
+                            </>
                         )}
-                    </>
-                )}
-            </div>
-        </div>
+                    </Card>
+                </>
+            )}
+
+            <DevDebug
+                value={{ electionId, data, err, loading, backTo, self }}
+            />
+        </Page>
     );
 }

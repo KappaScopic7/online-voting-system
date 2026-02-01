@@ -3,6 +3,8 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { confirmVote, startVoting } from "../api/votes";
 import type { VoteStartResponse } from "../api/votes";
+import { Card, DevDebug, Page } from "../../shared/ui/page";
+import { normalizeFrom } from "../../shared/normalizeFrom";
 
 function useQuery() {
     const { search } = useLocation();
@@ -19,6 +21,9 @@ export function VotingStartPage() {
     const q = useQuery();
     const electionId = q.get("electionId");
 
+    const self = loc.pathname + loc.search;
+    const backTo = normalizeFrom(state?.from ?? "/me/elections");
+
     const [data, setData] = useState<VoteStartResponse | null>(null);
     const [selectedCandidateId, setSelectedCandidateId] = useState<string>("");
     const [error, setError] = useState<string | null>(null);
@@ -33,9 +38,12 @@ export function VotingStartPage() {
         if (!electionId) return;
         setError(null);
         setIsLoading(true);
+
         try {
             const res = await startVoting(electionId);
             setData(res);
+
+            // 初期選択
             setSelectedCandidateId(res.candidates?.[0]?.candidateId ?? "");
             setStep("SELECT");
         } catch (err: any) {
@@ -50,6 +58,7 @@ export function VotingStartPage() {
             } else {
                 setError(msg ?? "Failed to start voting");
             }
+
             setData(null);
             setSelectedCandidateId("");
             setStep("SELECT");
@@ -88,18 +97,28 @@ export function VotingStartPage() {
 
     const onSubmit = async () => {
         if (!electionId || !selectedCandidateId) return;
+
         setBusy(true);
         setError(null);
         try {
             const result = await confirmVote(electionId, selectedCandidateId);
-            nav("/voting/done", { state: { result } });
+
+            // Done側で「戻る」導線を作れるように from も渡す
+            nav("/voting/done", {
+                state: {
+                    result,
+                    from: backTo,
+                },
+            });
         } catch (err: any) {
             const status = err?.response?.status;
             const msg = err?.response?.data?.message;
-            if (status === 403)
+            if (status === 403) {
                 setError(msg ?? "投票できません（期間外/権限なし）");
-            else setError(msg ?? "Vote failed");
-            // 失敗したらSELECTに戻すかは好み。ここではCONFIRM維持。
+            } else {
+                setError(msg ?? "Vote failed");
+            }
+            // 失敗しても CONFIRM は維持（好み）
         } finally {
             setBusy(false);
         }
@@ -109,271 +128,324 @@ export function VotingStartPage() {
 
     if (!electionId) {
         return (
-            <div style={{ padding: 16, display: "grid", gap: 12 }}>
-                <h2 style={{ margin: 0 }}>Voting</h2>
-                <p style={{ margin: 0 }}>electionId がありません</p>
-                <Link to="/">← 戻る</Link>
-            </div>
+            <Page
+                title={<h1 style={{ margin: 0, fontSize: 20 }}>投票</h1>}
+                actions={<Link to={backTo}>← 戻る</Link>}
+                maxWidth={860}
+            >
+                <Card role="alert">electionId がありません</Card>
+                <DevDebug value={{ state, loc }} />
+            </Page>
         );
     }
 
+    const title = data?.title ? `投票 / ${data.title}` : "投票";
+
     return (
-        <div style={{ padding: 16, display: "grid", gap: 12, maxWidth: 860 }}>
-            <header
-                style={{
-                    display: "flex",
-                    gap: 12,
-                    alignItems: "center",
-                    flexWrap: "wrap",
-                }}
-            >
-                <Link to="/">← 戻る</Link>
-                <h2 style={{ margin: 0 }}>Voting</h2>
-
-                <button
-                    onClick={load}
-                    style={{ marginLeft: "auto" }}
-                    disabled={isLoading || busy}
-                >
-                    {isLoading ? "Reloading..." : "Reload"}
-                </button>
-            </header>
-
-            {/* Error + 誘導 */}
-            {error && (
+        <Page
+            title={<h1 style={{ margin: 0, fontSize: 20 }}>{title}</h1>}
+            actions={
                 <div
                     style={{
-                        border: "1px solid #ddd",
-                        borderRadius: 8,
-                        padding: 12,
+                        display: "flex",
+                        gap: 12,
+                        alignItems: "center",
+                        flexWrap: "wrap",
                     }}
-                    role="alert"
                 >
-                    <p style={{ marginTop: 0, marginBottom: 8 }}>{error}</p>
+                    <Link to={backTo}>← 戻る</Link>
+
+                    <button
+                        onClick={load}
+                        disabled={isLoading || busy}
+                        style={{ marginLeft: 8 }}
+                    >
+                        {isLoading ? "Reloading..." : "再読み込み"}
+                    </button>
+                </div>
+            }
+            maxWidth={860}
+        >
+            {/* Error + 誘導 */}
+            {error && (
+                <Card role="alert">
+                    <div style={{ fontWeight: 800, marginBottom: 6 }}>
+                        エラー
+                    </div>
+                    <div style={{ marginBottom: 10 }}>{error}</div>
 
                     <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
                         <button onClick={load} disabled={isLoading || busy}>
                             再試行
                         </button>
 
-                        {/* 403の原因が本人認証やメール認証の可能性があるので導線を置く（仮） */}
-                        <Link
-                            to="/identity/link"
-                            state={{ from: loc.pathname + loc.search }}
-                        >
+                        {/* 403の原因が本人認証やメール認証の可能性があるので導線（仮） */}
+                        <Link to="/identity/link" state={{ from: self }}>
                             本人認証へ
                         </Link>
-                        <Link
-                            to="/verify"
-                            state={{ from: loc.pathname + loc.search }}
-                        >
+                        <Link to="/verify" state={{ from: self }}>
                             メール認証へ
                         </Link>
+
+                        <Link to={backTo}>戻る</Link>
                     </div>
-                </div>
+                </Card>
             )}
 
             {/* Loading */}
-            {isLoading && <p>Loading...</p>}
+            {!error && isLoading && <Card>読み込み中…</Card>}
 
             {/* Main */}
             {!isLoading && data && (
-                <div style={{ display: "grid", gap: 10 }}>
+                <div style={{ display: "grid", gap: 12 }}>
                     {/* Election info */}
-                    <div
-                        style={{
-                            border: "1px solid #ddd",
-                            borderRadius: 8,
-                            padding: 12,
-                        }}
-                    >
-                        <strong style={{ fontSize: 16 }}>{data.title}</strong>
-                        {isDev && (
-                            <div
-                                style={{
-                                    fontSize: 12,
-                                    opacity: 0.7,
-                                    marginTop: 6,
-                                }}
-                            >
-                                electionId: {data.electionId}
-                            </div>
-                        )}
-                    </div>
+                    <Card>
+                        <div style={{ display: "grid", gap: 6 }}>
+                            <strong style={{ fontSize: 16 }}>
+                                {data.title}
+                            </strong>
+                            {isDev && (
+                                <div style={{ fontSize: 12, opacity: 0.7 }}>
+                                    electionId: {data.electionId}
+                                </div>
+                            )}
+                        </div>
+                    </Card>
 
                     {/* Select / Confirm */}
-                    <div
-                        style={{
-                            border: "1px solid #ddd",
-                            borderRadius: 8,
-                            padding: 12,
-                            display: "grid",
-                            gap: 10,
-                        }}
-                    >
-                        {step === "SELECT" ? (
-                            <>
-                                <div style={{ fontWeight: 600 }}>
-                                    候補者を選択
-                                </div>
+                    <Card>
+                        <div style={{ display: "grid", gap: 12 }}>
+                            {step === "SELECT" ? (
+                                <>
+                                    <div style={{ fontWeight: 800 }}>
+                                        候補者を選択
+                                    </div>
 
-                                {data.candidates?.length ? (
-                                    <div style={{ display: "grid", gap: 6 }}>
-                                        {data.candidates.map((c) => (
-                                            <label
-                                                key={c.candidateId}
-                                                style={{
-                                                    display: "flex",
-                                                    gap: 10,
-                                                    alignItems: "center",
-                                                    flexWrap: "wrap",
-                                                }}
-                                            >
-                                                <input
-                                                    type="radio"
-                                                    name="candidate"
-                                                    value={c.candidateId}
-                                                    checked={
-                                                        selectedCandidateId ===
-                                                        c.candidateId
-                                                    }
-                                                    onChange={() =>
-                                                        setSelectedCandidateId(
-                                                            c.candidateId,
-                                                        )
-                                                    }
-                                                    disabled={busy}
-                                                />
-                                                <span>{c.name}</span>
-                                                {isDev && (
-                                                    <span
+                                    {data.candidates?.length ? (
+                                        <div
+                                            style={{ display: "grid", gap: 10 }}
+                                        >
+                                            {data.candidates.map((c) => {
+                                                const selectedNow =
+                                                    selectedCandidateId ===
+                                                    c.candidateId;
+
+                                                return (
+                                                    <label
+                                                        key={c.candidateId}
                                                         style={{
-                                                            marginLeft: "auto",
-                                                            fontSize: 12,
-                                                            opacity: 0.7,
+                                                            border: "1px solid #eee",
+                                                            borderRadius: 12,
+                                                            padding: 12,
+                                                            display: "flex",
+                                                            alignItems:
+                                                                "center",
+                                                            gap: 12,
+                                                            background:
+                                                                selectedNow
+                                                                    ? "#f5f5f5"
+                                                                    : "#fff",
+                                                            cursor: busy
+                                                                ? "not-allowed"
+                                                                : "pointer",
+                                                            transition:
+                                                                "transform 120ms ease, box-shadow 120ms ease, background 120ms ease",
+                                                            // hover（inlineなので擬似的に）
+                                                            boxShadow:
+                                                                "0 0 0 rgba(0,0,0,0)",
+                                                        }}
+                                                        onMouseEnter={(e) => {
+                                                            if (busy) return;
+                                                            e.currentTarget.style.boxShadow =
+                                                                "0 2px 10px rgba(0,0,0,0.06)";
+                                                            e.currentTarget.style.transform =
+                                                                "translateY(-1px)";
+                                                        }}
+                                                        onMouseLeave={(e) => {
+                                                            e.currentTarget.style.boxShadow =
+                                                                "0 0 0 rgba(0,0,0,0)";
+                                                            e.currentTarget.style.transform =
+                                                                "translateY(0)";
                                                         }}
                                                     >
-                                                        {c.candidateId}
-                                                    </span>
-                                                )}
-                                            </label>
-                                        ))}
+                                                        <input
+                                                            type="radio"
+                                                            name="candidate"
+                                                            value={
+                                                                c.candidateId
+                                                            }
+                                                            checked={
+                                                                selectedNow
+                                                            }
+                                                            onChange={() =>
+                                                                setSelectedCandidateId(
+                                                                    c.candidateId,
+                                                                )
+                                                            }
+                                                            disabled={busy}
+                                                        />
+                                                        <span
+                                                            style={{
+                                                                fontWeight:
+                                                                    selectedNow
+                                                                        ? 700
+                                                                        : 500,
+                                                            }}
+                                                        >
+                                                            {c.name}
+                                                        </span>
+
+                                                        {isDev && (
+                                                            <span
+                                                                style={{
+                                                                    marginLeft:
+                                                                        "auto",
+                                                                    fontSize: 12,
+                                                                    opacity: 0.7,
+                                                                }}
+                                                            >
+                                                                {c.candidateId}
+                                                            </span>
+                                                        )}
+                                                    </label>
+                                                );
+                                            })}
+                                        </div>
+                                    ) : (
+                                        <div
+                                            style={{
+                                                border: "1px solid #eee",
+                                                borderRadius: 12,
+                                                padding: 12,
+                                                background: "#fafafa",
+                                            }}
+                                        >
+                                            候補者がいません（投票できません）
+                                        </div>
+                                    )}
+
+                                    <div
+                                        style={{
+                                            display: "flex",
+                                            gap: 12,
+                                            flexWrap: "wrap",
+                                            alignItems: "center",
+                                        }}
+                                    >
+                                        <button
+                                            onClick={onGoConfirm}
+                                            disabled={!canGoConfirm}
+                                        >
+                                            次へ（内容確認）
+                                        </button>
+
+                                        <Link
+                                            to={`/elections/${electionId}/candidates`}
+                                            state={{ from: self }}
+                                        >
+                                            候補者（公開）を見る
+                                        </Link>
+
+                                        <span
+                                            style={{
+                                                marginLeft: "auto",
+                                                fontSize: 12,
+                                                opacity: 0.7,
+                                            }}
+                                        >
+                                            ※ 送信前に確認画面があります
+                                        </span>
                                     </div>
-                                ) : (
+                                </>
+                            ) : (
+                                <>
+                                    <div style={{ fontWeight: 800 }}>
+                                        内容確認
+                                    </div>
+
                                     <div
                                         style={{
                                             border: "1px solid #eee",
-                                            borderRadius: 8,
-                                            padding: 10,
+                                            borderRadius: 12,
+                                            padding: 12,
+                                            display: "grid",
+                                            gap: 6,
+                                            background: "#fafafa",
                                         }}
                                     >
-                                        <p style={{ margin: 0 }}>
-                                            候補者がいません（投票できません）
-                                        </p>
+                                        <div>
+                                            選挙: <strong>{data.title}</strong>
+                                        </div>
+                                        <div>
+                                            投票先:{" "}
+                                            <strong>
+                                                {selected?.name ?? "(不明)"}
+                                            </strong>
+                                        </div>
+                                        <div
+                                            style={{
+                                                fontSize: 12,
+                                                opacity: 0.75,
+                                            }}
+                                        >
+                                            ※ 送信後、投票履歴に記録されます
+                                        </div>
+                                        <div
+                                            style={{
+                                                fontSize: 12,
+                                                opacity: 0.75,
+                                            }}
+                                        >
+                                            ※
+                                            投票は期間内であれば何度でも変更できます
+                                            ※ 最後に送信した内容が有効になります
+                                        </div>
                                     </div>
-                                )}
 
-                                <div
-                                    style={{
-                                        display: "flex",
-                                        gap: 12,
-                                        flexWrap: "wrap",
-                                        alignItems: "center",
-                                    }}
-                                >
-                                    <button
-                                        onClick={onGoConfirm}
-                                        disabled={!canGoConfirm}
-                                    >
-                                        次へ（内容確認）
-                                    </button>
-                                    <Link
-                                        to={`/elections/${electionId}/candidates`}
-                                    >
-                                        候補者（公開）を見る
-                                    </Link>
-                                </div>
-                            </>
-                        ) : (
-                            <>
-                                <div style={{ fontWeight: 600 }}>内容確認</div>
-
-                                <div
-                                    style={{
-                                        border: "1px solid #eee",
-                                        borderRadius: 8,
-                                        padding: 10,
-                                        display: "grid",
-                                        gap: 6,
-                                    }}
-                                >
-                                    <div>
-                                        選挙: <strong>{data.title}</strong>
-                                    </div>
-                                    <div>
-                                        投票先:{" "}
-                                        <strong>
-                                            {selected?.name ?? "(不明)"}{" "}
-                                        </strong>
-                                    </div>
                                     <div
-                                        style={{ fontSize: 12, opacity: 0.75 }}
+                                        style={{
+                                            display: "flex",
+                                            gap: 12,
+                                            flexWrap: "wrap",
+                                        }}
                                     >
-                                        ※ 送信後、投票履歴に記録されます
+                                        <button
+                                            type="button"
+                                            onClick={onBackToSelect}
+                                            disabled={busy}
+                                        >
+                                            戻る
+                                        </button>
+                                        <button
+                                            onClick={onSubmit}
+                                            disabled={!canSubmit}
+                                        >
+                                            {busy
+                                                ? "送信中..."
+                                                : "この内容で投票する"}
+                                        </button>
                                     </div>
-                                </div>
-
-                                <div
-                                    style={{
-                                        display: "flex",
-                                        gap: 12,
-                                        flexWrap: "wrap",
-                                    }}
-                                >
-                                    <button
-                                        type="button"
-                                        onClick={onBackToSelect}
-                                        disabled={busy}
-                                    >
-                                        戻る
-                                    </button>
-                                    <button
-                                        onClick={onSubmit}
-                                        disabled={!canSubmit}
-                                    >
-                                        {busy
-                                            ? "送信中..."
-                                            : "この内容で投票する"}
-                                    </button>
-                                </div>
-                            </>
-                        )}
-                    </div>
+                                </>
+                            )}
+                        </div>
+                    </Card>
                 </div>
             )}
 
-            {/* DEV */}
-            {isDev && (
-                <details>
-                    <summary>Debug</summary>
-                    <pre style={{ whiteSpace: "pre-wrap" }}>
-                        {JSON.stringify(
-                            {
-                                data,
-                                error,
-                                selectedCandidateId,
-                                busy,
-                                electionId,
-                                step,
-                                state,
-                                loc,
-                            },
-                            null,
-                            2,
-                        )}
-                    </pre>
-                </details>
-            )}
-        </div>
+            <DevDebug
+                value={{
+                    electionId,
+                    data,
+                    error,
+                    selectedCandidateId,
+                    busy,
+                    isLoading,
+                    step,
+                    backTo,
+                    self,
+                    state,
+                }}
+            />
+        </Page>
     );
 }

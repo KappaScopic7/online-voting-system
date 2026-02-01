@@ -1,4 +1,3 @@
-// frontend/src/layout/PublicLayout.tsx
 import { Link, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "../../user/UserAuthContext";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -45,8 +44,10 @@ export function PublicLayout() {
         ];
     }, [user]);
 
-    // ---- header show/hide on scroll ----
+    // ---- header show/hide on scroll (stable) ----
     useEffect(() => {
+        lastYRef.current = window.scrollY;
+
         const onScroll = () => {
             if (tickingRef.current) return;
             tickingRef.current = true;
@@ -63,9 +64,10 @@ export function PublicLayout() {
                     setShowTopBar(true);
                 } else if (Math.abs(diff) >= THRESHOLD) {
                     setShowTopBar(diff < 0);
-                    lastYRef.current = y;
                 }
 
+                // ★重要：毎回更新してズレを防ぐ
+                lastYRef.current = y;
                 tickingRef.current = false;
             });
         };
@@ -101,136 +103,144 @@ export function PublicLayout() {
     }, [isMenuOpen]);
 
     return (
-        <div style={{ padding: 16 }}>
+        <div className={styles.page}>
             <div
                 className={`${styles.publicLayout} ${
                     showTopBar ? styles.headerVisible : styles.headerHidden
                 }`}
             >
-                <header className={styles.header}>
-                    <Link
-                        to="/"
-                        className={styles.brand}
-                        onClick={closeMenu}
-                        aria-label="トップページへ"
-                    >
-                        <img
-                            className={styles.logoImage}
-                            src={logo}
-                            alt="OVS"
-                        />
-                    </Link>
+                <div className={styles.barInner}>
+                    <header className={styles.header}>
+                        <Link
+                            to="/"
+                            className={styles.brand}
+                            onClick={closeMenu}
+                            aria-label="トップページへ"
+                        >
+                            <img
+                                className={styles.logoImage}
+                                src={logo}
+                                alt="OVS"
+                            />
+                        </Link>
 
-                    <div className={styles.headerin}>
-                        {!user ? (
-                            <>
-                                <span style={{ fontSize: 12, opacity: 0.7 }}>
-                                    未ログイン
-                                </span>
-                                <Link
-                                    className={styles.headerLink}
-                                    to="/login"
-                                    onClick={closeMenu}
-                                >
-                                    ログイン
-                                </Link>
-                                <Link
-                                    className={styles.headerLink}
-                                    style={{ marginRight: 10 }}
-                                    to="/register"
-                                    onClick={closeMenu}
-                                >
-                                    新規登録
-                                </Link>
-                            </>
-                        ) : (
-                            <div ref={menuWrapRef} className={styles.menuWrap}>
-                                <button
-                                    type="button"
-                                    className={styles.menuButton}
-                                    onClick={toggleMenu}
-                                    aria-haspopup="menu"
-                                    aria-expanded={isMenuOpen}
-                                    aria-label="ユーザーメニュー"
-                                >
-                                    <span aria-hidden>👤</span>
-                                </button>
+                        <div className={styles.headerRight}>
+                            {!user ? (
+                                <>
+                                    <span className={styles.headerMeta}>
+                                        未ログイン
+                                    </span>
 
-                                {isMenuOpen && (
-                                    <div
-                                        className={`${styles.menuopen} ${
-                                            showTopBar ? styles.withShadow : ""
-                                        }`}
-                                        role="menu"
+                                    <Link
+                                        className={styles.headerLink}
+                                        to="/login"
+                                        onClick={closeMenu}
                                     >
-                                        <div>
+                                        ログイン
+                                    </Link>
+
+                                    <Link
+                                        className={styles.headerLink}
+                                        to="/register"
+                                        onClick={closeMenu}
+                                    >
+                                        新規登録
+                                    </Link>
+                                </>
+                            ) : (
+                                <div
+                                    ref={menuWrapRef}
+                                    className={styles.menuWrap}
+                                >
+                                    <button
+                                        type="button"
+                                        className={styles.menuButton}
+                                        onClick={toggleMenu}
+                                        aria-haspopup="menu"
+                                        aria-expanded={isMenuOpen}
+                                        aria-label="ユーザーメニュー"
+                                    >
+                                        <span aria-hidden>👤</span>
+                                    </button>
+
+                                    {isMenuOpen && (
+                                        <div
+                                            className={`${styles.menuOpen} ${
+                                                showTopBar
+                                                    ? styles.withShadow
+                                                    : ""
+                                            }`}
+                                            role="menu"
+                                        >
                                             <Link
                                                 className={styles.menuLink}
                                                 to="/me"
                                                 onClick={closeMenu}
+                                                role="menuitem"
                                             >
                                                 マイページ →
                                             </Link>
-                                        </div>
-                                        <hr className={styles.divider} />
 
-                                        <div>
+                                            <hr className={styles.divider} />
+
                                             <Link
                                                 className={styles.menuLink}
                                                 to="/me/votes"
                                                 onClick={closeMenu}
+                                                role="menuitem"
                                             >
                                                 投票履歴 →
                                             </Link>
-                                        </div>
-                                        <hr className={styles.divider} />
 
-                                        <div>
+                                            <hr className={styles.divider} />
+
                                             <Link
                                                 className={styles.menuLink}
                                                 to="/me/identity"
                                                 onClick={closeMenu}
+                                                role="menuitem"
                                             >
                                                 本人確認 →
                                             </Link>
-                                        </div>
-                                        <hr className={styles.divider} />
 
-                                        <div>
+                                            <hr className={styles.divider} />
+
                                             <button
                                                 className={styles.logoutButton}
                                                 type="button"
                                                 onClick={onLogout}
+                                                role="menuitem"
                                             >
                                                 ログアウト
                                             </button>
                                         </div>
-                                    </div>
-                                )}
-                            </div>
-                        )}
-                    </div>
-                </header>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    </header>
 
-                {/* ★ ここが修正点：| を消して、CSSで区切る */}
-                <nav className={styles.nav} aria-label="グローバルナビ">
-                    {navItems.map((item) => (
-                        <Link
-                            key={item.to}
-                            to={item.to}
-                            className={styles.navlink}
-                            onClick={closeMenu}
-                        >
-                            {item.label}
-                        </Link>
-                    ))}
-                </nav>
+                    <nav className={styles.nav} aria-label="グローバルナビ">
+                        {navItems.map((item) => (
+                            <Link
+                                key={item.to}
+                                to={item.to}
+                                className={styles.navLink}
+                                onClick={closeMenu}
+                            >
+                                {item.label}
+                            </Link>
+                        ))}
+                    </nav>
+                </div>
             </div>
 
-            <Outlet />
+            <main className={styles.main}>
+                <Outlet />
+            </main>
 
             <footer className={styles.footer}>
-                <span style={{ opacity: 0.7 }}>© OVS / B-team</span>
+                <span className={styles.footerText}>© OVS / B-team</span>
             </footer>
         </div>
     );

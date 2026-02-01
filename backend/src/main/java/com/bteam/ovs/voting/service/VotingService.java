@@ -26,131 +26,158 @@ import java.util.stream.Collectors;
 @Service
 public class VotingService {
 
-    private final CitizenIdResolver citizenIdResolver;
-    private final ElectionEligibilityService electionEligibilityService;
-    private final ElectionRepository electionRepo;
-    private final CandidateRepository candidateRepo;
-    private final VoteCastRepository voteCastRepo;
-    private final VoteCurrentRepository voteCurrentRepo;
+        private final CitizenIdResolver citizenIdResolver;
+        private final ElectionEligibilityService electionEligibilityService;
+        private final ElectionRepository electionRepo;
+        private final CandidateRepository candidateRepo;
+        private final VoteCastRepository voteCastRepo;
+        private final VoteCurrentRepository voteCurrentRepo;
 
-    public VotingService(
-            CitizenIdResolver citizenIdResolver,
-            ElectionEligibilityService electionEligibilityService,
-            ElectionRepository electionRepo,
-            CandidateRepository candidateRepo,
-            VoteCastRepository voteCastRepo,
-            VoteCurrentRepository voteCurrentRepo) {
-        this.citizenIdResolver = citizenIdResolver;
-        this.electionEligibilityService = electionEligibilityService;
-        this.electionRepo = electionRepo;
-        this.candidateRepo = candidateRepo;
-        this.voteCastRepo = voteCastRepo;
-        this.voteCurrentRepo = voteCurrentRepo;
-    }
-
-    public VoteStartResponse start(UUID accountId, UUID electionId) {
-        electionEligibilityService.requireEligible(accountId, electionId);
-
-        citizenIdResolver.requireCitizenId(accountId);
-
-        var election = electionRepo.findById(electionId)
-                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "ELECTION_NOT_FOUND", "選挙が存在しません"));
-
-        var candidates = candidateRepo.findByElectionId(electionId).stream()
-                .map(c -> new VoteStartResponse.CandidateItem(c.getId(), c.getName()))
-                .toList();
-
-        return new VoteStartResponse(election.getId(), election.getTitle(), candidates);
-    }
-
-    @Transactional
-    public VoteHistoryItem confirm(UUID accountId, UUID electionId, UUID candidateId) {
-        electionEligibilityService.requireEligible(accountId, electionId);
-
-        UUID citizenId = citizenIdResolver.requireCitizenId(accountId);
-
-        var election = electionRepo.findById(electionId)
-                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "ELECTION_NOT_FOUND", "選挙が存在しません"));
-
-        var now = Instant.now();
-        boolean withinPeriod = !now.isBefore(election.getStartsAt()) && now.isBefore(election.getEndsAt());
-        if (!withinPeriod) {
-            throw new ApiException(HttpStatus.FORBIDDEN, "ELECTION_NOT_ONGOING", "投票可能期間外です");
+        public VotingService(
+                        CitizenIdResolver citizenIdResolver,
+                        ElectionEligibilityService electionEligibilityService,
+                        ElectionRepository electionRepo,
+                        CandidateRepository candidateRepo,
+                        VoteCastRepository voteCastRepo,
+                        VoteCurrentRepository voteCurrentRepo) {
+                this.citizenIdResolver = citizenIdResolver;
+                this.electionEligibilityService = electionEligibilityService;
+                this.electionRepo = electionRepo;
+                this.candidateRepo = candidateRepo;
+                this.voteCastRepo = voteCastRepo;
+                this.voteCurrentRepo = voteCurrentRepo;
         }
 
-        if (!candidateRepo.existsByIdAndElectionId(candidateId, electionId)) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_CANDIDATE", "候補が不正です");
+        public VoteStartResponse start(UUID accountId, UUID electionId) {
+                electionEligibilityService.requireEligible(accountId, electionId);
+
+                citizenIdResolver.requireCitizenId(accountId);
+
+                var election = electionRepo.findById(electionId)
+                                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "ELECTION_NOT_FOUND",
+                                                "選挙が存在しません"));
+
+                var candidates = candidateRepo.findByElectionId(electionId).stream()
+                                .map(c -> new VoteStartResponse.CandidateItem(c.getId(), c.getName()))
+                                .toList();
+
+                return new VoteStartResponse(election.getId(), election.getTitle(), candidates);
         }
 
-        var candidate = candidateRepo.findById(candidateId)
-                .orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST, "INVALID_CANDIDATE", "候補が不正です"));
+        @Transactional
+        public VoteHistoryItem confirm(UUID accountId, UUID electionId, UUID candidateId) {
+                electionEligibilityService.requireEligible(accountId, electionId);
 
-        var cast = new VoteCast();
-        cast.setElectionId(electionId);
-        cast.setCitizenId(citizenId);
-        cast.setCandidateId(candidateId);
-        cast.setCastedAt(now);
-        voteCastRepo.save(cast);
+                UUID citizenId = citizenIdResolver.requireCitizenId(accountId);
 
-        var current = voteCurrentRepo.findByElectionIdAndCitizenId(electionId, citizenId)
-                .orElseGet(() -> {
-                    var v = new VoteCurrent();
-                    v.setElectionId(electionId);
-                    v.setCitizenId(citizenId);
-                    return v;
-                });
+                var election = electionRepo.findById(electionId)
+                                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "ELECTION_NOT_FOUND",
+                                                "選挙が存在しません"));
 
-        current.setCandidateId(candidateId);
-        current.setCastedAt(now);
+                var now = Instant.now();
+                boolean withinPeriod = !now.isBefore(election.getStartsAt()) && now.isBefore(election.getEndsAt());
+                if (!withinPeriod) {
+                        throw new ApiException(HttpStatus.FORBIDDEN, "ELECTION_NOT_ONGOING", "投票可能期間外です");
+                }
 
-        try {
-            voteCurrentRepo.save(current);
-        } catch (DataIntegrityViolationException ex) {
-            var retry = voteCurrentRepo.findByElectionIdAndCitizenId(electionId, citizenId)
-                    .orElseThrow(() -> ex);
+                if (!candidateRepo.existsByIdAndElectionId(candidateId, electionId)) {
+                        throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_CANDIDATE", "候補が不正です");
+                }
 
-            retry.setCandidateId(candidateId);
-            retry.setCastedAt(now);
-            voteCurrentRepo.save(retry);
+                var candidate = candidateRepo.findById(candidateId)
+                                .orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST, "INVALID_CANDIDATE",
+                                                "候補が不正です"));
+
+                var cast = new VoteCast();
+                cast.setElectionId(electionId);
+                cast.setCitizenId(citizenId);
+                cast.setCandidateId(candidateId);
+                cast.setCastedAt(now);
+                voteCastRepo.save(cast);
+
+                var current = voteCurrentRepo.findByElectionIdAndCitizenId(electionId, citizenId)
+                                .orElseGet(() -> {
+                                        var v = new VoteCurrent();
+                                        v.setElectionId(electionId);
+                                        v.setCitizenId(citizenId);
+                                        return v;
+                                });
+
+                current.setCandidateId(candidateId);
+                current.setCastedAt(now);
+
+                try {
+                        voteCurrentRepo.save(current);
+                } catch (DataIntegrityViolationException ex) {
+                        var retry = voteCurrentRepo.findByElectionIdAndCitizenId(electionId, citizenId)
+                                        .orElseThrow(() -> ex);
+
+                        retry.setCandidateId(candidateId);
+                        retry.setCastedAt(now);
+                        voteCurrentRepo.save(retry);
+                }
+
+                return new VoteHistoryItem(
+                                cast.getId(),
+                                election.getId(),
+                                election.getTitle(),
+                                resolveElectionStatus(now, election.getStartsAt(), election.getEndsAt()),
+                                candidate.getId(),
+                                candidate.getName(),
+                                now);
+
         }
 
-        return new VoteHistoryItem(
-                cast.getId(),
-                election.getId(),
-                election.getTitle(),
-                candidate.getId(),
-                candidate.getName(),
-                now);
-    }
+        public List<VoteHistoryItem> history(UUID accountId) {
+                UUID citizenId = citizenIdResolver.requireCitizenId(accountId);
 
-    public List<VoteHistoryItem> history(UUID accountId) {
-        UUID citizenId = citizenIdResolver.requireCitizenId(accountId);
+                var votes = voteCastRepo.findByCitizenIdOrderByCastedAtDesc(citizenId);
+                if (votes.isEmpty())
+                        return List.of();
 
-        var votes = voteCastRepo.findByCitizenIdOrderByCastedAtDesc(citizenId);
-        if (votes.isEmpty())
-            return List.of();
+                var electionIds = votes.stream().map(VoteCast::getElectionId).collect(Collectors.toSet());
+                var candidateIds = votes.stream().map(VoteCast::getCandidateId).collect(Collectors.toSet());
 
-        var electionIds = votes.stream().map(VoteCast::getElectionId).collect(Collectors.toSet());
-        var candidateIds = votes.stream().map(VoteCast::getCandidateId).collect(Collectors.toSet());
+                var elections = electionRepo.findAllById(electionIds).stream()
+                                .collect(Collectors.toMap(e -> e.getId(), Function.identity()));
 
-        var elections = electionRepo.findAllById(electionIds).stream()
-                .collect(Collectors.toMap(e -> e.getId(), Function.identity()));
+                var candidates = candidateRepo.findAllById(candidateIds).stream()
+                                .collect(Collectors.toMap(c -> c.getId(), Function.identity()));
 
-        var candidates = candidateRepo.findAllById(candidateIds).stream()
-                .collect(Collectors.toMap(c -> c.getId(), Function.identity()));
+                return votes.stream()
+                                .map(v -> {
+                                        var e = elections.get(v.getElectionId());
+                                        var c = candidates.get(v.getCandidateId());
 
-        return votes.stream()
-                .map(v -> new VoteHistoryItem(
-                        v.getId(),
-                        v.getElectionId(),
-                        elections.containsKey(v.getElectionId())
-                                ? elections.get(v.getElectionId()).getTitle()
-                                : "(unknown election)",
-                        v.getCandidateId(),
-                        candidates.containsKey(v.getCandidateId())
-                                ? candidates.get(v.getCandidateId()).getName()
-                                : "(unknown candidate)",
-                        v.getCastedAt()))
-                .toList();
-    }
+                                        String status = "UNKNOWN";
+                                        if (e != null) {
+                                                status = resolveElectionStatus(
+                                                                Instant.now(),
+                                                                e.getStartsAt(),
+                                                                e.getEndsAt());
+                                        }
+
+                                        return new VoteHistoryItem(
+                                                        v.getId(),
+                                                        v.getElectionId(),
+                                                        e != null ? e.getTitle() : "(unknown election)",
+                                                        status,
+                                                        v.getCandidateId(),
+                                                        c != null ? c.getName() : "(unknown candidate)",
+                                                        v.getCastedAt());
+                                })
+                                .toList();
+
+        }
+
+        private String resolveElectionStatus(Instant now, Instant startsAt, Instant endsAt) {
+                if (now.isBefore(startsAt)) {
+                        return "UPCOMING";
+                }
+                if (!now.isBefore(endsAt)) {
+                        return "ENDED";
+                }
+                return "ONGOING";
+        }
+
 }

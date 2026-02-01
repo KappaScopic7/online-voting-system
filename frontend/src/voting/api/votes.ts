@@ -6,9 +6,9 @@ export type VoteHistoryItem = {
     voteId: string;
     electionId: string;
     electionTitle: string;
-    candidateId: string;
     candidateName: string;
     castedAt: string;
+    electionStatus: "ONGOING" | "ENDED" | "UPCOMING";
 };
 
 export type VoteStartResponse = {

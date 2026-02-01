@@ -12,18 +12,18 @@ export function isAuthPath(pathname: string): boolean {
         (p) => pathname === p || pathname.startsWith(p + "/"),
     );
 }
+const BLOCKED = new Set(["/login", "/register", "/verify", "/password/forgot"]);
 
-export function sanitizeReturnTo(raw: unknown, fallback: string = "/"): string {
-    if (typeof raw !== "string") return fallback;
+export function sanitizeReturnTo(from?: string, fallback = "/"): string {
+    if (!from || typeof from !== "string") return fallback;
+    if (!from.startsWith("/")) return fallback;
 
-    // 外部URL/スキームを拒否（//evil.com, http://... など）
-    if (!raw.startsWith("/")) return fallback;
-    if (raw.startsWith("//")) return fallback;
-
-    // auth配下に戻すのは禁止（ループ防止）
-    if (isAuthPath(raw)) return fallback;
-
-    return raw;
+    for (const b of BLOCKED) {
+        if (from === b || from.startsWith(b + "/")) {
+            return fallback;
+        }
+    }
+    return from;
 }
 
 /**

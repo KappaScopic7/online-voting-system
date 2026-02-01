@@ -26,12 +26,12 @@ public class PartyController {
     }
 
     @GetMapping("/{partyKey}")
-    public PartyDetailResponse detail(@PathVariable String partyKey) {
+    public PartyDetailResponse detail(@PathVariable("partyKey") String partyKey) {
         return partyService.getByKey(partyKey);
     }
 
     @GetMapping("/{partyKey}/candidates")
-    public List<PartyCandidateItem> candidates(@PathVariable String partyKey) {
+    public List<PartyCandidateItem> candidates(@PathVariable("partyKey") String partyKey) {
         return partyService.candidatesByPartyKey(partyKey);
     }
 }

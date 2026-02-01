@@ -32,7 +32,8 @@ public class PartyService {
                         p.getPartyKey(),
                         p.getName(),
                         p.getShortName(),
-                        p.getColor()))
+                        p.getColor(),
+                        p.getDescription()))
                 .toList();
     }
 

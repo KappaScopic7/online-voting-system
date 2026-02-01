@@ -75,7 +75,7 @@ public class VoterElectionsService {
                 .map(e -> {
                     String status = calcStatus(e, now);
 
-                    boolean hasResult = false; // TODO
+                    boolean hasResult = false;
                     boolean canCast = "ONGOING".equals(status);
 
                     int candidateCount = Math.toIntExact(candidateCounts.getOrDefault(e.getId(), 0L));

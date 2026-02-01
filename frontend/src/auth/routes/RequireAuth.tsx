@@ -9,10 +9,9 @@ export function RequireAuth() {
     if (isLoading) return <div>Loading...</div>;
 
     if (!me) {
-        const returnTo = sanitizeReturnTo(
-            currentAsFrom(loc.pathname, loc.search),
-            "/",
-        );
+        const rawFrom = currentAsFrom(loc.pathname, loc.search);
+        const returnTo = sanitizeReturnTo(rawFrom ?? undefined, "/");
+
         return <Navigate to="/login" replace state={{ from: returnTo }} />;
     }
 

@@ -1,5 +1,5 @@
 // frontend/src/me/pages/MePage.tsx
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 
 import { fetchMeDetail, login } from "../../user/api/userAuthApi";
@@ -7,12 +7,120 @@ import type { MeDetailResponse } from "../../user/model/userAuthTypes";
 import { useAuth } from "../../user/UserAuthContext";
 
 import { getMeProfile, putMeProfile } from "../../me/api/profile";
-import type { MeProfileResponse } from "../../me/model/profileTypes";
+import type {
+    MeProfileResponse,
+    MeProfileUpdateRequest,
+} from "../../me/model/profileTypes";
 
 import { demoPersonas } from "../../demo/personas";
+import { Card, DevDebug, Page } from "../../shared/ui/page";
+import { currentAsFrom, sanitizeReturnTo } from "../../auth/routes/returnTo";
+import { AddressInput } from "../ui/AddressInput";
+
+function Badge({
+    children,
+    tone = "neutral",
+}: {
+    children: React.ReactNode;
+    tone?: "neutral" | "good" | "warn" | "bad";
+}) {
+    const bg =
+        tone === "good"
+            ? "#ecfdf3"
+            : tone === "warn"
+              ? "#fff7ed"
+              : tone === "bad"
+                ? "#fef2f2"
+                : "#f5f5f5";
+    const bd =
+        tone === "good"
+            ? "#bbf7d0"
+            : tone === "warn"
+              ? "#fed7aa"
+              : tone === "bad"
+                ? "#fecaca"
+                : "#e5e5e5";
+    const fg =
+        tone === "good"
+            ? "#166534"
+            : tone === "warn"
+              ? "#9a3412"
+              : tone === "bad"
+                ? "#991b1b"
+                : "#444";
+
+    return (
+        <span
+            style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+                padding: "4px 10px",
+                borderRadius: 999,
+                border: `1px solid ${bd}`,
+                background: bg,
+                color: fg,
+                fontSize: 12,
+                fontWeight: 700,
+                whiteSpace: "nowrap",
+            }}
+        >
+            {children}
+        </span>
+    );
+}
+
+function Field({
+    label,
+    value,
+    onChange,
+    placeholder,
+    disabled,
+    hint,
+    type = "text",
+}: {
+    label: string;
+    value: string;
+    onChange: (v: string) => void;
+    placeholder?: string;
+    disabled?: boolean;
+    hint?: string;
+    type?: React.HTMLInputTypeAttribute;
+}) {
+    return (
+        <label style={{ display: "grid", gap: 6 }}>
+            <div style={{ fontSize: 13, fontWeight: 800 }}>{label}</div>
+            <input
+                type={type}
+                value={value}
+                onChange={(e) => onChange(e.target.value)}
+                placeholder={placeholder}
+                disabled={disabled}
+                style={{
+                    padding: "10px 12px",
+                    borderRadius: 10,
+                    border: "1px solid #e5e5e5",
+                    background: disabled ? "#fafafa" : "#fff",
+                }}
+            />
+            {hint && (
+                <div style={{ fontSize: 12, opacity: 0.7, lineHeight: 1.5 }}>
+                    {hint}
+                </div>
+            )}
+        </label>
+    );
+}
 
 export function MePage() {
     const { refreshMe, setAccessToken } = useAuth();
+    const loc = useLocation();
+
+    const state = (loc.state ?? {}) as { from?: string };
+    const returnTo = useMemo(() => {
+        const raw = state.from ?? currentAsFrom(loc.pathname, loc.search);
+        return sanitizeReturnTo(raw ?? undefined, "/");
+    }, [state.from, loc.pathname, loc.search]);
 
     const [me, setMe] = useState<MeDetailResponse | null>(null);
     const [msg, setMsg] = useState<string | null>(null);
@@ -26,25 +134,25 @@ export function MePage() {
     const [birthDate, setBirthDate] = useState(""); // yyyy-MM-dd
     const [prefCode, setPrefCode] = useState("");
     const [cityCode, setCityCode] = useState("");
+
     const [saving, setSaving] = useState(false);
+    const [refreshing, setRefreshing] = useState(false);
 
-    const loc = useLocation();
-    const from = loc.pathname + loc.search;
+    // UX: プロフィール編集を折りたたみ
+    const [showProfileEdit, setShowProfileEdit] = useState(false);
 
-    const load = async () => {
-        setIsLoading(true);
+    const loadMe = async () => {
         setMsg(null);
         try {
             const data = await fetchMeDetail();
             setMe(data);
         } catch (err: any) {
+            setMe(null);
             setMsg(
                 err?.response?.data?.message ??
                     err?.message ??
                     "Failed to load",
             );
-        } finally {
-            setIsLoading(false);
         }
     };
 
@@ -53,17 +161,15 @@ export function MePage() {
         try {
             const p = await getMeProfile();
             setProfile(p);
-
-            // source に関わらず表示用に入れる（編集可否は別で判定）
             setBirthDate(p.birthDate ?? "");
             setPrefCode(p.prefCode ?? "");
             setCityCode(p.cityCode ?? "");
         } catch (err: any) {
-            // 404=未入力は正常系として扱う
             const status = err?.response?.status;
             const m =
                 err?.response?.data?.message ?? err?.message ?? String(err);
 
+            // 404=未入力 → 正常扱い
             if (status === 404) {
                 setProfile(null);
                 setBirthDate("");
@@ -76,26 +182,29 @@ export function MePage() {
         }
     };
 
-    const loginAs = async (p: { email: string; password: string }) => {
+    const reloadAll = async () => {
         setMsg(null);
         setProfileMsg(null);
+        setRefreshing(true);
         try {
-            const token = await login(p.email, p.password);
-            await setAccessToken(token.accessToken);
-
-            await load();
-            await loadProfile();
+            await refreshMe();
+            await Promise.all([loadMe(), loadProfile()]);
         } catch (err: any) {
             setMsg(
-                err?.response?.data?.message ?? err?.message ?? "ログイン失敗",
+                err?.response?.data?.message ??
+                    err?.message ??
+                    "Failed to refresh",
             );
+        } finally {
+            setRefreshing(false);
         }
     };
 
     useEffect(() => {
         (async () => {
-            await load();
-            await loadProfile();
+            setIsLoading(true);
+            await Promise.all([loadMe(), loadProfile()]);
+            setIsLoading(false);
         })();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
@@ -103,300 +212,229 @@ export function MePage() {
     const identityStatus = me?.identityStatus ?? "UNKNOWN";
     const isLinked = identityStatus === "LINKED";
     const isPending = identityStatus === "PENDING";
+    const emailVerified = me?.emailVerified === true;
 
-    // ★ 追加: profile.source でも編集不可を判断（将来のズレ対策）
+    // 編集可否
     const isCitizenSource = profile?.source === "CITIZEN";
     const disableSelfEdit = isLinked || isCitizenSource;
 
-    const onRefreshAll = async () => {
-        setMsg(null);
-        setProfileMsg(null);
-        try {
-            await refreshMe();
-            await load();
-            await loadProfile();
-        } catch (err: any) {
-            setMsg(
-                err?.response?.data?.message ??
-                    err?.message ??
-                    "Failed to refresh",
-            );
-        }
-    };
+    // プロフィール入力の目安（空欄があると My選挙が出ない/減る）
+    const profileFilled = !!birthDate && !!prefCode && !!cityCode;
+
+    const canSaveProfile = useMemo(() => {
+        if (disableSelfEdit) return false;
+        if (saving) return false;
+
+        const hasBirth = !!birthDate;
+        const addressComplete = !!prefCode && !!cityCode;
+
+        return hasBirth || addressComplete;
+    }, [disableSelfEdit, birthDate, prefCode, cityCode, saving]);
 
     const onSaveProfile = async () => {
         setProfileMsg(null);
 
-        if (!birthDate || !prefCode || !cityCode) {
-            setProfileMsg("birthDate / prefCode / cityCode を入力してください");
+        const hasBirth = !!birthDate;
+        const addressComplete = !!prefCode && !!cityCode;
+
+        if (!hasBirth && !addressComplete) {
+            setProfileMsg("生年月日または住所を入力してください");
+            return;
+        }
+        if ((prefCode && !cityCode) || (!prefCode && cityCode)) {
+            setProfileMsg("住所は都道府県と市区町村を両方入力してください");
             return;
         }
 
+        const payload: MeProfileUpdateRequest = {
+            birthDate: birthDate || profile?.birthDate || undefined,
+            prefCode: prefCode || profile?.prefCode || undefined,
+            cityCode: cityCode || profile?.cityCode || undefined,
+        };
+
         setSaving(true);
         try {
-            const p = await putMeProfile({ birthDate, prefCode, cityCode });
+            const p = await putMeProfile(payload);
             setProfile(p);
             setProfileMsg("保存しました");
         } catch (err: any) {
-            const m =
+            setProfileMsg(
                 err?.response?.data?.message ??
-                err?.message ??
-                "保存に失敗しました";
-            setProfileMsg(m);
+                    err?.message ??
+                    "保存に失敗しました",
+            );
         } finally {
             setSaving(false);
         }
     };
 
+    const loginAs = async (p: { email: string; password: string }) => {
+        setMsg(null);
+        setProfileMsg(null);
+        try {
+            const token = await login(p.email, p.password);
+            await setAccessToken(token.accessToken);
+            await Promise.all([loadMe(), loadProfile()]);
+        } catch (err: any) {
+            setMsg(
+                err?.response?.data?.message ?? err?.message ?? "ログイン失敗",
+            );
+        }
+    };
+
     const isDev = import.meta.env?.DEV;
 
-    if (isLoading) return <div>Loading...</div>;
+    // 状態バッジの優先度（ユーザーが今すべきことが分かる）
+    const topAlerts = useMemo(() => {
+        const list: {
+            tone: "warn" | "bad";
+            title: string;
+            body: string;
+            cta?: React.ReactNode;
+        }[] = [];
+
+        if (!emailVerified) {
+            list.push({
+                tone: "warn",
+                title: "メール認証が未完了です",
+                body: "投票機能の制限がかかる可能性があります。先にメール認証を完了してください。",
+                cta: me?.email ? (
+                    <Link
+                        to="/verify"
+                        state={{ email: me.email, from: returnTo }}
+                    >
+                        メール認証へ →
+                    </Link>
+                ) : (
+                    <Link to="/verify" state={{ from: returnTo }}>
+                        メール認証へ →
+                    </Link>
+                ),
+            });
+        }
+
+        if (isPending) {
+            list.push({
+                tone: "warn",
+                title: "本人認証：審査中です",
+                body: "審査が完了するまで投票できません。",
+                cta: (
+                    <Link to="/me/identity/pending" state={{ from: returnTo }}>
+                        審査状況を見る →
+                    </Link>
+                ),
+            });
+        } else if (!isLinked) {
+            list.push({
+                tone: "warn",
+                title: "本人認証が未完了です",
+                body: "投票するには本人認証が必要です。",
+                cta: (
+                    <Link to="/me/identity" state={{ from: returnTo }}>
+                        本人認証へ進む →
+                    </Link>
+                ),
+            });
+        }
+
+        if (!profileFilled && !disableSelfEdit) {
+            list.push({
+                tone: "warn",
+                title: "プロフィール情報が不足しています",
+                body: "My選挙の対象判定に使います（本人認証後は市民情報で上書きされます）。",
+                cta: (
+                    <button
+                        type="button"
+                        onClick={() => setShowProfileEdit(true)}
+                    >
+                        プロフィールを入力する →
+                    </button>
+                ),
+            });
+        }
+
+        return list;
+    }, [
+        emailVerified,
+        isPending,
+        isLinked,
+        profileFilled,
+        disableSelfEdit,
+        me?.email,
+        returnTo,
+    ]);
+
+    if (isLoading) {
+        return (
+            <Page
+                title={<h1 style={{ margin: 0, fontSize: 20 }}>My Page</h1>}
+                actions={
+                    <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+                        <Link to={returnTo}>← 戻る</Link>
+                    </div>
+                }
+                maxWidth={860}
+            >
+                <Card>読み込み中…</Card>
+            </Page>
+        );
+    }
 
     return (
-        <div style={{ maxWidth: 760, padding: 16, display: "grid", gap: 12 }}>
-            <header
-                style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                }}
-            >
-                <h2 style={{ margin: 0 }}>My Page</h2>
-                <button type="button" onClick={onRefreshAll}>
-                    再読み込み
-                </button>
-            </header>
-
-            {msg && (
+        <Page
+            title={<h1 style={{ margin: 0, fontSize: 20 }}>My Page</h1>}
+            actions={
                 <div
-                    role="alert"
-                    style={{ padding: 8, border: "1px solid #ccc" }}
+                    style={{
+                        display: "flex",
+                        gap: 12,
+                        flexWrap: "wrap",
+                        alignItems: "center",
+                    }}
                 >
-                    {msg}
+                    <Link to={returnTo}>← 戻る</Link>
+                    <button
+                        type="button"
+                        onClick={reloadAll}
+                        disabled={refreshing}
+                    >
+                        {refreshing ? "更新中..." : "再読み込み"}
+                    </button>
                 </div>
+            }
+            maxWidth={860}
+        >
+            {msg && (
+                <Card role="alert">
+                    <div style={{ fontWeight: 900, marginBottom: 6 }}>
+                        エラー
+                    </div>
+                    <div>{msg}</div>
+                </Card>
             )}
 
             {!me ? (
-                <div>Not loaded</div>
+                <Card>ログイン情報を取得できませんでした</Card>
             ) : (
                 <>
-                    {/* Status */}
-                    <section style={{ padding: 12, border: "1px solid #ddd" }}>
-                        <h3 style={{ marginTop: 0 }}>Status</h3>
-                        <ul style={{ margin: 0, paddingLeft: 18 }}>
-                            <li>
-                                Email Verified:{" "}
-                                <b>{String(me.emailVerified)}</b>
-                            </li>
-                            <li>
-                                Identity Status:{" "}
-                                <b>{String(me.identityStatus)}</b>
-                            </li>
-                            <li>
-                                Enabled: <b>{String(me.enabled)}</b>
-                            </li>
-                            <li>
-                                Locked: <b>{String(me.locked)}</b>
-                            </li>
-                        </ul>
-
-                        <div
-                            style={{
-                                marginTop: 10,
-                                display: "flex",
-                                gap: 12,
-                                flexWrap: "wrap",
-                            }}
-                        >
-                            <Link to="/elections" state={{ from }}>
-                                選挙一覧へ
-                            </Link>
-
-                            <Link to="/me/elections" state={{ from }}>
-                                My選挙へ
-                            </Link>
-
-                            <Link to="/me/votes" state={{ from }}>
-                                投票履歴へ
-                            </Link>
-
-                            {!me.emailVerified && (
-                                <Link
-                                    to="/verify"
-                                    state={{ email: me.email, from }}
-                                >
-                                    メール認証へ
-                                </Link>
-                            )}
-
-                            {isPending && (
-                                <Link
-                                    to="/me/identity/pending"
-                                    state={{ from }}
-                                >
-                                    本人認証：審査中
-                                </Link>
-                            )}
-                        </div>
-                    </section>
-
-                    {/* Self Profile */}
-                    <section style={{ padding: 12, border: "1px solid #ddd" }}>
-                        <h3 style={{ marginTop: 0 }}>
-                            プロフィール（本人認証前）
-                        </h3>
-
-                        {disableSelfEdit ? (
-                            <p style={{ margin: 0, opacity: 0.8 }}>
-                                本人認証済みのため、自己申告プロフィールは編集できません（市民情報が優先されます）
-                            </p>
-                        ) : (
-                            <p style={{ margin: 0, opacity: 0.8 }}>
-                                My選挙の対象判定に使います（本人認証すると市民情報で上書きされます）
-                            </p>
-                        )}
-
-                        {/* 表示：source が CITIZEN なら軽く示す（DEVじゃなくてもOK） */}
-                        {profile?.source === "CITIZEN" && (
-                            <p
-                                style={{
-                                    marginTop: 8,
-                                    marginBottom: 0,
-                                    fontSize: 12,
-                                    opacity: 0.7,
-                                }}
-                            >
-                                ※ 現在の表示は市民情報（CITIZEN）由来です
-                            </p>
-                        )}
-
-                        {profileMsg && (
-                            <div
-                                style={{
-                                    marginTop: 10,
-                                    padding: 8,
-                                    border: "1px solid #ccc",
-                                }}
-                            >
-                                {profileMsg}
-                            </div>
-                        )}
-
-                        <div style={{ marginTop: 10, display: "grid", gap: 8 }}>
-                            <label style={{ display: "grid", gap: 4 }}>
-                                <span>生年月日（yyyy-MM-dd）</span>
-                                <input
-                                    value={birthDate}
-                                    onChange={(e) =>
-                                        setBirthDate(e.target.value)
-                                    }
-                                    placeholder="2000-01-01"
-                                    disabled={disableSelfEdit || saving}
-                                />
-                            </label>
-
-                            <label style={{ display: "grid", gap: 4 }}>
-                                <span>都道府県コード</span>
-                                <input
-                                    value={prefCode}
-                                    onChange={(e) =>
-                                        setPrefCode(e.target.value)
-                                    }
-                                    placeholder="13"
-                                    disabled={disableSelfEdit || saving}
-                                />
-                            </label>
-
-                            <label style={{ display: "grid", gap: 4 }}>
-                                <span>市区町村コード</span>
-                                <input
-                                    value={cityCode}
-                                    onChange={(e) =>
-                                        setCityCode(e.target.value)
-                                    }
-                                    placeholder="13209"
-                                    disabled={disableSelfEdit || saving}
-                                />
-                            </label>
-
+                    {/* ===== 1) クイック概要 ===== */}
+                    <Card>
+                        <div style={{ display: "grid", gap: 12 }}>
                             <div
                                 style={{
                                     display: "flex",
-                                    gap: 12,
+                                    gap: 10,
+                                    alignItems: "baseline",
                                     flexWrap: "wrap",
-                                    alignItems: "center",
                                 }}
                             >
-                                <button
-                                    type="button"
-                                    onClick={onSaveProfile}
-                                    disabled={disableSelfEdit || saving}
-                                >
-                                    {saving ? "保存中..." : "保存"}
-                                </button>
-
-                                <button
-                                    type="button"
-                                    onClick={loadProfile}
-                                    disabled={saving}
-                                >
-                                    プロフィール再取得
-                                </button>
-
-                                {profile && (
-                                    <span
-                                        style={{ fontSize: 12, opacity: 0.75 }}
-                                    >
-                                        updatedAt: {profile.updatedAt}
-                                    </span>
-                                )}
+                                <div style={{ fontSize: 16, fontWeight: 900 }}>
+                                    {me.email ?? "ユーザー"}
+                                </div>
+                                <span style={{ fontSize: 12, opacity: 0.7 }}>
+                                    accountId: {me.accountId}
+                                </span>
                             </div>
-                        </div>
-                    </section>
-
-                    {/* Account detail */}
-                    <section>
-                        <h3 style={{ marginBottom: 8 }}>Account</h3>
-                        <table
-                            style={{
-                                borderCollapse: "collapse",
-                                width: "100%",
-                            }}
-                        >
-                            <tbody>
-                                {Object.entries(me).map(([k, v]) => (
-                                    <tr key={k}>
-                                        <td
-                                            style={{
-                                                padding: "6px 12px",
-                                                borderBottom: "1px solid #ddd",
-                                                fontWeight: 600,
-                                                width: 220,
-                                            }}
-                                        >
-                                            {k}
-                                        </td>
-                                        <td
-                                            style={{
-                                                padding: "6px 12px",
-                                                borderBottom: "1px solid #ddd",
-                                            }}
-                                        >
-                                            {v === null ? "null" : String(v)}
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </section>
-
-                    {isDev && (
-                        <section
-                            style={{ padding: 12, border: "1px dashed #999" }}
-                        >
-                            <h3 style={{ marginTop: 0 }}>
-                                DEV: クイック状態切替
-                            </h3>
 
                             <div
                                 style={{
@@ -405,79 +443,415 @@ export function MePage() {
                                     flexWrap: "wrap",
                                 }}
                             >
-                                {Object.values(demoPersonas.voter).map((p) => (
-                                    <button
-                                        key={p.key}
-                                        type="button"
-                                        onClick={() => loginAs(p)}
+                                <Badge tone={emailVerified ? "good" : "warn"}>
+                                    {emailVerified
+                                        ? "メール認証済み"
+                                        : "メール未認証"}
+                                </Badge>
+
+                                <Badge
+                                    tone={
+                                        isLinked
+                                            ? "good"
+                                            : isPending
+                                              ? "warn"
+                                              : "warn"
+                                    }
+                                >
+                                    {isLinked
+                                        ? "本人認証済み"
+                                        : isPending
+                                          ? "本人認証：審査中"
+                                          : "本人認証：未完了"}
+                                </Badge>
+
+                                <Badge tone={me.enabled ? "good" : "bad"}>
+                                    {me.enabled
+                                        ? "有効アカウント"
+                                        : "無効アカウント"}
+                                </Badge>
+
+                                <Badge tone={me.locked ? "bad" : "good"}>
+                                    {me.locked ? "ロック中" : "ロックなし"}
+                                </Badge>
+                            </div>
+
+                            {/* 重要アラート（必要な時だけ出る） */}
+                            {topAlerts.length > 0 && (
+                                <div style={{ display: "grid", gap: 10 }}>
+                                    {topAlerts.map((a, i) => (
+                                        <div
+                                            key={i}
+                                            style={{
+                                                border: "1px solid #eee",
+                                                borderRadius: 12,
+                                                padding: 12,
+                                                background: "#fafafa",
+                                                display: "grid",
+                                                gap: 6,
+                                            }}
+                                        >
+                                            <div style={{ fontWeight: 900 }}>
+                                                {a.title}
+                                            </div>
+                                            <div
+                                                style={{
+                                                    fontSize: 13,
+                                                    opacity: 0.85,
+                                                    lineHeight: 1.6,
+                                                }}
+                                            >
+                                                {a.body}
+                                            </div>
+                                            {a.cta ? (
+                                                <div style={{ marginTop: 4 }}>
+                                                    {a.cta}
+                                                </div>
+                                            ) : null}
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+                            {/* メイン導線 */}
+                            <div
+                                style={{
+                                    display: "flex",
+                                    gap: 12,
+                                    flexWrap: "wrap",
+                                }}
+                            >
+                                <Link
+                                    to="/me/elections"
+                                    state={{ from: returnTo }}
+                                >
+                                    <b>My選挙へ →</b>
+                                </Link>
+                                <Link to="/me/votes" state={{ from: returnTo }}>
+                                    投票履歴 →
+                                </Link>
+                                <Link
+                                    to="/elections"
+                                    state={{ from: returnTo }}
+                                >
+                                    選挙一覧 →
+                                </Link>
+                            </div>
+                        </div>
+                    </Card>
+
+                    {/* ===== 2) プロフィール（必要な時だけ編集） ===== */}
+                    <Card>
+                        <div style={{ display: "grid", gap: 12 }}>
+                            <div
+                                style={{
+                                    display: "flex",
+                                    justifyContent: "space-between",
+                                    gap: 12,
+                                    flexWrap: "wrap",
+                                }}
+                            >
+                                <div>
+                                    <div
+                                        style={{
+                                            fontWeight: 900,
+                                            fontSize: 15,
+                                        }}
+                                    >
+                                        判定用プロフィール
+                                    </div>
+                                    <div
                                         style={{
                                             fontSize: 12,
-                                            padding: "4px 8px",
-                                            textAlign: "left",
+                                            opacity: 0.75,
+                                            lineHeight: 1.6,
                                         }}
-                                        title={p.description}
                                     >
-                                        {p.label}
-                                    </button>
-                                ))}
-                            </div>
-                        </section>
-                    )}
+                                        My選挙の対象判定に使います。本人認証済みの場合は市民情報が優先され、編集できません。
+                                    </div>
+                                </div>
 
-                    {/* Identity section */}
-                    <section style={{ padding: 12, border: "1px solid #ddd" }}>
-                        <h3 style={{ marginTop: 0 }}>本人認証</h3>
-
-                        {isLinked ? (
-                            <p style={{ margin: 0 }}>
-                                現在: <b>投票可能（本人認証済み）</b>
-                            </p>
-                        ) : isPending ? (
-                            <div style={{ display: "grid", gap: 8 }}>
-                                <p style={{ margin: 0 }}>
-                                    現在: <b>投票不可（本人認証：審査中）</b>
-                                </p>
-                                <Link
-                                    to="/me/identity/pending"
-                                    state={{ from }}
+                                <div
+                                    style={{
+                                        display: "flex",
+                                        gap: 10,
+                                        alignItems: "center",
+                                    }}
                                 >
-                                    審査状況へ →
-                                </Link>
+                                    {profile?.source ? (
+                                        <Badge
+                                            tone={
+                                                profile.source === "CITIZEN"
+                                                    ? "good"
+                                                    : "neutral"
+                                            }
+                                        >
+                                            source: {profile.source}
+                                        </Badge>
+                                    ) : (
+                                        <Badge tone="neutral">未登録</Badge>
+                                    )}
+
+                                    {!disableSelfEdit && (
+                                        <button
+                                            type="button"
+                                            onClick={() =>
+                                                setShowProfileEdit((v) => !v)
+                                            }
+                                        >
+                                            {showProfileEdit
+                                                ? "閉じる"
+                                                : "編集する"}
+                                        </button>
+                                    )}
+                                </div>
                             </div>
-                        ) : (
-                            <div style={{ display: "grid", gap: 8 }}>
-                                <p style={{ margin: 0 }}>
-                                    現在: <b>投票不可（本人認証が必要）</b>
-                                </p>
-                                <Link to="/me/identity" state={{ from }}>
-                                    本人認証へ進む →
-                                </Link>
+
+                            {/* 要約表示 */}
+                            <div
+                                style={{
+                                    display: "grid",
+                                    gap: 6,
+                                    fontSize: 13,
+                                }}
+                            >
+                                <div>
+                                    生年月日:{" "}
+                                    <b>{profile?.birthDate ?? "(未登録)"}</b>
+                                </div>
+                                <div>
+                                    都道府県コード:{" "}
+                                    <b>{profile?.prefCode ?? "(未登録)"}</b>
+                                </div>
+                                <div>
+                                    市区町村コード:{" "}
+                                    <b>{profile?.cityCode ?? "(未登録)"}</b>
+                                </div>
+                                {profile?.updatedAt && (
+                                    <div style={{ fontSize: 12, opacity: 0.7 }}>
+                                        updatedAt: {profile.updatedAt}
+                                    </div>
+                                )}
                             </div>
-                        )}
-                    </section>
+
+                            {disableSelfEdit && (
+                                <div style={{ fontSize: 12, opacity: 0.75 }}>
+                                    ※
+                                    本人認証済み/市民情報由来のため、自己申告プロフィールは編集できません。
+                                </div>
+                            )}
+
+                            {profileMsg && (
+                                <div
+                                    style={{
+                                        border: "1px solid #eee",
+                                        borderRadius: 12,
+                                        padding: 10,
+                                    }}
+                                >
+                                    {profileMsg}
+                                </div>
+                            )}
+
+                            {/* 編集フォーム（折りたたみ） */}
+                            {showProfileEdit && !disableSelfEdit && (
+                                <div style={{ display: "grid", gap: 10 }}>
+                                    <Field
+                                        label="生年月日"
+                                        value={birthDate}
+                                        onChange={setBirthDate}
+                                        disabled={saving}
+                                        type="date"
+                                    />
+
+                                    <div style={{ display: "grid", gap: 8 }}>
+                                        <div
+                                            style={{
+                                                fontSize: 13,
+                                                fontWeight: 800,
+                                            }}
+                                        >
+                                            住所
+                                        </div>
+                                        <AddressInput
+                                            prefCode={prefCode}
+                                            cityCode={cityCode}
+                                            onChangePref={setPrefCode}
+                                            onChangeCity={setCityCode}
+                                            disabled={saving}
+                                        />
+                                        <div
+                                            style={{
+                                                fontSize: 12,
+                                                opacity: 0.7,
+                                                lineHeight: 1.6,
+                                            }}
+                                        >
+                                            ※ 郵便番号 or
+                                            選択で入力できます（保存は
+                                            prefCode/cityCode）
+                                        </div>
+                                    </div>
+
+                                    <div
+                                        style={{
+                                            display: "flex",
+                                            gap: 12,
+                                            flexWrap: "wrap",
+                                            alignItems: "center",
+                                        }}
+                                    >
+                                        <button
+                                            type="button"
+                                            onClick={onSaveProfile}
+                                            disabled={!canSaveProfile}
+                                        >
+                                            {saving ? "保存中..." : "保存"}
+                                        </button>
+
+                                        <button
+                                            type="button"
+                                            onClick={loadProfile}
+                                            disabled={saving}
+                                        >
+                                            再取得
+                                        </button>
+
+                                        {!profileFilled && (
+                                            <span
+                                                style={{
+                                                    fontSize: 12,
+                                                    opacity: 0.7,
+                                                }}
+                                            >
+                                                ※ 入力が揃うと
+                                                My選挙の対象判定が安定します
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </Card>
+
+                    {/* ===== 3) 本人認証（明確なCTA） ===== */}
+                    <Card>
+                        <div style={{ display: "grid", gap: 10 }}>
+                            <div style={{ fontWeight: 900, fontSize: 15 }}>
+                                本人認証
+                            </div>
+
+                            {isLinked ? (
+                                <div style={{ fontSize: 13 }}>
+                                    現在: <b>投票可能（本人認証済み）</b>
+                                </div>
+                            ) : isPending ? (
+                                <div style={{ display: "grid", gap: 8 }}>
+                                    <div style={{ fontSize: 13 }}>
+                                        現在: <b>投票不可（審査中）</b>
+                                    </div>
+                                    <Link
+                                        to="/me/identity/pending"
+                                        state={{ from: returnTo }}
+                                    >
+                                        審査状況を見る →
+                                    </Link>
+                                </div>
+                            ) : (
+                                <div style={{ display: "grid", gap: 8 }}>
+                                    <div style={{ fontSize: 13 }}>
+                                        現在: <b>投票不可（本人認証が必要）</b>
+                                    </div>
+                                    <Link
+                                        to="/me/identity"
+                                        state={{ from: returnTo }}
+                                    >
+                                        本人認証へ進む →
+                                    </Link>
+                                </div>
+                            )}
+                        </div>
+                    </Card>
+
+                    {/* ===== DEV（折りたたみ） ===== */}
+                    {isDev && (
+                        <details>
+                            <summary style={{ cursor: "pointer" }}>
+                                DEV tools
+                            </summary>
+
+                            <div
+                                style={{
+                                    display: "grid",
+                                    gap: 12,
+                                    marginTop: 10,
+                                }}
+                            >
+                                <Card>
+                                    <div
+                                        style={{
+                                            fontWeight: 900,
+                                            marginBottom: 10,
+                                        }}
+                                    >
+                                        DEV: クイック状態切替
+                                    </div>
+                                    <div
+                                        style={{
+                                            display: "flex",
+                                            gap: 8,
+                                            flexWrap: "wrap",
+                                        }}
+                                    >
+                                        {Object.values(demoPersonas.voter).map(
+                                            (p) => (
+                                                <button
+                                                    key={p.key}
+                                                    type="button"
+                                                    onClick={() => loginAs(p)}
+                                                    style={{
+                                                        fontSize: 12,
+                                                        padding: "6px 10px",
+                                                        textAlign: "left",
+                                                    }}
+                                                    title={p.description}
+                                                >
+                                                    {p.label}
+                                                </button>
+                                            ),
+                                        )}
+                                    </div>
+                                </Card>
+
+                                <Card>
+                                    <div
+                                        style={{
+                                            fontWeight: 900,
+                                            marginBottom: 8,
+                                        }}
+                                    >
+                                        Account raw
+                                    </div>
+                                    <pre
+                                        style={{
+                                            margin: 0,
+                                            whiteSpace: "pre-wrap",
+                                            fontSize: 12,
+                                            opacity: 0.85,
+                                        }}
+                                    >
+                                        {JSON.stringify(me, null, 2)}
+                                    </pre>
+                                </Card>
+
+                                <DevDebug
+                                    value={{ me, profile, returnTo, state }}
+                                />
+                            </div>
+                        </details>
+                    )}
                 </>
             )}
-
-            {isDev && (
-                <details>
-                    <summary>Debug</summary>
-                    <pre style={{ whiteSpace: "pre-wrap" }}>
-                        {JSON.stringify(
-                            {
-                                me,
-                                msg,
-                                identityStatus,
-                                isLoading,
-                                profile,
-                                profileMsg,
-                                disableSelfEdit,
-                            },
-                            null,
-                            2,
-                        )}
-                    </pre>
-                </details>
-            )}
-        </div>
+        </Page>
     );
 }

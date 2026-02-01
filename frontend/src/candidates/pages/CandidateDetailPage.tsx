@@ -1,13 +1,47 @@
 // frontend/src/candidates/pages/CandidateDetailPage.tsx
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
 import { fetchCandidateDetail } from "../api/candidates";
 import type { CandidateDetailResponse } from "../model/candidateTypes";
 import { normalizeFrom } from "../../shared/normalizeFrom";
 import { resolveCandidateImageUrl } from "../../elections/ui/candidateImages";
+import { Card, DevDebug, Page } from "../../shared/ui/page";
 
 type LocationState = { from?: string };
-const isDev = import.meta.env?.DEV;
+
+function PartyBadge({
+    shortName,
+    name,
+    color,
+    to,
+    fromSelf,
+}: {
+    shortName: string;
+    name?: string;
+    color?: string | null;
+    to: string;
+    fromSelf: string;
+}) {
+    return (
+        <Link
+            to={to}
+            state={{ from: fromSelf }}
+            title={name ?? shortName}
+            style={{
+                fontSize: 12,
+                padding: "4px 10px",
+                border: "1px solid #eee",
+                borderRadius: 999,
+                textDecoration: "none",
+                color: "inherit",
+                background: "#fafafa",
+                boxShadow: color ? `inset 4px 0 0 0 ${color}` : undefined,
+            }}
+        >
+            {shortName}
+        </Link>
+    );
+}
 
 export function CandidateDetailPage() {
     const { electionId, candidateId } = useParams<{
@@ -18,15 +52,17 @@ export function CandidateDetailPage() {
     const loc = useLocation();
     const state = (loc.state ?? {}) as LocationState;
 
-    // 戻り先（CandidatesPage が state.from を渡してくる想定）
     const backTo = normalizeFrom(state.from ?? "/elections");
-
-    // このページ自身（party 詳細などに渡すため）
     const self = loc.pathname + loc.search;
 
     const [data, setData] = useState<CandidateDetailResponse | null>(null);
     const [err, setErr] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
+
+    const imgSrc = useMemo(() => {
+        if (!data) return null;
+        return data.imageUrl ?? resolveCandidateImageUrl(data.candidateKey);
+    }, [data]);
 
     const load = async () => {
         if (!electionId || !candidateId) return;
@@ -50,184 +86,216 @@ export function CandidateDetailPage() {
 
     if (!electionId || !candidateId) {
         return (
-            <div style={{ padding: 12, display: "grid", gap: 12 }}>
-                <Link to="/elections">← 戻る</Link>
-                <div>Invalid params</div>
-            </div>
+            <Page
+                title={<h1 style={{ margin: 0, fontSize: 20 }}>候補者詳細</h1>}
+                actions={<Link to="/elections">← 戻る</Link>}
+                maxWidth={760}
+            >
+                <Card role="alert">Invalid params</Card>
+            </Page>
         );
     }
 
     return (
-        <div style={{ padding: 12, display: "grid", gap: 12, maxWidth: 760 }}>
-            <header
-                style={{
-                    display: "flex",
-                    gap: 12,
-                    alignItems: "center",
-                    flexWrap: "wrap",
-                }}
-            >
-                <Link to={backTo}>← 戻る</Link>
-
-                <span style={{ opacity: 0.4 }}>｜</span>
-
-                <Link to={`/elections/${electionId}`} state={{ from: self }}>
-                    選挙詳細へ
-                </Link>
-
-                <Link
-                    to={`/elections/${electionId}/candidates`}
-                    state={{ from: self }}
-                >
-                    候補者一覧へ
-                </Link>
-
-                <h2 style={{ margin: 0 }}>候補者詳細</h2>
-                <button
-                    onClick={load}
-                    disabled={isLoading}
-                    style={{ marginLeft: "auto" }}
-                >
-                    {isLoading ? "Reloading..." : "再読み込み"}
-                </button>
-            </header>
-
-            {err && (
+        <Page
+            title={<h1 style={{ margin: 0, fontSize: 20 }}>候補者詳細</h1>}
+            actions={
                 <div
-                    role="alert"
-                    style={{ padding: 8, border: "1px solid #ccc" }}
+                    style={{
+                        display: "flex",
+                        gap: 12,
+                        flexWrap: "wrap",
+                        alignItems: "center",
+                    }}
                 >
-                    {err}
+                    <Link to={backTo}>← 戻る</Link>
+                    <Link
+                        to={`/elections/${electionId}`}
+                        state={{ from: self }}
+                    >
+                        選挙詳細へ
+                    </Link>
+                    <Link
+                        to={`/elections/${electionId}/candidates`}
+                        state={{ from: self }}
+                    >
+                        候補者一覧へ
+                    </Link>
+
+                    <button
+                        onClick={load}
+                        disabled={isLoading}
+                        style={{ marginLeft: "auto" }}
+                    >
+                        {isLoading ? "Reloading..." : "再読み込み"}
+                    </button>
                 </div>
+            }
+            maxWidth={760}
+        >
+            {err && (
+                <Card role="alert">
+                    <div style={{ fontWeight: 800, marginBottom: 6 }}>
+                        エラー
+                    </div>
+                    <div style={{ color: "crimson" }}>{err}</div>
+                </Card>
             )}
 
             {!data ? (
-                <p>{isLoading ? "Loading..." : "Not loaded"}</p>
+                <Card>{isLoading ? "読み込み中…" : "データがありません"}</Card>
             ) : (
-                <section
-                    style={{
-                        border: "1px solid #ddd",
-                        borderRadius: 8,
-                        padding: 12,
-                        display: "grid",
-                        gap: 10,
-                    }}
-                >
-                    <div
-                        style={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                            gap: 12,
-                            alignItems: "center",
-                        }}
-                    >
-                        <div style={{ display: "grid", gap: 4 }}>
-                            <strong style={{ fontSize: 18 }}>
-                                {data.name}
-                            </strong>
-                            <div style={{ fontSize: 13, opacity: 0.85 }}>
-                                {data.title}
-                                {data.age !== null ? ` / ${data.age}歳` : ""}
+                <>
+                    {/* Header */}
+                    <Card>
+                        <div
+                            style={{
+                                display: "flex",
+                                justifyContent: "space-between",
+                                gap: 12,
+                                alignItems: "center",
+                                flexWrap: "wrap",
+                            }}
+                        >
+                            <div style={{ display: "grid", gap: 4 }}>
+                                <strong style={{ fontSize: 18 }}>
+                                    {data.name}
+                                </strong>
+                                <div style={{ fontSize: 13, opacity: 0.85 }}>
+                                    {data.title}
+                                    {data.age !== null
+                                        ? ` / ${data.age}歳`
+                                        : ""}
+                                </div>
                             </div>
+
+                            {data.party ? (
+                                <PartyBadge
+                                    shortName={data.party.shortName}
+                                    name={data.party.name}
+                                    color={data.party.color}
+                                    to={`/parties/${data.party.partyKey}`}
+                                    fromSelf={self}
+                                />
+                            ) : (
+                                <span style={{ fontSize: 12, opacity: 0.6 }}>
+                                    無所属
+                                </span>
+                            )}
                         </div>
+                    </Card>
 
-                        {data.party ? (
-                            <Link
-                                to={`/parties/${data.party.partyKey}`}
-                                state={{ from: self }}
-                                style={{
-                                    fontSize: 12,
-                                    padding: "4px 10px",
-                                    border: "1px solid #ccc",
-                                    borderRadius: 999,
-                                    textDecoration: "none",
-                                }}
-                                title={data.party.name}
-                            >
-                                {data.party.shortName}
-                            </Link>
-                        ) : (
-                            <span style={{ fontSize: 12, opacity: 0.6 }}>
-                                無所属
-                            </span>
-                        )}
-                    </div>
-
-                    {(() => {
-                        const imgSrc =
-                            data.imageUrl ??
-                            resolveCandidateImageUrl(data.candidateKey);
-                        return imgSrc ? (
+                    {/* Image */}
+                    {imgSrc ? (
+                        <Card>
                             <img
                                 src={imgSrc}
                                 alt={data.name}
                                 onError={(e) => {
-                                    // 画像404等で崩れないように
                                     (
                                         e.currentTarget as HTMLImageElement
                                     ).style.display = "none";
                                 }}
                                 style={{
                                     width: "100%",
-                                    maxWidth: 420,
-                                    borderRadius: 8,
+                                    maxWidth: 560,
+                                    borderRadius: 12,
                                     border: "1px solid #eee",
+                                    objectFit: "cover",
                                 }}
                             />
-                        ) : null;
-                    })()}
-                    <div style={{ fontSize: 14, lineHeight: 1.6 }}>
-                        {data.bio}
-                    </div>
-                    {data.policies?.length ? (
-                        <div style={{ display: "grid", gap: 6 }}>
-                            <strong>主な政策</strong>
-                            <ul style={{ margin: 0, paddingLeft: 18 }}>
-                                {data.policies.map((x, i) => (
-                                    <li key={i}>{x}</li>
-                                ))}
-                            </ul>
-                        </div>
-                    ) : (
-                        <div style={{ opacity: 0.7, fontSize: 13 }}>
-                            政策情報はありません
-                        </div>
-                    )}
-                    <div
-                        style={{
-                            display: "flex",
-                            gap: 12,
-                            flexWrap: "wrap",
-                            alignItems: "center",
-                        }}
-                    >
-                        {data.websiteUrl ? (
-                            <a
-                                href={data.websiteUrl}
-                                target="_blank"
-                                rel="noreferrer"
-                            >
-                                公式サイト
-                            </a>
-                        ) : (
-                            <span style={{ opacity: 0.6 }}>公式サイトなし</span>
-                        )}
+                        </Card>
+                    ) : null}
 
-                        {isDev && (
-                            <span
-                                style={{
-                                    marginLeft: "auto",
-                                    fontSize: 12,
-                                    opacity: 0.7,
-                                }}
-                            >
-                                key: {data.candidateKey} / sort:{" "}
-                                {/* {data.sortOrder} */}
-                            </span>
-                        )}
-                    </div>
-                </section>
+                    {/* Bio */}
+                    <Card>
+                        <div style={{ display: "grid", gap: 8 }}>
+                            <div style={{ fontWeight: 800 }}>プロフィール</div>
+                            {data.bio ? (
+                                <div style={{ fontSize: 14, lineHeight: 1.7 }}>
+                                    {data.bio}
+                                </div>
+                            ) : (
+                                <div style={{ opacity: 0.7, fontSize: 13 }}>
+                                    プロフィール情報はありません
+                                </div>
+                            )}
+                        </div>
+                    </Card>
+
+                    {/* Policies */}
+                    <Card>
+                        <div style={{ display: "grid", gap: 8 }}>
+                            <div style={{ fontWeight: 800 }}>主な政策</div>
+                            {data.policies?.length ? (
+                                <ul
+                                    style={{
+                                        margin: 0,
+                                        paddingLeft: 18,
+                                        lineHeight: 1.7,
+                                    }}
+                                >
+                                    {data.policies.map((x, i) => (
+                                        <li key={i}>{x}</li>
+                                    ))}
+                                </ul>
+                            ) : (
+                                <div style={{ opacity: 0.7, fontSize: 13 }}>
+                                    政策情報はありません
+                                </div>
+                            )}
+                        </div>
+                    </Card>
+
+                    {/* Links */}
+                    <Card>
+                        <div
+                            style={{
+                                display: "flex",
+                                gap: 12,
+                                flexWrap: "wrap",
+                            }}
+                        >
+                            {data.websiteUrl ? (
+                                <a
+                                    href={data.websiteUrl}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    style={{
+                                        display: "inline-flex",
+                                        alignItems: "center",
+                                        gap: 8,
+                                        padding: "8px 10px",
+                                        border: "1px solid #eee",
+                                        borderRadius: 10,
+                                        textDecoration: "none",
+                                        color: "inherit",
+                                        background: "#fafafa",
+                                    }}
+                                >
+                                    公式サイト →
+                                </a>
+                            ) : (
+                                <span style={{ opacity: 0.6 }}>
+                                    公式サイトなし
+                                </span>
+                            )}
+                        </div>
+                    </Card>
+                </>
             )}
-        </div>
+
+            <DevDebug
+                value={{
+                    electionId,
+                    candidateId,
+                    data,
+                    err,
+                    isLoading,
+                    backTo,
+                    self,
+                }}
+            />
+        </Page>
     );
 }
