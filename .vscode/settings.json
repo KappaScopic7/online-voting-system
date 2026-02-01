@@ -18,5 +18,6 @@
     // 自動インデント検出を切る（超重要）
     "editor.detectIndentation": false,
     // Null解析を無効化
-    "java.compile.nullAnalysis.mode": "disabled"
+    "java.compile.nullAnalysis.mode": "disabled",
+    "java.configuration.updateBuildConfiguration": "automatic"
 }
