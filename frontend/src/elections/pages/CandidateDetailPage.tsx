@@ -7,6 +7,7 @@ import { normalizeFrom } from "../../shared/normalizeFrom";
 import { resolveCandidateImageUrl } from "../ui/candidateImages";
 
 type LocationState = { from?: string };
+const isDev = import.meta.env?.DEV;
 
 export function CandidateDetailPage() {
     const { electionId, candidateId } = useParams<{
@@ -67,6 +68,20 @@ export function CandidateDetailPage() {
                 }}
             >
                 <Link to={backTo}>← 戻る</Link>
+
+                <span style={{ opacity: 0.4 }}>｜</span>
+
+                <Link to={`/elections/${electionId}`} state={{ from: self }}>
+                    選挙詳細へ
+                </Link>
+
+                <Link
+                    to={`/elections/${electionId}/candidates`}
+                    state={{ from: self }}
+                >
+                    候補者一覧へ
+                </Link>
+
                 <h2 style={{ margin: 0 }}>候補者詳細</h2>
                 <button
                     onClick={load}
@@ -139,24 +154,26 @@ export function CandidateDetailPage() {
                     </div>
 
                     {(() => {
-                        const imgSrc = data.imageUrl ?? resolveCandidateImageUrl(data.candidateKey);
+                        const imgSrc =
+                            data.imageUrl ??
+                            resolveCandidateImageUrl(data.candidateKey);
                         return imgSrc ? (
-                        <img
-                            src={imgSrc}
-                            alt={data.name}
-                            onError={(e) => {
-                                // 画像404等で崩れないように
-                                (
-                                    e.currentTarget as HTMLImageElement
-                                ).style.display = "none";
-                            }}
-                            style={{
-                                width: "100%",
-                                maxWidth: 420,
-                                borderRadius: 8,
-                                border: "1px solid #eee",
-                            }}
-                        />
+                            <img
+                                src={imgSrc}
+                                alt={data.name}
+                                onError={(e) => {
+                                    // 画像404等で崩れないように
+                                    (
+                                        e.currentTarget as HTMLImageElement
+                                    ).style.display = "none";
+                                }}
+                                style={{
+                                    width: "100%",
+                                    maxWidth: 420,
+                                    borderRadius: 8,
+                                    border: "1px solid #eee",
+                                }}
+                            />
                         ) : null;
                     })()}
                     <div style={{ fontSize: 14, lineHeight: 1.6 }}>
@@ -196,15 +213,18 @@ export function CandidateDetailPage() {
                             <span style={{ opacity: 0.6 }}>公式サイトなし</span>
                         )}
 
-                        <span
-                            style={{
-                                marginLeft: "auto",
-                                fontSize: 12,
-                                opacity: 0.7,
-                            }}
-                        >
-                            key: {data.candidateKey} / sort: {data.sortOrder}
-                        </span>
+                        {isDev && (
+                            <span
+                                style={{
+                                    marginLeft: "auto",
+                                    fontSize: 12,
+                                    opacity: 0.7,
+                                }}
+                            >
+                                key: {data.candidateKey} / sort:{" "}
+                                {data.sortOrder}
+                            </span>
+                        )}
                     </div>
                 </section>
             )}

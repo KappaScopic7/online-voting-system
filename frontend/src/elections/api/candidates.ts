@@ -24,3 +24,12 @@ export async function fetchCandidateDetail(
     );
     return res.data;
 }
+
+export async function fetchElectionCandidates(
+    electionId: string,
+): Promise<CandidateItem[]> {
+    const res = await httpUser.get<CandidateItem[]>(
+        `/api/elections/${encodeURIComponent(electionId)}/candidates`,
+    );
+    return res.data;
+}

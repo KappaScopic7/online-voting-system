@@ -21,6 +21,8 @@ import { RequireAuth } from "../auth/routes/RequireAuth";
 import { RequireVerifiedEmail } from "../auth/routes/RequireVerifiedEmail";
 import { RequireIdentityLinked } from "../auth/routes/RequireIdentityLinked";
 import { CandidatesPage } from "../elections/pages/CandidatesPage";
+import { PartiesPage } from "../parties/pages/PartiesPage";
+import { PartyDetailPage } from "../parties/pages/PartyDetailPage";
 
 export function PublicRoutes() {
     return (
@@ -46,7 +48,11 @@ export function PublicRoutes() {
                 path="/elections/:electionId/result"
                 element={<ResultPage />}
             />
+
             <Route path="/candidates" element={<CandidatesPage />} />
+
+            <Route path="/parties" element={<PartiesPage />} />
+            <Route path="/parties/:partyKey" element={<PartyDetailPage />} />
 
             {/* Auth */}
             <Route path="/register" element={<RegisterPage />} />

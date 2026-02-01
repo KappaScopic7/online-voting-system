@@ -1,7 +1,7 @@
-// frontend/src/elections/pages/CandidatesPage.tsx
+// frontend/src/elections/pages/ElectiosCandidatesPage.tsx
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
-import { fetchElectionDetail } from "../api/elections";
+import { fetchElectionCandidates } from "../api/candidates";
 import type { CandidateItem } from "../model/electionTypes";
 import { normalizeFrom } from "../../shared/normalizeFrom";
 
@@ -25,10 +25,8 @@ export function ElectionCandidatesPage() {
         setError(null);
         setIsLoading(true);
         try {
-            const detail = await fetchElectionDetail(electionId);
-            // detail.candidates가 {id, name} 구조라면 그대로 사용 가능
-            // 만약 CandidateItem에 더 많은 필드가 필요하면 여기서 매핑하면 됨
-            setItems(detail.candidates as CandidateItem[]);
+            const cands = await fetchElectionCandidates(electionId);
+            setItems(cands);
         } catch (err: any) {
             setError(
                 err?.response?.data?.message ?? "Failed to load candidates",
@@ -41,7 +39,6 @@ export function ElectionCandidatesPage() {
 
     useEffect(() => {
         load();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [electionId]);
 
     const hasCandidates = useMemo(() => {
@@ -171,7 +168,6 @@ export function ElectionCandidatesPage() {
                                                 src={thumb}
                                                 alt={c.name}
                                                 onError={(e) => {
-                                                    // 디버그용: 안 보이게만 처리
                                                     e.currentTarget.style.display =
                                                         "none";
                                                 }}
@@ -207,7 +203,6 @@ export function ElectionCandidatesPage() {
                 </section>
             )}
 
-            {/* CTA: vote */}
             <section style={{ paddingTop: 8, borderTop: "1px solid #eee" }}>
                 <div
                     style={{
