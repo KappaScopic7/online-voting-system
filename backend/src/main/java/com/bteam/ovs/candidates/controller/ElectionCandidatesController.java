@@ -1,3 +1,4 @@
+// backend/src/main/java/com/bteam/ovs/candidates/controller/ElectionCandidatesController.java
 package com.bteam.ovs.candidates.controller;
 
 import com.bteam.ovs.candidates.controller.dto.CandidateDetailResponse;
@@ -19,14 +20,14 @@ public class ElectionCandidatesController {
     }
 
     @GetMapping
-    public List<CandidateItem> list(@PathVariable UUID electionId) {
+    public List<CandidateItem> list(@PathVariable("electionId") UUID electionId) {
         return candidateService.listByElection(electionId);
     }
 
     @GetMapping("/{candidateId}")
     public CandidateDetailResponse get(
-            @PathVariable UUID electionId,
-            @PathVariable UUID candidateId) {
+            @PathVariable("electionId") UUID electionId,
+            @PathVariable("candidateId") UUID candidateId) {
         return candidateService.detail(electionId, candidateId);
     }
 }

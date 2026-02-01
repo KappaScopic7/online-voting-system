@@ -21,13 +21,14 @@ public class CandidatesController {
 
     @GetMapping
     public List<CandidateItem> list(
-            @RequestParam(required = false) UUID electionId,
-            @RequestParam(required = false) String partyKey) {
+            @RequestParam(name = "electionId", required = false) UUID electionId,
+            @RequestParam(name = "partyKey", required = false) String partyKey) {
         return candidateService.listAll(electionId, partyKey);
     }
 
     @GetMapping("/{candidateId}")
-    public CandidateDetailResponse getById(@PathVariable UUID candidateId) {
+    public CandidateDetailResponse getById(
+            @PathVariable("candidateId") UUID candidateId) {
         return candidateService.detailByCandidateId(candidateId);
     }
 }
