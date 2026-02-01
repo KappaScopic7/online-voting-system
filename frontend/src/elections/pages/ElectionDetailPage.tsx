@@ -7,6 +7,7 @@ import { normalizeFrom } from "../../shared/normalizeFrom";
 import { useAuth } from "../../user/UserAuthContext";
 import { Card, DevDebug, Page } from "../../shared/ui/page";
 import { formatJST, statusLabel } from "../../shared/elections/format";
+import { CandidateAvatar } from "../../shared/ui/CandidateAvatar";
 
 type LocationState = { from?: string };
 
@@ -24,13 +25,6 @@ function resolveCandidateName(
 ): string {
     const hit = candidates.find((c) => c.id === candidateId);
     return hit?.name ?? candidateId;
-}
-
-function resolveCandidateThumbByIndex(index: number): string | null {
-    const n = index + 1;
-    if (n < 1 || n > 999) return null;
-    const padded = String(n).padStart(3, "0");
-    return `/assets/candidates/candidate-${padded}.png`;
 }
 
 export function ElectionDetailPage() {
@@ -174,8 +168,6 @@ export function ElectionDetailPage() {
 
                         <div style={{ display: "grid", gap: 10 }}>
                             {data.candidates.map((c, idx) => {
-                                const thumb = resolveCandidateThumbByIndex(idx);
-
                                 return (
                                     <Link
                                         key={c.id}
@@ -197,47 +189,14 @@ export function ElectionDetailPage() {
                                                 background: "#fff",
                                             }}
                                         >
-                                            {thumb ? (
-                                                <img
-                                                    src={thumb}
-                                                    alt={c.name}
-                                                    onError={(e) => {
-                                                        console.error(
-                                                            "thumb load failed:",
-                                                            thumb,
-                                                            c.id,
-                                                            idx,
-                                                        );
-                                                        e.currentTarget.style.outline =
-                                                            "2px solid red";
-                                                        e.currentTarget.title = `LOAD FAILED: ${thumb}`;
-                                                    }}
-                                                    style={{
-                                                        width: 48,
-                                                        height: 48,
-                                                        objectFit: "cover",
-                                                        borderRadius: 10,
-                                                        border: "1px solid #eee",
-                                                        flexShrink: 0,
-                                                    }}
-                                                />
-                                            ) : (
-                                                <div
-                                                    style={{
-                                                        width: 48,
-                                                        height: 48,
-                                                        borderRadius: 10,
-                                                        border: "1px dashed #ccc",
-                                                        display: "grid",
-                                                        placeItems: "center",
-                                                        fontSize: 10,
-                                                        opacity: 0.7,
-                                                        flexShrink: 0,
-                                                    }}
-                                                >
-                                                    NO IMG
-                                                </div>
-                                            )}
+                                            <CandidateAvatar
+                                                name={c.name}
+                                                imageUrl={
+                                                    (c as any).imageUrl ?? null
+                                                }
+                                                index={idx}
+                                                size={48}
+                                            />
 
                                             <div
                                                 style={{

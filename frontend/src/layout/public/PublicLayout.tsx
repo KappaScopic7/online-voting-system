@@ -32,7 +32,7 @@ export function PublicLayout() {
             { to: "/elections", label: "選挙一覧" },
             { to: "/parties", label: "政党一覧" },
             { to: "/candidates", label: "候補者一覧" },
-            { to: "/help", label: "問い合わせ" },
+            // { to: "/help", label: "問い合わせ" },
         ];
 
         if (!user) return common;

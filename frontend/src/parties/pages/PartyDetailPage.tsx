@@ -184,16 +184,19 @@ export function PartyDetailPage() {
                     <div style={{ color: "crimson" }}>{err}</div>
                 </Card>
             )}
-
             {!party ? (
                 <Card>{isLoading ? "読み込み中…" : "Not loaded"}</Card>
             ) : (
                 <Card>
                     <div
                         style={{
+                            border: "1px solid #eee",
+                            borderRadius: 12,
+                            padding: 12,
                             display: "grid",
                             gap: 10,
-                            borderRadius: 12,
+                            background: "#fff",
+                            // ★ 政党一覧と同じ：左に色バー（文字に被らない）
                             boxShadow: color
                                 ? `inset 4px 0 0 0 ${color}`
                                 : undefined,
@@ -252,7 +255,6 @@ export function PartyDetailPage() {
                     </div>
                 </Card>
             )}
-
             <Card>
                 <div
                     style={{
@@ -293,7 +295,6 @@ export function PartyDetailPage() {
                     )}
                 </div>
             </Card>
-
             <DevDebug
                 value={{ partyKey, party, cands, err, isLoading, backTo, self }}
             />

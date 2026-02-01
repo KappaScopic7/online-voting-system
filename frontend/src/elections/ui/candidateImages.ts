@@ -1,20 +1,30 @@
 // frontend/src/elections/ui/candidateImages.ts
 
-// candidateKey → public の URL
-const byKey: Record<string, string> = {
-    candidate_001: "/assets/candidates/candidate-001.png",
-    candidate_002: "/assets/candidates/candidate-002.png",
-    candidate_003: "/assets/candidates/candidate-003.png",
-    candidate_004: "/assets/candidates/candidate-004.png",
-    candidate_005: "/assets/candidates/candidate-005.png",
-};
+const assetUrl = (path: string) =>
+    `${import.meta.env.BASE_URL}${path.replace(/^\/+/, "")}`;
 
-export function resolveCandidateImageUrl(candidateKey?: string | null) {
+/**
+ * candidateKey から assets の画像パスを返す
+ * 例: cand_suzuki -> assets/candidates/candidate-001.png
+ */
+export function resolveCandidateImageUrl(
+    candidateKey?: string | null,
+): string | null {
     if (!candidateKey) return null;
-    return byKey[candidateKey] ?? null;
-}
 
-// いまは id→画像の対応がないと一覧では出せないので一旦 null 返す
-export function resolveCandidateImageUrlById(_candidateId: string) {
-    return null;
+    // ここは君の既存ルールに合わせてOK（例：キー順で採番しているならその表）
+    // とりあえず例として "cand_xxx" の末尾で分岐するなら map を持つ
+    const map: Record<string, number> = {
+        cand_suzuki: 1,
+        cand_tanaka: 2,
+        cand_mori: 3,
+        cand_kato: 4,
+        cand_nakamura: 5,
+    };
+
+    const n = map[candidateKey];
+    if (!n) return null;
+
+    const padded = String(n).padStart(3, "0");
+    return assetUrl(`assets/candidates/candidate-${padded}.png`);
 }

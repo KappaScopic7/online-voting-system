@@ -1,11 +1,11 @@
 // frontend/src/candidates/pages/CandidateDetailPage.tsx
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
 import { fetchCandidateDetail } from "../api/candidates";
 import type { CandidateDetailResponse } from "../model/candidateTypes";
 import { normalizeFrom } from "../../shared/normalizeFrom";
-import { resolveCandidateImageUrl } from "../../elections/ui/candidateImages";
 import { Card, DevDebug, Page } from "../../shared/ui/page";
+import { resolveCandidateImageUrl } from "../../elections/ui/candidateImages";
 
 type LocationState = { from?: string };
 
@@ -59,9 +59,15 @@ export function CandidateDetailPage() {
     const [err, setErr] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
 
-    const imgSrc = useMemo(() => {
-        if (!data) return null;
-        return data.imageUrl ?? resolveCandidateImageUrl(data.candidateKey);
+    const [imgSrc, setImgSrc] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (!data) {
+            setImgSrc(null);
+            return;
+        }
+        // 優先: APIのimageUrl -> assets(candidateKey)
+        setImgSrc(data.imageUrl ?? resolveCandidateImageUrl(data.candidateKey));
     }, [data]);
 
     const load = async () => {
@@ -186,15 +192,18 @@ export function CandidateDetailPage() {
                     </Card>
 
                     {/* Image */}
-                    {imgSrc ? (
-                        <Card>
+                    <Card>
+                        {imgSrc ? (
                             <img
                                 src={imgSrc}
                                 alt={data.name}
-                                onError={(e) => {
-                                    (
-                                        e.currentTarget as HTMLImageElement
-                                    ).style.display = "none";
+                                onError={() => {
+                                    const fb = resolveCandidateImageUrl(
+                                        data.candidateKey,
+                                    );
+                                    setImgSrc((prev) =>
+                                        prev !== fb ? fb : null,
+                                    );
                                 }}
                                 style={{
                                     width: "100%",
@@ -204,8 +213,25 @@ export function CandidateDetailPage() {
                                     objectFit: "cover",
                                 }}
                             />
-                        </Card>
-                    ) : null}
+                        ) : (
+                            <div
+                                style={{
+                                    width: "100%",
+                                    maxWidth: 560,
+                                    height: 240,
+                                    borderRadius: 12,
+                                    border: "1px dashed #ccc",
+                                    display: "grid",
+                                    placeItems: "center",
+                                    fontSize: 12,
+                                    opacity: 0.7,
+                                    background: "#fafafa",
+                                }}
+                            >
+                                NO IMG
+                            </div>
+                        )}
+                    </Card>
 
                     {/* Bio */}
                     <Card>
