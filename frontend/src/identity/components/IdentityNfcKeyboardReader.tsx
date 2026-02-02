@@ -29,12 +29,39 @@ export function IdentityNfcKeyboardReader(props: {
     };
 
     useEffect(() => {
-        inputRef.current?.focus();
+        let alive = true;
+        const bridgeUrl = "http://127.0.0.1:39123/last";
+
+        const tick = async () => {
+            if (!alive) return;
+            if (busy) return; // 登録中は更新しない
+
+            try {
+                const res = await fetch(bridgeUrl, { method: "GET" });
+
+                // 204: まだ何も読めてない
+                if (res.status === 204) return;
+
+                if (res.ok) {
+                    const data = (await res.json()) as { uuid?: string };
+                    const uuid = String(data.uuid ?? "").trim();
+                    if (uuid && uuid !== value) {
+                        setValue(uuid);
+                        scheduleCommit(); // 既存の仕組みでcommitへ
+                    }
+                }
+            } catch {
+                // bridgeが起動してない/落ちてる等：無視（UIが壊れないのが大事）
+            }
+        };
+
+        const timer = window.setInterval(tick, 400);
         return () => {
-            if (timerRef.current) window.clearTimeout(timerRef.current);
+            alive = false;
+            window.clearInterval(timer);
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    }, [busy, value]);
 
     const commit = async () => {
         const v = value.trim();

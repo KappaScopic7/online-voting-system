@@ -16,6 +16,49 @@
         },
 
         {
+            "label": "ovs: kill 8080",
+            "type": "shell",
+            "command": "powershell",
+            "args": [
+                "-NoProfile",
+                "-ExecutionPolicy",
+                "Bypass",
+                "-Command",
+                "$p = (Get-NetTCPConnection -LocalPort 8080 -State Listen -ErrorAction SilentlyContinue).OwningProcess; if ($p) { $p | Sort-Object -Unique | ForEach-Object { Stop-Process -Id $_ -Force -ErrorAction SilentlyContinue; Write-Host \"Killed PID $_ on :8080\" } } else { Write-Host \"No listener on :8080\" }"
+            ],
+            "options": { "cwd": "${workspaceFolder}/backend" },
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated",
+                "clear": true
+            }
+        },
+
+        {
+            "label": "ovs: nfc bridge",
+            "type": "shell",
+            "command": ".\\gradlew",
+            "args": ["runNfcBridge"],
+            "options": { "cwd": "${workspaceFolder}/backend" },
+            "isBackground": true,
+            "problemMatcher": {
+                "owner": "ovs-nfc-bridge",
+                "pattern": { "regexp": ".+", "message": 0 },
+                "background": {
+                    "activeOnStart": true,
+                    "beginsPattern": ".+",
+                    "endsPattern": "\\[bridge\\] listening on http://127\\.0\\.0\\.1:39123"
+                }
+            },
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated",
+                "clear": true
+            }
+        },
+
+        {
             "label": "ovs: frontend install (if needed)",
             "type": "shell",
             "command": "cmd.exe",
@@ -71,7 +114,9 @@
         {
             "label": "ovs: all (demo)",
             "dependsOn": [
+                "ovs: kill 8080",
                 "ovs: db up",
+                "ovs: nfc bridge",
                 "ovs: frontend dev",
                 "ovs: open browser"
             ],

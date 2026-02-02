@@ -13,7 +13,8 @@ import java.util.UUID;
 @Service
 public class IdentityLinkService {
 
-    public record LinkedAccount(UUID accountId, String email, Role role) {}
+    public record LinkedAccount(UUID accountId, String email, Role role) {
+    }
 
     private final UserAccountRepository userRepo;
     private final CitizenRepository citizenRepo; // ★追加
@@ -28,8 +29,10 @@ public class IdentityLinkService {
         var acc = userRepo.findById(accountId)
                 .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "未ログインです"));
 
-        if (!acc.isEnabled()) throw new ApiException(HttpStatus.FORBIDDEN, "ACCOUNT_DISABLED", "アカウントが無効です");
-        if (acc.isLocked()) throw new ApiException(HttpStatus.FORBIDDEN, "ACCOUNT_LOCKED", "アカウントがロックされています");
+        if (!acc.isEnabled())
+            throw new ApiException(HttpStatus.FORBIDDEN, "ACCOUNT_DISABLED", "アカウントが無効です");
+        if (acc.isLocked())
+            throw new ApiException(HttpStatus.FORBIDDEN, "ACCOUNT_LOCKED", "アカウントがロックされています");
 
         if (!acc.isEmailVerified()) {
             throw new ApiException(HttpStatus.FORBIDDEN, "EMAIL_NOT_VERIFIED", "メール認証が完了していません");
@@ -39,9 +42,9 @@ public class IdentityLinkService {
         if (!citizenRepo.existsById(citizenId)) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "CITIZEN_NOT_FOUND", "指定されたcitizenIdは存在しません");
         }
-
-        // （任意）すでにリンク済みなら弾く/上書き許可、どっちでもOK
-        // if (acc.getCitizenId() != null) { ... }
+        if (acc.getCitizenId() != null) {
+            throw new ApiException(HttpStatus.CONFLICT, "ALREADY_LINKED", "すでに本人認証済みです");
+        }
 
         acc.setCitizenId(citizenId);
         acc.setRole(Role.VOTER);

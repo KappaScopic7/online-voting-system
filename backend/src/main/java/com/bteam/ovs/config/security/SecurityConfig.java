@@ -91,6 +91,9 @@ public class SecurityConfig {
                         .requestMatchers("/api/demo/**")
                         .access((a, c) -> decide(a.get(), AccountKind.STAFF, Role.ADMIN))
 
+                        // ---- identity (public) ----
+                        .requestMatchers("/api/identity/nfc/resolve").permitAll()
+
                         // ---- identity (user only) ----
                         .requestMatchers("/api/identity/**")
                         .access((a, c) -> decide(a.get(), AccountKind.USER))

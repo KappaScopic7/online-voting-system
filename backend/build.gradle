@@ -48,3 +48,20 @@ tasks.named('test') {
 tasks.withType(JavaCompile).configureEach {
     options.compilerArgs += ["-parameters"]
 }
+
+tasks.register('runNfcBridge', JavaExec) {
+    group = "ovs"
+    description = "Run NFC local bridge server"
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = "com.bteam.ovs.bridge.NfcBridgeServer"
+
+    javaLauncher = javaToolchains.launcherFor {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+tasks.named("bootRun") {
+    jvmArgs(
+        "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005"
+    )
+}
