@@ -37,11 +37,7 @@ export function PublicLayout() {
 
         if (!user) return common;
 
-        return [
-            ...common.slice(0, 3),
-            { to: "/me/elections", label: "My選挙" },
-            common[3],
-        ];
+        return [...common, { to: "/me/elections", label: "My選挙" }];
     }, [user]);
 
     // ---- header show/hide on scroll (stable) ----
