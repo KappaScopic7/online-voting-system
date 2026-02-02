@@ -1,10 +1,8 @@
 // frontend/src/admin/pages/AdminElectionsPage.tsx
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import {
-    fetchElections,
-    type ElectionListItem,
-} from "../../elections/api/elections";
+import { fetchElections } from "../../elections/api/elections";
+import type { ElectionListItem } from "../../elections/model/electionTypes";
 import { useStaffAuth } from "../../staff/StaffAuthContext";
 import {
     formatJST,
