@@ -2,38 +2,8 @@
     {
         "electionKey": "sangi_tokyo_2026_open",
         "citizenId": "550e8400-e29b-41d4-a716-446655440000",
-        "candidateIndex": 1,
-        "castedAtOffsetSec": -1800
-    },
-    {
-        "electionKey": "sangi_tokyo_2026_ended",
-        "citizenId": "550e8400-e29b-41d4-a716-446655440000",
-        "candidateIndex": 2,
-        "castedAtOffsetSec": -90000
-    },
-    {
-        "electionKey": "sangi_tokyo_2026_open",
-        "citizenId": "550e8400-e29b-41d4-a716-446655440000",
-        "candidateIndex": 0,
-        "castedAtOffsetSec": -1200
-    },
-    {
-        "electionKey": "sangi_tokyo_2026_open",
-        "citizenId": "550e8400-e29b-41d4-a716-446655440000",
         "candidateIndex": 4,
         "castedAtOffsetSec": -600
-    },
-    {
-        "electionKey": "sangi_tokyo_2026_ended",
-        "citizenId": "550e8400-e29b-41d4-a716-446655440000",
-        "candidateIndex": 1,
-        "castedAtOffsetSec": -120000
-    },
-    {
-        "electionKey": "sangi_tokyo_2026_ended",
-        "citizenId": "550e8400-e29b-41d4-a716-446655440000",
-        "candidateIndex": 3,
-        "castedAtOffsetSec": -110000
     },
     {
         "electionKey": "sangi_tokyo_2026_open",
@@ -66,6 +36,12 @@
         "castedAtOffsetSec": -300
     },
 
+    {
+        "electionKey": "sangi_tokyo_2026_ended",
+        "citizenId": "550e8400-e29b-41d4-a716-446655440000",
+        "candidateIndex": 2,
+        "castedAtOffsetSec": -90000
+    },
     {
         "electionKey": "sangi_tokyo_2026_ended",
         "citizenId": "550e8400-e29b-41d4-a716-446655440001",

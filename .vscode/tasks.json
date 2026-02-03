@@ -18,7 +18,7 @@
         {
             "label": "ovs: kill 8080",
             "type": "shell",
-            "command": "powershell",
+            "command": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
             "args": [
                 "-NoProfile",
                 "-ExecutionPolicy",
@@ -61,10 +61,13 @@
         {
             "label": "ovs: frontend install (if needed)",
             "type": "shell",
-            "command": "cmd.exe",
+            "command": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
             "args": [
-                "/c",
-                "if not exist node_modules (echo node_modules not found. installing... && npm install) else (echo node_modules already exists. skip install.)"
+                "-NoProfile",
+                "-ExecutionPolicy",
+                "Bypass",
+                "-Command",
+                "if (!(Test-Path 'node_modules')) { Write-Host 'node_modules not found. installing...'; npm install } else { Write-Host 'node_modules already exists. skip install.' }"
             ],
             "options": { "cwd": "${workspaceFolder}/frontend" },
             "problemMatcher": [],
@@ -102,10 +105,13 @@
         {
             "label": "ovs: open browser",
             "type": "shell",
-            "command": "cmd.exe",
+            "command": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
             "args": [
-                "/c",
-                "start http://localhost:5173 || (where chrome >nul 2>nul && start chrome http://localhost:5173) || (where msedge >nul 2>nul && start msedge http://localhost:5173) || (where vivaldi >nul 2>nul && start vivaldi http://localhost:5173)"
+                "-NoProfile",
+                "-ExecutionPolicy",
+                "Bypass",
+                "-Command",
+                "Start-Process 'http://localhost:5173'"
             ],
             "problemMatcher": [],
             "presentation": { "reveal": "never", "panel": "shared" }

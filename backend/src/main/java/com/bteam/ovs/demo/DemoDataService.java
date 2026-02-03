@@ -5,6 +5,9 @@ import com.bteam.ovs.auth.repository.UserAccountRepository;
 import com.bteam.ovs.candidates.repository.CandidateRepository;
 import com.bteam.ovs.citizen.repository.CitizenRepository;
 import com.bteam.ovs.elections.repository.*;
+import com.bteam.ovs.voting.repository.VoteAllocCastRepository;
+import com.bteam.ovs.voting.repository.VoteAllocCurrentRepository;
+import com.bteam.ovs.voting.repository.VoteAllocItemRepository;
 import com.bteam.ovs.parties.repository.PartyRepository;
 import com.bteam.ovs.voting.repository.VoteCastRepository;
 import com.bteam.ovs.voting.repository.VoteCurrentRepository;
@@ -30,6 +33,9 @@ public class DemoDataService {
 
     private final VoteCastRepository voteCastRepo;
     private final VoteCurrentRepository voteCurrentRepo;
+    private final VoteAllocCastRepository voteAllocCastRepo;
+    private final VoteAllocCurrentRepository voteAllocCurrentRepo;
+    private final VoteAllocItemRepository voteAllocItemRepo;
 
     private final CitizenRepository citizenRepo;
 
@@ -47,6 +53,9 @@ public class DemoDataService {
             ElectionEligibilityRuleRepository ruleRepo,
             VoteCastRepository voteCastRepo,
             VoteCurrentRepository voteCurrentRepo,
+            VoteAllocCastRepository voteAllocCastRepo,
+            VoteAllocCurrentRepository voteAllocCurrentRepo,
+            VoteAllocItemRepository voteAllocItemRepo,
             CitizenRepository citizenRepo,
             PasswordEncoder passwordEncoder,
             ObjectMapper objectMapper,
@@ -60,6 +69,9 @@ public class DemoDataService {
         this.ruleRepo = ruleRepo;
         this.voteCastRepo = voteCastRepo;
         this.voteCurrentRepo = voteCurrentRepo;
+        this.voteAllocCastRepo = voteAllocCastRepo;
+        this.voteAllocCurrentRepo = voteAllocCurrentRepo;
+        this.voteAllocItemRepo = voteAllocItemRepo;
         this.citizenRepo = citizenRepo;
         this.passwordEncoder = passwordEncoder;
         this.objectMapper = objectMapper;
@@ -72,7 +84,7 @@ public class DemoDataService {
             initializer.init(
                     userRepo, staffRepo,
                     partyRepo, electionRepo, candidateRepo, ruleRepo,
-                    voteCastRepo, voteCurrentRepo,
+                    voteCastRepo, voteCurrentRepo, voteAllocCastRepo, voteAllocCurrentRepo, voteAllocItemRepo,
                     citizenRepo,
                     passwordEncoder, objectMapper);
         });

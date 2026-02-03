@@ -9,5 +9,6 @@
     },
     "editor.detectIndentation": false,
     "java.compile.nullAnalysis.mode": "disabled",
-    "java.configuration.updateBuildConfiguration": "automatic"
+    "java.configuration.updateBuildConfiguration": "automatic",
+    "terminal.integrated.defaultProfile.windows": "PowerShell"
 }

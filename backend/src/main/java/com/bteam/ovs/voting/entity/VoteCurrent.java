@@ -9,12 +9,9 @@ import java.time.Instant;
 import java.util.UUID;
 
 @Entity
-@Table(
-    name = "vote_current",
-    indexes = {
+@Table(name = "vote_current", indexes = {
         @Index(name = "ix_vote_current_election_id", columnList = "election_id")
-    }
-)
+})
 @Getter
 @Setter
 @NoArgsConstructor
@@ -37,10 +34,10 @@ public class VoteCurrent {
 
     @PrePersist
     void onCreate() {
-        if (castedAt == null) castedAt = Instant.now();
+        if (castedAt == null)
+            castedAt = Instant.now();
     }
 
-    @PreUpdate
     void onUpdate() {
         castedAt = Instant.now();
     }

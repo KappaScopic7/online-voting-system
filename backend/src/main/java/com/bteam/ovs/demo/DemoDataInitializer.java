@@ -10,21 +10,22 @@ import com.bteam.ovs.candidates.repository.CandidateRepository;
 import com.bteam.ovs.citizen.entity.Citizen;
 import com.bteam.ovs.citizen.entity.Gender;
 import com.bteam.ovs.citizen.repository.CitizenRepository;
-// import com.bteam.ovs.demo.DemoDataInitializer.CandidateJson;
-// import com.bteam.ovs.demo.DemoDataInitializer.CitizenJson;
-// import com.bteam.ovs.demo.DemoDataInitializer.ElectionJson;
-// import com.bteam.ovs.demo.DemoDataInitializer.PartyJson;
-// import com.bteam.ovs.demo.DemoDataInitializer.RuleJson;
-// import com.bteam.ovs.demo.DemoDataInitializer.UserJson;
-// import com.bteam.ovs.demo.DemoDataInitializer.VoteJson;
 import com.bteam.ovs.elections.entity.*;
 import com.bteam.ovs.elections.repository.*;
 import com.bteam.ovs.parties.entity.Party;
 import com.bteam.ovs.parties.repository.PartyRepository;
 import com.bteam.ovs.voting.entity.VoteCast;
 import com.bteam.ovs.voting.entity.VoteCurrent;
+import com.bteam.ovs.voting.entity.VoteAllocCast;
+import com.bteam.ovs.voting.entity.VoteAllocCurrent;
+import com.bteam.ovs.voting.entity.VoteAllocItem;
 import com.bteam.ovs.voting.repository.VoteCastRepository;
 import com.bteam.ovs.voting.repository.VoteCurrentRepository;
+import com.bteam.ovs.voting.repository.VoteAllocCastRepository;
+import com.bteam.ovs.voting.repository.VoteAllocCurrentRepository;
+import com.bteam.ovs.voting.repository.VoteAllocItemRepository;
+import com.bteam.ovs.demo.json.*;
+
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.boot.CommandLineRunner;
@@ -49,14 +50,25 @@ public class DemoDataInitializer {
         return args -> demoDataService.resetAndSeed();
     }
 
-    void init(UserAccountRepository userRepo, StaffAccountRepository staffRepo,
+    void init(
+            UserAccountRepository userRepo,
+            StaffAccountRepository staffRepo,
 
-            PartyRepository partyRepo, ElectionRepository electionRepo, CandidateRepository candidateRepo,
+            PartyRepository partyRepo,
+            ElectionRepository electionRepo,
+            CandidateRepository candidateRepo,
             ElectionEligibilityRuleRepository ruleRepo,
 
-            VoteCastRepository voteCastRepo, VoteCurrentRepository voteCurrentRepo,
+            VoteCastRepository voteCastRepo,
+            VoteCurrentRepository voteCurrentRepo,
 
-            CitizenRepository citizenRepo, PasswordEncoder passwordEncoder, ObjectMapper om) {
+            VoteAllocCastRepository voteAllocCastRepo,
+            VoteAllocCurrentRepository voteAllocCurrentRepo,
+            VoteAllocItemRepository voteAllocItemRepo,
+
+            CitizenRepository citizenRepo,
+            PasswordEncoder passwordEncoder,
+            ObjectMapper om) {
         seedAdmin(staffRepo, passwordEncoder);
 
         // ===== JSON load =====
@@ -72,12 +84,13 @@ public class DemoDataInitializer {
         });
         List<RuleJson> rules = readJson(om, "electionRules.json", new TypeReference<>() {
         });
-        List<VoteJson> votes = readJson(om, "voteCurrents.json", new TypeReference<>() {
+        List<VoteJson> votes = readJson(om, "votes.json", new TypeReference<>() {
         });
         List<CommitteeJson> committee = readJson(om, "committeeAccounts.json", new TypeReference<>() {
         });
 
-        List<AllocVoteJson> allocVotes = readJson(om, "allocVotes.json", new TypeReference<>() {
+        // ★ alloc は「履歴だけ」読む（current は自動生成）
+        List<AllocVoteJson> allocVoteCasts = readJson(om, "allocVoteCasts.json", new TypeReference<>() {
         });
 
         // ===== index + validate =====
@@ -86,17 +99,8 @@ public class DemoDataInitializer {
         var candidateMap = indexCandidates(candidates);
         var electionMap = indexElections(elections);
 
-        validateAll(citizenMap, partyMap, candidateMap, electionMap, rules, votes, users, committee, allocVotes);
-
-        // // ===== DB reset (全部作り直し) =====
-        // voteCurrentRepo.deleteAll();
-        // voteCastRepo.deleteAll();
-        // ruleRepo.deleteAll();
-        // candidateRepo.deleteAll();
-        // electionRepo.deleteAll();
-        // partyRepo.deleteAll();
-        // userRepo.deleteAll();
-        // citizenRepo.deleteAll();
+        validateAll(citizenMap, partyMap, candidateMap, electionMap,
+                rules, votes, users, committee, allocVoteCasts);
 
         // ===== seed =====
         seedCitizens(citizenRepo, citizens);
@@ -108,33 +112,40 @@ public class DemoDataInitializer {
 
         seedRules(ruleRepo, rules, createdElections);
         seedVotes(voteCastRepo, voteCurrentRepo, votes, createdElections);
+
+        // ★ alloc: casts + items を入れて、最新から current 生成
+        seedAllocFromCastsOnly(voteAllocCastRepo, voteAllocCurrentRepo, voteAllocItemRepo,
+                allocVoteCasts, createdElections);
+
         seedCommittee(staffRepo, passwordEncoder, committee);
     }
 
     // -------------------------
     // JSON DTOs
     // -------------------------
-    record CitizenJson(UUID citizenId, String familyName, String givenName, LocalDate birthDate, String prefCode,
-            String cityCode, String addressLine, String gender) {
+    record CitizenJson(UUID citizenId, String familyName, String givenName, LocalDate birthDate,
+            String prefCode, String cityCode, String addressLine, String gender) {
     }
 
-    record UserJson(String email, String password, Role role, boolean emailVerified, boolean enabled, boolean locked,
-            UUID citizenId) {
+    record UserJson(String email, String password, Role role,
+            boolean emailVerified, boolean enabled, boolean locked, UUID citizenId) {
     }
 
-    record PartyJson(String partyKey, String name, String shortName, List<String> ideologyTags, String description,
-            String color) {
+    record PartyJson(String partyKey, String name, String shortName,
+            List<String> ideologyTags, String description, String color) {
     }
 
-    record CandidateJson(String candidateKey, String name, Integer age, String partyKey, String title, String bio,
-            List<String> policies, String websiteUrl, String imageUrl) {
+    record CandidateJson(String candidateKey, String name, Integer age, String partyKey,
+            String title, String bio, List<String> policies,
+            String websiteUrl, String imageUrl) {
     }
 
     record DistrictJson(String prefCode, String cityCode, String label) {
     }
 
-    record ElectionJson(String electionKey, String title, String summary, String electionType, DistrictJson district,
-            String ballotType, long startsAtOffsetSec, long endsAtOffsetSec, List<String> candidates) {
+    record ElectionJson(String electionKey, String title, String summary, String electionType,
+            DistrictJson district, String ballotType,
+            long startsAtOffsetSec, long endsAtOffsetSec, List<String> candidates) {
     }
 
     record RuleJson(String electionKey, String cityCode, Integer minAge) {
@@ -143,7 +154,8 @@ public class DemoDataInitializer {
     record VoteJson(String electionKey, UUID citizenId, int candidateIndex, long castedAtOffsetSec) {
     }
 
-    record CommitteeJson(String loginId, String password, Role role, String assignedPrefCode, String assignedCityCode,
+    record CommitteeJson(String loginId, String password, Role role,
+            String assignedPrefCode, String assignedCityCode,
             boolean enabled, boolean locked) {
     }
 
@@ -167,6 +179,7 @@ public class DemoDataInitializer {
     private void seedAdmin(StaffAccountRepository staffRepo, PasswordEncoder passwordEncoder) {
         if (staffRepo.existsByLoginId(DEMO_ADMIN_LOGIN_ID))
             return;
+
         var admin = new StaffAccount();
         admin.setLoginId(DEMO_ADMIN_LOGIN_ID);
         admin.setPasswordHash(passwordEncoder.encode(DEMO_ADMIN_PASSWORD));
@@ -245,10 +258,16 @@ public class DemoDataInitializer {
     // -------------------------
     // validation
     // -------------------------
-    private void validateAll(Map<UUID, CitizenJson> citizenMap, Map<String, PartyJson> partyMap,
-            Map<String, CandidateJson> candidateMap, Map<String, ElectionJson> electionMap, List<RuleJson> rules,
-            List<VoteJson> votes, List<UserJson> users, List<CommitteeJson> committiee,
-            List<AllocVoteJson> allocVotes) {
+    private void validateAll(
+            Map<UUID, CitizenJson> citizenMap,
+            Map<String, PartyJson> partyMap,
+            Map<String, CandidateJson> candidateMap,
+            Map<String, ElectionJson> electionMap,
+            List<RuleJson> rules,
+            List<VoteJson> votes,
+            List<UserJson> users,
+            List<CommitteeJson> committiee,
+            List<AllocVoteJson> allocVoteCasts) {
         // users: citizenId があるなら citizens に存在する
         for (var u : users) {
             if (u.citizenId() != null && !citizenMap.containsKey(u.citizenId())) {
@@ -297,16 +316,16 @@ public class DemoDataInitializer {
 
         // votes: electionKey/citizenId/index
         for (var v : votes) {
-            mustNonBlank(v.electionKey(), "voteCurrents.json: electionKey blank");
+            mustNonBlank(v.electionKey(), "votes.json: electionKey blank");
             if (!electionMap.containsKey(v.electionKey())) {
-                throw new IllegalStateException("voteCurrents.json: unknown electionKey=" + v.electionKey());
+                throw new IllegalStateException("votes.json: unknown electionKey=" + v.electionKey());
             }
             if (!citizenMap.containsKey(v.citizenId())) {
-                throw new IllegalStateException("voteCurrents.json: unknown citizenId=" + v.citizenId());
+                throw new IllegalStateException("votes.json: unknown citizenId=" + v.citizenId());
             }
             int size = electionMap.get(v.electionKey()).candidates().size();
             if (v.candidateIndex() < 0 || v.candidateIndex() >= size) {
-                throw new IllegalStateException("voteCurrents.json: candidateIndex out of range electionKey="
+                throw new IllegalStateException("votes.json: candidateIndex out of range electionKey="
                         + v.electionKey() + " index=" + v.candidateIndex() + " size=" + size);
             }
         }
@@ -320,13 +339,62 @@ public class DemoDataInitializer {
                 throw new IllegalStateException(
                         "committeeAccounts.json: role must be COMMITTEE loginId=" + c.loginId());
             }
-
             if (c.assignedPrefCode() == null || c.assignedPrefCode().isBlank()) {
                 throw new IllegalStateException(
                         "committeeAccounts.json: assignedPrefCode blank loginId=" + c.loginId());
             }
         }
 
+        // allocVoteCasts.json
+        if (allocVoteCasts != null) {
+            for (var av : allocVoteCasts) {
+                mustNonBlank(av.electionKey(), "allocVoteCasts.json: electionKey blank");
+                if (!electionMap.containsKey(av.electionKey())) {
+                    throw new IllegalStateException("allocVoteCasts.json: unknown electionKey=" + av.electionKey());
+                }
+                if (!citizenMap.containsKey(av.citizenId())) {
+                    throw new IllegalStateException("allocVoteCasts.json: unknown citizenId=" + av.citizenId());
+                }
+                if (av.items() == null || av.items().isEmpty()) {
+                    throw new IllegalStateException("allocVoteCasts.json: items empty electionKey=" + av.electionKey());
+                }
+
+                int size = electionMap.get(av.electionKey()).candidates().size();
+                int sum = 0;
+
+                for (var it : av.items()) {
+                    mustNonBlank(it.type(), "allocVoteCasts.json: item.type blank electionKey=" + av.electionKey());
+                    if (it.points() == null || it.points() < 0 || it.points() > 100) {
+                        throw new IllegalStateException(
+                                "allocVoteCasts.json: invalid points electionKey=" + av.electionKey()
+                                        + " points=" + it.points());
+                    }
+                    sum += it.points();
+
+                    if ("CANDIDATE".equals(it.type())) {
+                        if (it.candidateIndex() == null) {
+                            throw new IllegalStateException(
+                                    "allocVoteCasts.json: candidateIndex required electionKey=" + av.electionKey());
+                        }
+                        if (it.candidateIndex() < 0 || it.candidateIndex() >= size) {
+                            throw new IllegalStateException(
+                                    "allocVoteCasts.json: candidateIndex out of range electionKey="
+                                            + av.electionKey() + " index=" + it.candidateIndex() + " size=" + size);
+                        }
+                    } else if ("NONE_SUPPORT".equals(it.type())) {
+                        // ok
+                    } else {
+                        throw new IllegalStateException("allocVoteCasts.json: unknown item.type=" + it.type()
+                                + " electionKey=" + av.electionKey());
+                    }
+                }
+
+                if (sum != 100) {
+                    throw new IllegalStateException("allocVoteCasts.json: sum(points) must be 100 electionKey="
+                            + av.electionKey() + " sum=" + sum);
+                }
+            }
+        }
     }
 
     private void mustNonBlank(String v, String msg) {
@@ -337,7 +405,6 @@ public class DemoDataInitializer {
     // -------------------------
     // seed
     // -------------------------
-
     private Gender parseGender(String s) {
         if (s == null)
             throw new IllegalStateException("citizens.json: gender null");
@@ -393,8 +460,11 @@ public class DemoDataInitializer {
     private record ElectionCreated(UUID electionId, List<UUID> candidateIds) {
     }
 
-    private Map<String, ElectionCreated> seedElectionsAndCandidates(ElectionRepository electionRepo,
-            CandidateRepository candidateRepo, List<ElectionJson> elections, Map<String, CandidateJson> candidateMap) {
+    private Map<String, ElectionCreated> seedElectionsAndCandidates(
+            ElectionRepository electionRepo,
+            CandidateRepository candidateRepo,
+            List<ElectionJson> elections,
+            Map<String, CandidateJson> candidateMap) {
         var now = Instant.now();
         Map<String, ElectionCreated> created = new HashMap<>();
 
@@ -439,7 +509,9 @@ public class DemoDataInitializer {
         return created;
     }
 
-    private void seedRules(ElectionEligibilityRuleRepository ruleRepo, List<RuleJson> rules,
+    private void seedRules(
+            ElectionEligibilityRuleRepository ruleRepo,
+            List<RuleJson> rules,
             Map<String, ElectionCreated> created) {
         for (var rj : rules) {
             var ce = created.get(rj.electionKey());
@@ -454,20 +526,22 @@ public class DemoDataInitializer {
         }
     }
 
-    private void seedVotes(VoteCastRepository voteCastRepo, VoteCurrentRepository voteCurrentRepo,
-            List<VoteJson> votes, Map<String, ElectionCreated> created) {
-
+    private void seedVotes(
+            VoteCastRepository voteCastRepo,
+            VoteCurrentRepository voteCurrentRepo,
+            List<VoteJson> votes,
+            Map<String, ElectionCreated> created) {
         var now = Instant.now();
 
         for (var vj : votes) {
             var ce = created.get(vj.electionKey());
             if (ce == null)
-                throw new IllegalStateException("voteCurrents.json: unknown electionKey=" + vj.electionKey());
+                throw new IllegalStateException("votes.json: unknown electionKey=" + vj.electionKey());
 
             UUID candidateId = ce.candidateIds().get(vj.candidateIndex());
             Instant castedAt = now.plusSeconds(vj.castedAtOffsetSec());
 
-            // castは履歴として毎回入れる
+            // cast: 履歴
             var cast = new VoteCast();
             cast.setElectionId(ce.electionId());
             cast.setCitizenId(vj.citizenId());
@@ -475,15 +549,103 @@ public class DemoDataInitializer {
             cast.setCastedAt(castedAt);
             voteCastRepo.save(cast);
 
-            // currentは upsert（最後に処理されたものが残る）
+            // current: upsert
             var cur = voteCurrentRepo.findByElectionIdAndCitizenId(ce.electionId(), vj.citizenId())
                     .orElseGet(VoteCurrent::new);
-
             cur.setElectionId(ce.electionId());
             cur.setCitizenId(vj.citizenId());
             cur.setCandidateId(candidateId);
             cur.setCastedAt(castedAt);
             voteCurrentRepo.save(cur);
+        }
+    }
+
+    // =========================================================
+    // alloc: casts-only
+    // =========================================================
+    private record AllocKey(UUID electionId, UUID citizenId) {
+    }
+
+    private record LatestAlloc(UUID castId, Instant castedAt) {
+    }
+
+    private void seedAllocFromCastsOnly(
+            VoteAllocCastRepository castRepo,
+            VoteAllocCurrentRepository currentRepo,
+            VoteAllocItemRepository itemRepo,
+            List<AllocVoteJson> casts,
+            Map<String, ElectionCreated> created) {
+        var now = Instant.now();
+
+        // 最新の cast（= current に採用）を追跡
+        Map<AllocKey, LatestAlloc> latest = new HashMap<>();
+
+        for (var vj : casts) {
+            var ce = created.get(vj.electionKey());
+            if (ce == null) {
+                throw new IllegalStateException("allocVoteCasts.json: unknown electionKey=" + vj.electionKey());
+            }
+
+            Instant castedAt = now.plusSeconds(vj.castedAtOffsetSec());
+
+            // 1) cast insert
+            var cast = new VoteAllocCast();
+            cast.setElectionId(ce.electionId());
+            cast.setCitizenId(vj.citizenId());
+            cast.setPointsTotal(100);
+            cast.setCastedAt(castedAt);
+            cast = castRepo.save(cast);
+
+            // 2) items insert
+            saveAllocItems(itemRepo, ce, cast.getId(), vj);
+
+            // 3) latest 判定（時刻ベース）
+            var key = new AllocKey(ce.electionId(), vj.citizenId());
+            var prev = latest.get(key);
+            if (prev == null || castedAt.isAfter(prev.castedAt())) {
+                latest.put(key, new LatestAlloc(cast.getId(), castedAt));
+            }
+        }
+
+        // 4) current を最新 cast から作成/更新
+        for (var e : latest.entrySet()) {
+            var key = e.getKey();
+            var lat = e.getValue();
+
+            var cur = currentRepo.findByElectionIdAndCitizenId(key.electionId(), key.citizenId())
+                    .orElseGet(VoteAllocCurrent::new);
+
+            cur.setElectionId(key.electionId());
+            cur.setCitizenId(key.citizenId());
+            cur.setCastId(lat.castId());
+            cur.setCastedAt(lat.castedAt());
+
+            currentRepo.save(cur);
+        }
+    }
+
+    private void saveAllocItems(
+            VoteAllocItemRepository itemRepo,
+            ElectionCreated ce,
+            UUID castId,
+            AllocVoteJson vj) {
+        for (var it : vj.items()) {
+            var item = new VoteAllocItem();
+            item.setCastId(castId);
+            item.setPoints(it.points());
+
+            if ("CANDIDATE".equals(it.type())) {
+                UUID candidateId = ce.candidateIds().get(it.candidateIndex());
+                item.setTargetType(VoteAllocItem.TargetType.CANDIDATE);
+                item.setCandidateId(candidateId);
+            } else if ("NONE_SUPPORT".equals(it.type())) {
+                item.setTargetType(VoteAllocItem.TargetType.NONE_SUPPORT);
+                item.setCandidateId(null);
+            } else {
+                throw new IllegalStateException("allocVoteCasts.json: unknown item.type=" + it.type());
+            }
+
+            itemRepo.save(item);
         }
     }
 }
