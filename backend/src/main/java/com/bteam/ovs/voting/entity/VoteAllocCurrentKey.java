@@ -4,15 +4,15 @@ import java.io.Serializable;
 import java.util.Objects;
 import java.util.UUID;
 
-public class VoteCurrentKey implements Serializable {
+public class VoteAllocCurrentKey implements Serializable {
 
     private UUID electionId;
     private UUID citizenId;
 
-    public VoteCurrentKey() {
+    public VoteAllocCurrentKey() {
     }
 
-    public VoteCurrentKey(UUID electionId, UUID citizenId) {
+    public VoteAllocCurrentKey(UUID electionId, UUID citizenId) {
         this.electionId = electionId;
         this.citizenId = citizenId;
     }
@@ -21,7 +21,7 @@ public class VoteCurrentKey implements Serializable {
     public boolean equals(Object o) {
         if (this == o)
             return true;
-        if (!(o instanceof VoteCurrentKey that))
+        if (!(o instanceof VoteAllocCurrentKey that))
             return false;
         return Objects.equals(electionId, that.electionId)
                 && Objects.equals(citizenId, that.citizenId);

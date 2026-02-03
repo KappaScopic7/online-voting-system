@@ -19,11 +19,9 @@ public class NfcBridgeServer {
 
     private static final AtomicReference<String> lastUuid = new AtomicReference<>(null);
 
-    // RFC4122っぽいバリアント/バージョンも含めて厳格に（あなたの値 550e... は v4 なのでOK）
     private static final Pattern UUID_STRICT = Pattern.compile(
             "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$");
 
-    // “UUIDっぽい形” を広く拾う（strictは後段でかける）
     private static final Pattern UUID_LOOSE = Pattern.compile(
             "(?i)\\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\\b");
 
@@ -98,7 +96,7 @@ public class NfcBridgeServer {
                         terminal.waitForCardPresent(1000);
                     } catch (CardException ce) {
                         System.out.println("[nfc] waitForCardPresent failed: " + ce.getMessage());
-                        break; // 端末取り直し
+                        break;
                     }
 
                     if (!terminal.isCardPresent())
@@ -109,17 +107,14 @@ public class NfcBridgeServer {
                         card = terminal.connect("*");
                         CardChannel channel = card.getBasicChannel();
 
-                        // ★PaSoRi環境では「連番ブロック＝連続メモリ」が怪しいので、多めに読んでノイズから復元する
-                        byte[] raw = readManyBlocks(channel, 4, 40); // 4..39 (36ブロック=576B)
+                        byte[] raw = readManyBlocks(channel, 4, 40);
 
-                        // 必要ならダンプ（重いならmax小さく）
                         System.out.println("[nfc] dump(hex) = " + toHex(raw, 128));
                         System.out.println("[nfc] dump(ascii)= " + toAscii(raw, 128));
 
                         String uuid = extractUuidFromRaw(raw);
 
                         if (uuid != null) {
-                            // 最終チェック
                             UUID.fromString(uuid);
                             lastUuid.set(uuid);
                             System.out.println("[nfc] captured uuid: " + uuid);
@@ -161,7 +156,7 @@ public class NfcBridgeServer {
         for (int block = startBlock; block < endExclusive; block += 4) {
             byte[] d = readBlock16(channel, block);
             if (d == null)
-                break; // 読めない領域に入った
+                break;
             System.arraycopy(d, 0, buf, idx, 16);
             idx += 16;
         }
@@ -179,35 +174,26 @@ public class NfcBridgeServer {
 
         byte[] d = res.getData();
         if (d == null || d.length != 16)
-            return null; // 0バイト等は失敗扱い
+            return null;
         return d;
     }
 
-    /**
-     * rawからUUIDを抽出する。
-     * 1) NDEF Text Record を best-effort でパースして text を連結
-     * 2) 連結文字列からUUIDを抽出（strict優先）
-     * 3) だめなら raw を printable ASCII に落として拾う（最終保険）
-     */
     private static String extractUuidFromRaw(byte[] raw) {
         if (raw == null || raw.length == 0)
             return null;
 
         String joined = joinNdefTextRecordsBestEffort(raw);
         if (joined != null && !joined.isBlank()) {
-            // 1) そのまま探す
             String u1 = findUuidInside(joined);
             if (u1 != null)
                 return u1;
 
-            // 2) “hexとダッシュだけ” に正規化して探す（今回これが効く）
             String norm = keepHexAndDash(joined);
             String u2 = findUuidInside(norm);
             if (u2 != null)
                 return u2;
         }
 
-        // 最終保険：rawをprintable ASCIIにしてから同じこと
         String ascii = toPrintableAscii(raw);
 
         String u3 = findUuidInside(ascii);
@@ -234,28 +220,22 @@ public class NfcBridgeServer {
         return sb.toString();
     }
 
-    // 既に isHex が無い場合は追加（あなたの全体差し替え版には入ってないので要注意）
     private static boolean isHex(char c) {
         return (c >= '0' && c <= '9')
                 || (c >= 'a' && c <= 'f')
                 || (c >= 'A' && c <= 'F');
     }
 
-    /**
-     * rawのどこかに埋もれている NDEF Short Record (SR=1) の Text record(type='T') を拾って結合する。
-     * - 先頭がTLVでも途中でも、とにかく "SR + TNF=WellKnown + type='T'" を探索する
-     * - ID Length(IL) にも対応
-     */
     private static String joinNdefTextRecordsBestEffort(byte[] raw) {
         StringBuilder out = new StringBuilder();
 
         for (int recStart = 0; recStart < raw.length - 4; recStart++) {
             int hdr = raw[recStart] & 0xFF;
 
-            boolean sr = (hdr & 0x10) != 0; // Short Record
+            boolean sr = (hdr & 0x10) != 0;
             int tnf = (hdr & 0x07);
             if (!sr || tnf != 0x01)
-                continue; // SR + Well-known
+                continue;
 
             int typeLenPos = recStart + 1;
             int payloadLenPos = recStart + 2;
@@ -267,7 +247,7 @@ public class NfcBridgeServer {
 
             int pos = recStart + 3;
 
-            boolean il = (hdr & 0x08) != 0; // ID Length present
+            boolean il = (hdr & 0x08) != 0;
             int idLen = 0;
             if (il) {
                 if (pos >= raw.length)
@@ -276,23 +256,19 @@ public class NfcBridgeServer {
                 pos++;
             }
 
-            // type
             if (pos + typeLen > raw.length)
                 continue;
             if (typeLen != 1 || raw[pos] != 0x54)
-                continue; // 'T'
+                continue;
             pos += typeLen;
 
-            // id
             if (pos + idLen > raw.length)
                 continue;
             pos += idLen;
 
-            // payload
             if (pos + payloadLen > raw.length)
                 continue;
 
-            // Text payload format: [status][lang...][text...]
             if (payloadLen >= 1) {
                 int status = raw[pos] & 0xFF;
                 int langLen = status & 0x3F;
@@ -306,7 +282,6 @@ public class NfcBridgeServer {
                 }
             }
 
-            // レコード全長を計算して探索位置を飛ばす（高速化＆誤検出減）
             int recLen = 3 + (il ? 1 : 0) + typeLen + idLen + payloadLen;
             recStart += Math.max(0, recLen - 1);
         }
@@ -323,11 +298,9 @@ public class NfcBridgeServer {
         while (m.find()) {
             String uuid = m.group();
 
-            // strict優先
             if (UUID_STRICT.matcher(uuid).matches())
                 return uuid;
 
-            // strictにしないならこれでもOK
             try {
                 UUID.fromString(uuid);
                 return uuid;

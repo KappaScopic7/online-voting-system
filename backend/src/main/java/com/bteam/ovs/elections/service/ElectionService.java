@@ -1,14 +1,15 @@
 package com.bteam.ovs.elections.service;
 
 import com.bteam.ovs.candidates.service.CandidateService;
+import com.bteam.ovs.elections.controller.dto.AllocElectionResultResponse;
 import com.bteam.ovs.elections.controller.dto.ElectionDetailResponse;
 import com.bteam.ovs.elections.controller.dto.ElectionListItem;
 import com.bteam.ovs.elections.controller.dto.ElectionResultResponse;
 import com.bteam.ovs.elections.repository.ElectionRepository;
 import com.bteam.ovs.shared.auth.AccountResolver;
 import com.bteam.ovs.shared.errors.ApiException;
+import com.bteam.ovs.voting.repository.VoteAllocItemRepository;
 import com.bteam.ovs.voting.repository.VoteCurrentRepository;
-
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
@@ -25,18 +26,21 @@ public class ElectionService {
     private final AccountResolver accountResolver;
     private final ElectionEligibilityService electionEligibilityService;
     private final CandidateService candidateService;
+    private final VoteAllocItemRepository voteAllocItemRepo;
 
     public ElectionService(
             ElectionRepository electionRepo,
             VoteCurrentRepository voteCurrentRepo,
             AccountResolver accountResolver,
             ElectionEligibilityService electionEligibilityService,
-            CandidateService candidateService) {
+            CandidateService candidateService,
+            VoteAllocItemRepository voteAllocItemRepo) {
         this.electionRepo = electionRepo;
         this.voteCurrentRepo = voteCurrentRepo;
         this.accountResolver = accountResolver;
         this.electionEligibilityService = electionEligibilityService;
         this.candidateService = candidateService;
+        this.voteAllocItemRepo = voteAllocItemRepo;
     }
 
     public List<ElectionListItem> list(UUID accountIdOrNull) {
@@ -209,4 +213,43 @@ public class ElectionService {
             return "ENDED";
         return "ONGOING";
     }
+
+    public AllocElectionResultResponse allocResult(UUID electionId) {
+        var election = electionRepo.findById(electionId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "ELECTION_NOT_FOUND", "選挙が存在しません"));
+
+        var now = Instant.now();
+        if (now.isBefore(election.getEndsAt())) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "RESULT_NOT_AVAILABLE", "結果は選挙終了後に公開されます");
+        }
+
+        var candidates = candidateService.summariesByElection(electionId);
+
+        var pointMap = voteAllocItemRepo.sumPointsByElectionGroupByCandidate(electionId).stream()
+                .collect(Collectors.toMap(
+                        VoteAllocItemRepository.PointSum::getCandidateId,
+                        v -> v.getPts() != null ? v.getPts() : 0L));
+
+        long noneSupportPoints = voteAllocItemRepo.sumNoneSupportPointsByElection(electionId);
+
+        long totalPoints = pointMap.values().stream().mapToLong(Long::longValue).sum() + noneSupportPoints;
+
+        var results = candidates.stream()
+                .map(c -> new AllocElectionResultResponse.CandidatePointResult(
+                        c.candidateId(),
+                        c.name(),
+                        pointMap.getOrDefault(c.candidateId(), 0L)))
+                .sorted((a, b) -> Long.compare(b.points(), a.points()))
+                .toList();
+
+        return new AllocElectionResultResponse(
+                election.getId(),
+                election.getTitle(),
+                "CURRENT",
+                totalPoints,
+                noneSupportPoints,
+                now,
+                results);
+    }
+
 }

@@ -1,23 +1,13 @@
 {
-    // インデントをスペース4つに統一
     "editor.tabSize": 4,
-    // 保存時フォーマットON
     "editor.formatOnSave": true,
-    // デフォルトフォーマッタを指定
     "editor.defaultFormatter": "esbenp.prettier-vscode",
-    // Javaは Red Hat Java 拡張でフォーマット
     "java.format.enabled": true,
     "[java]": {
         "editor.defaultFormatter": "redhat.java",
         "editor.formatOnSave": true
     },
-    // Eclipse formatter を指定
-    // "java.format.settings.url": "${workspaceFolder}/.vscode/eclipse-java-formatter.xml",
-    // "java.format.settings.url": "${workspaceFolder}/.vscode/eclipse-java-formatter.xml",
-    // "java.format.settings.profile": "OVS-4spaces",
-    // 自動インデント検出を切る（超重要）
     "editor.detectIndentation": false,
-    // Null解析を無効化
     "java.compile.nullAnalysis.mode": "disabled",
     "java.configuration.updateBuildConfiguration": "automatic"
 }
