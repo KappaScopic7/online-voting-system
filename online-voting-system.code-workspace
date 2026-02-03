@@ -16,6 +16,10 @@
             "name": "resources",
             "path": "backend/src/main/resources",
         },
+        {
+            "name": "graph-service",
+            "path": "graph-service/",
+        },
     ],
     "settings": {
         "java.compile.nullAnalysis.mode": "disabled",
