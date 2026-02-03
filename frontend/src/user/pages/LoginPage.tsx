@@ -172,33 +172,10 @@ export function LoginPage() {
                     )}
                 </label>
 
-                {/* ★ DEV: ワンクリックログイン */}
-                {isDev && (
-                    <div style={{ display: "grid", gap: 6, marginTop: 6 }}>
-                        {Object.values(demoPersonas.voter).map((p) => (
-                            <button
-                                key={p.key}
-                                type="button"
-                                onClick={() => doLogin(p.email, p.password)}
-                                disabled={isSubmitting}
-                                style={{
-                                    fontSize: 12,
-                                    padding: "6px 10px",
-                                    textAlign: "left",
-                                }}
-                                title={p.description}
-                            >
-                                {p.label}
-                            </button>
-                        ))}
-                    </div>
-                )}
-
                 <button type="submit" disabled={!canSubmit || isSubmitting}>
                     {isSubmitting ? "Logging in..." : "Login"}
                 </button>
 
-                {/* ★ auth間リンクは常に returnTo を引き回す */}
                 <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
                     <Link to="/register" state={{ email, from: returnTo }}>
                         新規登録
@@ -218,6 +195,24 @@ export function LoginPage() {
             {isDev && (
                 <details>
                     <summary>Debug</summary>
+                    <div style={{ display: "grid", gap: 6, marginTop: 6 }}>
+                        {Object.values(demoPersonas.voter).map((p) => (
+                            <button
+                                key={p.key}
+                                type="button"
+                                onClick={() => doLogin(p.email, p.password)}
+                                disabled={isSubmitting}
+                                style={{
+                                    fontSize: 12,
+                                    padding: "6px 10px",
+                                    textAlign: "left",
+                                }}
+                                title={p.description}
+                            >
+                                {p.label}
+                            </button>
+                        ))}
+                    </div>
                     <pre style={{ whiteSpace: "pre-wrap" }}>
                         {JSON.stringify(
                             { email, isSubmitting, fieldErr, state, returnTo },

@@ -99,7 +99,7 @@ public class SecurityConfig {
                         .access((a, c) -> decide(a.get(), AccountKind.USER))
 
                         // ---- voter only (user + voter role) ----
-                        .requestMatchers("/api/voting/**", "/api/votes/**")
+                        .requestMatchers("/api/voting/**", "/api/votes/**", "/api/alloc-voting/**")
                         .access((a, c) -> decide(
                                 isKind(a.get(), AccountKind.USER)
                                         && hasRole(a.get(), Role.VOTER)))

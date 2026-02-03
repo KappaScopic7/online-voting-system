@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.UUID;
 
 public record AllocVoteConfirmRequest(
+        @NotNull String electionId,
         @NotNull Integer pointsTotal,
         @NotEmpty List<Item> items) {
     public record Item(

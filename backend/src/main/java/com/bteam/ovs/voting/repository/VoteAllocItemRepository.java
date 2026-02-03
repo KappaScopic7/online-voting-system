@@ -6,10 +6,11 @@ import org.springframework.data.jpa.repository.Query;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.Collection;
 
 public interface VoteAllocItemRepository extends JpaRepository<VoteAllocItem, UUID> {
 
-    List<VoteAllocItem> findByCastId(UUID castId);
+    List<VoteAllocItem> findByCastIdIn(Collection<UUID> castIds);
 
     interface PointSum {
         UUID getCandidateId();
@@ -20,9 +21,13 @@ public interface VoteAllocItemRepository extends JpaRepository<VoteAllocItem, UU
     @Query("""
                 select i.candidateId as candidateId, sum(i.points) as pts
                 from VoteAllocItem i
-                join VoteAllocCast c on c.id = i.castId
-                where c.electionId = :electionId
-                  and i.targetType = com.bteam.ovs.voting.entity.VoteAllocItem.TargetType.CANDIDATE
+                where i.targetType = com.bteam.ovs.voting.entity.VoteAllocItem.TargetType.CANDIDATE
+                  and exists (
+                      select 1
+                      from VoteAllocCast c
+                      where c.id = i.castId
+                        and c.electionId = :electionId
+                  )
                 group by i.candidateId
             """)
     List<PointSum> sumPointsByElectionGroupByCandidate(UUID electionId);
@@ -30,9 +35,13 @@ public interface VoteAllocItemRepository extends JpaRepository<VoteAllocItem, UU
     @Query("""
                 select coalesce(sum(i.points), 0)
                 from VoteAllocItem i
-                join VoteAllocCast c on c.id = i.castId
-                where c.electionId = :electionId
-                  and i.targetType = com.bteam.ovs.voting.entity.VoteAllocItem.TargetType.NONE_SUPPORT
+                where i.targetType = com.bteam.ovs.voting.entity.VoteAllocItem.TargetType.NONE_SUPPORT
+                  and exists (
+                      select 1
+                      from VoteAllocCast c
+                      where c.id = i.castId
+                        and c.electionId = :electionId
+                  )
             """)
     long sumNoneSupportPointsByElection(UUID electionId);
 }

@@ -14,7 +14,6 @@ import com.bteam.ovs.voting.entity.VoteAllocItem;
 import com.bteam.ovs.voting.repository.VoteAllocCastRepository;
 import com.bteam.ovs.voting.repository.VoteAllocCurrentRepository;
 import com.bteam.ovs.voting.repository.VoteAllocItemRepository;
-
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -27,6 +26,11 @@ import java.util.stream.Collectors;
 
 @Service
 public class AllocationVotingService {
+
+    private static final int POINTS_TOTAL = 100;
+    private static final String TYPE_CANDIDATE = "CANDIDATE";
+    private static final String TYPE_NONE_SUPPORT = "NONE_SUPPORT";
+    private static final String NONE_SUPPORT_LABEL = "今回は誰も支持しない";
 
     private final CitizenIdResolver citizenIdResolver;
     private final ElectionEligibilityService electionEligibilityService;
@@ -59,19 +63,19 @@ public class AllocationVotingService {
         citizenIdResolver.requireCitizenId(accountId);
 
         var election = electionRepo.findById(electionId)
-                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "ELECTION_NOT_FOUND", "選挙が存在しません"));
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.NOT_FOUND, "ELECTION_NOT_FOUND", "選挙が存在しません"));
 
         var options = new ArrayList<AllocVoteStartResponse.OptionItem>();
 
         // 候補
         candidateRepo.findByElectionId(electionId).forEach(c -> options.add(new AllocVoteStartResponse.OptionItem(
-                "CANDIDATE", c.getId(), c.getName())));
+                TYPE_CANDIDATE, c.getId(), c.getName())));
 
         // 特別枠：誰も支持しない
-        options.add(new AllocVoteStartResponse.OptionItem(
-                "NONE_SUPPORT", null, "今回は誰も支持しない"));
+        options.add(new AllocVoteStartResponse.OptionItem(TYPE_NONE_SUPPORT, null, NONE_SUPPORT_LABEL));
 
-        return new AllocVoteStartResponse(election.getId(), election.getTitle(), 100, options);
+        return new AllocVoteStartResponse(election.getId(), election.getTitle(), POINTS_TOTAL, options);
     }
 
     @Transactional
@@ -80,7 +84,8 @@ public class AllocationVotingService {
         UUID citizenId = citizenIdResolver.requireCitizenId(accountId);
 
         var election = electionRepo.findById(electionId)
-                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "ELECTION_NOT_FOUND", "選挙が存在しません"));
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.NOT_FOUND, "ELECTION_NOT_FOUND", "選挙が存在しません"));
 
         var now = Instant.now();
         boolean withinPeriod = !now.isBefore(election.getStartsAt()) && now.isBefore(election.getEndsAt());
@@ -88,27 +93,32 @@ public class AllocationVotingService {
             throw new ApiException(HttpStatus.FORBIDDEN, "ELECTION_NOT_ONGOING", "投票可能期間外です");
         }
 
-        int pointsTotal = (req.pointsTotal() != null) ? req.pointsTotal() : 100;
-        if (pointsTotal != 100) {
+        if (req.pointsTotal() != POINTS_TOTAL) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_POINTS_TOTAL", "合計ポイントは100である必要があります");
         }
 
-        // items 検証
         if (req.items() == null || req.items().isEmpty()) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_ITEMS", "配分が空です");
         }
 
         int sum = 0;
-
-        // candidateId 重複禁止（CANDIDATEのみ）
+        boolean hasNoneSupport = false;
         Set<UUID> seenCandidates = new HashSet<>();
 
-        // 候補が選挙に属しているかのチェック用に Set 化
-        Set<UUID> validCandidateIds = candidateRepo.findByElectionId(electionId).stream()
-                .map(c -> c.getId())
+        Set<UUID> candidateIds = req.items().stream()
+                .filter(i -> "CANDIDATE".equals(i.type()))
+                .map(AllocVoteConfirmRequest.Item::candidateId)
+                .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
 
-        boolean hasNoneSupport = false;
+        // null混入はループ内で弾いてる前提でもOKだが、ここでも弾ける
+        long ok = candidateIds.isEmpty()
+                ? 0
+                : candidateRepo.countByElectionIdAndIdIn(electionId, candidateIds);
+
+        if (ok != candidateIds.size()) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_CANDIDATE", "候補が不正です");
+        }
 
         for (var item : req.items()) {
             if (item.points() == null || item.points() <= 0) {
@@ -117,18 +127,13 @@ public class AllocationVotingService {
             sum += item.points();
 
             String type = item.type();
-            if (!"CANDIDATE".equals(type) && !"NONE_SUPPORT".equals(type)) {
+            if (!TYPE_CANDIDATE.equals(type) && !TYPE_NONE_SUPPORT.equals(type)) {
                 throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_TARGET_TYPE", "投票先の種類が不正です");
             }
 
-            if ("CANDIDATE".equals(type)) {
-                if (item.candidateId() == null) {
-                    throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_CANDIDATE", "候補が不正です");
-                }
-                if (!validCandidateIds.contains(item.candidateId())) {
-                    throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_CANDIDATE", "候補が不正です");
-                }
-                if (!seenCandidates.add(item.candidateId())) {
+            if (TYPE_CANDIDATE.equals(type)) {
+                UUID candidateId = item.candidateId();
+                if (!seenCandidates.add(candidateId)) {
                     throw new ApiException(HttpStatus.BAD_REQUEST, "DUPLICATE_CANDIDATE", "同一候補への重複配分はできません");
                 }
             } else { // NONE_SUPPORT
@@ -142,7 +147,7 @@ public class AllocationVotingService {
             }
         }
 
-        if (sum != 100) {
+        if (sum != POINTS_TOTAL) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "POINTS_SUM_MISMATCH", "ポイント合計が100ではありません");
         }
 
@@ -150,27 +155,30 @@ public class AllocationVotingService {
         var cast = new VoteAllocCast();
         cast.setElectionId(electionId);
         cast.setCitizenId(citizenId);
-        cast.setPointsTotal(100);
+        cast.setPointsTotal(POINTS_TOTAL);
         cast.setCastedAt(now);
         castRepo.save(cast);
 
         // item 保存
-        var items = new ArrayList<VoteAllocItem>();
+        var items = new ArrayList<VoteAllocItem>(req.items().size());
         for (var r : req.items()) {
             var it = new VoteAllocItem();
             it.setCastId(cast.getId());
             it.setPoints(r.points());
-            if ("CANDIDATE".equals(r.type())) {
+
+            if (TYPE_CANDIDATE.equals(r.type())) {
                 it.setTargetType(VoteAllocItem.TargetType.CANDIDATE);
                 it.setCandidateId(r.candidateId());
             } else {
                 it.setTargetType(VoteAllocItem.TargetType.NONE_SUPPORT);
                 it.setCandidateId(null);
             }
+
             items.add(it);
         }
         itemRepo.saveAll(items);
 
+        // current upsert
         var current = voteAllocCurrentRepo.findByElectionIdAndCitizenId(electionId, citizenId)
                 .orElseGet(() -> {
                     var v = new VoteAllocCurrent();
@@ -180,16 +188,12 @@ public class AllocationVotingService {
                 });
 
         current.setCastId(cast.getId());
-        // castedAt は @PreUpdate で上書きされる設計なので、明示セット不要でもOK
-        // current.setCastedAt(now);
 
         try {
             voteAllocCurrentRepo.save(current);
         } catch (DataIntegrityViolationException ex) {
-            // VoteCurrent と同じ “念のためリトライ”
             var retry = voteAllocCurrentRepo.findByElectionIdAndCitizenId(electionId, citizenId)
                     .orElseThrow(() -> ex);
-
             retry.setCastId(cast.getId());
             voteAllocCurrentRepo.save(retry);
         }
@@ -204,7 +208,7 @@ public class AllocationVotingService {
                         i.getCandidateId(),
                         i.getTargetType() == VoteAllocItem.TargetType.CANDIDATE
                                 ? candName.getOrDefault(i.getCandidateId(), "(unknown candidate)")
-                                : "今回は誰も支持しない",
+                                : NONE_SUPPORT_LABEL,
                         i.getPoints()))
                 .toList();
 
@@ -213,7 +217,7 @@ public class AllocationVotingService {
                 election.getId(),
                 election.getTitle(),
                 resolveElectionStatus(now, election.getStartsAt(), election.getEndsAt()),
-                100,
+                POINTS_TOTAL,
                 now,
                 respItems);
     }
@@ -229,27 +233,37 @@ public class AllocationVotingService {
         var elections = electionRepo.findAllById(electionIds).stream()
                 .collect(Collectors.toMap(e -> e.getId(), Function.identity()));
 
-        // items を castId ごとにまとめて取る（雑に N+1 になるの嫌なら query を足す）
-        // まずは簡単に：cast単位で findByCastId
+        // items 一括取得（N+1回避）
+        var castIds = casts.stream().map(VoteAllocCast::getId).collect(Collectors.toSet());
+        var allItems = itemRepo.findByCastIdIn(castIds);
+
+        Map<UUID, List<VoteAllocItem>> itemsByCastId = allItems.stream()
+                .collect(Collectors.groupingBy(VoteAllocItem::getCastId));
+
+        // 候補名マップ（一括）
+        var allCandidateIds = allItems.stream()
+                .filter(i -> i.getTargetType() == VoteAllocItem.TargetType.CANDIDATE)
+                .map(VoteAllocItem::getCandidateId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+
+        Map<UUID, String> candidateNameById = allCandidateIds.isEmpty()
+                ? Map.of()
+                : candidateRepo.findAllById(allCandidateIds).stream()
+                        .collect(Collectors.toMap(c -> c.getId(), c -> c.getName()));
+
+        Instant now = Instant.now();
+
         return casts.stream().map(cast -> {
             var e = elections.get(cast.getElectionId());
 
-            var items = itemRepo.findByCastId(cast.getId());
+            var items = itemsByCastId.getOrDefault(cast.getId(), List.of());
 
-            // candidateId -> name（この cast 内に含まれる分だけ取る）
-            var candidateIds = items.stream()
-                    .filter(i -> i.getTargetType() == VoteAllocItem.TargetType.CANDIDATE)
-                    .map(VoteAllocItem::getCandidateId)
-                    .filter(Objects::nonNull)
-                    .collect(Collectors.toSet());
-
-            Map<UUID, String> candName = candidateIds.isEmpty() ? Map.of()
-                    : candidateRepo.findAllById(candidateIds).stream()
-                            .collect(Collectors.toMap(ca -> ca.getId(), ca -> ca.getName()));
-
-            String status = "UNKNOWN";
+            String st = "UNKNOWN";
+            String title = "(unknown election)";
             if (e != null) {
-                status = resolveElectionStatus(Instant.now(), e.getStartsAt(), e.getEndsAt());
+                st = resolveElectionStatus(now, e.getStartsAt(), e.getEndsAt());
+                title = e.getTitle();
             }
 
             var respItems = items.stream()
@@ -257,17 +271,17 @@ public class AllocationVotingService {
                             i.getTargetType().name(),
                             i.getCandidateId(),
                             i.getTargetType() == VoteAllocItem.TargetType.CANDIDATE
-                                    ? candName.getOrDefault(i.getCandidateId(), "(unknown candidate)")
-                                    : "今回は誰も支持しない",
+                                    ? candidateNameById.getOrDefault(i.getCandidateId(), "(unknown candidate)")
+                                    : NONE_SUPPORT_LABEL,
                             i.getPoints()))
                     .toList();
 
             return new AllocVoteHistoryItem(
                     cast.getId(),
                     cast.getElectionId(),
-                    e != null ? e.getTitle() : "(unknown election)",
-                    status,
-                    cast.getPointsTotal() != null ? cast.getPointsTotal() : 100,
+                    title,
+                    st,
+                    cast.getPointsTotal() != null ? cast.getPointsTotal() : POINTS_TOTAL,
                     cast.getCastedAt(),
                     respItems);
         }).toList();

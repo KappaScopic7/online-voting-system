@@ -41,4 +41,14 @@ public interface CandidateRepository extends JpaRepository<Candidate, UUID> {
 
     List<Candidate> findAllByOrderByElectionIdAscSortOrderAsc();
 
+    @Query("""
+                select count(c.id)
+                from Candidate c
+                where c.electionId = :electionId
+                  and c.id in :candidateIds
+            """)
+    long countByElectionIdAndIdIn(
+            @Param("electionId") UUID electionId,
+            @Param("candidateIds") Collection<UUID> candidateIds);
+
 }
