@@ -73,5 +73,155 @@
         ],
         "websiteUrl": "https://example.com/cand/nakamura",
         "imageUrl": "https://example.com/img/cand/nakamura.png"
+    },
+    {
+        "candidateKey": "cand_ishikawa",
+        "name": "石川 恒一",
+        "age": 41,
+        "partyKey": "life_support",
+        "title": "元 教員 / 子育て・教育",
+        "bio": "公立中で教員として勤務。教育費と子育て支援の拡充を訴える。",
+        "policies": [
+            "給食費・教材費の負担軽減",
+            "放課後支援（学童・居場所）の拡充",
+            "いじめ・不登校支援の強化"
+        ],
+        "websiteUrl": "https://example.com/cand/ishikawa",
+        "imageUrl": "https://example.com/img/cand/ishikawa.png"
+    },
+    {
+        "candidateKey": "cand_yamamoto",
+        "name": "山本 恒一",
+        "age": 48,
+        "partyKey": "tokyo_reform",
+        "title": "会計士 / 行財政レビュー",
+        "bio": "会計監査や事業評価に従事。行政コストの見える化を推進。",
+        "policies": [
+            "事業評価の公開（EBPMの徹底）",
+            "補助金の透明化（審査・効果測定）",
+            "税金の使途ダッシュボード化"
+        ],
+        "websiteUrl": "https://example.com/cand/yamamoto",
+        "imageUrl": "https://example.com/img/cand/yamamoto.png"
+    },
+    {
+        "candidateKey": "cand_kimura",
+        "name": "木村 恒一",
+        "age": 29,
+        "partyKey": "green_future",
+        "title": "都市計画 / 暑熱対策",
+        "bio": "公共空間の設計に携わる。暑熱と災害に強い都市づくりを提案。",
+        "policies": [
+            "日陰・ミスト等の暑熱対策の整備",
+            "歩行者優先のまちづくり（安全・健康）",
+            "公園・緑地のネットワーク化"
+        ],
+        "websiteUrl": "https://example.com/cand/kimura",
+        "imageUrl": "https://example.com/img/cand/kimura.png"
+    },
+    {
+        "candidateKey": "cand_saito",
+        "name": "斎藤 恒一",
+        "age": 57,
+        "partyKey": null,
+        "title": "無所属 / 防災・地域連携",
+        "bio": "地域防災の現場経験が長い。避難所運営と要配慮者支援に注力。",
+        "policies": [
+            "避難所の環境改善（電源・衛生・プライバシー）",
+            "要配慮者の個別避難計画の推進",
+            "地域連携（自治会・企業・学校）"
+        ],
+        "websiteUrl": "https://example.com/cand/saito",
+        "imageUrl": "https://example.com/img/cand/saito.png"
+    },
+    {
+        "candidateKey": "cand_okada",
+        "name": "岡田 恒一",
+        "age": 35,
+        "partyKey": "tokyo_reform",
+        "title": "エンジニア / オープンデータ",
+        "bio": "民間でデータ基盤を設計。行政のオープンデータ活用を推進したい。",
+        "policies": [
+            "行政データの公開・標準化",
+            "申請手続きのUX改善（モバイル最適化）",
+            "AI・自動化の適正導入（監査と説明責任）"
+        ],
+        "websiteUrl": "https://example.com/cand/okada",
+        "imageUrl": "https://example.com/img/cand/okada.png"
+    },
+    {
+        "candidateKey": "cand_hayashi",
+        "name": "林 恒一",
+        "age": 62,
+        "partyKey": "life_support",
+        "title": "福祉NPO / 高齢者支援",
+        "bio": "福祉NPOで相談支援に従事。孤立対策と介護の負担軽減を訴える。",
+        "policies": [
+            "見守り・相談体制の拡充",
+            "介護者支援（レスパイト・相談）",
+            "地域包括ケアの強化"
+        ],
+        "websiteUrl": "https://example.com/cand/hayashi",
+        "imageUrl": "https://example.com/img/cand/hayashi.png"
+    },
+    {
+        "candidateKey": "cand_fujita",
+        "name": "藤田 恒一",
+        "age": 44,
+        "partyKey": "green_future",
+        "title": "エネルギー / 省エネ支援",
+        "bio": "省エネ改修の普及に携わる。家庭・中小のエネルギー負担軽減を重視。",
+        "policies": [
+            "断熱改修・高効率設備の補助",
+            "再エネ導入の支援（共同購入など）",
+            "災害時の電力確保（蓄電・分散）"
+        ],
+        "websiteUrl": "https://example.com/cand/fujita",
+        "imageUrl": "https://example.com/img/cand/fujita.png"
+    },
+    {
+        "candidateKey": "cand_watanabe",
+        "name": "渡辺 恒一",
+        "age": 38,
+        "partyKey": null,
+        "title": "無所属 / 交通・通勤改善",
+        "bio": "交通事業でダイヤ改善に従事。通勤混雑と移動弱者対策を提案。",
+        "policies": [
+            "混雑緩和（時差・運行最適化）",
+            "バス路線の維持と利便性向上",
+            "自転車・歩行環境の安全整備"
+        ],
+        "websiteUrl": "https://example.com/cand/watanabe",
+        "imageUrl": "https://example.com/img/cand/watanabe.png"
+    },
+    {
+        "candidateKey": "cand_shimizu",
+        "name": "清水 恒一",
+        "age": 50,
+        "partyKey": "tokyo_reform",
+        "title": "元 企業法務 / ルール整備",
+        "bio": "契約・規程整備の経験を活かし、行政ルールの簡素化を推進。",
+        "policies": [
+            "規制・条例の棚卸し（簡素化）",
+            "手続きの標準化（自治体間の統一）",
+            "不正防止（内部統制の強化）"
+        ],
+        "websiteUrl": "https://example.com/cand/shimizu",
+        "imageUrl": "https://example.com/img/cand/shimizu.png"
+    },
+    {
+        "candidateKey": "cand_miyazaki",
+        "name": "宮崎 恒一",
+        "age": 31,
+        "partyKey": "life_support",
+        "title": "若者支援 / 住まい・雇用",
+        "bio": "若者の就労支援に携わる。住まいと雇用のセーフティネットを重視。",
+        "policies": [
+            "家賃補助・住宅確保支援",
+            "就労支援（リスキリング・職業訓練）",
+            "奨学金返済支援の拡充"
+        ],
+        "websiteUrl": "https://example.com/cand/miyazaki",
+        "imageUrl": "https://example.com/img/cand/miyazaki.png"
     }
 ]

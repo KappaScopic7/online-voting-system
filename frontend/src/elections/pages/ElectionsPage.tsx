@@ -50,17 +50,35 @@ function ElectionItemCard({
                     </Link>
                 );
             }
+
             if (e.canCast) {
                 return (
-                    <Link
-                        to={`/voting/start?electionId=${e.electionId}`}
-                        state={{ from }}
-                        style={{ textDecoration: "none" }}
+                    <span
+                        style={{
+                            display: "flex",
+                            gap: 10,
+                            alignItems: "center",
+                        }}
                     >
-                        <b>投票する →</b>
-                    </Link>
+                        <Link
+                            to={`/voting/start?electionId=${e.electionId}`}
+                            state={{ from }}
+                            style={{ textDecoration: "none" }}
+                        >
+                            <b>通常投票 →</b>
+                        </Link>
+
+                        <Link
+                            to={`/alloc-voting/start?electionId=${e.electionId}`}
+                            state={{ from }}
+                            style={{ textDecoration: "none" }}
+                        >
+                            <b>配分投票 →</b>
+                        </Link>
+                    </span>
                 );
             }
+
             return <span style={{ opacity: 0.6 }}>投票不可</span>;
         }
 

@@ -1,8 +1,11 @@
 // frontend/src/elections/pages/ResultPage.tsx
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
-import { fetchResult } from "../api/elections";
-import type { ElectionResultResponse } from "../model/electionTypes";
+import { fetchAllocResult, fetchResult } from "../api/elections";
+import type {
+    AllocElectionResultResponse,
+    ElectionResultResponse,
+} from "../model/electionTypes";
 import { normalizeFrom } from "../../shared/normalizeFrom";
 import { Card, DevDebug, Page } from "../../shared/ui/page";
 
@@ -18,20 +21,39 @@ function clamp(n: number, min: number, max: number) {
     return Math.max(min, Math.min(max, n));
 }
 
+function rankMap(
+    rows: { candidateId: string; value: number }[],
+): Map<string, number> {
+    const map = new Map<string, number>();
+    let rank = 0;
+    let prev: number | null = null;
+    for (let i = 0; i < rows.length; i++) {
+        const v = rows[i].value;
+        if (prev === null || v !== prev) {
+            rank = i + 1;
+            prev = v;
+        }
+        map.set(rows[i].candidateId, rank);
+    }
+    return map;
+}
+
 function ResultRow({
     r,
     rank,
     isTop,
     barW,
     p,
-    totalVotes,
+    total,
+    unit,
 }: {
-    r: { candidateId: string; candidateName: string; votes: number };
+    r: { candidateId: string; candidateName: string; value: number };
     rank: number | null;
     isTop: boolean;
     barW: number;
     p: string;
-    totalVotes: number;
+    total: number;
+    unit: string; // "票" | "pt"
 }) {
     const [hover, setHover] = useState(false);
 
@@ -102,17 +124,14 @@ function ResultRow({
                 </span>
 
                 <span style={{ opacity: 0.95 }}>
-                    <b>{r.votes}</b> 票（{p}）
+                    <b>{r.value}</b> {unit}（{p}）
                 </span>
             </div>
 
-            {/* bar */}
             <div
                 role="progressbar"
-                aria-label={`${r.candidateName} の得票率`}
-                aria-valuenow={
-                    totalVotes > 0 ? (r.votes / totalVotes) * 100 : 0
-                }
+                aria-label={`${r.candidateName} の割合`}
+                aria-valuenow={total > 0 ? (r.value / total) * 100 : 0}
                 aria-valuemin={0}
                 aria-valuemax={100}
                 style={{
@@ -137,7 +156,7 @@ function ResultRow({
                 label="meta"
                 value={{
                     candidateId: r.candidateId,
-                    votes: r.votes,
+                    value: r.value,
                 }}
             />
         </div>
@@ -153,19 +172,34 @@ export function ResultPage() {
     const backTo = normalizeFrom(state.from ?? "/elections");
     const from = loc.pathname + loc.search;
 
+    const [mode, setMode] = useState<"NORMAL" | "ALLOC">("NORMAL");
+
     const [data, setData] = useState<ElectionResultResponse | null>(null);
+    const [alloc, setAlloc] = useState<AllocElectionResultResponse | null>(
+        null,
+    );
+
     const [error, setError] = useState<string | null>(null);
     const [isForbidden, setIsForbidden] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
 
     const load = async () => {
         if (!electionId) return;
+
         setError(null);
         setIsForbidden(false);
         setIsLoading(true);
+
         try {
-            const res = await fetchResult(electionId);
-            setData(res);
+            if (mode === "NORMAL") {
+                const res = await fetchResult(electionId);
+                setData(res);
+                setAlloc(null);
+            } else {
+                const res = await fetchAllocResult(electionId);
+                setAlloc(res);
+                setData(null);
+            }
         } catch (err: any) {
             const status = err?.response?.status;
             const msg = err?.response?.data?.message;
@@ -176,7 +210,9 @@ export function ResultPage() {
             } else {
                 setError(msg ?? "Failed to load result");
             }
+
             setData(null);
+            setAlloc(null);
         } finally {
             setIsLoading(false);
         }
@@ -185,40 +221,53 @@ export function ResultPage() {
     useEffect(() => {
         load();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [electionId]);
+    }, [electionId, mode]);
 
-    const sorted = useMemo(() => {
+    const normalRows = useMemo(() => {
         if (!data) return [];
-        return [...data.results].sort((a, b) => b.votes - a.votes);
+        return [...data.results]
+            .map((r) => ({
+                candidateId: r.candidateId,
+                candidateName: r.candidateName,
+                value: r.votes,
+            }))
+            .sort((a, b) => b.value - a.value);
     }, [data]);
 
-    const maxVotes = useMemo(() => {
-        return sorted.reduce((m, x) => Math.max(m, x.votes), 0);
-    }, [sorted]);
+    const allocRows = useMemo(() => {
+        if (!alloc) return [];
+        return [...alloc.results]
+            .map((r) => ({
+                candidateId: r.candidateId,
+                candidateName: r.candidateName,
+                value: r.points,
+            }))
+            .sort((a, b) => b.value - a.value);
+    }, [alloc]);
 
-    // 同票は同順位（簡易）
+    const rows = mode === "NORMAL" ? normalRows : allocRows;
+
+    const total = useMemo(() => {
+        if (mode === "NORMAL") return data?.totalVotes ?? 0;
+        return alloc?.totalPoints ?? 0;
+    }, [mode, data, alloc]);
+
+    const maxValue = useMemo(() => {
+        return rows.reduce((m, x) => Math.max(m, x.value), 0);
+    }, [rows]);
+
     const ranks = useMemo(() => {
-        const map = new Map<string, number>();
-        let rank = 0;
-        let prevVotes: number | null = null;
-        for (let i = 0; i < sorted.length; i++) {
-            const v = sorted[i].votes;
-            if (prevVotes === null || v !== prevVotes) {
-                rank = i + 1;
-                prevVotes = v;
-            }
-            map.set(sorted[i].candidateId, rank);
-        }
-        return map;
-    }, [sorted]);
+        return rankMap(
+            rows.map((r) => ({ candidateId: r.candidateId, value: r.value })),
+        );
+    }, [rows]);
 
-    // 1位（同率）を強調
-    const topRank = useMemo(() => {
-        if (sorted.length === 0) return null;
-        const topVotes = sorted[0].votes;
-        if (topVotes <= 0) return null;
-        return { votes: topVotes };
-    }, [sorted]);
+    const topValue = useMemo(() => {
+        if (rows.length === 0) return null;
+        const v = rows[0].value;
+        if (v <= 0) return null;
+        return v;
+    }, [rows]);
 
     if (!electionId) {
         return (
@@ -231,7 +280,7 @@ export function ResultPage() {
         );
     }
 
-    const title = data?.title ?? "結果";
+    const title = (mode === "NORMAL" ? data?.title : alloc?.title) ?? "結果";
 
     return (
         <Page
@@ -254,6 +303,27 @@ export function ResultPage() {
                         候補者へ
                     </Link>
 
+                    <div
+                        style={{
+                            display: "flex",
+                            gap: 8,
+                            alignItems: "center",
+                        }}
+                    >
+                        <button
+                            onClick={() => setMode("NORMAL")}
+                            disabled={mode === "NORMAL"}
+                        >
+                            通常
+                        </button>
+                        <button
+                            onClick={() => setMode("ALLOC")}
+                            disabled={mode === "ALLOC"}
+                        >
+                            配分
+                        </button>
+                    </div>
+
                     <button
                         onClick={load}
                         style={{ marginLeft: "auto" }}
@@ -264,7 +334,6 @@ export function ResultPage() {
                 </div>
             }
         >
-            {/* 状態カード（エラー / 公開前） */}
             {error && (
                 <Card role="alert">
                     <div style={{ fontWeight: 800, marginBottom: 6 }}>
@@ -302,11 +371,9 @@ export function ResultPage() {
                 </Card>
             )}
 
-            {/* Loading */}
             {!error && isLoading && <Card>読み込み中…</Card>}
 
-            {/* Result */}
-            {!error && !isLoading && data && (
+            {!error && !isLoading && (data || alloc) && (
                 <Card>
                     <div style={{ display: "grid", gap: 12 }}>
                         <div
@@ -318,15 +385,22 @@ export function ResultPage() {
                                 alignItems: "baseline",
                             }}
                         >
-                            <strong style={{ fontSize: 16 }}>
-                                {data.title}
-                            </strong>
-                            <span style={{ opacity: 0.85 }}>
-                                総投票数: <b>{data.totalVotes}</b>
-                            </span>
+                            <strong style={{ fontSize: 16 }}>{title}</strong>
+
+                            {mode === "NORMAL" ? (
+                                <span style={{ opacity: 0.85 }}>
+                                    総投票数: <b>{data?.totalVotes ?? 0}</b>
+                                </span>
+                            ) : (
+                                <span style={{ opacity: 0.85 }}>
+                                    総ポイント: <b>{alloc?.totalPoints ?? 0}</b>{" "}
+                                    / 誰も支持しない:{" "}
+                                    <b>{alloc?.noneSupportPoints ?? 0}</b>
+                                </span>
+                            )}
                         </div>
 
-                        {sorted.length === 0 ? (
+                        {rows.length === 0 ? (
                             <div
                                 style={{
                                     border: "1px solid #eee",
@@ -339,21 +413,23 @@ export function ResultPage() {
                             </div>
                         ) : (
                             <div style={{ display: "grid", gap: 10 }}>
-                                {sorted.map((r) => {
+                                {rows.map((r) => {
                                     const rank =
                                         ranks.get(r.candidateId) ?? null;
                                     const isTop =
-                                        topRank?.votes != null &&
-                                        r.votes === topRank.votes &&
-                                        r.votes > 0;
+                                        topValue != null &&
+                                        r.value === topValue &&
+                                        r.value > 0;
 
-                                    const ratioToTop =
-                                        maxVotes > 0
-                                            ? (r.votes / maxVotes) * 100
-                                            : 0;
-                                    const barW = clamp(ratioToTop, 2, 100);
+                                    const barW = clamp(
+                                        maxValue > 0
+                                            ? (r.value / maxValue) * 100
+                                            : 0,
+                                        2,
+                                        100,
+                                    );
 
-                                    const p = percent(r.votes, data.totalVotes);
+                                    const p = percent(r.value, total);
 
                                     return (
                                         <ResultRow
@@ -363,7 +439,10 @@ export function ResultPage() {
                                             isTop={isTop}
                                             barW={barW}
                                             p={p}
-                                            totalVotes={data.totalVotes}
+                                            total={total}
+                                            unit={
+                                                mode === "NORMAL" ? "票" : "pt"
+                                            }
                                         />
                                     );
                                 })}
@@ -376,14 +455,17 @@ export function ResultPage() {
             <DevDebug
                 value={{
                     electionId,
+                    mode,
                     data,
+                    alloc,
                     error,
                     isForbidden,
                     isLoading,
                     backTo,
                     from,
-                    sorted,
-                    maxVotes,
+                    rowsLen: rows.length,
+                    maxValue,
+                    total,
                 }}
             />
         </Page>

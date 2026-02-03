@@ -13,5 +13,20 @@
         "electionKey": "sangi_tokyo_2026_ended",
         "cityCode": "13209",
         "minAge": 18
+    },
+    {
+        "electionKey": "sangi_tokyo_2026_alloc_upcoming",
+        "cityCode": "13209",
+        "minAge": 18
+    },
+    {
+        "electionKey": "sangi_tokyo_2026_alloc_open",
+        "cityCode": "13209",
+        "minAge": 18
+    },
+    {
+        "electionKey": "sangi_tokyo_2026_alloc_ended",
+        "cityCode": "13209",
+        "minAge": 18
     }
 ]

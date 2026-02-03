@@ -77,13 +77,16 @@ public class DemoDataInitializer {
         List<CommitteeJson> committee = readJson(om, "committeeAccounts.json", new TypeReference<>() {
         });
 
+        List<AllocVoteJson> allocVotes = readJson(om, "allocVotes.json", new TypeReference<>() {
+        });
+
         // ===== index + validate =====
         var citizenMap = indexCitizens(citizens);
         var partyMap = indexParties(parties);
         var candidateMap = indexCandidates(candidates);
         var electionMap = indexElections(elections);
 
-        validateAll(citizenMap, partyMap, candidateMap, electionMap, rules, votes, users, committee);
+        validateAll(citizenMap, partyMap, candidateMap, electionMap, rules, votes, users, committee, allocVotes);
 
         // // ===== DB reset (全部作り直し) =====
         // voteCurrentRepo.deleteAll();
@@ -142,6 +145,12 @@ public class DemoDataInitializer {
 
     record CommitteeJson(String loginId, String password, Role role, String assignedPrefCode, String assignedCityCode,
             boolean enabled, boolean locked) {
+    }
+
+    record AllocVoteJson(String electionKey, UUID citizenId, long castedAtOffsetSec, List<AllocItemJson> items) {
+    }
+
+    record AllocItemJson(String type, Integer candidateIndex, Integer points) {
     }
 
     private <T> T readJson(ObjectMapper om, String classpathFile, TypeReference<T> type) {
@@ -238,7 +247,8 @@ public class DemoDataInitializer {
     // -------------------------
     private void validateAll(Map<UUID, CitizenJson> citizenMap, Map<String, PartyJson> partyMap,
             Map<String, CandidateJson> candidateMap, Map<String, ElectionJson> electionMap, List<RuleJson> rules,
-            List<VoteJson> votes, List<UserJson> users, List<CommitteeJson> committiee) {
+            List<VoteJson> votes, List<UserJson> users, List<CommitteeJson> committiee,
+            List<AllocVoteJson> allocVotes) {
         // users: citizenId があるなら citizens に存在する
         for (var u : users) {
             if (u.citizenId() != null && !citizenMap.containsKey(u.citizenId())) {
@@ -444,8 +454,9 @@ public class DemoDataInitializer {
         }
     }
 
-    private void seedVotes(VoteCastRepository voteCastRepo, VoteCurrentRepository voteCurrentRepo, List<VoteJson> votes,
-            Map<String, ElectionCreated> created) {
+    private void seedVotes(VoteCastRepository voteCastRepo, VoteCurrentRepository voteCurrentRepo,
+            List<VoteJson> votes, Map<String, ElectionCreated> created) {
+
         var now = Instant.now();
 
         for (var vj : votes) {
@@ -453,14 +464,10 @@ public class DemoDataInitializer {
             if (ce == null)
                 throw new IllegalStateException("voteCurrents.json: unknown electionKey=" + vj.electionKey());
 
-            if (vj.candidateIndex() < 0 || vj.candidateIndex() >= ce.candidateIds().size()) {
-                throw new IllegalStateException(
-                        "voteCurrents.json: candidateIndex out of range electionKey=" + vj.electionKey());
-            }
-
             UUID candidateId = ce.candidateIds().get(vj.candidateIndex());
             Instant castedAt = now.plusSeconds(vj.castedAtOffsetSec());
 
+            // castは履歴として毎回入れる
             var cast = new VoteCast();
             cast.setElectionId(ce.electionId());
             cast.setCitizenId(vj.citizenId());
@@ -468,7 +475,10 @@ public class DemoDataInitializer {
             cast.setCastedAt(castedAt);
             voteCastRepo.save(cast);
 
-            var cur = new VoteCurrent();
+            // currentは upsert（最後に処理されたものが残る）
+            var cur = voteCurrentRepo.findByElectionIdAndCitizenId(ce.electionId(), vj.citizenId())
+                    .orElseGet(VoteCurrent::new);
+
             cur.setElectionId(ce.electionId());
             cur.setCitizenId(vj.citizenId());
             cur.setCandidateId(candidateId);

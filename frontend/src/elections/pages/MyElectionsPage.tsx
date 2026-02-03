@@ -206,17 +206,35 @@ function MyElectionCard({ e, from }: { e: MyElectionItem; from: string }) {
                     </span>
                 );
             }
+
             if (e.canCast) {
                 return (
-                    <Link
-                        to={`/voting/start?electionId=${e.electionId}`}
-                        state={{ from }}
-                        style={{ textDecoration: "none" }}
+                    <span
+                        style={{
+                            display: "flex",
+                            gap: 10,
+                            alignItems: "center",
+                        }}
                     >
-                        <b>投票する →</b>
-                    </Link>
+                        <Link
+                            to={`/voting/start?electionId=${e.electionId}`}
+                            state={{ from }}
+                            style={{ textDecoration: "none" }}
+                        >
+                            <b>通常投票 →</b>
+                        </Link>
+
+                        <Link
+                            to={`/alloc-voting/start?electionId=${e.electionId}`}
+                            state={{ from }}
+                            style={{ textDecoration: "none" }}
+                        >
+                            <b>配分投票 →</b>
+                        </Link>
+                    </span>
                 );
             }
+
             return <span style={{ opacity: 0.6 }}>投票不可</span>;
         }
 
@@ -310,6 +328,10 @@ function MyElectionCard({ e, from }: { e: MyElectionItem; from: string }) {
 
                     <Link to="/me/votes" state={{ from }}>
                         投票履歴
+                    </Link>
+
+                    <Link to="/me/alloc-votes" state={{ from }}>
+                        配分投票履歴
                     </Link>
 
                     <span style={{ marginLeft: "auto" }}>{voteArea}</span>

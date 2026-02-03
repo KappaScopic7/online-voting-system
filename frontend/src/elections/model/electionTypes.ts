@@ -49,3 +49,13 @@ export type ElectionDetailResponse = {
         castedAt: string;
     };
 };
+
+export type AllocElectionResultResponse = {
+    electionId: string;
+    title: string;
+    kind: string; // "CURRENT"など
+    totalPoints: number;
+    noneSupportPoints: number;
+    generatedAt: string;
+    results: { candidateId: string; candidateName: string; points: number }[];
+};

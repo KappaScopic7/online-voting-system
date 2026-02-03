@@ -56,30 +56,40 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/error").permitAll()
 
+                        // =========================
+                        // Public (no auth)
+                        // =========================
+
                         // ---- public / user auth ----
                         .requestMatchers("/api/auth/register", "/api/auth/login", "/api/auth/verify").permitAll()
-
-                        // elections は GET だけ公開
-                        .requestMatchers(HttpMethod.GET, "/api/elections/**").permitAll()
-
-                        // candidates は GET だけ公開
-                        .requestMatchers(HttpMethod.GET, "/api/candidates/**").permitAll()
-
-                        // parties は GET だけ公開
-                        .requestMatchers(HttpMethod.GET, "/api/parties/**").permitAll()
-
-                        // master は GET だけ公開
-                        .requestMatchers(HttpMethod.GET, "/api/master/**").permitAll()
 
                         // ---- staff auth ----
                         .requestMatchers("/api/staff/auth/login").permitAll()
 
-                        // staff 用API
-                        .requestMatchers("/api/staff/**")
-                        .access((a, c) -> decide(a.get(), AccountKind.STAFF))
-
                         // ---- admin auth (互換で残すなら) ----
                         .requestMatchers("/api/admin/auth/login").permitAll()
+
+                        // ---- identity (public) ----
+                        .requestMatchers("/api/identity/nfc/resolve").permitAll()
+
+                        // ---- read-only public APIs ----
+                        // elections / candidates / parties / master は GET だけ公開
+                        // （結果系を明示で上に置いておくと「ここだけ公開」を変えたくなった時も安全）
+                        .requestMatchers(HttpMethod.GET,
+                                "/api/elections/*/result",
+                                "/api/elections/*/alloc-result")
+                        .permitAll()
+
+                        .requestMatchers(HttpMethod.GET, "/api/elections/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/candidates/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/parties/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/master/**").permitAll()
+
+                        // =========================
+                        // Staff-only APIs
+                        // =========================
+                        .requestMatchers("/api/staff/**")
+                        .access((a, c) -> decide(a.get(), AccountKind.STAFF))
 
                         // /api/admin/** は「STAFF かつ ADMIN/COMMITTEE」
                         .requestMatchers("/api/admin/**")
@@ -87,12 +97,13 @@ public class SecurityConfig {
                                 isKind(a.get(), AccountKind.STAFF)
                                         && hasAnyRole(a.get(), Role.ADMIN, Role.COMMITTEE)))
 
-                        // ---- demo tools ----
+                        // ---- demo tools (staff admin only) ----
                         .requestMatchers("/api/demo/**")
                         .access((a, c) -> decide(a.get(), AccountKind.STAFF, Role.ADMIN))
 
-                        // ---- identity (public) ----
-                        .requestMatchers("/api/identity/nfc/resolve").permitAll()
+                        // =========================
+                        // User-only APIs
+                        // =========================
 
                         // ---- identity (user only) ----
                         .requestMatchers("/api/identity/**")

@@ -1,5 +1,6 @@
 package com.bteam.ovs.elections.controller;
 
+import com.bteam.ovs.elections.controller.dto.AllocElectionResultResponse;
 import com.bteam.ovs.elections.controller.dto.ElectionDetailResponse;
 import com.bteam.ovs.elections.controller.dto.ElectionListItem;
 import com.bteam.ovs.elections.controller.dto.ElectionResultResponse;
@@ -39,5 +40,10 @@ public class ElectionsController {
     @GetMapping("/{electionId}/result")
     public ElectionResultResponse result(@PathVariable("electionId") UUID electionId) {
         return electionService.result(electionId);
+    }
+
+    @GetMapping("/{electionId}/alloc-result")
+    public AllocElectionResultResponse allocResult(@PathVariable("electionId") UUID electionId) {
+        return electionService.allocResult(electionId);
     }
 }

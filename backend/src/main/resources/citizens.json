@@ -48,5 +48,55 @@
         "cityCode": "13209",
         "addressLine": "東京都町田市 玉川学園",
         "gender": "M"
+    },
+    {
+        "citizenId": "550e8400-e29b-41d4-a716-446655440005",
+        "familyName": "山田",
+        "givenName": "太郎",
+        "birthDate": "1995-04-12",
+        "prefCode": "13",
+        "cityCode": "13209",
+        "addressLine": "東京都町田市",
+        "gender": "M"
+    },
+    {
+        "citizenId": "550e8400-e29b-41d4-a716-446655440006",
+        "familyName": "佐藤",
+        "givenName": "花子",
+        "birthDate": "1988-11-03",
+        "prefCode": "13",
+        "cityCode": "13209",
+        "addressLine": "東京都町田市",
+        "gender": "F"
+    },
+    {
+        "citizenId": "550e8400-e29b-41d4-a716-446655440007",
+        "familyName": "鈴木",
+        "givenName": "次郎",
+        "birthDate": "2002-06-20",
+        "prefCode": "13",
+        "cityCode": "13209",
+        "addressLine": "東京都町田市",
+        "gender": "M"
+    },
+    {
+        "citizenId": "550e8400-e29b-41d4-a716-446655440008",
+        "familyName": "高橋",
+        "givenName": "美咲",
+        "birthDate": "1979-01-15",
+        "prefCode": "13",
+        "cityCode": "13209",
+        "addressLine": "東京都町田市",
+        "gender": "F"
+    },
+    {
+        "citizenId": "550e8400-e29b-41d4-a716-446655440009",
+        "familyName": "伊藤",
+        "givenName": "恒一",
+        "birthDate": "1999-09-09",
+        "prefCode": "13",
+        "cityCode": "13209",
+        "addressLine": "東京都町田市",
+        "gender": "X"
     }
 ]

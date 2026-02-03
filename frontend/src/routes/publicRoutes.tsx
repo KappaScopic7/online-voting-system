@@ -23,6 +23,9 @@ import { RequireIdentityLinked } from "../auth/routes/RequireIdentityLinked";
 import { CandidatesPage } from "../candidates/pages/CandidatesPage";
 import { PartiesPage } from "../parties/pages/PartiesPage";
 import { PartyDetailPage } from "../parties/pages/PartyDetailPage";
+import { AllocVotingStartPage } from "../voting/pages/AllocVotingStartPage";
+import { AllocVotingDonePage } from "../voting/pages/AllocVotingDonePage";
+import { AllocVoteHistoryPage } from "../voting/pages/AllocVoteHistoryPage";
 
 export function PublicRoutes() {
     return (
@@ -87,6 +90,30 @@ export function PublicRoutes() {
             <Route element={<RequireIdentityLinked />}>
                 <Route path="/voting/start" element={<VotingStartPage />} />
                 <Route path="/voting/done" element={<VotingDonePage />} />
+            </Route>
+            {/* Verified-email-only */}
+            <Route element={<RequireVerifiedEmail />}>
+                <Route path="/me/elections" element={<MyElectionsPage />} />
+                <Route path="/me/votes" element={<VoteHistoryPage />} />
+                <Route
+                    path="/me/alloc-votes"
+                    element={<AllocVoteHistoryPage />}
+                />
+            </Route>
+
+            {/* Identity-linked-only（投票） */}
+            <Route element={<RequireIdentityLinked />}>
+                <Route path="/voting/start" element={<VotingStartPage />} />
+                <Route path="/voting/done" element={<VotingDonePage />} />
+
+                <Route
+                    path="/alloc-voting/start"
+                    element={<AllocVotingStartPage />}
+                />
+                <Route
+                    path="/alloc-voting/done"
+                    element={<AllocVotingDonePage />}
+                />
             </Route>
 
             <Route path="*" element={<div>Not Found</div>} />

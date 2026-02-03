@@ -61,5 +61,68 @@
             "cand_kato",
             "cand_nakamura"
         ]
+    },
+    {
+        "electionKey": "sangi_tokyo_2026_alloc_upcoming",
+        "title": "参議院議員通常選挙 2026（東京選挙区）(配分投票/開始前)",
+        "summary": "東京都（町田市を含む）在住の有権者が投票できます。100ptを候補者に配分し、「今回は誰も支持しない」にも割り当て可能です。",
+        "electionType": "UPPER_HOUSE",
+        "district": {
+            "prefCode": "13",
+            "cityCode": "13209",
+            "label": "東京都 町田市（参考表示）"
+        },
+        "ballotType": "ALLOCATION",
+        "startsAtOffsetSec": 86400,
+        "endsAtOffsetSec": 172800,
+        "candidates": [
+            "cand_suzuki",
+            "cand_tanaka",
+            "cand_mori",
+            "cand_kato",
+            "cand_nakamura"
+        ]
+    },
+    {
+        "electionKey": "sangi_tokyo_2026_alloc_open",
+        "title": "参議院議員通常選挙 2026（東京選挙区）(配分投票/開催中)",
+        "summary": "100ptを候補者に配分し、「今回は誰も支持しない」にも割り当て可能です。",
+        "electionType": "UPPER_HOUSE",
+        "district": {
+            "prefCode": "13",
+            "cityCode": "13209",
+            "label": "東京都 町田市（参考表示）"
+        },
+        "ballotType": "ALLOCATION",
+        "startsAtOffsetSec": -3600,
+        "endsAtOffsetSec": 86400,
+        "candidates": [
+            "cand_suzuki",
+            "cand_tanaka",
+            "cand_mori",
+            "cand_kato",
+            "cand_nakamura"
+        ]
+    },
+    {
+        "electionKey": "sangi_tokyo_2026_alloc_ended",
+        "title": "参議院議員通常選挙 2026（東京選挙区）(配分投票/終了済み)",
+        "summary": "選挙終了後、配分ポイント結果が公開されます（「誰も支持しない」ポイントも表示）。",
+        "electionType": "UPPER_HOUSE",
+        "district": {
+            "prefCode": "13",
+            "cityCode": "13209",
+            "label": "東京都 町田市（参考表示）"
+        },
+        "ballotType": "ALLOCATION",
+        "startsAtOffsetSec": -259200,
+        "endsAtOffsetSec": -172800,
+        "candidates": [
+            "cand_suzuki",
+            "cand_tanaka",
+            "cand_mori",
+            "cand_kato",
+            "cand_nakamura"
+        ]
     }
 ]

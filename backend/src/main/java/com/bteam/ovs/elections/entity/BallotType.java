@@ -2,5 +2,5 @@
 package com.bteam.ovs.elections.entity;
 
 public enum BallotType {
-    SINGLE_CHOICE, TWO_CHOICES
+    SINGLE_CHOICE, TWO_CHOICES, ALLOCATION
 }
