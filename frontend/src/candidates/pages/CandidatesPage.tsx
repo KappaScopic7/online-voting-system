@@ -3,8 +3,10 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import type { CandidateItem } from "../model/candidateTypes";
 import type { ElectionListItem } from "../../elections/model/electionTypes";
+import type { PartyListItem } from "../../parties/model/partyTypes";
 import { fetchCandidates } from "../api/candidates";
 import { fetchElections } from "../../elections/api/elections";
+import { fetchParties } from "../../parties/api/parties";
 import { normalizeFrom } from "../../shared/normalizeFrom";
 import { Card, DevDebug, Page } from "../../shared/ui/page";
 import { formatJST, statusLabel } from "../../shared/elections/format";
@@ -18,6 +20,8 @@ type ElectionMeta = {
     status?: string;
 };
 
+type DisplayMode = "ELECTION" | "PERSON";
+
 function PartyBadge({
     shortName,
     name,
@@ -27,7 +31,6 @@ function PartyBadge({
     name?: string;
     color?: string | null;
 }) {
-    // color は " #RRGGBB " を想定。無ければ薄い枠のみ
     return (
         <span
             title={name ?? shortName}
@@ -37,7 +40,6 @@ function PartyBadge({
                 borderRadius: 999,
                 border: "1px solid #eee",
                 background: "#fafafa",
-                // 党カラーを「左ボーダー」で控えめに使う
                 boxShadow: color ? `inset 4px 0 0 0 ${color}` : undefined,
             }}
         >
@@ -66,7 +68,6 @@ function CandidateCard({ c, from }: { c: CandidateItem; from: string }) {
                     display: "grid",
                     gap: 6,
                     background: "#fff",
-                    // 党カラーがある時だけアクセント
                     boxShadow: partyColor
                         ? `inset 4px 0 0 0 ${partyColor}`
                         : undefined,
@@ -116,6 +117,134 @@ function CandidateCard({ c, from }: { c: CandidateItem; from: string }) {
     );
 }
 
+type PersonItem = {
+    // candidateKey が無い場合でも動くように "personKey" を持たせる
+    personKey: string;
+    candidateKey?: string | null;
+    name: string;
+    title: string;
+    age?: number | null; // もし入っていれば
+    party: CandidateItem["party"] | null;
+    electionsCount: number;
+    repElectionId: string;
+    repCandidateId: string;
+};
+
+function PersonCard({ p, from }: { p: PersonItem; from: string }) {
+    const partyColor = p.party?.color ?? null;
+
+    return (
+        <Link
+            to={`/elections/${p.repElectionId}/candidates/${p.repCandidateId}`}
+            state={{ from }}
+            style={{ textDecoration: "none", color: "inherit" }}
+        >
+            <div
+                style={{
+                    border: "1px solid #eee",
+                    borderRadius: 12,
+                    padding: 12,
+                    display: "grid",
+                    gap: 6,
+                    background: "#fff",
+                    boxShadow: partyColor
+                        ? `inset 4px 0 0 0 ${partyColor}`
+                        : undefined,
+                }}
+            >
+                <div
+                    style={{
+                        display: "flex",
+                        gap: 10,
+                        alignItems: "center",
+                        flexWrap: "wrap",
+                    }}
+                >
+                    <strong style={{ fontSize: 16 }}>{p.name}</strong>
+
+                    {p.party ? (
+                        <PartyBadge
+                            shortName={p.party.shortName}
+                            name={p.party.name}
+                            color={p.party.color}
+                        />
+                    ) : (
+                        <span style={{ fontSize: 12, opacity: 0.6 }}>
+                            無所属
+                        </span>
+                    )}
+
+                    <span
+                        style={{
+                            fontSize: 12,
+                            opacity: 0.7,
+                            padding: "2px 8px",
+                            border: "1px solid #eee",
+                            borderRadius: 999,
+                            background: "#fafafa",
+                        }}
+                        title="出馬数"
+                    >
+                        出馬 {p.electionsCount} 件
+                    </span>
+
+                    {p.candidateKey ? (
+                        <span
+                            style={{
+                                fontSize: 12,
+                                opacity: 0.7,
+                                padding: "2px 8px",
+                                border: "1px solid #eee",
+                                borderRadius: 999,
+                                background: "#fafafa",
+                            }}
+                            title="candidateKey"
+                        >
+                            {p.candidateKey}
+                        </span>
+                    ) : null}
+
+                    <span
+                        style={{
+                            marginLeft: "auto",
+                            fontSize: 12,
+                            opacity: 0.7,
+                        }}
+                    >
+                        候補者の詳細を見る →
+                    </span>
+                </div>
+
+                <div style={{ fontSize: 13, opacity: 0.85 }}>{p.title}</div>
+            </div>
+        </Link>
+    );
+}
+
+// candidateKey が型に無い可能性があるので any 経由で読む（壊さない）
+function readCandidateKey(c: CandidateItem): string | null {
+    const k = (c as any)?.candidateKey;
+    return typeof k === "string" && k.trim() ? k.trim() : null;
+}
+
+function readAge(c: CandidateItem): number | null {
+    const a = (c as any)?.age;
+    return typeof a === "number" ? a : null;
+}
+
+function buildPersonKey(c: CandidateItem): {
+    personKey: string;
+    candidateKey?: string | null;
+} {
+    const ck = readCandidateKey(c);
+    if (ck) return { personKey: `ck:${ck}`, candidateKey: ck };
+
+    // フォールバック：候補者一覧APIに candidateKey が無い場合でも人物単位に近い表示にする
+    // name/title/partyKey が同一なら同一人物扱い
+    const pk = c.party?.partyKey ?? "ind";
+    return { personKey: `f:${c.name}|${c.title}|${pk}`, candidateKey: null };
+}
+
 export function CandidatesPage() {
     const loc = useLocation();
     const state = (loc.state ?? {}) as LocationState;
@@ -127,26 +256,34 @@ export function CandidatesPage() {
     const [error, setError] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
 
-    // election meta (id -> title, etc.)
+    // meta
     const [electionMetaById, setElectionMetaById] = useState<
         Record<string, ElectionMeta>
     >({});
+    const [elections, setElections] = useState<ElectionListItem[]>([]);
     const [metaLoading, setMetaLoading] = useState(false);
 
+    // parties
+    const [parties, setParties] = useState<PartyListItem[]>([]);
+    const [partiesLoading, setPartiesLoading] = useState(false);
+
     // filters (server-side: electionId/partyKey, local: q)
+    const [mode, setMode] = useState<DisplayMode>("ELECTION");
     const [electionId, setElectionId] = useState("");
     const [partyKey, setPartyKey] = useState("");
     const [q, setQ] = useState("");
 
-    // 初回だけ：elections meta を取る（毎回やると無駄が多い）
+    // 初回：elections meta
     useEffect(() => {
         let cancelled = false;
         setMetaLoading(true);
         fetchElections()
-            .then((elections: ElectionListItem[]) => {
+            .then((list: ElectionListItem[]) => {
                 if (cancelled) return;
+                setElections(list);
+
                 const map: Record<string, ElectionMeta> = {};
-                elections.forEach((e) => {
+                list.forEach((e) => {
                     map[e.electionId] = {
                         title: e.title,
                         startsAt: e.startsAt,
@@ -157,10 +294,31 @@ export function CandidatesPage() {
                 setElectionMetaById(map);
             })
             .catch(() => {
-                // meta は落ちても致命的ではない（候補者表示はできる）
+                // metaは落ちても致命的ではない
             })
             .finally(() => {
                 if (!cancelled) setMetaLoading(false);
+            });
+
+        return () => {
+            cancelled = true;
+        };
+    }, []);
+
+    // 初回：parties
+    useEffect(() => {
+        let cancelled = false;
+        setPartiesLoading(true);
+        fetchParties()
+            .then((list: PartyListItem[]) => {
+                if (cancelled) return;
+                setParties(list);
+            })
+            .catch(() => {
+                // partiesは落ちても致命的ではない
+            })
+            .finally(() => {
+                if (!cancelled) setPartiesLoading(false);
             });
 
         return () => {
@@ -204,7 +362,49 @@ export function CandidatesPage() {
         });
     }, [items, q]);
 
-    // electionId ごとにグルーピング
+    // ★ 人物単位（candidateKeyがあればそれ優先）
+    const people = useMemo<PersonItem[] | null>(() => {
+        if (!filtered) return null;
+
+        const map = new Map<string, CandidateItem[]>();
+        for (const c of filtered) {
+            const { personKey } = buildPersonKey(c);
+            if (!map.has(personKey)) map.set(personKey, []);
+            map.get(personKey)!.push(c);
+        }
+
+        const list: PersonItem[] = [];
+        for (const [personKey, group] of map.entries()) {
+            // 代表は「ソート順が最小のもの」優先（安定させる）
+            const rep = [...group].sort((a, b) => a.sortOrder - b.sortOrder)[0];
+            const { candidateKey: ck } = buildPersonKey(rep);
+
+            list.push({
+                personKey,
+                candidateKey: ck ?? undefined,
+                name: rep.name,
+                title: rep.title ?? "",
+                age: readAge(rep),
+                party: rep.party ?? null,
+                electionsCount: group.length,
+                repElectionId: rep.electionId,
+                repCandidateId: rep.id,
+            });
+        }
+
+        // 表示順：政党→名前
+        list.sort((a, b) => {
+            const pa = a.party?.shortName ?? "無所属";
+            const pb = b.party?.shortName ?? "無所属";
+            const pcmp = pa.localeCompare(pb, "ja");
+            if (pcmp !== 0) return pcmp;
+            return a.name.localeCompare(b.name, "ja");
+        });
+
+        return list;
+    }, [filtered]);
+
+    // ★ 選挙単位：electionId ごとにグルーピング
     const groups = useMemo(() => {
         if (!filtered) return null;
 
@@ -224,13 +424,21 @@ export function CandidatesPage() {
         entries.sort((a, b) => {
             const ta = electionMetaById[a.electionId]?.title ?? a.electionId;
             const tb = electionMetaById[b.electionId]?.title ?? b.electionId;
-            return ta.localeCompare(tb);
+            return ta.localeCompare(tb, "ja");
         });
 
         return entries;
     }, [filtered, electionMetaById]);
 
     const totalCount = filtered?.length ?? 0;
+    const personCount = people?.length ?? 0;
+
+    const resetFilters = () => {
+        setElectionId("");
+        setPartyKey("");
+        setQ("");
+        setTimeout(loadCandidates, 0);
+    };
 
     return (
         <Page
@@ -259,6 +467,62 @@ export function CandidatesPage() {
         >
             <Card>
                 <div style={{ display: "grid", gap: 10 }}>
+                    {/* mode */}
+                    <div
+                        style={{
+                            display: "flex",
+                            gap: 10,
+                            flexWrap: "wrap",
+                            alignItems: "center",
+                        }}
+                    >
+                        <span style={{ fontSize: 12, opacity: 0.7 }}>
+                            表示モード
+                        </span>
+
+                        <label
+                            style={{
+                                display: "flex",
+                                gap: 6,
+                                alignItems: "center",
+                            }}
+                        >
+                            <input
+                                type="radio"
+                                checked={mode === "ELECTION"}
+                                onChange={() => setMode("ELECTION")}
+                            />
+                            <span style={{ fontSize: 13 }}>選挙単位</span>
+                        </label>
+
+                        <label
+                            style={{
+                                display: "flex",
+                                gap: 6,
+                                alignItems: "center",
+                            }}
+                        >
+                            <input
+                                type="radio"
+                                checked={mode === "PERSON"}
+                                onChange={() => setMode("PERSON")}
+                            />
+                            <span style={{ fontSize: 13 }}>人物単位</span>
+                        </label>
+
+                        <span
+                            style={{
+                                marginLeft: "auto",
+                                fontSize: 12,
+                                opacity: 0.7,
+                            }}
+                        >
+                            {metaLoading ? "選挙情報読み込み中…" : " "}
+                            {partiesLoading ? "政党情報読み込み中…" : " "}
+                        </span>
+                    </div>
+
+                    {/* server filters */}
                     <div
                         style={{
                             display: "flex",
@@ -269,55 +533,81 @@ export function CandidatesPage() {
                     >
                         <label style={{ display: "grid", gap: 4 }}>
                             <span style={{ fontSize: 12, opacity: 0.7 }}>
-                                electionId（任意）
+                                選挙（任意）
+                            </span>
+                            <select
+                                value={electionId}
+                                onChange={(e) => setElectionId(e.target.value)}
+                                style={{ padding: 8, minWidth: 380 }}
+                            >
+                                <option value="">（指定なし）</option>
+                                {elections.map((e) => (
+                                    <option
+                                        key={e.electionId}
+                                        value={e.electionId}
+                                    >
+                                        {e.title}
+                                    </option>
+                                ))}
+                            </select>
+                            <span style={{ fontSize: 11, opacity: 0.6 }}>
+                                ※UUID手入力したい場合は下に貼ってOK
                             </span>
                             <input
                                 value={electionId}
                                 onChange={(e) => setElectionId(e.target.value)}
-                                placeholder="UUID"
-                                style={{ padding: 8, minWidth: 320 }}
+                                placeholder="electionId(UUID) 直入力"
+                                style={{ padding: 8 }}
                             />
                         </label>
 
                         <label style={{ display: "grid", gap: 4 }}>
                             <span style={{ fontSize: 12, opacity: 0.7 }}>
-                                partyKey（任意）
+                                政党（任意）
                             </span>
+                            <select
+                                value={partyKey}
+                                onChange={(e) => setPartyKey(e.target.value)}
+                                style={{ padding: 8, minWidth: 260 }}
+                            >
+                                <option value="">（指定なし）</option>
+                                {parties.map((p) => (
+                                    <option key={p.partyKey} value={p.partyKey}>
+                                        {p.name}（{p.shortName}）
+                                    </option>
+                                ))}
+                                <option value="__independent__">
+                                    無所属だけ（※未対応なら手入力で）
+                                </option>
+                            </select>
                             <input
                                 value={partyKey}
                                 onChange={(e) => setPartyKey(e.target.value)}
-                                placeholder="tokyo_reform など"
-                                style={{ padding: 8, minWidth: 220 }}
+                                placeholder="partyKey 直入力（tokyo_reform など）"
+                                style={{ padding: 8 }}
                             />
                         </label>
 
-                        <button onClick={loadCandidates} disabled={isLoading}>
-                            絞り込み
-                        </button>
-
-                        <button
-                            onClick={() => {
-                                setElectionId("");
-                                setPartyKey("");
-                                setQ("");
-                                setTimeout(loadCandidates, 0);
-                            }}
-                            disabled={isLoading}
-                        >
-                            解除
-                        </button>
-
-                        <span
+                        <div
                             style={{
-                                marginLeft: "auto",
-                                fontSize: 12,
-                                opacity: 0.7,
+                                display: "flex",
+                                gap: 8,
+                                alignItems: "center",
                             }}
                         >
-                            {metaLoading ? "選挙情報読み込み中…" : " "}
-                        </span>
+                            <button
+                                onClick={loadCandidates}
+                                disabled={isLoading}
+                            >
+                                絞り込み
+                            </button>
+                            <button onClick={resetFilters} disabled={isLoading}>
+                                解除
+                            </button>
+                        </div>
                     </div>
 
+                    {/* local search */}
                     <label style={{ display: "grid", gap: 4 }}>
                         <span style={{ fontSize: 12, opacity: 0.7 }}>
                             検索（ローカル：名前/肩書き）
@@ -356,7 +646,7 @@ export function CandidatesPage() {
                 </Card>
             )}
 
-            {groups === null ? (
+            {filtered === null ? (
                 <Card>読み込み中…</Card>
             ) : totalCount === 0 ? (
                 <Card>
@@ -367,13 +657,25 @@ export function CandidatesPage() {
                         条件に一致する候補者がいないか、まだ登録されていません。
                     </p>
                 </Card>
+            ) : mode === "PERSON" ? (
+                <section style={{ display: "grid", gap: 14 }}>
+                    <div style={{ fontSize: 12, opacity: 0.7 }}>
+                        表示件数: {personCount}（元レコード: {totalCount}）
+                    </div>
+
+                    <div style={{ display: "grid", gap: 10 }}>
+                        {people!.map((p) => (
+                            <PersonCard key={p.personKey} p={p} from={from} />
+                        ))}
+                    </div>
+                </section>
             ) : (
                 <section style={{ display: "grid", gap: 14 }}>
                     <div style={{ fontSize: 12, opacity: 0.7 }}>
-                        表示件数: {totalCount}（選挙: {groups.length} 件）
+                        表示件数: {totalCount}（選挙: {groups?.length ?? 0} 件）
                     </div>
 
-                    {groups.map((g) => {
+                    {groups!.map((g) => {
                         const meta = electionMetaById[g.electionId];
                         const title = meta?.title ?? `選挙: ${g.electionId}`;
 
@@ -459,13 +761,18 @@ export function CandidatesPage() {
 
             <DevDebug
                 value={{
+                    mode,
                     items,
+                    filteredCount: totalCount,
+                    personCount,
                     error,
                     isLoading,
                     electionId,
                     partyKey,
                     q,
                     groupsLen: groups?.length ?? null,
+                    electionsLoaded: elections.length,
+                    partiesLoaded: parties.length,
                 }}
             />
         </Page>

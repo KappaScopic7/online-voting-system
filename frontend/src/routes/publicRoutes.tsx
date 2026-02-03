@@ -5,6 +5,7 @@ import { ElectionsPage } from "../elections/pages/ElectionsPage";
 import { ElectionDetailPage } from "../elections/pages/ElectionDetailPage";
 import { ElectionCandidatesPage } from "../candidates/pages/ElectionCandidatesPage";
 import { CandidateDetailPage } from "../candidates/pages/CandidateDetailPage";
+import { ResultEntryPage } from "../elections/pages/ResultEntryPage";
 import { ResultPage } from "../elections/pages/ResultPage";
 import { MyElectionsPage } from "../elections/pages/MyElectionsPage";
 import { RegisterPage } from "../user/pages/RegisterPage";
@@ -26,6 +27,7 @@ import { PartyDetailPage } from "../parties/pages/PartyDetailPage";
 import { AllocVotingStartPage } from "../voting/pages/AllocVotingStartPage";
 import { AllocVotingDonePage } from "../voting/pages/AllocVotingDonePage";
 import { AllocVoteHistoryPage } from "../voting/pages/AllocVoteHistoryPage";
+import { VotingEntryPage } from "../voting/pages/VotingEntryPage";
 
 export function PublicRoutes() {
     return (
@@ -47,6 +49,8 @@ export function PublicRoutes() {
                 path="/elections/:electionId/candidates/:candidateId"
                 element={<CandidateDetailPage />}
             />
+            <Route path="/elections/result" element={<ResultEntryPage />} />
+
             <Route
                 path="/elections/:electionId/result"
                 element={<ResultPage />}
@@ -103,6 +107,7 @@ export function PublicRoutes() {
 
             {/* Identity-linked-only（投票） */}
             <Route element={<RequireIdentityLinked />}>
+                <Route path="/voting/entry" element={<VotingEntryPage />} />
                 <Route path="/voting/start" element={<VotingStartPage />} />
                 <Route path="/voting/done" element={<VotingDonePage />} />
 

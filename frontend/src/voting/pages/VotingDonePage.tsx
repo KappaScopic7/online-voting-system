@@ -139,8 +139,9 @@ export function VotingDonePage() {
                         候補者（公開）
                     </Link>
 
+                    {/* ★ 結果は入口へ統一 */}
                     <Link
-                        to={`/elections/${result.electionId}/result`}
+                        to={`/elections/result?electionId=${result.electionId}`}
                         state={{ from: self }}
                     >
                         結果
@@ -154,8 +155,9 @@ export function VotingDonePage() {
                             flexWrap: "wrap",
                         }}
                     >
+                        {/* ★ 投票変更は入口へ統一 */}
                         <Link
-                            to={`/voting/start?electionId=${result.electionId}`}
+                            to={`/voting/entry?electionId=${result.electionId}`}
                             state={{ from: backTo }}
                         >
                             <b>投票を変更する →</b>

@@ -35,16 +35,29 @@ function Chip({
     );
 }
 
+type PartyCandidatePerson = {
+    candidateKey: string;
+    name: string;
+    age: number | null;
+    title: string | null;
+    imageUrl?: string | null;
+    // 代表としてリンク先に使う
+    representativeElectionId: string;
+    representativeCandidateId: string;
+    // 何選挙に出てるか
+    electionsCount: number;
+};
+
 function PartyCandidateCard({
-    c,
+    p,
     from,
 }: {
-    c: PartyCandidateItem;
+    p: PartyCandidatePerson;
     from: string;
 }) {
     return (
         <Link
-            to={`/elections/${c.electionId}/candidates/${c.candidateId}`}
+            to={`/elections/${p.representativeElectionId}/candidates/${p.representativeCandidateId}`}
             state={{ from }}
             style={{ textDecoration: "none", color: "inherit" }}
         >
@@ -66,13 +79,34 @@ function PartyCandidateCard({
                         flexWrap: "wrap",
                     }}
                 >
-                    <strong style={{ fontSize: 16 }}>{c.name}</strong>
+                    <strong style={{ fontSize: 16 }}>{p.name}</strong>
 
                     <span
-                        style={{ fontSize: 12, opacity: 0.7 }}
-                        title="electionId"
+                        style={{
+                            fontSize: 12,
+                            opacity: 0.7,
+                            padding: "2px 8px",
+                            border: "1px solid #eee",
+                            borderRadius: 999,
+                            background: "#fafafa",
+                        }}
+                        title="candidateKey"
                     >
-                        選挙: {c.electionId}
+                        {p.candidateKey}
+                    </span>
+
+                    <span
+                        style={{
+                            fontSize: 12,
+                            opacity: 0.7,
+                            padding: "2px 8px",
+                            border: "1px solid #eee",
+                            borderRadius: 999,
+                            background: "#fafafa",
+                        }}
+                        title="elections count"
+                    >
+                        出馬 {p.electionsCount} 件
                     </span>
 
                     <span
@@ -82,11 +116,11 @@ function PartyCandidateCard({
                             opacity: 0.7,
                         }}
                     >
-                        {c.age !== null ? `${c.age}歳` : ""}
+                        {p.age !== null ? `${p.age}歳` : ""}
                     </span>
                 </div>
 
-                <div style={{ fontSize: 13, opacity: 0.85 }}>{c.title}</div>
+                <div style={{ fontSize: 13, opacity: 0.85 }}>{p.title}</div>
 
                 <div style={{ fontSize: 13, opacity: 0.85 }}>
                     候補者の詳細を見る →
@@ -136,7 +170,38 @@ export function PartyDetailPage() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [partyKey]);
 
-    const count = useMemo(() => (cands ? cands.length : 0), [cands]);
+    // ★「人物単位」へ：candidateKeyでグルーピングして集約
+    const people = useMemo<PartyCandidatePerson[] | null>(() => {
+        if (cands === null) return null;
+
+        const map = new Map<string, PartyCandidateItem[]>();
+        for (const c of cands) {
+            if (!map.has(c.candidateKey)) map.set(c.candidateKey, []);
+            map.get(c.candidateKey)!.push(c);
+        }
+
+        const list: PartyCandidatePerson[] = [];
+        for (const [candidateKey, items] of map.entries()) {
+            // 代表は「最初の1件」を使う（安定させたければソート条件を入れる）
+            const rep = items[0];
+            list.push({
+                candidateKey,
+                name: rep.name,
+                age: rep.age ?? null,
+                title: rep.title,
+                imageUrl: rep.imageUrl ?? null,
+                representativeElectionId: rep.electionId,
+                representativeCandidateId: rep.candidateId,
+                electionsCount: items.length,
+            });
+        }
+
+        // 表示順を安定させる（名前順）
+        list.sort((a, b) => a.name.localeCompare(b.name, "ja"));
+        return list;
+    }, [cands]);
+
+    const count = useMemo(() => (people ? people.length : 0), [people]);
 
     if (!partyKey) {
         return (
@@ -184,6 +249,7 @@ export function PartyDetailPage() {
                     <div style={{ color: "crimson" }}>{err}</div>
                 </Card>
             )}
+
             {!party ? (
                 <Card>{isLoading ? "読み込み中…" : "Not loaded"}</Card>
             ) : (
@@ -196,7 +262,6 @@ export function PartyDetailPage() {
                             display: "grid",
                             gap: 10,
                             background: "#fff",
-                            // ★ 政党一覧と同じ：左に色バー（文字に被らない）
                             boxShadow: color
                                 ? `inset 4px 0 0 0 ${color}`
                                 : undefined,
@@ -255,6 +320,7 @@ export function PartyDetailPage() {
                     </div>
                 </Card>
             )}
+
             <Card>
                 <div
                     style={{
@@ -266,14 +332,14 @@ export function PartyDetailPage() {
                 >
                     <div style={{ fontWeight: 800 }}>この政党の候補者</div>
                     <div style={{ fontSize: 12, opacity: 0.7 }}>
-                        {cands === null ? "…" : count} 人
+                        {people === null ? "…" : count} 人
                     </div>
                 </div>
 
                 <div style={{ marginTop: 12, display: "grid", gap: 10 }}>
-                    {cands === null ? (
+                    {people === null ? (
                         <div style={{ opacity: 0.8 }}>読み込み中…</div>
-                    ) : cands.length === 0 ? (
+                    ) : people.length === 0 ? (
                         <div
                             style={{
                                 padding: 12,
@@ -285,18 +351,28 @@ export function PartyDetailPage() {
                             候補者がいません
                         </div>
                     ) : (
-                        cands.map((c) => (
+                        people.map((p) => (
                             <PartyCandidateCard
-                                key={`${c.electionId}:${c.candidateId}`}
-                                c={c}
+                                key={p.candidateKey}
+                                p={p}
                                 from={self}
                             />
                         ))
                     )}
                 </div>
             </Card>
+
             <DevDebug
-                value={{ partyKey, party, cands, err, isLoading, backTo, self }}
+                value={{
+                    partyKey,
+                    party,
+                    cands,
+                    people,
+                    err,
+                    isLoading,
+                    backTo,
+                    self,
+                }}
             />
         </Page>
     );

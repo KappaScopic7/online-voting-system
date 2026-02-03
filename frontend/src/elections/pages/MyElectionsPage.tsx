@@ -196,42 +196,37 @@ function MyElectionCard({ e, from }: { e: MyElectionItem; from: string }) {
         </span>
     );
 
+    // ★ 投票・結果の入口を統一
+    const voteLink = `/voting/entry?electionId=${e.electionId}`;
+    const resultLink = `/elections/result?electionId=${e.electionId}`;
+
     const voteArea = (() => {
         if (e.status === "ONGOING") {
             if (e.currentVote) {
                 return (
                     <span style={{ fontSize: 13 }}>
                         投票済み：
-                        <b>{e.currentVote.candidateName ?? "投票済み"}</b>
+                        <b>{e.currentVote.candidateName ?? "投票済み"}</b>{" "}
+                        <Link
+                            to={voteLink}
+                            state={{ from }}
+                            style={{ marginLeft: 10, textDecoration: "none" }}
+                        >
+                            <b>変更する →</b>
+                        </Link>
                     </span>
                 );
             }
 
             if (e.canCast) {
                 return (
-                    <span
-                        style={{
-                            display: "flex",
-                            gap: 10,
-                            alignItems: "center",
-                        }}
+                    <Link
+                        to={voteLink}
+                        state={{ from }}
+                        style={{ textDecoration: "none" }}
                     >
-                        <Link
-                            to={`/voting/start?electionId=${e.electionId}`}
-                            state={{ from }}
-                            style={{ textDecoration: "none" }}
-                        >
-                            <b>通常投票 →</b>
-                        </Link>
-
-                        <Link
-                            to={`/alloc-voting/start?electionId=${e.electionId}`}
-                            state={{ from }}
-                            style={{ textDecoration: "none" }}
-                        >
-                            <b>配分投票 →</b>
-                        </Link>
-                    </span>
+                        <b>投票する →</b>
+                    </Link>
                 );
             }
 
@@ -240,7 +235,7 @@ function MyElectionCard({ e, from }: { e: MyElectionItem; from: string }) {
 
         if (e.status === "ENDED") {
             return e.hasResult ? (
-                <Link to={`/elections/${e.electionId}/result`} state={{ from }}>
+                <Link to={resultLink} state={{ from }}>
                     結果を見る →
                 </Link>
             ) : (
@@ -316,10 +311,7 @@ function MyElectionCard({ e, from }: { e: MyElectionItem; from: string }) {
                     </Link>
 
                     {e.hasResult ? (
-                        <Link
-                            to={`/elections/${e.electionId}/result`}
-                            state={{ from }}
-                        >
+                        <Link to={resultLink} state={{ from }}>
                             結果
                         </Link>
                     ) : (
@@ -339,7 +331,8 @@ function MyElectionCard({ e, from }: { e: MyElectionItem; from: string }) {
 
                 {canVoteNow && (
                     <div style={{ fontSize: 12, opacity: 0.75 }}>
-                        ※ 投票は1回のみ有効（想定）。内容確認画面があります。
+                        ※
+                        投票は内容確認画面があります。送信内容は期間内なら変更できます。
                     </div>
                 )}
             </div>

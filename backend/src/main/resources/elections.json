@@ -14,10 +14,20 @@
         "endsAtOffsetSec": 172800,
         "candidates": [
             "cand_suzuki",
+            "cand_nakamura",
+            "cand_yamamoto",
+            "cand_okada",
+            "cand_shimizu",
             "cand_tanaka",
+            "cand_ishikawa",
+            "cand_hayashi",
+            "cand_miyazaki",
             "cand_mori",
+            "cand_kimura",
+            "cand_fujita",
             "cand_kato",
-            "cand_nakamura"
+            "cand_saito",
+            "cand_watanabe"
         ]
     },
     {
@@ -35,10 +45,20 @@
         "endsAtOffsetSec": 86400,
         "candidates": [
             "cand_suzuki",
+            "cand_nakamura",
+            "cand_yamamoto",
+            "cand_okada",
+            "cand_shimizu",
             "cand_tanaka",
+            "cand_ishikawa",
+            "cand_hayashi",
+            "cand_miyazaki",
             "cand_mori",
+            "cand_kimura",
+            "cand_fujita",
             "cand_kato",
-            "cand_nakamura"
+            "cand_saito",
+            "cand_watanabe"
         ]
     },
     {
@@ -56,10 +76,20 @@
         "endsAtOffsetSec": -172800,
         "candidates": [
             "cand_suzuki",
+            "cand_nakamura",
+            "cand_yamamoto",
+            "cand_okada",
+            "cand_shimizu",
             "cand_tanaka",
+            "cand_ishikawa",
+            "cand_hayashi",
+            "cand_miyazaki",
             "cand_mori",
+            "cand_kimura",
+            "cand_fujita",
             "cand_kato",
-            "cand_nakamura"
+            "cand_saito",
+            "cand_watanabe"
         ]
     },
     {
@@ -77,10 +107,20 @@
         "endsAtOffsetSec": 172800,
         "candidates": [
             "cand_suzuki",
+            "cand_nakamura",
+            "cand_yamamoto",
+            "cand_okada",
+            "cand_shimizu",
             "cand_tanaka",
+            "cand_ishikawa",
+            "cand_hayashi",
+            "cand_miyazaki",
             "cand_mori",
+            "cand_kimura",
+            "cand_fujita",
             "cand_kato",
-            "cand_nakamura"
+            "cand_saito",
+            "cand_watanabe"
         ]
     },
     {
@@ -98,10 +138,20 @@
         "endsAtOffsetSec": 86400,
         "candidates": [
             "cand_suzuki",
+            "cand_nakamura",
+            "cand_yamamoto",
+            "cand_okada",
+            "cand_shimizu",
             "cand_tanaka",
+            "cand_ishikawa",
+            "cand_hayashi",
+            "cand_miyazaki",
             "cand_mori",
+            "cand_kimura",
+            "cand_fujita",
             "cand_kato",
-            "cand_nakamura"
+            "cand_saito",
+            "cand_watanabe"
         ]
     },
     {
@@ -119,10 +169,20 @@
         "endsAtOffsetSec": -172800,
         "candidates": [
             "cand_suzuki",
+            "cand_nakamura",
+            "cand_yamamoto",
+            "cand_okada",
+            "cand_shimizu",
             "cand_tanaka",
+            "cand_ishikawa",
+            "cand_hayashi",
+            "cand_miyazaki",
             "cand_mori",
+            "cand_kimura",
+            "cand_fujita",
             "cand_kato",
-            "cand_nakamura"
+            "cand_saito",
+            "cand_watanabe"
         ]
     }
 ]

@@ -9,7 +9,7 @@ import type {
 import { normalizeFrom } from "../../shared/normalizeFrom";
 import { Card, DevDebug, Page } from "../../shared/ui/page";
 
-type LocationState = { from?: string };
+type LocationState = { from?: string; mode?: "NORMAL" | "ALLOC" };
 
 function percent(v: number, total: number) {
     if (total <= 0) return "0.0%";
@@ -168,11 +168,10 @@ export function ResultPage() {
 
     const loc = useLocation();
     const state = (loc.state ?? {}) as LocationState;
+    const [mode] = useState<"NORMAL" | "ALLOC">(state.mode ?? "NORMAL");
 
     const backTo = normalizeFrom(state.from ?? "/elections");
     const from = loc.pathname + loc.search;
-
-    const [mode, setMode] = useState<"NORMAL" | "ALLOC">("NORMAL");
 
     const [data, setData] = useState<ElectionResultResponse | null>(null);
     const [alloc, setAlloc] = useState<AllocElectionResultResponse | null>(
@@ -302,27 +301,6 @@ export function ResultPage() {
                     >
                         候補者へ
                     </Link>
-
-                    <div
-                        style={{
-                            display: "flex",
-                            gap: 8,
-                            alignItems: "center",
-                        }}
-                    >
-                        <button
-                            onClick={() => setMode("NORMAL")}
-                            disabled={mode === "NORMAL"}
-                        >
-                            通常
-                        </button>
-                        <button
-                            onClick={() => setMode("ALLOC")}
-                            disabled={mode === "ALLOC"}
-                        >
-                            配分
-                        </button>
-                    </div>
 
                     <button
                         onClick={load}

@@ -1,10 +1,20 @@
+// frontend/src/voting/pages/AllocVotingStartPage.tsx
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import {
+    Link,
+    useLocation,
+    useNavigate,
+    useSearchParams,
+} from "react-router-dom";
 import { allocConfirm, allocStart } from "../api/allocVoting";
 import type {
     AllocVoteConfirmRequest,
     AllocVoteStartResponse,
 } from "../model/allocVotingTypes";
+import { normalizeFrom } from "../../shared/normalizeFrom";
+import { Card, DevDebug, Page } from "../../shared/ui/page";
+
+type LocationState = { from?: string } | null;
 
 type Row = {
     type: "CANDIDATE" | "NONE_SUPPORT";
@@ -15,10 +25,17 @@ type Row = {
 
 export function AllocVotingStartPage() {
     const nav = useNavigate();
+    const loc = useLocation();
+    const state = (loc.state as LocationState) ?? null;
+
     const [sp] = useSearchParams();
     const electionId = sp.get("electionId") ?? "";
 
+    const self = loc.pathname + loc.search;
+    const backTo = normalizeFrom(state?.from ?? "/me/elections");
+
     const [loading, setLoading] = useState(true);
+    const [busy, setBusy] = useState(false);
     const [err, setErr] = useState<string | null>(null);
     const [data, setData] = useState<AllocVoteStartResponse | null>(null);
 
@@ -27,31 +44,38 @@ export function AllocVotingStartPage() {
         () => rows.reduce((a, r) => a + (Number(r.points) || 0), 0),
         [rows],
     );
+
     const canSubmit =
         !!data &&
         sum === data.pointsPerVoter &&
-        rows.some((r) => (r.points ?? 0) > 0);
+        rows.some((r) => (r.points ?? 0) > 0) &&
+        !busy;
+
+    const load = async () => {
+        if (!electionId) return;
+        setErr(null);
+        setLoading(true);
+        try {
+            const res = await allocStart(electionId);
+            setData(res);
+            setRows(res.options.map((o) => ({ ...o, points: 0 })));
+        } catch (e: any) {
+            setErr(e?.response?.data?.message ?? "取得に失敗しました");
+            setData(null);
+            setRows([]);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     useEffect(() => {
         if (!electionId) {
-            setErr("electionIdが不正です");
+            setErr("electionId が不正です");
             setLoading(false);
             return;
         }
-
-        (async () => {
-            try {
-                setLoading(true);
-                const res = await allocStart(electionId);
-                setData(res);
-                setRows(res.options.map((o) => ({ ...o, points: 0 })));
-                setErr(null);
-            } catch (e: any) {
-                setErr(e?.response?.data?.message ?? "取得に失敗しました");
-            } finally {
-                setLoading(false);
-            }
-        })();
+        load();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [electionId]);
 
     const setPoints = (idx: number, v: number) => {
@@ -65,7 +89,7 @@ export function AllocVotingStartPage() {
     };
 
     const onSubmit = async () => {
-        if (!data) return;
+        if (!data || busy) return;
 
         const req: AllocVoteConfirmRequest = {
             electionId: data.electionId,
@@ -79,72 +103,238 @@ export function AllocVotingStartPage() {
                 })),
         };
 
+        setBusy(true);
+        setErr(null);
         try {
             const result = await allocConfirm(req);
-            nav("/alloc-voting/done", { state: { result } });
+
+            nav("/alloc-voting/done", {
+                state: {
+                    result,
+                    from: backTo, // ★ Doneでも戻れるように
+                },
+            });
         } catch (e: any) {
             setErr(e?.response?.data?.message ?? "送信に失敗しました");
+        } finally {
+            setBusy(false);
         }
     };
 
-    if (loading) return <div style={{ padding: 16 }}>Loading...</div>;
-    if (err) return <div style={{ padding: 16, color: "crimson" }}>{err}</div>;
-    if (!data) return <div style={{ padding: 16 }}>No data</div>;
+    const title = data?.electionTitle
+        ? `配分投票 / ${data.electionTitle}`
+        : "配分投票";
 
     return (
-        <div style={{ padding: 16, maxWidth: 720 }}>
-            <h2>{data.electionTitle}（配分投票）</h2>
-            <p>合計 {data.pointsPerVoter}pt になるように配分してください。</p>
+        <Page
+            title={<h1 style={{ margin: 0, fontSize: 20 }}>{title}</h1>}
+            actions={
+                <div
+                    style={{
+                        display: "flex",
+                        gap: 12,
+                        alignItems: "center",
+                        flexWrap: "wrap",
+                    }}
+                >
+                    <Link to={backTo}>← 戻る</Link>
 
-            <div style={{ margin: "12px 0", fontWeight: 700 }}>
-                合計: {sum}/{data.pointsPerVoter}
-            </div>
-
-            <div style={{ display: "grid", gap: 10 }}>
-                {rows.map((r, idx) => (
-                    <div
-                        key={`${r.type}-${r.candidateId ?? "none"}`}
-                        style={{
-                            border: "1px solid #ddd",
-                            borderRadius: 12,
-                            padding: 12,
-                        }}
+                    {/* 入口に戻れる導線（一覧/詳細/Doneなどから来ても同じ挙動） */}
+                    <Link
+                        to={`/voting/entry?electionId=${electionId}`}
+                        state={{ from: backTo }}
                     >
-                        <div style={{ fontWeight: 600 }}>{r.label}</div>
+                        投票入口へ
+                    </Link>
+
+                    <button
+                        onClick={load}
+                        disabled={loading || busy || !electionId}
+                        style={{ marginLeft: "auto" }}
+                    >
+                        {loading ? "Reloading..." : "再読み込み"}
+                    </button>
+                </div>
+            }
+            maxWidth={860}
+        >
+            {!electionId && (
+                <Card role="alert">
+                    <div style={{ fontWeight: 800, marginBottom: 6 }}>
+                        エラー
+                    </div>
+                    <div>electionId がありません</div>
+                    <div style={{ marginTop: 10 }}>
+                        <Link to={backTo}>戻る</Link>
+                    </div>
+                </Card>
+            )}
+
+            {err && (
+                <Card role="alert">
+                    <div style={{ fontWeight: 800, marginBottom: 6 }}>
+                        エラー
+                    </div>
+                    <div style={{ marginBottom: 10 }}>{err}</div>
+
+                    <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+                        <button onClick={load} disabled={loading || busy}>
+                            再試行
+                        </button>
+
+                        <Link to="/identity/link" state={{ from: self }}>
+                            本人認証へ
+                        </Link>
+                        <Link to="/verify" state={{ from: self }}>
+                            メール認証へ
+                        </Link>
+
+                        <Link to={backTo}>戻る</Link>
+                    </div>
+                </Card>
+            )}
+
+            {!err && loading && <Card>読み込み中…</Card>}
+
+            {!err && !loading && data && (
+                <div style={{ display: "grid", gap: 12 }}>
+                    {/* 説明 */}
+                    <Card>
+                        <div style={{ display: "grid", gap: 6 }}>
+                            <strong style={{ fontSize: 16 }}>
+                                {data.electionTitle}
+                            </strong>
+                            <div style={{ opacity: 0.85 }}>
+                                合計 <b>{data.pointsPerVoter}</b>pt
+                                になるように配分してください。
+                            </div>
+                            <div style={{ fontWeight: 800 }}>
+                                合計: {sum}/{data.pointsPerVoter}
+                            </div>
+                            <div
+                                style={{
+                                    fontSize: 12,
+                                    opacity: 0.75,
+                                    lineHeight: 1.6,
+                                }}
+                            >
+                                ※ 合計が一致しないと送信できません
+                                <br />※
+                                送信後、投票履歴に記録されます（期間内なら変更可能）
+                            </div>
+                        </div>
+                    </Card>
+
+                    {/* 入力 */}
+                    <Card>
+                        <div style={{ display: "grid", gap: 10 }}>
+                            {rows.map((r, idx) => (
+                                <div
+                                    key={`${r.type}-${r.candidateId ?? "none"}`}
+                                    style={{
+                                        border: "1px solid #eee",
+                                        borderRadius: 12,
+                                        padding: 12,
+                                        background: "#fff",
+                                    }}
+                                >
+                                    <div style={{ fontWeight: 700 }}>
+                                        {r.label}
+                                    </div>
+
+                                    <div
+                                        style={{
+                                            marginTop: 8,
+                                            display: "flex",
+                                            gap: 8,
+                                            alignItems: "center",
+                                            flexWrap: "wrap",
+                                        }}
+                                    >
+                                        <input
+                                            type="number"
+                                            min={0}
+                                            step={1}
+                                            value={r.points}
+                                            onChange={(e) =>
+                                                setPoints(
+                                                    idx,
+                                                    Number(e.target.value),
+                                                )
+                                            }
+                                            style={{ width: 140 }}
+                                            disabled={busy}
+                                        />
+                                        <span>pt</span>
+
+                                        <span
+                                            style={{
+                                                marginLeft: "auto",
+                                                fontSize: 12,
+                                                opacity: 0.7,
+                                            }}
+                                        >
+                                            {r.type === "NONE_SUPPORT"
+                                                ? "（誰も支持しない）"
+                                                : ""}
+                                        </span>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+
                         <div
                             style={{
-                                marginTop: 8,
+                                marginTop: 12,
                                 display: "flex",
-                                gap: 8,
+                                gap: 12,
+                                flexWrap: "wrap",
                                 alignItems: "center",
                             }}
                         >
-                            <input
-                                type="number"
-                                min={0}
-                                step={1}
-                                value={r.points}
-                                onChange={(e) =>
-                                    setPoints(idx, Number(e.target.value))
-                                }
-                                style={{ width: 120 }}
-                            />
-                            <span>pt</span>
+                            <Link
+                                to={`/elections/${data.electionId}/candidates`}
+                                state={{ from: self }}
+                            >
+                                候補者（公開）を見る
+                            </Link>
+
+                            <span
+                                style={{
+                                    marginLeft: "auto",
+                                    display: "inline-flex",
+                                    gap: 12,
+                                    flexWrap: "wrap",
+                                }}
+                            >
+                                <Link to={backTo}>戻る</Link>
+
+                                <button
+                                    disabled={!canSubmit}
+                                    onClick={onSubmit}
+                                >
+                                    {busy ? "送信中..." : "この内容で投票する"}
+                                </button>
+                            </span>
                         </div>
-                    </div>
-                ))}
-            </div>
-
-            <div style={{ marginTop: 16, display: "flex", gap: 10 }}>
-                <button onClick={() => nav(-1)}>戻る</button>
-                <button disabled={!canSubmit} onClick={onSubmit}>
-                    投票する
-                </button>
-            </div>
-
-            {err && (
-                <div style={{ marginTop: 12, color: "crimson" }}>{err}</div>
+                    </Card>
+                </div>
             )}
-        </div>
+
+            <DevDebug
+                value={{
+                    electionId,
+                    data,
+                    rows,
+                    sum,
+                    err,
+                    loading,
+                    busy,
+                    backTo,
+                    self,
+                    state,
+                }}
+            />
+        </Page>
     );
 }

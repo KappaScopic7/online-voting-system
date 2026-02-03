@@ -23,10 +23,11 @@ type Group = {
     items: VoteHistoryItem[];
 };
 
-type LocationState = { from?: string };
+type LocationState = { from?: string } | null;
 
 function VoteRow({ v }: { v: VoteHistoryItem }) {
     const [hover, setHover] = useState(false);
+    const isDev = import.meta.env?.DEV;
 
     return (
         <div
@@ -52,9 +53,13 @@ function VoteRow({ v }: { v: VoteHistoryItem }) {
                 投票先: <strong>{v.candidateName}</strong>
             </span>
 
-            <span style={{ marginLeft: "auto", fontSize: 12, opacity: 0.7 }}>
-                voteId: {v.voteId}
-            </span>
+            {isDev && (
+                <span
+                    style={{ marginLeft: "auto", fontSize: 12, opacity: 0.7 }}
+                >
+                    voteId: {v.voteId}
+                </span>
+            )}
         </div>
     );
 }
@@ -65,9 +70,9 @@ export function VoteHistoryPage() {
     const [isLoading, setIsLoading] = useState(false);
 
     const loc = useLocation();
-    const state = (loc.state ?? {}) as LocationState;
+    const state = (loc.state as LocationState) ?? null;
 
-    const backTo = normalizeFrom(state.from ?? "/me");
+    const backTo = normalizeFrom(state?.from ?? "/me");
     const from = loc.pathname + loc.search;
 
     // UI control
@@ -293,18 +298,20 @@ export function VoteHistoryPage() {
                                             候補者（公開）
                                         </Link>
 
+                                        {/* ★ 結果は入口へ統一 */}
                                         <Link
-                                            to={`/elections/${g.electionId}/result`}
+                                            to={`/elections/result?electionId=${g.electionId}`}
                                             state={{ from }}
                                         >
                                             結果
                                         </Link>
 
                                         <span style={{ marginLeft: "auto" }}>
-                                            {latest.electionStatus ===
+                                            {latest?.electionStatus ===
                                             "ONGOING" ? (
+                                                /* ★ 投票変更も入口へ統一 */
                                                 <Link
-                                                    to={`/voting/start?electionId=${g.electionId}`}
+                                                    to={`/voting/entry?electionId=${g.electionId}`}
                                                     state={{ from }}
                                                 >
                                                     <b>投票を変更する →</b>

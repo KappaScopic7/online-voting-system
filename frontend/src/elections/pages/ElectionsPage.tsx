@@ -23,7 +23,7 @@ function ElectionItemCard({
     from: string;
     meExists: boolean;
 }) {
-    const voted = !!e.currentVote;
+    const voted = !!(e as any).currentVote;
 
     const [hover, setHover] = useState(false);
 
@@ -36,6 +36,9 @@ function ElectionItemCard({
         whiteSpace: "nowrap",
         opacity: 0.95,
     };
+
+    const voteLink = `/voting/entry?electionId=${e.electionId}`;
+    const resultLink = `/elections/result?electionId=${e.electionId}`;
 
     const action = (() => {
         if (e.status === "ONGOING") {
@@ -53,29 +56,13 @@ function ElectionItemCard({
 
             if (e.canCast) {
                 return (
-                    <span
-                        style={{
-                            display: "flex",
-                            gap: 10,
-                            alignItems: "center",
-                        }}
+                    <Link
+                        to={voteLink}
+                        state={{ from }}
+                        style={{ textDecoration: "none" }}
                     >
-                        <Link
-                            to={`/voting/start?electionId=${e.electionId}`}
-                            state={{ from }}
-                            style={{ textDecoration: "none" }}
-                        >
-                            <b>通常投票 →</b>
-                        </Link>
-
-                        <Link
-                            to={`/alloc-voting/start?electionId=${e.electionId}`}
-                            state={{ from }}
-                            style={{ textDecoration: "none" }}
-                        >
-                            <b>配分投票 →</b>
-                        </Link>
-                    </span>
+                        <b>投票する →</b>
+                    </Link>
                 );
             }
 
@@ -86,7 +73,7 @@ function ElectionItemCard({
             if (e.hasResult) {
                 return (
                     <Link
-                        to={`/elections/${e.electionId}/result`}
+                        to={resultLink}
                         state={{ from }}
                         style={{ textDecoration: "none" }}
                     >
@@ -158,7 +145,8 @@ function ElectionItemCard({
                     {voted ? (
                         <span>
                             現在の投票:{" "}
-                            {e.currentVote?.candidateName ?? "投票済み"}
+                            {(e as any).currentVote?.candidateName ??
+                                "投票済み"}
                         </span>
                     ) : (
                         <span style={{ opacity: 0.6 }}>現在の投票: なし</span>
@@ -182,10 +170,7 @@ function ElectionItemCard({
                     </Link>
 
                     {e.hasResult ? (
-                        <Link
-                            to={`/elections/${e.electionId}/result`}
-                            state={{ from }}
-                        >
+                        <Link to={resultLink} state={{ from }}>
                             結果
                         </Link>
                     ) : (
@@ -226,7 +211,7 @@ export function ElectionsPage() {
             setError(
                 err?.response?.data?.message ?? "Failed to load elections",
             );
-            setItems([]); // 画面は空扱いにする（error card で理由は見せる）
+            setItems([]);
         } finally {
             setIsLoading(false);
         }
