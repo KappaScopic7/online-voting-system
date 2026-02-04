@@ -1,3 +1,4 @@
+// backend/src/main/java/com/bteam/ovs/config/security/JwtAuthenticationFilter.java
 package com.bteam.ovs.config.security;
 
 import com.bteam.ovs.auth.entity.AccountKind;
@@ -11,8 +12,6 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-// import org.slf4j.Logger;
-// import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -24,9 +23,6 @@ import java.util.Objects;
 import java.util.UUID;
 
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
-
-    // private static final Logger log =
-    // LoggerFactory.getLogger(JwtAuthenticationFilter.class);
 
     private final JwtService jwtService;
 
@@ -45,11 +41,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
 
-        // 入口ログ（毎回）
-        // final String method = request.getMethod();
-        // final String path = request.getRequestURI();
+        final String method = request.getMethod();
+        final String path = request.getRequestURI();
         final String auth = request.getHeader("Authorization");
-        // log.info("[JWT] hit {} {} | authPresent={}", method, path, auth != null);
+
+        // 入口ログ（毎回）
+        System.out.println("[JWT] hit " + method + " " + path
+                + " authPresent=" + (auth != null));
 
         if (auth == null) {
             chain.doFilter(request, response);
@@ -58,18 +56,20 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         final String authTrim = auth.trim();
         if (authTrim.length() < 7 || !authTrim.regionMatches(true, 0, "Bearer ", 0, 7)) {
-            // log.info("[JWT] skip: Authorization is not Bearer scheme. value='{}'",
-            // shorten(authTrim, 80));
+            System.out.println("[JWT] skip: not Bearer scheme. valueHead=" + preview(authTrim, 16));
             chain.doFilter(request, response);
             return;
         }
 
         final String token = authTrim.substring(7).trim();
         if (token.isEmpty()) {
-            // log.info("[JWT] skip: Bearer token is empty");
+            System.out.println("[JWT] skip: Bearer token is empty");
             chain.doFilter(request, response);
             return;
         }
+
+        // トークン本体は出さない（長さだけ or 先頭少しだけ）
+        System.out.println("[JWT] tokenPresent len=" + token.length() + " head=" + preview(token, 12));
 
         try {
             Claims claims = Jwts.parserBuilder()
@@ -78,26 +78,24 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     .parseClaimsJws(token)
                     .getBody();
 
-            // まず「claimsに何が入ってるか」を見える化
-            // log.info("[JWT] parsed. subject='{}' keys={}",
-            // claims.getSubject(),
-            // claims.keySet());
+            // claimsのキー一覧（重要：ここで claim 名ズレが分かる）
+            System.out.println("[JWT] parsed OK. claimKeys=" + claims.keySet() + " sub=" + safe(claims.getSubject()));
 
-            // 重要なclaimは “型なし get” で一度拾ってから String化する
             String sub = claims.getSubject();
             String aid = toStr(claims.get(JwtClaims.ACCOUNT_ID));
             String kindStr = toStr(claims.get(JwtClaims.KIND));
             String roleStr = toStr(claims.get(JwtClaims.ROLE));
 
-            // log.info("[JWT] extracted: aid='{}' kind='{}' role='{}' (claimKeys:
-            // accountId='{}' kind='{}' role='{}')",
-            // aid, kindStr, roleStr,
-            // JwtClaims.ACCOUNT_ID, JwtClaims.KIND, JwtClaims.ROLE);
+            System.out.println("[JWT] extracted aid=" + safe(aid)
+                    + " kind=" + safe(kindStr)
+                    + " role=" + safe(roleStr));
 
             // 必須チェック
             if (isBlank(sub) || isBlank(aid) || isBlank(kindStr)) {
-                // log.info("[JWT] reject: missing required fields sub='{}' aid='{}' kind='{}'",
-                // sub, aid, kindStr);
+                System.out.println("[JWT] reject: missing required fields"
+                        + " subBlank=" + isBlank(sub)
+                        + " aidBlank=" + isBlank(aid)
+                        + " kindBlank=" + isBlank(kindStr));
                 SecurityContextHolder.clearContext();
                 chain.doFilter(request, response);
                 return;
@@ -108,7 +106,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             try {
                 accountId = UUID.fromString(aid);
             } catch (IllegalArgumentException e) {
-                // log.info("[JWT] reject: accountId is not UUID. aid='{}'", aid);
+                System.out.println("[JWT] reject: accountId not UUID. aid=" + safe(aid));
                 SecurityContextHolder.clearContext();
                 chain.doFilter(request, response);
                 return;
@@ -119,21 +117,19 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             try {
                 kind = AccountKind.valueOf(kindStr);
             } catch (IllegalArgumentException e) {
-                // log.info("[JWT] reject: invalid AccountKind. kind='{}' expected={}", kindStr,
-                // java.util.Arrays.toString(AccountKind.values()));
+                System.out.println("[JWT] reject: invalid AccountKind. kind=" + safe(kindStr));
                 SecurityContextHolder.clearContext();
                 chain.doFilter(request, response);
                 return;
             }
 
-            // role（任意だが、値があって不正なら reject）
+            // role（任意）
             Role role = null;
             if (!isBlank(roleStr)) {
                 try {
                     role = Role.valueOf(roleStr);
                 } catch (IllegalArgumentException e) {
-                    // log.info("[JWT] reject: invalid Role. role='{}' expected={}", roleStr,
-                    // java.util.Arrays.toString(Role.values()));
+                    System.out.println("[JWT] reject: invalid Role. role=" + safe(roleStr));
                     SecurityContextHolder.clearContext();
                     chain.doFilter(request, response);
                     return;
@@ -149,12 +145,18 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             var authentication = new UsernamePasswordAuthenticationToken(principal, null, authorities);
             SecurityContextHolder.getContext().setAuthentication(authentication);
 
-            // log.info("[JWT] accepted: accountId={} sub={} kind={} role={}", accountId,
-            // sub, kind, role);
+            System.out.println("[JWT] accepted: accountId=" + accountId + " sub=" + safe(sub)
+                    + " kind=" + kind + " role=" + role);
 
         } catch (JwtException ex) {
-            // ここに来るなら「署名/期限/フォーマット」系
-            // log.warn("[JWT] parse failed: {}", ex.getMessage());
+            // 署名/期限/フォーマット/secret不一致 はここに来る
+            System.out.println("[JWT] parse FAILED: " + ex.getClass().getSimpleName()
+                    + " msg=" + ex.getMessage());
+            SecurityContextHolder.clearContext();
+        } catch (RuntimeException ex) {
+            // 想定外も見える化
+            System.out.println("[JWT] unexpected error: " + ex.getClass().getSimpleName()
+                    + " msg=" + ex.getMessage());
             SecurityContextHolder.clearContext();
         }
 
@@ -168,15 +170,26 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private static String toStr(Object v) {
         if (v == null)
             return null;
-        // たまにInteger/UUID/Mapで入ってる事故もあるので、とにかく文字列化して様子を見る
         return Objects.toString(v, null);
     }
 
-    // private static String shorten(String s, int max) {
-    // if (s == null)
-    // return null;
-    // if (s.length() <= max)
-    // return s;
-    // return s.substring(0, max) + "...";
-    // }
+    // 値が長い時にログ汚染しない
+    private static String safe(String s) {
+        if (s == null)
+            return "null";
+        if (s.length() <= 80)
+            return s;
+        return s.substring(0, 80) + "...";
+    }
+
+    // tokenやヘッダは先頭ちょい見せ＋長さ
+    private static String preview(String s, int head) {
+        if (s == null)
+            return "null";
+        if (s.isEmpty())
+            return "(empty)";
+        int len = s.length();
+        int k = Math.min(Math.max(head, 0), len);
+        return s.substring(0, k) + "...(len=" + len + ")";
+    }
 }
