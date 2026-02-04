@@ -2,10 +2,17 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "ovs: db up",
+            "label": "ovs: up (prod-like)",
             "type": "shell",
             "command": "docker",
-            "args": ["compose", "up", "-d"],
+            "args": [
+                "compose",
+                "-f",
+                "docker-compose.dockerfile.yml",
+                "up",
+                "-d",
+                "--build"
+            ],
             "options": { "cwd": "${workspaceFolder}" },
             "problemMatcher": [],
             "presentation": {
@@ -14,19 +21,12 @@
                 "clear": true
             }
         },
-
         {
-            "label": "ovs: kill 8080",
+            "label": "ovs: down (prod-like)",
             "type": "shell",
-            "command": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
-            "args": [
-                "-NoProfile",
-                "-ExecutionPolicy",
-                "Bypass",
-                "-Command",
-                "$p = (Get-NetTCPConnection -LocalPort 8080 -State Listen -ErrorAction SilentlyContinue).OwningProcess; if ($p) { $p | Sort-Object -Unique | ForEach-Object { Stop-Process -Id $_ -Force -ErrorAction SilentlyContinue; Write-Host \"Killed PID $_ on :8080\" } } else { Write-Host \"No listener on :8080\" }"
-            ],
-            "options": { "cwd": "${workspaceFolder}/backend" },
+            "command": "docker",
+            "args": ["compose", "-f", "docker-compose.dockerfile.yml", "down"],
+            "options": { "cwd": "${workspaceFolder}" },
             "problemMatcher": [],
             "presentation": {
                 "reveal": "always",
@@ -34,76 +34,29 @@
                 "clear": true
             }
         },
-
         {
-            "label": "ovs: nfc bridge",
+            "label": "ovs: logs (prod-like)",
             "type": "shell",
-            "command": ".\\gradlew",
-            "args": ["runNfcBridge"],
-            "options": { "cwd": "${workspaceFolder}/backend" },
-            "isBackground": true,
-            "problemMatcher": {
-                "owner": "ovs-nfc-bridge",
-                "pattern": { "regexp": ".+", "message": 0 },
-                "background": {
-                    "activeOnStart": true,
-                    "beginsPattern": ".+",
-                    "endsPattern": "\\[bridge\\] listening on http://127\\.0\\.0\\.1:39123"
-                }
-            },
-            "presentation": {
-                "reveal": "always",
-                "panel": "dedicated",
-                "clear": true
-            }
-        },
-
-        {
-            "label": "ovs: frontend install (if needed)",
-            "type": "shell",
-            "command": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+            "command": "docker",
             "args": [
-                "-NoProfile",
-                "-ExecutionPolicy",
-                "Bypass",
-                "-Command",
-                "if (!(Test-Path 'node_modules')) { Write-Host 'node_modules not found. installing...'; npm install } else { Write-Host 'node_modules already exists. skip install.' }"
+                "compose",
+                "-f",
+                "docker-compose.dockerfile.yml",
+                "logs",
+                "-f",
+                "--tail=200"
             ],
-            "options": { "cwd": "${workspaceFolder}/frontend" },
+            "options": { "cwd": "${workspaceFolder}" },
             "problemMatcher": [],
-            "presentation": {
-                "reveal": "always",
-                "panel": "dedicated",
-                "clear": true
-            }
-        },
-
-        {
-            "label": "ovs: frontend dev",
-            "type": "shell",
-            "command": "npm",
-            "args": ["run", "dev"],
-            "options": { "cwd": "${workspaceFolder}/frontend" },
-            "dependsOn": ["ovs: frontend install (if needed)"],
             "isBackground": true,
-            "problemMatcher": {
-                "owner": "ovs-frontend",
-                "pattern": { "regexp": ".+", "message": 0 },
-                "background": {
-                    "activeOnStart": true,
-                    "beginsPattern": ".+",
-                    "endsPattern": "(Local:\\s+http://localhost:5173|ready in\\s+\\d+\\s*ms)"
-                }
-            },
             "presentation": {
                 "reveal": "always",
                 "panel": "dedicated",
-                "clear": true
+                "clear": false
             }
         },
-
         {
-            "label": "ovs: open browser",
+            "label": "ovs: open browser (prod-like)",
             "type": "shell",
             "command": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
             "args": [
@@ -111,20 +64,17 @@
                 "-ExecutionPolicy",
                 "Bypass",
                 "-Command",
-                "Start-Process 'http://localhost:5173'"
+                "Start-Process 'http://localhost:8081'"
             ],
             "problemMatcher": [],
             "presentation": { "reveal": "never", "panel": "shared" }
         },
-
         {
-            "label": "ovs: all (demo)",
+            "label": "ovs: start (prod-like)",
             "dependsOn": [
-                "ovs: kill 8080",
-                "ovs: db up",
-                "ovs: nfc bridge",
-                "ovs: frontend dev",
-                "ovs: open browser"
+                "ovs: up (prod-like)",
+                "ovs: open browser (prod-like)",
+                "ovs: logs (prod-like)"
             ],
             "dependsOrder": "sequence",
             "problemMatcher": []
