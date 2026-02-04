@@ -54,4 +54,19 @@ public class JwtService {
     public Key key() {
         return key;
     }
+
+    public String issueVoteToken(UUID citizenId, UUID electionId) {
+        Instant now = Instant.now();
+        Instant exp = now.plusSeconds(5 * 60);
+
+        return Jwts.builder()
+                .setSubject(citizenId.toString())
+                .claim(JwtClaims.KIND, "VOTE")
+                .claim("eid", electionId.toString())
+                .setIssuedAt(Date.from(now))
+                .setExpiration(Date.from(exp))
+                .signWith(key, SignatureAlgorithm.HS256)
+                .compact();
+    }
+
 }

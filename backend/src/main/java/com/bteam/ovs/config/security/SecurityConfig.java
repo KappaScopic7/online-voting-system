@@ -24,100 +24,112 @@ import static com.bteam.ovs.shared.security.Authz.*;
 @Configuration
 public class SecurityConfig {
 
-    @Bean
-    PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
-    }
+        @Bean
+        PasswordEncoder passwordEncoder() {
+                return new BCryptPasswordEncoder();
+        }
 
-    @Bean
-    CorsConfigurationSource corsConfigurationSource() {
-        CorsConfiguration config = new CorsConfiguration();
+        @Bean
+        CorsConfigurationSource corsConfigurationSource() {
+                CorsConfiguration config = new CorsConfiguration();
 
-        config.setAllowedOriginPatterns(List.of("http://localhost:*", "http://127.0.0.1:*"));
-        config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        config.setAllowedHeaders(List.of("*"));
-        config.setExposedHeaders(List.of());
-        config.setAllowCredentials(false);
+                config.setAllowedOriginPatterns(List.of("http://localhost:*", "http://127.0.0.1:*"));
+                config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+                config.setAllowedHeaders(List.of("*"));
+                config.setExposedHeaders(List.of());
+                config.setAllowCredentials(false);
 
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", config);
-        return source;
-    }
+                UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+                source.registerCorsConfiguration("/**", config);
+                return source;
+        }
 
-    @Bean
-    SecurityFilterChain securityFilterChain(HttpSecurity http, JwtService jwtService) throws Exception {
+        @Bean
+        SecurityFilterChain securityFilterChain(HttpSecurity http, JwtService jwtService) throws Exception {
 
-        return http
-                .cors(withDefaults())
-                .csrf(csrf -> csrf.disable())
-                .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                return http
+                                .cors(withDefaults())
+                                .csrf(csrf -> csrf.disable())
+                                .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        .requestMatchers("/error").permitAll()
+                                .authorizeHttpRequests(auth -> auth
+                                                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                                                .requestMatchers("/error").permitAll()
 
-                        // =========================
-                        // Public (no auth)
-                        // =========================
+                                                // =========================
+                                                // Public (no auth)
+                                                // =========================
+                                                .requestMatchers("/api/public/identity/verify").permitAll()
 
-                        // ---- public / user auth ----
-                        .requestMatchers("/api/auth/register", "/api/auth/login", "/api/auth/verify").permitAll()
+                                                // 本人認証トークンが必要（ログイン不要だが「認証は必要」）
+                                                .requestMatchers("/api/public/voting/**").authenticated()
 
-                        // ---- staff auth ----
-                        .requestMatchers("/api/staff/auth/login").permitAll()
+                                                // ---- public / user auth ----
+                                                .requestMatchers("/api/auth/register", "/api/auth/login",
+                                                                "/api/auth/verify")
+                                                .permitAll()
 
-                        // ---- admin auth (互換で残すなら) ----
-                        .requestMatchers("/api/admin/auth/login").permitAll()
+                                                // ---- staff auth ----
+                                                .requestMatchers("/api/staff/auth/login").permitAll()
 
-                        // ---- identity (public) ----
-                        .requestMatchers("/api/identity/nfc/resolve").permitAll()
+                                                // ---- admin auth (互換で残すなら) ----
+                                                .requestMatchers("/api/admin/auth/login").permitAll()
 
-                        // ---- read-only public APIs ----
-                        // elections / candidates / parties / master は GET だけ公開
-                        // （結果系を明示で上に置いておくと「ここだけ公開」を変えたくなった時も安全）
-                        .requestMatchers(HttpMethod.GET,
-                                "/api/elections/*/result",
-                                "/api/elections/*/alloc-result")
-                        .permitAll()
+                                                // ---- identity (public) ----
+                                                .requestMatchers("/api/identity/nfc/resolve").permitAll()
 
-                        .requestMatchers(HttpMethod.GET, "/api/elections/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/candidates/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/parties/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/master/**").permitAll()
+                                                // ---- read-only public APIs ----
+                                                // elections / candidates / parties / master は GET だけ公開
+                                                // （結果系を明示で上に置いておくと「ここだけ公開」を変えたくなった時も安全）
+                                                .requestMatchers(HttpMethod.GET,
+                                                                "/api/elections/*/result",
+                                                                "/api/elections/*/alloc-result")
+                                                .permitAll()
 
-                        // =========================
-                        // Staff-only APIs
-                        // =========================
-                        .requestMatchers("/api/staff/**")
-                        .access((a, c) -> decide(a.get(), AccountKind.STAFF))
+                                                .requestMatchers(HttpMethod.GET, "/api/elections/**").permitAll()
+                                                .requestMatchers(HttpMethod.GET, "/api/candidates/**").permitAll()
+                                                .requestMatchers(HttpMethod.GET, "/api/parties/**").permitAll()
+                                                .requestMatchers(HttpMethod.GET, "/api/master/**").permitAll()
 
-                        // /api/admin/** は「STAFF かつ ADMIN/COMMITTEE」
-                        .requestMatchers("/api/admin/**")
-                        .access((a, c) -> decide(
-                                isKind(a.get(), AccountKind.STAFF)
-                                        && hasAnyRole(a.get(), Role.ADMIN, Role.COMMITTEE)))
+                                                // =========================
+                                                // Staff-only APIs
+                                                // =========================
+                                                .requestMatchers("/api/staff/**")
+                                                .access((a, c) -> decide(a.get(), AccountKind.STAFF))
 
-                        // ---- demo tools (staff admin only) ----
-                        .requestMatchers("/api/demo/**")
-                        .access((a, c) -> decide(a.get(), AccountKind.STAFF, Role.ADMIN))
+                                                // /api/admin/** は「STAFF かつ ADMIN/COMMITTEE」
+                                                .requestMatchers("/api/admin/**")
+                                                .access((a, c) -> decide(
+                                                                isKind(a.get(), AccountKind.STAFF)
+                                                                                && hasAnyRole(a.get(), Role.ADMIN,
+                                                                                                Role.COMMITTEE)))
 
-                        // =========================
-                        // User-only APIs
-                        // =========================
+                                                // ---- demo tools (staff admin only) ----
+                                                .requestMatchers("/api/demo/**")
+                                                .access((a, c) -> decide(a.get(), AccountKind.STAFF, Role.ADMIN))
 
-                        // ---- identity (user only) ----
-                        .requestMatchers("/api/identity/**")
-                        .access((a, c) -> decide(a.get(), AccountKind.USER))
+                                                // =========================
+                                                // User-only APIs
+                                                // =========================
 
-                        // ---- voter only (user + voter role) ----
-                        .requestMatchers("/api/voting/**", "/api/votes/**", "/api/alloc-voting/**")
-                        .access((a, c) -> decide(
-                                isKind(a.get(), AccountKind.USER)
-                                        && hasRole(a.get(), Role.VOTER)))
+                                                // ---- identity (user only) ----
+                                                .requestMatchers("/api/identity/**")
+                                                .access((a, c) -> decide(a.get(), AccountKind.USER))
 
-                        .anyRequest().authenticated())
+                                                // ---- voter only (user + voter role) ----
+                                                .requestMatchers("/api/voting/**", "/api/votes/**",
+                                                                "/api/alloc-voting/**")
+                                                .access((a, c) -> decide(
+                                                                isKind(a.get(), AccountKind.USER)
+                                                                                && hasRole(a.get(), Role.VOTER)))
 
-                .addFilterBefore(new JwtAuthenticationFilter(jwtService), UsernamePasswordAuthenticationFilter.class)
-                .build();
-    }
+                                                .anyRequest().authenticated())
+
+                                .addFilterBefore(new VoteTokenAuthenticationFilter(jwtService),
+                                                UsernamePasswordAuthenticationFilter.class)
+                                .addFilterBefore(new JwtAuthenticationFilter(jwtService),
+                                                UsernamePasswordAuthenticationFilter.class)
+                                .build();
+
+        }
 }

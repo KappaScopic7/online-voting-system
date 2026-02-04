@@ -72,4 +72,40 @@ public class ElectionEligibilityService {
         }
         return age;
     }
+
+    public boolean isEligibleCitizen(UUID citizenId, UUID electionId) {
+        try {
+            requireEligibleCitizen(citizenId, electionId);
+            return true;
+        } catch (ApiException ex) {
+            return false;
+        }
+    }
+
+    public void requireEligibleCitizen(UUID citizenId, UUID electionId) {
+        var election = electionRepo.findById(electionId)
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.NOT_FOUND,
+                        "ELECTION_NOT_FOUND",
+                        "選挙が存在しません"));
+
+        var snap = profileResolver.resolveCitizen(citizenId);
+        if (snap == null || snap.birthDate() == null) {
+            throw new ApiException(
+                    HttpStatus.FORBIDDEN,
+                    "ELIGIBILITY_UNKNOWN",
+                    "年齢情報がないため投票できません");
+        }
+
+        LocalDate on = election.getStartsAt().atZone(ZoneOffset.UTC).toLocalDate();
+
+        int age = calcAge(snap.birthDate(), on);
+        if (age < 18) {
+            throw new ApiException(
+                    HttpStatus.FORBIDDEN,
+                    "UNDER_AGE",
+                    "年齢条件を満たしていません");
+        }
+    }
+
 }

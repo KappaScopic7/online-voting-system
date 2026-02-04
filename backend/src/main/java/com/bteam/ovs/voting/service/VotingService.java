@@ -184,4 +184,61 @@ public class VotingService {
                 return "ONGOING";
         }
 
+        public VoteStartResponse startByCitizen(UUID citizenId, UUID electionId) {
+                // 公開投票でも投票権チェック（年齢など）
+                electionEligibilityService.requireEligibleCitizen(citizenId, electionId);
+
+                var election = electionRepo.findById(electionId)
+                                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "ELECTION_NOT_FOUND",
+                                                "選挙が存在しません"));
+
+                var candidates = candidateRepo.findByElectionId(electionId).stream()
+                                .map(c -> new VoteStartResponse.CandidateItem(c.getId(), c.getName()))
+                                .toList();
+
+                return new VoteStartResponse(election.getId(), election.getTitle(), candidates);
+        }
+
+        @Transactional
+        public VoteHistoryItem confirmByCitizen(UUID citizenId, UUID electionId, UUID candidateId) {
+                // 公開投票でも投票権チェック（年齢など）
+                electionEligibilityService.requireEligibleCitizen(citizenId, electionId);
+
+                var election = electionRepo.findById(electionId)
+                                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "ELECTION_NOT_FOUND",
+                                                "選挙が存在しません"));
+
+                var now = Instant.now();
+                boolean withinPeriod = !now.isBefore(election.getStartsAt()) && now.isBefore(election.getEndsAt());
+                if (!withinPeriod)
+                        throw new ApiException(HttpStatus.FORBIDDEN, "ELECTION_NOT_ONGOING", "投票可能期間外です");
+
+                if (!candidateRepo.existsByIdAndElectionId(candidateId, electionId)) {
+                        throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_CANDIDATE", "候補が不正です");
+                }
+                var candidate = candidateRepo.findById(candidateId)
+                                .orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST, "INVALID_CANDIDATE",
+                                                "候補が不正です"));
+
+                // 履歴
+                var cast = new VoteCast();
+                cast.setElectionId(electionId);
+                cast.setCitizenId(citizenId);
+                cast.setCandidateId(candidateId);
+                cast.setCastedAt(now);
+                voteCastRepo.save(cast);
+
+                // 現在票（UPSERT）
+                voteCurrentRepo.upsertCurrent(electionId, citizenId, candidateId, now);
+
+                return new VoteHistoryItem(
+                                cast.getId(),
+                                election.getId(),
+                                election.getTitle(),
+                                resolveElectionStatus(now, election.getStartsAt(), election.getEndsAt()),
+                                candidate.getId(),
+                                candidate.getName(),
+                                now);
+        }
+
 }

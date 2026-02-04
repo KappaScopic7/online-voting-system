@@ -53,4 +53,17 @@ public class EligibilityProfileResolver {
                 p.getPrefCode(),
                 p.getCityCode());
     }
+
+    @Transactional(readOnly = true)
+    public EligibilitySnapshot resolveCitizen(UUID citizenId) {
+        var c = citizenRepo.findById(citizenId).orElse(null);
+        if (c == null)
+            return EligibilitySnapshot.none();
+
+        return new EligibilitySnapshot(
+                EligibilitySnapshot.Source.CITIZEN,
+                c.getBirthDate(),
+                c.getPrefCode(),
+                c.getCityCode());
+    }
 }
