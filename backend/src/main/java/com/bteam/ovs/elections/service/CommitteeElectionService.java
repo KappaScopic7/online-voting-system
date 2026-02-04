@@ -3,8 +3,11 @@ package com.bteam.ovs.elections.service;
 import com.bteam.ovs.auth.entity.Role;
 import com.bteam.ovs.auth.repository.StaffAccountRepository;
 import com.bteam.ovs.elections.controller.dto.ElectionResponse;
+import com.bteam.ovs.elections.entity.BallotType;
 import com.bteam.ovs.elections.entity.Election;
+import com.bteam.ovs.elections.entity.ElectionType;
 import com.bteam.ovs.elections.repository.ElectionRepository;
+import com.bteam.ovs.elections.controller.dto.ElectionCreateRequest;
 import com.bteam.ovs.shared.errors.ApiException;
 import com.bteam.ovs.shared.security.PrincipalExtractor;
 
@@ -87,6 +90,61 @@ public class CommitteeElectionService {
         }
 
         return toResponse(e);
+    }
+
+    public ElectionResponse createElection(
+            ElectionCreateRequest req,
+            Authentication auth) {
+        UUID staffId = PrincipalExtractor.requireAccountId(auth);
+
+        var staff = staffRepo.findById(staffId)
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.UNAUTHORIZED,
+                        "UNAUTHORIZED",
+                        "未ログインです"));
+
+        if (staff.getRole() != Role.COMMITTEE) {
+            throw new ApiException(
+                    HttpStatus.FORBIDDEN,
+                    "FORBIDDEN",
+                    "権限がありません");
+        }
+
+        String pref = staff.getAssignedPrefCode();
+        String city = staff.getAssignedCityCode();
+        if (isBlank(pref) || isBlank(city)) {
+            throw new ApiException(
+                    HttpStatus.FORBIDDEN,
+                    "COMMITTEE_AREA_NOT_SET",
+                    "担当自治体が設定されていません");
+        }
+
+        if (req.startsAt().isAfter(req.endsAt())) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "INVALID_TERM",
+                    "開始日時は終了日時より前である必要があります");
+        }
+
+        Election election = new Election();
+
+        election.setTitle(req.title());
+        election.setStartsAt(req.startsAt());
+        election.setEndsAt(req.endsAt());
+
+        election.setDistrictPrefCode(pref);
+        election.setDistrictCityCode(city);
+
+        election.setSummary("");
+        election.setElectionType(ElectionType.DEMO);
+        election.setBallotType(BallotType.SINGLE_CHOICE);
+        election.setDistrictLabel(pref + city);
+
+        election.setElectionKey(UUID.randomUUID().toString());
+
+        Election saved = electionRepo.save(election);
+
+        return toResponse(saved);
     }
 
     private ElectionResponse toResponse(Election e) {

@@ -8,6 +8,7 @@ import { CommitteeHomePage } from "../committee/pages/CommitteeHomePage";
 import { CommitteeElectionsPage } from "../committee/pages/CommitteeElectionsPage";
 import { CommitteeStaffPage } from "../committee/pages/CommitteeStaffPage";
 import { CommitteeMePage } from "../committee/pages/CommitteeMePage";
+import { CommitteeElectionCreatePage } from "../committee/pages/CommitteeElectionCreatePage";
 
 export function CommitteeRoutes() {
     return (
@@ -29,6 +30,11 @@ export function CommitteeRoutes() {
                         path="elections"
                         element={<CommitteeElectionsPage />}
                     />
+                    <Route
+                        path="elections/new"
+                        element={<CommitteeElectionCreatePage />}
+                    />
+
                     <Route path="staff" element={<CommitteeStaffPage />} />
                     <Route path="me" element={<CommitteeMePage />} />
                 </Route>

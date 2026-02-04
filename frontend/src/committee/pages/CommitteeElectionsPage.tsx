@@ -5,6 +5,7 @@ import {
     fetchCommitteeElections,
     type CommitteeElectionListItem,
 } from "../api/elections";
+import { Link } from "react-router-dom";
 
 export function CommitteeElectionsPage() {
     const isDev = import.meta.env?.DEV === true;
@@ -40,6 +41,9 @@ export function CommitteeElectionsPage() {
 
     return (
         <div>
+            <div style={{ marginBottom: 12 }}>
+                <Link to="/committee/elections/new">新規登録</Link>
+            </div>
             <ElectionListView
                 title="担当選挙一覧"
                 items={items}
