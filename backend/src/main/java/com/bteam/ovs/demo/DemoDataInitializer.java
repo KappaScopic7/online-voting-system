@@ -86,23 +86,22 @@ public class DemoDataInitializer {
         List<AllocVoteJson> allocVoteCasts = loader.loadList("allocVoteCasts.json", new TypeReference<>() {
         });
 
-        // ===== index + validate =====
-        var citizenMap = indexCitizens(citizens);
-        var partyMap = indexParties(parties);
-        var candidateMap = indexCandidates(candidates);
-        var electionMap = indexElections(elections);
+        var indexed = new DemoDataIndexer().indexAll(citizens, parties, candidates, elections);
 
-        new DemoDataValidator().validateAll(citizenMap, partyMap, candidateMap, electionMap,
+        new DemoDataValidator().validateAll(
+                indexed.citizenMap(),
+                indexed.partyMap(),
+                indexed.candidateMap(),
+                indexed.electionMap(),
                 rules, votes, users, committee, allocVoteCasts);
+
+        Map<String, ElectionCreated> createdElections = seedElectionsAndCandidates(electionRepo, candidateRepo,
+                elections, indexed.candidateMap());
 
         // ===== seed =====
         seedCitizens(citizenRepo, citizens);
         seedUsers(userRepo, passwordEncoder, users);
         seedParties(partyRepo, parties);
-
-        Map<String, ElectionCreated> createdElections = seedElectionsAndCandidates(electionRepo, candidateRepo,
-                elections, candidateMap);
-
         seedRules(ruleRepo, rules, createdElections);
         seedVotes(voteCastRepo, voteCurrentRepo, votes, createdElections);
 
@@ -143,51 +142,6 @@ public class DemoDataInitializer {
             c.setPasswordHash(passwordEncoder.encode(j.password()));
             staffRepo.save(c);
         }
-    }
-
-    private Map<UUID, CitizenJson> indexCitizens(List<CitizenJson> items) {
-        var map = new LinkedHashMap<UUID, CitizenJson>();
-        for (var x : items) {
-            if (x.citizenId() == null)
-                throw new IllegalStateException("citizens.json: citizenId null");
-            if (map.putIfAbsent(x.citizenId(), x) != null) {
-                throw new IllegalStateException("citizens.json: duplicate citizenId " + x.citizenId());
-            }
-        }
-        return map;
-    }
-
-    private Map<String, PartyJson> indexParties(List<PartyJson> items) {
-        var map = new LinkedHashMap<String, PartyJson>();
-        for (var x : items) {
-            mustNonBlank(x.partyKey(), "party.json: partyKey blank");
-            if (map.putIfAbsent(x.partyKey(), x) != null) {
-                throw new IllegalStateException("party.json: duplicate partyKey " + x.partyKey());
-            }
-        }
-        return map;
-    }
-
-    private Map<String, CandidateJson> indexCandidates(List<CandidateJson> items) {
-        var map = new LinkedHashMap<String, CandidateJson>();
-        for (var x : items) {
-            mustNonBlank(x.candidateKey(), "candidates.json: candidateKey blank");
-            if (map.putIfAbsent(x.candidateKey(), x) != null) {
-                throw new IllegalStateException("candidates.json: duplicate candidateKey " + x.candidateKey());
-            }
-        }
-        return map;
-    }
-
-    private Map<String, ElectionJson> indexElections(List<ElectionJson> items) {
-        var map = new LinkedHashMap<String, ElectionJson>();
-        for (var x : items) {
-            mustNonBlank(x.electionKey(), "elections.json: electionKey blank");
-            if (map.putIfAbsent(x.electionKey(), x) != null) {
-                throw new IllegalStateException("elections.json: duplicate electionKey " + x.electionKey());
-            }
-        }
-        return map;
     }
 
     public void mustNonBlank(String v, String msg) {
