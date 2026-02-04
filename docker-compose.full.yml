@@ -1,0 +1,72 @@
+services:
+    db:
+        image: postgres:16
+        container_name: ovs-postgres
+        restart: always
+        environment:
+            POSTGRES_USER: ovs
+            POSTGRES_PASSWORD: ovs
+            POSTGRES_DB: ovs
+            TZ: Asia/Tokyo
+        ports:
+            - "5432:5432"
+        volumes:
+            - ovs_pg:/var/lib/postgresql/data
+        healthcheck:
+            test: ["CMD-SHELL", "pg_isready -U ovs -d ovs"]
+            interval: 5s
+            timeout: 5s
+            retries: 10
+        networks: [ovsnet]
+
+    backend:
+        image: gradle:8.7-jdk21
+        container_name: ovs-backend
+        working_dir: /workspace
+        volumes:
+            - ./backend:/workspace
+            - gradle_cache:/home/gradle/.gradle
+        depends_on:
+            db:
+                condition: service_healthy
+        environment:
+            SPRING_PROFILES_ACTIVE: demo
+            SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/ovs
+            SPRING_DATASOURCE_USERNAME: ovs
+            SPRING_DATASOURCE_PASSWORD: ovs
+            SECURITY_JWT_SECRET: "change-this-to-a-long-random-secret-key-1234567890"
+            SECURITY_JWT_EXPIRATION_MINUTES: "120"
+        command: >
+            bash -lc "
+              gradle --no-daemon bootRun
+            "
+        ports:
+            - "8080:8080"
+        networks: [ovsnet]
+
+    frontend:
+        image: node:20
+        container_name: ovs-frontend
+        working_dir: /workspace
+        volumes:
+            - ./frontend:/workspace
+        depends_on:
+            - backend
+        environment:
+            VITE_API_BASE_URL: "http://localhost:8080"
+            # ↑ 開発確認用。ECS想定の“同一オリジン(/api)”確認は次の段階でやる
+        command: >
+            bash -lc "
+              npm ci &&
+              npm run dev -- --host 0.0.0.0 --port 5173
+            "
+        ports:
+            - "5173:5173"
+        networks: [ovsnet]
+
+volumes:
+    ovs_pg:
+    gradle_cache:
+
+networks:
+    ovsnet:
