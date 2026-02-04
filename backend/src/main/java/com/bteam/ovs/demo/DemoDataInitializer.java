@@ -77,10 +77,8 @@ public class DemoDataInitializer {
         });
         List<RuleJson> rules = loader.loadList("electionRules.json", new TypeReference<>() {
         });
-
-        List<VoteJson> votes = loader.loadList("votes.json", new TypeReference<>() {
+        List<VoteJson> voteCasts = loader.loadList("voteCasts.json", new TypeReference<>() {
         });
-
         List<UserJson> users = loader.loadList("userAccounts.json", new TypeReference<>() {
         });
         List<CommitteeJson> committee = loader.loadList("committeeAccounts.json", new TypeReference<>() {
@@ -95,7 +93,7 @@ public class DemoDataInitializer {
                 indexed.partyMap(),
                 indexed.candidateMap(),
                 indexed.electionMap(),
-                rules, votes, users, committee, allocVoteCasts);
+                rules, voteCasts, users, committee, allocVoteCasts);
 
         Map<String, ElectionCreated> createdElections = seedElectionsAndCandidates(electionRepo, candidateRepo,
                 elections, indexed.candidateMap());
@@ -105,7 +103,7 @@ public class DemoDataInitializer {
         seedUsers(userRepo, passwordEncoder, users);
         seedParties(partyRepo, parties);
         seedRules(ruleRepo, rules, createdElections);
-        seedVotes(voteCastRepo, voteCurrentRepo, votes, createdElections);
+        seedVotes(voteCastRepo, voteCurrentRepo, voteCasts, createdElections);
 
         // ★ alloc: casts + items を入れて、最新から current 生成
         new AllocVoteSeeder().seedFromCastsOnly(

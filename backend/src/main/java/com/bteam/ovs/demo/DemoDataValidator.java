@@ -98,17 +98,17 @@ public class DemoDataValidator {
             Map<String, ElectionJson> electionMap,
             Map<UUID, CitizenJson> citizenMap) {
         for (var v : votes) {
-            mustNonBlank(v.electionKey(), "votes.json: electionKey blank");
+            mustNonBlank(v.electionKey(), "voteCasts.json: electionKey blank");
             if (!electionMap.containsKey(v.electionKey())) {
-                throw new IllegalStateException("votes.json: unknown electionKey=" + v.electionKey());
+                throw new IllegalStateException("voteCasts.json: unknown electionKey=" + v.electionKey());
             }
             if (!citizenMap.containsKey(v.citizenId())) {
-                throw new IllegalStateException("votes.json: unknown citizenId=" + v.citizenId());
+                throw new IllegalStateException("voteCasts.json: unknown citizenId=" + v.citizenId());
             }
             int size = electionMap.get(v.electionKey()).candidates().size();
             if (v.candidateIndex() < 0 || v.candidateIndex() >= size) {
                 throw new IllegalStateException(
-                        "votes.json: candidateIndex out of range electionKey="
+                        "voteCasts.json: candidateIndex out of range electionKey="
                                 + v.electionKey() + " index=" + v.candidateIndex() + " size=" + size);
             }
         }
