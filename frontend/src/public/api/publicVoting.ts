@@ -20,7 +20,7 @@ export async function publicVoteStart(
     electionId: string,
 ): Promise<VoteStartResponse> {
     const res = await httpPublic.get<VoteStartResponse>(
-        "/api/public/voting/start",
+        "/public/voting/start",
         {
             params: { electionId },
         },
@@ -33,7 +33,7 @@ export async function publicVoteConfirm(
     candidateId: string,
 ): Promise<VoteHistoryItem> {
     const res = await httpPublic.post<VoteHistoryItem>(
-        "/api/public/voting/confirm",
+        "/public/voting/confirm",
         {
             electionId,
             candidateId,

@@ -24,7 +24,7 @@ export type VoteStartResponse = {
 export async function startVoting(
     electionId: string,
 ): Promise<VoteStartResponse> {
-    const res = await httpUser.get<VoteStartResponse>("/api/voting/start", {
+    const res = await httpUser.get<VoteStartResponse>("/voting/start", {
         params: { electionId },
     });
     return res.data;
@@ -34,7 +34,7 @@ export async function confirmVote(
     electionId: string,
     candidateId: string,
 ): Promise<VoteHistoryItem> {
-    const res = await httpUser.post<VoteHistoryItem>("/api/voting/confirm", {
+    const res = await httpUser.post<VoteHistoryItem>("/voting/confirm", {
         electionId,
         candidateId,
     });
@@ -42,6 +42,6 @@ export async function confirmVote(
 }
 
 export async function fetchVoteHistory(): Promise<VoteHistoryItem[]> {
-    const res = await httpUser.get<VoteHistoryItem[]>("/api/votes");
+    const res = await httpUser.get<VoteHistoryItem[]>("/votes");
     return res.data;
 }

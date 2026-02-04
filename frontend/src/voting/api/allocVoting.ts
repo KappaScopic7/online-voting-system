@@ -7,7 +7,7 @@ import type {
 
 export async function allocStart(electionId: string) {
     const res = await httpUser.get<AllocVoteStartResponse>(
-        "/api/alloc-voting/start",
+        "/alloc-voting/start",
         {
             params: { electionId },
         },
@@ -17,7 +17,7 @@ export async function allocStart(electionId: string) {
 
 export async function allocConfirm(req: AllocVoteConfirmRequest) {
     const res = await httpUser.post<AllocVoteHistoryItem>(
-        "/api/alloc-voting/confirm",
+        "/alloc-voting/confirm",
         req,
     );
     return res.data;
@@ -25,7 +25,7 @@ export async function allocConfirm(req: AllocVoteConfirmRequest) {
 
 export async function allocHistory() {
     const res = await httpUser.get<AllocVoteHistoryItem[]>(
-        "/api/alloc-voting/history",
+        "/alloc-voting/history",
     );
     return res.data;
 }

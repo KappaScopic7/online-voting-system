@@ -11,7 +11,7 @@ export async function verifyNfc(
     electionId: string,
 ): Promise<NfcVerifyResponse> {
     const res = await httpPublic.post<NfcVerifyResponse>(
-        "/api/public/identity/verify",
+        "/public/identity/verify",
         {
             uuid,
             electionId,

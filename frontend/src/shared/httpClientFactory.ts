@@ -26,7 +26,11 @@ export function createHttpClient(tokenStore: TokenStore) {
             const status = err?.response?.status;
             const url: string | undefined = err?.config?.url;
 
-            if (status === 401 && url && url.includes("/api/auth/me")) {
+            if (
+                status === 401 &&
+                url &&
+                (url.includes("/auth/me") || url.includes("/api/auth/me"))
+            ) {
                 tokenStore.clear();
             }
 

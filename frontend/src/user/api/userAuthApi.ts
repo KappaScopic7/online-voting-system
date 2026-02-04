@@ -7,18 +7,18 @@ import type {
 } from "../model/userAuthTypes";
 
 export async function register(email: string, password: string): Promise<void> {
-    await httpUser.post("/api/auth/register", { email, password });
+    await httpUser.post("//auth/register", { email, password });
 }
 
 export async function verifyEmail(email: string, code: string): Promise<void> {
-    await httpUser.post("/api/auth/verify", { email, code });
+    await httpUser.post("/auth/verify", { email, code });
 }
 
 export async function login(
     email: string,
     password: string,
 ): Promise<UserTokenResponse> {
-    const res = await httpUser.post<UserTokenResponse>("/api/auth/login", {
+    const res = await httpUser.post<UserTokenResponse>("/auth/login", {
         email,
         password,
     });
@@ -26,11 +26,11 @@ export async function login(
 }
 
 export async function fetchMe(): Promise<MeResponse> {
-    const res = await httpUser.get<MeResponse>("/api/auth/me");
+    const res = await httpUser.get<MeResponse>("/auth/me");
     return res.data;
 }
 
 export async function fetchMeDetail(): Promise<MeDetailResponse> {
-    const res = await httpUser.get<MeDetailResponse>("/api/auth/me/detail");
+    const res = await httpUser.get<MeDetailResponse>("/auth/me/detail");
     return res.data;
 }

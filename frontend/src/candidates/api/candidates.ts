@@ -13,7 +13,7 @@ export type FetchCandidatesParams = {
 export async function fetchCandidates(
     params?: FetchCandidatesParams,
 ): Promise<CandidateItem[]> {
-    const res = await httpUser.get<CandidateItem[]>("/api/candidates", {
+    const res = await httpUser.get<CandidateItem[]>("/candidates", {
         params: params ?? {},
     });
     return res.data;
@@ -24,7 +24,7 @@ export async function fetchCandidateDetail(
     candidateId: string,
 ): Promise<CandidateDetailResponse> {
     const res = await httpUser.get<CandidateDetailResponse>(
-        `/api/elections/${encodeURIComponent(electionId)}/candidates/${encodeURIComponent(candidateId)}`,
+        `/elections/${encodeURIComponent(electionId)}/candidates/${encodeURIComponent(candidateId)}`,
     );
     return res.data;
 }
@@ -33,7 +33,7 @@ export async function fetchCandidateDetailById(
     candidateId: string,
 ): Promise<CandidateDetailResponse> {
     const res = await httpUser.get<CandidateDetailResponse>(
-        `/api/candidates/${encodeURIComponent(candidateId)}`,
+        `/candidates/${encodeURIComponent(candidateId)}`,
     );
     return res.data;
 }
@@ -42,7 +42,7 @@ export async function fetchElectionCandidates(
     electionId: string,
 ): Promise<CandidateItem[]> {
     const res = await httpUser.get<CandidateItem[]>(
-        `/api/elections/${encodeURIComponent(electionId)}/candidates`,
+        `/elections/${encodeURIComponent(electionId)}/candidates`,
     );
     return res.data;
 }

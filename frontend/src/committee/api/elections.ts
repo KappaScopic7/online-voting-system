@@ -25,7 +25,7 @@ export async function fetchCommitteeElections(): Promise<
     CommitteeElectionListItem[]
 > {
     const res = await httpStaff.get<CommitteeElectionListItem[]>(
-        "/api/committee/elections",
+        "/committee/elections",
     );
     return res.data;
 }
@@ -44,6 +44,6 @@ export async function createCommitteeElection(input: {
         endsAt: new Date(input.endsAt).toISOString(),
     };
 
-    const res = await httpStaff.post("/api/committee/elections", payload);
+    const res = await httpStaff.post("/committee/elections", payload);
     return res.data;
 }

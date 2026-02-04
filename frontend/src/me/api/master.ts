@@ -11,7 +11,7 @@ export type ZipCandidate = {
 };
 
 export async function getPrefs(): Promise<PrefItem[]> {
-    const r = await httpUser.get("/api/master/prefs");
+    const r = await httpUser.get("/master/prefs");
     return r.data;
 }
 
@@ -19,14 +19,14 @@ export async function getCities(
     prefCode: string,
     q?: string,
 ): Promise<CityItem[]> {
-    const r = await httpUser.get("/api/master/cities", {
+    const r = await httpUser.get("/master/cities", {
         params: { prefCode, q },
     });
     return r.data;
 }
 
 export async function lookupByZip(zip: string): Promise<ZipCandidate[]> {
-    const r = await httpUser.get("/api/master/address/by-zip", {
+    const r = await httpUser.get("/master/address/by-zip", {
         params: { zip },
     });
     return r.data;

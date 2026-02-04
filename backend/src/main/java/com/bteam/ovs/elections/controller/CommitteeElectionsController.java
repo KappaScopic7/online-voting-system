@@ -12,8 +12,6 @@ import com.bteam.ovs.elections.controller.dto.ElectionCreateRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 
-import java.util.UUID;
-
 @RestController
 @RequestMapping("/api/committee/elections")
 public class CommitteeElectionsController {

@@ -6,7 +6,7 @@ import type {
 } from "../model/electionTypes";
 
 export async function fetchElections(): Promise<ElectionListItem[]> {
-    const res = await httpUser.get<ElectionListItem[]>("/api/elections");
+    const res = await httpUser.get<ElectionListItem[]>("/elections");
     return res.data;
 }
 
@@ -14,14 +14,14 @@ export async function fetchElectionDetail(
     electionId: string,
 ): Promise<ElectionDetailResponse> {
     const res = await httpUser.get<ElectionDetailResponse>(
-        `/api/elections/${encodeURIComponent(electionId)}`,
+        `/elections/${encodeURIComponent(electionId)}`,
     );
     return res.data;
 }
 
 export async function fetchResultBundle(electionId: string) {
     const res = await httpUser.get<ElectionResultBundleResponse>(
-        `/api/elections/${encodeURIComponent(electionId)}/result`,
+        `/elections/${encodeURIComponent(electionId)}/result`,
     );
     return res.data;
 }

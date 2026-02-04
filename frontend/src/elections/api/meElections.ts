@@ -17,6 +17,6 @@ export type MyElectionItem = {
 };
 
 export async function fetchMyElections(): Promise<MyElectionItem[]> {
-    const res = await httpUser.get<MyElectionItem[]>("/api/me/elections");
+    const res = await httpUser.get<MyElectionItem[]>("/me/elections");
     return res.data;
 }
