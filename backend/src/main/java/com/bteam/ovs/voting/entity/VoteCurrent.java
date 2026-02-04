@@ -38,6 +38,7 @@ public class VoteCurrent {
             castedAt = Instant.now();
     }
 
+    @PreUpdate
     void onUpdate() {
         castedAt = Instant.now();
     }

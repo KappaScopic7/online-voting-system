@@ -8,11 +8,11 @@ import com.bteam.ovs.shared.identity.CitizenIdResolver;
 import com.bteam.ovs.voting.controller.dto.VoteHistoryItem;
 import com.bteam.ovs.voting.controller.dto.VoteStartResponse;
 import com.bteam.ovs.voting.entity.VoteCast;
-import com.bteam.ovs.voting.entity.VoteCurrent;
+// import com.bteam.ovs.voting.entity.VoteCurrent;
 import com.bteam.ovs.voting.repository.VoteCastRepository;
 import com.bteam.ovs.voting.repository.VoteCurrentRepository;
 
-import org.springframework.dao.DataIntegrityViolationException;
+// import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -95,27 +95,31 @@ public class VotingService {
                 cast.setCastedAt(now);
                 voteCastRepo.save(cast);
 
-                var current = voteCurrentRepo.findByElectionIdAndCitizenId(electionId, citizenId)
-                                .orElseGet(() -> {
-                                        var v = new VoteCurrent();
-                                        v.setElectionId(electionId);
-                                        v.setCitizenId(citizenId);
-                                        return v;
-                                });
+                voteCurrentRepo.upsertCurrent(electionId, citizenId, candidateId, now);
 
-                current.setCandidateId(candidateId);
-                current.setCastedAt(now);
+                // var current = voteCurrentRepo.findByElectionIdAndCitizenId(electionId,
+                // citizenId)
+                // .orElseGet(() -> {
+                // var v = new VoteCurrent();
+                // v.setElectionId(electionId);
+                // v.setCitizenId(citizenId);
+                // return v;
+                // });
 
-                try {
-                        voteCurrentRepo.save(current);
-                } catch (DataIntegrityViolationException ex) {
-                        var retry = voteCurrentRepo.findByElectionIdAndCitizenId(electionId, citizenId)
-                                        .orElseThrow(() -> ex);
+                // current.setCandidateId(candidateId);
+                // current.setCastedAt(now);
 
-                        retry.setCandidateId(candidateId);
-                        retry.setCastedAt(now);
-                        voteCurrentRepo.save(retry);
-                }
+                // try {
+                // voteCurrentRepo.save(current);
+                // } catch (DataIntegrityViolationException ex) {
+                // var retry = voteCurrentRepo.findByElectionIdAndCitizenId(electionId,
+                // citizenId)
+                // .orElseThrow(() -> ex);
+
+                // retry.setCandidateId(candidateId);
+                // retry.setCastedAt(now);
+                // voteCurrentRepo.save(retry);
+                // }
 
                 return new VoteHistoryItem(
                                 cast.getId(),
