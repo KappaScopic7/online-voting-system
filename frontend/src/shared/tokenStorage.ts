@@ -1,11 +1,17 @@
 // frontend/src/shared/tokenStorage.ts
+const PUBLIC_KEY = "ovs_public_access_token";
 const USER_KEY = "ovs_user_access_token";
 const STAFF_KEY = "ovs_staff_access_token";
 
 type TokenListener = () => void;
 
+const publicListeners = new Set<TokenListener>();
 const userListeners = new Set<TokenListener>();
 const staffListeners = new Set<TokenListener>();
+
+function emitPublic() {
+    for (const fn of publicListeners) fn();
+}
 
 function emitUser() {
     for (const fn of userListeners) fn();
@@ -25,6 +31,7 @@ function normalize(v: string | null): string | null {
 }
 
 window.addEventListener("storage", (e) => {
+    if (e.key === PUBLIC_KEY) emitPublic();
     if (e.key === USER_KEY) emitUser();
     if (e.key === STAFF_KEY) emitStaff();
 });
@@ -72,5 +79,28 @@ export const staffToken = {
     subscribe(listener: TokenListener): () => void {
         staffListeners.add(listener);
         return () => staffListeners.delete(listener);
+    },
+};
+
+export const publicToken = {
+    get(): string | null {
+        return normalize(localStorage.getItem(PUBLIC_KEY));
+    },
+    set(token: string): void {
+        const t = normalize(token);
+        if (!t) {
+            localStorage.removeItem(PUBLIC_KEY);
+        } else {
+            localStorage.setItem(PUBLIC_KEY, t);
+        }
+        emitPublic();
+    },
+    clear(): void {
+        localStorage.removeItem(PUBLIC_KEY);
+        emitPublic();
+    },
+    subscribe(listener: TokenListener): () => void {
+        publicListeners.add(listener);
+        return () => publicListeners.delete(listener);
     },
 };

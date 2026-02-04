@@ -28,6 +28,7 @@ import { AllocVotingStartPage } from "../voting/pages/AllocVotingStartPage";
 import { AllocVotingDonePage } from "../voting/pages/AllocVotingDonePage";
 import { AllocVoteHistoryPage } from "../voting/pages/AllocVoteHistoryPage";
 import { VotingEntryPage } from "../voting/pages/VotingEntryPage";
+import { PublicNfcVotePage } from "../public/pages/PublicNfcVotePage";
 
 export function PublicRoutes() {
     return (
@@ -72,6 +73,10 @@ export function PublicRoutes() {
             <Route
                 path="/verify-email"
                 element={<Navigate to="/verify" replace />}
+            />
+            <Route
+                path="/public/voting/:electionId"
+                element={<PublicNfcVotePage />}
             />
 
             {/* Login-only */}
