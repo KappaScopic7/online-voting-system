@@ -1,12 +1,12 @@
 [
     {
-        "electionKey": "sangi_tokyo_2026_alloc_open",
+        "electionKey": "sangi_tokyo_2026_alloc_ended",
         "citizenId": "550e8400-e29b-41d4-a716-446655440000",
         "castedAtOffsetSec": -1800,
         "items": [{ "type": "CANDIDATE", "candidateIndex": 1, "points": 100 }]
     },
     {
-        "electionKey": "sangi_tokyo_2026_alloc_open",
+        "electionKey": "sangi_tokyo_2026_alloc_ended",
         "citizenId": "550e8400-e29b-41d4-a716-446655440000",
         "castedAtOffsetSec": -900,
         "items": [
