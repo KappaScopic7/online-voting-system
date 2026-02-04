@@ -69,7 +69,7 @@ public class DemoDataInitializer {
 
         List<CitizenJson> citizens = loader.loadList("citizens.json", new TypeReference<>() {
         });
-        List<PartyJson> parties = loader.loadList("parties.json", new TypeReference<>() {
+        List<PartyJson> parties = loader.loadList("party.json", new TypeReference<>() {
         });
         List<CandidateJson> candidates = loader.loadList("candidates.json", new TypeReference<>() {
         });
@@ -77,8 +77,10 @@ public class DemoDataInitializer {
         });
         List<RuleJson> rules = loader.loadList("electionRules.json", new TypeReference<>() {
         });
+
         List<VoteJson> votes = loader.loadList("votes.json", new TypeReference<>() {
         });
+
         List<UserJson> users = loader.loadList("userAccounts.json", new TypeReference<>() {
         });
         List<CommitteeJson> committee = loader.loadList("committeeAccounts.json", new TypeReference<>() {
