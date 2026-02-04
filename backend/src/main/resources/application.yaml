@@ -1,16 +1,13 @@
 spring:
-    profiles:
-        active: demo
-
     datasource:
-        url: jdbc:postgresql://localhost:5432/ovs
-        username: ovs
-        password: ovs
+        url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/ovs}
+        username: ${SPRING_DATASOURCE_USERNAME:ovs}
+        password: ${SPRING_DATASOURCE_PASSWORD:ovs}
 
     jpa:
         hibernate:
-            ddl-auto: update
-        show-sql: true
+            ddl-auto: ${SPRING_JPA_HIBERNATE_DDL_AUTO:update}
+        show-sql: ${SPRING_JPA_SHOW_SQL:true}
         properties:
             hibernate:
                 "[format_sql]": true
@@ -18,10 +15,10 @@ spring:
 
 security:
     jwt:
-        secret: "change-this-to-a-long-random-secret-key-1234567890"
-        expiration-minutes: 120
+        secret: ${SECURITY_JWT_SECRET:change-this-to-a-long-random-secret-key-1234567890}
+        expiration-minutes: ${SECURITY_JWT_EXPIRATION_MINUTES:120}
 
 logging:
     level:
-        "[org.springframework.security]": DEBUG
-        "[com.bteam.ovs.auth.security.JwtAuthenticationFilter]": DEBUG
+        "[org.springframework.security]": ${LOG_SECURITY_LEVEL:INFO}
+        "[com.bteam.ovs.auth.security.JwtAuthenticationFilter]": ${LOG_JWT_FILTER_LEVEL:INFO}
