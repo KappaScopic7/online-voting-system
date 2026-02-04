@@ -24,7 +24,7 @@ export type ElectionListItem = {
 export type ElectionResultResponse = {
     electionId: string;
     title: string;
-    tallyType: string;
+    countingMethod: string; // "CURRENT"
     totalVotes: number;
     talliedAt: string;
     results: {
@@ -53,9 +53,22 @@ export type ElectionDetailResponse = {
 export type AllocElectionResultResponse = {
     electionId: string;
     title: string;
-    kind: string; // "CURRENT"など
+    countingMethod: string; // "CURRENT"
     totalPoints: number;
     noneSupportPoints: number;
-    generatedAt: string;
-    results: { candidateId: string; candidateName: string; points: number }[];
+    talliedAt: string;
+    results: {
+        candidateId: string;
+        candidateName: string;
+        points: number;
+    }[];
+};
+
+export type BallotType = "SINGLE_CHOICE" | "ALLOCATION" | string;
+
+export type ElectionResultBundleResponse = {
+    electionId: string;
+    ballotType: "SINGLE_CHOICE" | "ALLOCATION" | string;
+    normal: ElectionResultResponse | null;
+    alloc: AllocElectionResultResponse | null;
 };

@@ -20,29 +20,22 @@ public interface VoteAllocItemRepository extends JpaRepository<VoteAllocItem, UU
   }
 
   @Query("""
-      select i.candidateId as candidateId, sum(i.points) as pts
-      from VoteAllocItem i
-      where i.targetType = com.bteam.ovs.voting.entity.VoteAllocItem.TargetType.CANDIDATE
-        and exists (
-            select 1
-            from VoteAllocCast c
-            where c.id = i.castId
-              and c.electionId = :electionId
-        )
-      group by i.candidateId
+        select i.candidateId as candidateId, sum(i.points) as pts
+        from VoteAllocItem i, VoteAllocCast c
+        where c.id = i.castId
+          and c.electionId = :electionId
+          and i.targetType = com.bteam.ovs.voting.entity.VoteAllocItem.TargetType.CANDIDATE
+        group by i.candidateId
       """)
   List<PointSum> sumPointsByElectionGroupByCandidate(@Param("electionId") UUID electionId);
 
   @Query("""
-      select coalesce(sum(i.points), 0)
-      from VoteAllocItem i
-      where i.targetType = com.bteam.ovs.voting.entity.VoteAllocItem.TargetType.NONE_SUPPORT
-        and exists (
-            select 1
-            from VoteAllocCast c
-            where c.id = i.castId
-              and c.electionId = :electionId
-        )
+        select coalesce(sum(i.points), 0)
+        from VoteAllocItem i, VoteAllocCast c
+        where c.id = i.castId
+          and c.electionId = :electionId
+          and i.targetType = com.bteam.ovs.voting.entity.VoteAllocItem.TargetType.NONE_SUPPORT
       """)
   Long sumNoneSupportPointsByElection(@Param("electionId") UUID electionId);
+
 }

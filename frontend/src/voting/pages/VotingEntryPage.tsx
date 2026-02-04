@@ -43,6 +43,10 @@ export function VotingEntryPage() {
             // 見つからない場合は NORMAL 扱いに倒す（最悪でも動く）
             const kind = detectKind(e);
 
+            console.log("electionId(param)", electionId);
+            console.log("list sample keys", Object.keys(list?.[0] ?? {}));
+            console.log("found", e);
+
             const to =
                 kind === "ALLOC"
                     ? `/alloc-voting/start?electionId=${electionId}`

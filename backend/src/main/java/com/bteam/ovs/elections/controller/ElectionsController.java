@@ -1,10 +1,10 @@
 package com.bteam.ovs.elections.controller;
 
-import com.bteam.ovs.elections.controller.dto.AllocElectionResultResponse;
 import com.bteam.ovs.elections.controller.dto.ElectionDetailResponse;
 import com.bteam.ovs.elections.controller.dto.ElectionListItem;
-import com.bteam.ovs.elections.controller.dto.ElectionResultResponse;
 import com.bteam.ovs.elections.service.ElectionService;
+import com.bteam.ovs.elections.controller.dto.ElectionResultBundleResponse;
+
 import com.bteam.ovs.shared.security.PrincipalExtractor;
 
 import org.springframework.security.core.Authentication;
@@ -38,12 +38,8 @@ public class ElectionsController {
     }
 
     @GetMapping("/{electionId}/result")
-    public ElectionResultResponse result(@PathVariable("electionId") UUID electionId) {
-        return electionService.result(electionId);
+    public ElectionResultBundleResponse result(@PathVariable("electionId") UUID electionId) {
+        return electionService.resultBundle(electionId);
     }
 
-    @GetMapping("/{electionId}/alloc-result")
-    public AllocElectionResultResponse allocResult(@PathVariable("electionId") UUID electionId) {
-        return electionService.allocResult(electionId);
-    }
 }

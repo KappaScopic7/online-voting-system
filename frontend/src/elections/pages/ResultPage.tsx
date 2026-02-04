@@ -1,15 +1,12 @@
 // frontend/src/elections/pages/ResultPage.tsx
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
-import { fetchAllocResult, fetchResult } from "../api/elections";
-import type {
-    AllocElectionResultResponse,
-    ElectionResultResponse,
-} from "../model/electionTypes";
+import { fetchResultBundle } from "../api/elections";
+import type { ElectionResultBundleResponse } from "../model/electionTypes";
 import { normalizeFrom } from "../../shared/normalizeFrom";
 import { Card, DevDebug, Page } from "../../shared/ui/page";
 
-type LocationState = { from?: string; mode?: "NORMAL" | "ALLOC" };
+type LocationState = { from?: string };
 
 function percent(v: number, total: number) {
     if (total <= 0) return "0.0%";
@@ -168,13 +165,11 @@ export function ResultPage() {
 
     const loc = useLocation();
     const state = (loc.state ?? {}) as LocationState;
-    const [mode] = useState<"NORMAL" | "ALLOC">(state.mode ?? "NORMAL");
 
     const backTo = normalizeFrom(state.from ?? "/elections");
     const from = loc.pathname + loc.search;
 
-    const [data, setData] = useState<ElectionResultResponse | null>(null);
-    const [alloc, setAlloc] = useState<AllocElectionResultResponse | null>(
+    const [bundle, setBundle] = useState<ElectionResultBundleResponse | null>(
         null,
     );
 
@@ -190,15 +185,8 @@ export function ResultPage() {
         setIsLoading(true);
 
         try {
-            if (mode === "NORMAL") {
-                const res = await fetchResult(electionId);
-                setData(res);
-                setAlloc(null);
-            } else {
-                const res = await fetchAllocResult(electionId);
-                setAlloc(res);
-                setData(null);
-            }
+            const res = await fetchResultBundle(electionId);
+            setBundle(res);
         } catch (err: any) {
             const status = err?.response?.status;
             const msg = err?.response?.data?.message;
@@ -209,9 +197,7 @@ export function ResultPage() {
             } else {
                 setError(msg ?? "Failed to load result");
             }
-
-            setData(null);
-            setAlloc(null);
+            setBundle(null);
         } finally {
             setIsLoading(false);
         }
@@ -220,46 +206,63 @@ export function ResultPage() {
     useEffect(() => {
         load();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [electionId, mode]);
+    }, [electionId]);
 
-    const normalRows = useMemo(() => {
-        if (!data) return [];
-        return [...data.results]
-            .map((r) => ({
-                candidateId: r.candidateId,
-                candidateName: r.candidateName,
-                value: r.votes,
-            }))
-            .sort((a, b) => b.value - a.value);
-    }, [data]);
+    const ballotType = (bundle?.ballotType ?? "SINGLE_CHOICE")
+        .toString()
+        .toUpperCase();
 
-    const allocRows = useMemo(() => {
-        if (!alloc) return [];
-        return [...alloc.results]
-            .map((r) => ({
-                candidateId: r.candidateId,
-                candidateName: r.candidateName,
-                value: r.points,
-            }))
-            .sort((a, b) => b.value - a.value);
-    }, [alloc]);
+    const isAlloc = ballotType === "ALLOCATION";
 
-    const rows = mode === "NORMAL" ? normalRows : allocRows;
+    const title =
+        (isAlloc ? bundle?.alloc?.title : bundle?.normal?.title) ?? "結果";
+
+    const rows = useMemo(() => {
+        if (!bundle) return [];
+        if (isAlloc) {
+            const a = bundle.alloc;
+            if (!a) return [];
+            return [...a.results]
+                .map((r) => ({
+                    candidateId: r.candidateId,
+                    candidateName: r.candidateName,
+                    value: r.points,
+                }))
+                .sort((x, y) => y.value - x.value);
+        } else {
+            const n = bundle.normal;
+            if (!n) return [];
+            return [...n.results]
+                .map((r) => ({
+                    candidateId: r.candidateId,
+                    candidateName: r.candidateName,
+                    value: r.votes,
+                }))
+                .sort((x, y) => y.value - x.value);
+        }
+    }, [bundle, ballotType]);
 
     const total = useMemo(() => {
-        if (mode === "NORMAL") return data?.totalVotes ?? 0;
-        return alloc?.totalPoints ?? 0;
-    }, [mode, data, alloc]);
+        if (!bundle) return 0;
+        if (isAlloc) return bundle.alloc?.totalPoints ?? 0;
+        return bundle.normal?.totalVotes ?? 0;
+    }, [bundle, ballotType]);
 
-    const maxValue = useMemo(() => {
-        return rows.reduce((m, x) => Math.max(m, x.value), 0);
-    }, [rows]);
+    const maxValue = useMemo(
+        () => rows.reduce((m, x) => Math.max(m, x.value), 0),
+        [rows],
+    );
 
-    const ranks = useMemo(() => {
-        return rankMap(
-            rows.map((r) => ({ candidateId: r.candidateId, value: r.value })),
-        );
-    }, [rows]);
+    const ranks = useMemo(
+        () =>
+            rankMap(
+                rows.map((r) => ({
+                    candidateId: r.candidateId,
+                    value: r.value,
+                })),
+            ),
+        [rows],
+    );
 
     const topValue = useMemo(() => {
         if (rows.length === 0) return null;
@@ -278,8 +281,6 @@ export function ResultPage() {
             </Page>
         );
     }
-
-    const title = (mode === "NORMAL" ? data?.title : alloc?.title) ?? "結果";
 
     return (
         <Page
@@ -317,41 +318,24 @@ export function ResultPage() {
                     <div style={{ fontWeight: 800, marginBottom: 6 }}>
                         {isForbidden ? "結果は未公開です" : "エラー"}
                     </div>
-
                     <div style={{ marginBottom: 10 }}>{error}</div>
 
                     <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
                         <button onClick={load}>再試行</button>
-
                         <Link
                             to={`/elections/${electionId}/candidates`}
                             state={{ from }}
                         >
                             候補者へ
                         </Link>
-
                         <Link to={backTo}>戻る</Link>
                     </div>
-
-                    {isForbidden && (
-                        <div
-                            style={{
-                                marginTop: 10,
-                                fontSize: 12,
-                                opacity: 0.85,
-                                lineHeight: 1.6,
-                            }}
-                        >
-                            ※
-                            結果は「選挙が終了している」「結果公開フラグがON」などの条件で表示される想定
-                        </div>
-                    )}
                 </Card>
             )}
 
             {!error && isLoading && <Card>読み込み中…</Card>}
 
-            {!error && !isLoading && (data || alloc) && (
+            {!error && !isLoading && bundle && (
                 <Card>
                     <div style={{ display: "grid", gap: 12 }}>
                         <div
@@ -365,15 +349,19 @@ export function ResultPage() {
                         >
                             <strong style={{ fontSize: 16 }}>{title}</strong>
 
-                            {mode === "NORMAL" ? (
+                            {!isAlloc ? (
                                 <span style={{ opacity: 0.85 }}>
-                                    総投票数: <b>{data?.totalVotes ?? 0}</b>
+                                    総投票数:{" "}
+                                    <b>{bundle.normal?.totalVotes ?? 0}</b>
                                 </span>
                             ) : (
                                 <span style={{ opacity: 0.85 }}>
-                                    総ポイント: <b>{alloc?.totalPoints ?? 0}</b>{" "}
-                                    / 誰も支持しない:{" "}
-                                    <b>{alloc?.noneSupportPoints ?? 0}</b>
+                                    総ポイント:{" "}
+                                    <b>{bundle.alloc?.totalPoints ?? 0}</b> /
+                                    誰も支持しない:{" "}
+                                    <b>
+                                        {bundle.alloc?.noneSupportPoints ?? 0}
+                                    </b>
                                 </span>
                             )}
                         </div>
@@ -388,6 +376,17 @@ export function ResultPage() {
                                 }}
                             >
                                 結果データがありません。
+                                <div
+                                    style={{
+                                        marginTop: 8,
+                                        fontSize: 12,
+                                        opacity: 0.8,
+                                    }}
+                                >
+                                    {isAlloc
+                                        ? "alloc が null か results が空です（APIの返却を確認）"
+                                        : "normal が null か results が空です（APIの返却を確認）"}
+                                </div>
                             </div>
                         ) : (
                             <div style={{ display: "grid", gap: 10 }}>
@@ -406,7 +405,6 @@ export function ResultPage() {
                                         2,
                                         100,
                                     );
-
                                     const p = percent(r.value, total);
 
                                     return (
@@ -418,9 +416,7 @@ export function ResultPage() {
                                             barW={barW}
                                             p={p}
                                             total={total}
-                                            unit={
-                                                mode === "NORMAL" ? "票" : "pt"
-                                            }
+                                            unit={isAlloc ? "pt" : "票"}
                                         />
                                     );
                                 })}
@@ -433,9 +429,9 @@ export function ResultPage() {
             <DevDebug
                 value={{
                     electionId,
-                    mode,
-                    data,
-                    alloc,
+                    ballotType,
+                    isAlloc,
+                    bundle,
                     error,
                     isForbidden,
                     isLoading,

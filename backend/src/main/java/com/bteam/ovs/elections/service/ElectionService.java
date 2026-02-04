@@ -4,7 +4,9 @@ import com.bteam.ovs.candidates.service.CandidateService;
 import com.bteam.ovs.elections.controller.dto.AllocElectionResultResponse;
 import com.bteam.ovs.elections.controller.dto.ElectionDetailResponse;
 import com.bteam.ovs.elections.controller.dto.ElectionListItem;
+import com.bteam.ovs.elections.controller.dto.ElectionResultBundleResponse;
 import com.bteam.ovs.elections.controller.dto.ElectionResultResponse;
+import com.bteam.ovs.elections.entity.BallotType;
 import com.bteam.ovs.elections.repository.ElectionRepository;
 import com.bteam.ovs.shared.auth.AccountResolver;
 import com.bteam.ovs.shared.errors.ApiException;
@@ -114,7 +116,8 @@ public class ElectionService {
                             hasResult,
                             candidateCount,
                             canCast,
-                            currentVote);
+                            currentVote,
+                            e.getBallotType().name());
                 })
                 .toList();
     }
@@ -250,6 +253,30 @@ public class ElectionService {
                 noneSupportPoints,
                 now,
                 results);
+    }
+
+    public ElectionResultBundleResponse resultBundle(UUID electionId) {
+        var election = electionRepo.findById(electionId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "ELECTION_NOT_FOUND", "選挙が存在しません"));
+
+        var now = Instant.now();
+        if (now.isBefore(election.getEndsAt())) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "RESULT_NOT_AVAILABLE", "結果は選挙終了後に公開されます");
+        }
+
+        if (election.getBallotType() == BallotType.ALLOCATION) {
+            return new ElectionResultBundleResponse(
+                    election.getId(),
+                    election.getBallotType().name(),
+                    null,
+                    allocResult(electionId));
+        }
+
+        return new ElectionResultBundleResponse(
+                election.getId(),
+                election.getBallotType().name(),
+                result(electionId),
+                null);
     }
 
 }

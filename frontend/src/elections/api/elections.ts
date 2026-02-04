@@ -1,23 +1,12 @@
-// frontend/src/elections/api/elections.ts
 import { httpUser } from "../../shared/httpUser";
 import type {
     ElectionListItem,
-    ElectionResultResponse,
     ElectionDetailResponse,
+    ElectionResultBundleResponse,
 } from "../model/electionTypes";
-import type { AllocElectionResultResponse } from "../model/electionTypes";
 
 export async function fetchElections(): Promise<ElectionListItem[]> {
     const res = await httpUser.get<ElectionListItem[]>("/api/elections");
-    return res.data;
-}
-
-export async function fetchResult(
-    electionId: string,
-): Promise<ElectionResultResponse> {
-    const res = await httpUser.get<ElectionResultResponse>(
-        `/api/elections/${encodeURIComponent(electionId)}/result`,
-    );
     return res.data;
 }
 
@@ -30,9 +19,9 @@ export async function fetchElectionDetail(
     return res.data;
 }
 
-export async function fetchAllocResult(electionId: string) {
-    const res = await httpUser.get<AllocElectionResultResponse>(
-        `/api/elections/${electionId}/alloc-result`,
+export async function fetchResultBundle(electionId: string) {
+    const res = await httpUser.get<ElectionResultBundleResponse>(
+        `/api/elections/${encodeURIComponent(electionId)}/result`,
     );
     return res.data;
 }
