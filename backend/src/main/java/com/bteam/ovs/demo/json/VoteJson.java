@@ -1,5 +1,6 @@
 package com.bteam.ovs.demo.json;
 
-public class VoteJson {
+import java.util.UUID;
 
+public record VoteJson(String electionKey, UUID citizenId, int candidateIndex, long castedAtOffsetSec) {
 }

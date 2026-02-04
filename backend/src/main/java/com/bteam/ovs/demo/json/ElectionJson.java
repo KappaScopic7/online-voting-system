@@ -14,4 +14,5 @@ public record ElectionJson(
         List<String> candidates) {
     public record DistrictJson(String prefCode, String cityCode, String label) {
     }
+
 }

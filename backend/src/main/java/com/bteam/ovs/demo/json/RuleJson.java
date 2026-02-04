@@ -1,5 +1,4 @@
 package com.bteam.ovs.demo.json;
 
-public class RuleJson {
-
+public record RuleJson(String electionKey, String cityCode, Integer minAge) {
 }
