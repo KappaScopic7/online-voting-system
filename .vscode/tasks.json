@@ -115,7 +115,7 @@
             "label": "ovs: start (dev)",
             "dependsOn": [
                 "ovs: db up (dev)",
-                // "ovs: frontend install (dev)",
+                "ovs: nfc bridge (dev)",
                 "ovs: frontend dev run",
                 "ovs: open browser (dev)"
             ],
@@ -195,10 +195,55 @@
             "label": "ovs: start (prod-like)",
             "dependsOn": [
                 "ovs: up (prod-like)",
+                "ovs: nfc bridge (prod-like)",
                 "ovs: open browser (prod-like)"
             ],
             "dependsOrder": "sequence",
             "problemMatcher": []
+        },
+        {
+            "label": "ovs: nfc bridge (dev)",
+            "type": "shell",
+            "command": ".\\gradlew.bat",
+            "args": ["runNfcBridge"],
+            "options": { "cwd": "${workspaceFolder}" },
+            "isBackground": true,
+
+            "problemMatcher": {
+                "base": "$msCompile",
+                "background": {
+                    "activeOnStart": true,
+                    "beginsPattern": "runNfcBridge",
+                    "endsPattern": "listening on http://127\\.0\\.0\\.1:39123"
+                }
+            },
+
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated",
+                "clear": false
+            }
+        },
+        {
+            "label": "ovs: nfc bridge (prod-like)",
+            "type": "shell",
+            "command": ".\\gradlew.bat",
+            "args": ["runNfcBridge"],
+            "options": { "cwd": "${workspaceFolder}" },
+            "isBackground": true,
+            "problemMatcher": {
+                "base": "$msCompile",
+                "background": {
+                    "activeOnStart": true,
+                    "beginsPattern": "runNfcBridge",
+                    "endsPattern": "listening on http://127\\.0\\.0\\.1:39123"
+                }
+            },
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated",
+                "clear": false
+            }
         }
     ]
 }
