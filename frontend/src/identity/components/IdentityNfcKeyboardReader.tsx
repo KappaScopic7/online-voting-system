@@ -25,7 +25,7 @@ export function IdentityNfcKeyboardReader(props: {
     const [bridgeState, setBridgeState] = useState<BridgeState>("CHECKING");
     const [bridgeNote, setBridgeNote] = useState<string | null>(null);
 
-    const BRIDGE_BASE = "http://127.0.0.1:39123";
+    const BRIDGE_BASE = "/nfc-bridge";
     const bridgeHealthUrl = useMemo(() => `${BRIDGE_BASE}/health`, []);
     const bridgeLastUrl = useMemo(() => `${BRIDGE_BASE}/last`, []);
 

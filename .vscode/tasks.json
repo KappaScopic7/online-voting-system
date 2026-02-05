@@ -62,15 +62,7 @@
             "options": { "cwd": "${workspaceFolder}/frontend" },
             "isBackground": true,
             "problemMatcher": {
-                "owner": "custom",
-                "pattern": [
-                    {
-                        "regexp": "^(.*)$",
-                        "file": 1,
-                        "location": 1,
-                        "message": 1
-                    }
-                ],
+                "base": "$tsc-watch",
                 "background": {
                     "activeOnStart": true,
                     "beginsPattern": "vite v|> vite",
@@ -206,7 +198,7 @@
             "type": "shell",
             "command": ".\\gradlew.bat",
             "args": ["runNfcBridge"],
-            "options": { "cwd": "${workspaceFolder}" },
+            "options": { "cwd": "${workspaceFolder}/backend" },
             "isBackground": true,
 
             "problemMatcher": {
@@ -229,7 +221,7 @@
             "type": "shell",
             "command": ".\\gradlew.bat",
             "args": ["runNfcBridge"],
-            "options": { "cwd": "${workspaceFolder}" },
+            "options": { "cwd": "${workspaceFolder}/backend" },
             "isBackground": true,
             "problemMatcher": {
                 "base": "$msCompile",
