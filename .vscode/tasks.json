@@ -2,13 +2,135 @@
     "version": "2.0.0",
     "tasks": [
         {
+            "label": "ovs: db up (dev)",
+            "type": "shell",
+            "command": "docker",
+            "args": ["compose", "-f", "compose.db.yml", "up", "-d"],
+            "options": { "cwd": "${workspaceFolder}" },
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated",
+                "clear": true
+            }
+        },
+        {
+            "label": "ovs: db down (dev)",
+            "type": "shell",
+            "command": "docker",
+            "args": ["compose", "-f", "compose.db.yml", "down"],
+            "options": { "cwd": "${workspaceFolder}" },
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated",
+                "clear": true
+            }
+        },
+        {
+            "label": "ovs: db reset (dev)",
+            "type": "shell",
+            "command": "docker",
+            "args": ["compose", "-f", "compose.db.yml", "down", "-v"],
+            "options": { "cwd": "${workspaceFolder}" },
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated",
+                "clear": true
+            }
+        },
+
+        {
+            "label": "ovs: frontend install (dev)",
+            "type": "shell",
+            "command": "npm",
+            "args": ["ci"],
+            "options": { "cwd": "${workspaceFolder}/frontend" },
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated",
+                "clear": false
+            }
+        },
+        {
+            "label": "ovs: frontend dev run",
+            "type": "shell",
+            "command": "npm",
+            "args": ["run", "dev"],
+            "options": { "cwd": "${workspaceFolder}/frontend" },
+            "isBackground": true,
+            "problemMatcher": {
+                "owner": "custom",
+                "pattern": [
+                    {
+                        "regexp": "^(.*)$",
+                        "file": 1,
+                        "location": 1,
+                        "message": 1
+                    }
+                ],
+                "background": {
+                    "activeOnStart": true,
+                    "beginsPattern": "vite v|> vite",
+                    "endsPattern": "Local:\\s*http://localhost:5173"
+                }
+            },
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated",
+                "clear": false
+            }
+        },
+        // {
+        //     "label": "ovs: frontend dev run",
+        //     "type": "shell",
+        //     "command": "npm",
+        //     "args": ["run", "dev"],
+        //     "options": { "cwd": "${workspaceFolder}/frontend" },
+        //     "isBackground": true,
+        //     "problemMatcher": [],
+        //     "presentation": {
+        //         "reveal": "always",
+        //         "panel": "dedicated",
+        //         "clear": false
+        //     }
+        // },
+        {
+            "label": "ovs: open browser (dev)",
+            "type": "shell",
+            "command": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+            "args": [
+                "-NoProfile",
+                "-ExecutionPolicy",
+                "Bypass",
+                "-Command",
+                "Start-Process 'http://localhost:5173'"
+            ],
+            "problemMatcher": [],
+            "presentation": { "reveal": "never", "panel": "shared" }
+        },
+        {
+            "label": "ovs: start (dev)",
+            "dependsOn": [
+                "ovs: db up (dev)",
+                // "ovs: frontend install (dev)",
+                "ovs: frontend dev run",
+                "ovs: open browser (dev)"
+            ],
+            "dependsOrder": "sequence",
+            "problemMatcher": []
+        },
+
+        {
             "label": "ovs: up (prod-like)",
             "type": "shell",
             "command": "docker",
             "args": [
                 "compose",
                 "-f",
-                "docker-compose.dockerfile.yml",
+                "compose.prodlike.yml",
                 "up",
                 "-d",
                 "--build"
@@ -25,7 +147,7 @@
             "label": "ovs: down (prod-like)",
             "type": "shell",
             "command": "docker",
-            "args": ["compose", "-f", "docker-compose.dockerfile.yml", "down"],
+            "args": ["compose", "-f", "compose.prodlike.yml", "down"],
             "options": { "cwd": "${workspaceFolder}" },
             "problemMatcher": [],
             "presentation": {
@@ -41,7 +163,7 @@
             "args": [
                 "compose",
                 "-f",
-                "docker-compose.dockerfile.yml",
+                "compose.prodlike.yml",
                 "logs",
                 "-f",
                 "--tail=200"

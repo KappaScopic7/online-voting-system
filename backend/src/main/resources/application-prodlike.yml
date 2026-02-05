@@ -1,0 +1,13 @@
+spring:
+    jpa:
+        hibernate:
+            ddl-auto: validate
+        show-sql: false
+
+logging:
+    level:
+        "[org.springframework.security]": INFO
+
+ovs:
+    seed:
+        enabled: ${OVS_SEED_ENABLED:true}

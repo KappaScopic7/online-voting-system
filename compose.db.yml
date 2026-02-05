@@ -1,7 +1,7 @@
 services:
     db:
         image: postgres:16
-        container_name: ovs-postgres
+        container_name: ovs-postgres-dev
         restart: always
         environment:
             POSTGRES_USER: ovs
@@ -11,7 +11,7 @@ services:
         ports:
             - "5432:5432"
         volumes:
-            - ovs_pg:/var/lib/postgresql/data
+            - ovs_pg_dev:/var/lib/postgresql/data
         healthcheck:
             test: ["CMD-SHELL", "pg_isready -U ovs -d ovs"]
             interval: 5s
@@ -19,4 +19,4 @@ services:
             retries: 10
 
 volumes:
-    ovs_pg:
+    ovs_pg_dev:

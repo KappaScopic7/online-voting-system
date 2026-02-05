@@ -1,17 +1,15 @@
 services:
     db:
         image: postgres:16
-        container_name: ovs-postgres
+        container_name: ovs-postgres-prodlike
         restart: always
         environment:
             POSTGRES_USER: ovs
             POSTGRES_PASSWORD: ovs
             POSTGRES_DB: ovs
             TZ: Asia/Tokyo
-        ports:
-            - "5432:5432"
         volumes:
-            - ovs_pg:/var/lib/postgresql/data
+            - ovs_pg_prodlike:/var/lib/postgresql/data
         healthcheck:
             test: ["CMD-SHELL", "pg_isready -U ovs -d ovs"]
             interval: 5s
@@ -24,18 +22,22 @@ services:
             context: ./backend
             dockerfile: Dockerfile
         image: ovs-backend:local
-        container_name: ovs-backend
+        container_name: ovs-backend-prodlike
         restart: always
         depends_on:
             db:
                 condition: service_healthy
         environment:
-            SPRING_PROFILES_ACTIVE: demo
+            SPRING_PROFILES_ACTIVE: prodlike
             SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/ovs
             SPRING_DATASOURCE_USERNAME: ovs
             SPRING_DATASOURCE_PASSWORD: ovs
             SECURITY_JWT_SECRET: "change-this-to-a-long-random-secret-key-1234567890"
             SECURITY_JWT_EXPIRATION_MINUTES: "120"
+            SPRING_JPA_HIBERNATE_DDL_AUTO: update
+            SPRING_JPA_SHOW_SQL: "false"
+            OVS_SEED_ENABLED: "true"
+
         ports:
             - "8080:8080"
         networks: [ovsnet]
@@ -47,7 +49,7 @@ services:
             args:
                 VITE_API_BASE_URL: /api
         image: ovs-frontend:local
-        container_name: ovs-frontend
+        container_name: ovs-frontend-prodlike
         restart: always
         depends_on: [backend]
         ports:
@@ -55,7 +57,7 @@ services:
         networks: [ovsnet]
 
 volumes:
-    ovs_pg:
+    ovs_pg_prodlike:
 
 networks:
     ovsnet:

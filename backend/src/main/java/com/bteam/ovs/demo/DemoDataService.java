@@ -12,12 +12,14 @@ import com.bteam.ovs.parties.repository.PartyRepository;
 import com.bteam.ovs.voting.repository.VoteCastRepository;
 import com.bteam.ovs.voting.repository.VoteCurrentRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
+// import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Profile;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 
-@Profile("demo")
+@Profile({ "dev", "prodlike" })
 @Service
 public class DemoDataService {
 

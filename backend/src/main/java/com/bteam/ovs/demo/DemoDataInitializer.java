@@ -26,13 +26,14 @@ import com.bteam.ovs.demo.json.*;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.boot.CommandLineRunner;
+// import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.*;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.time.Instant;
 import java.util.*;
 
-@Profile("demo")
+@Profile({ "dev", "prodlike" })
 @Configuration
 public class DemoDataInitializer {
 

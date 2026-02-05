@@ -1,7 +1,7 @@
 services:
     db:
         image: postgres:16
-        container_name: ovs-postgres
+        container_name: ovs-postgres-devfull
         restart: always
         environment:
             POSTGRES_USER: ovs
@@ -11,7 +11,7 @@ services:
         ports:
             - "5432:5432"
         volumes:
-            - ovs_pg:/var/lib/postgresql/data
+            - ovs_pg_devfull:/var/lib/postgresql/data
         healthcheck:
             test: ["CMD-SHELL", "pg_isready -U ovs -d ovs"]
             interval: 5s
@@ -21,7 +21,7 @@ services:
 
     backend:
         image: gradle:8.7-jdk21
-        container_name: ovs-backend
+        container_name: ovs-backend-devfull
         working_dir: /workspace
         volumes:
             - ./backend:/workspace
@@ -30,12 +30,14 @@ services:
             db:
                 condition: service_healthy
         environment:
-            SPRING_PROFILES_ACTIVE: demo
+            SPRING_PROFILES_ACTIVE: dev
             SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/ovs
             SPRING_DATASOURCE_USERNAME: ovs
             SPRING_DATASOURCE_PASSWORD: ovs
             SECURITY_JWT_SECRET: "change-this-to-a-long-random-secret-key-1234567890"
             SECURITY_JWT_EXPIRATION_MINUTES: "120"
+            SPRING_JPA_HIBERNATE_DDL_AUTO: update
+            SPRING_JPA_SHOW_SQL: "true"
         command: >
             bash -lc "
               gradle --no-daemon bootRun
@@ -46,15 +48,15 @@ services:
 
     frontend:
         image: node:20
-        container_name: ovs-frontend
+        container_name: ovs-frontend-devfull
         working_dir: /workspace
         volumes:
             - ./frontend:/workspace
         depends_on:
             - backend
         environment:
+            # ブラウザはホストからアクセスするので localhost:8080 でOK
             VITE_API_BASE_URL: "http://localhost:8080"
-            # ↑ 開発確認用。ECS想定の“同一オリジン(/api)”確認は次の段階でやる
         command: >
             bash -lc "
               npm ci &&
@@ -65,7 +67,7 @@ services:
         networks: [ovsnet]
 
 volumes:
-    ovs_pg:
+    ovs_pg_devfull:
     gradle_cache:
 
 networks:
