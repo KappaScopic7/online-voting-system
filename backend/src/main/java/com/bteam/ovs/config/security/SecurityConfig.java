@@ -26,8 +26,7 @@ import static com.bteam.ovs.shared.security.Authz.*;
 @Configuration
 public class SecurityConfig {
 
-    // ▼▼▼ 設定ファイルから許可リストを読み込む ▼▼▼
-    @Value("${app.cors.allowed-origins}")
+    @Value("${app.cors.allowed-origins:http://localhost:5173,http://127.0.0.1:5173}")
     private String allowedOrigins;
 
     @Bean
