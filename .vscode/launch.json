@@ -13,7 +13,7 @@
                 "-Command"
             ],
             "args": ["echo OVS started. Use Tasks output for logs."],
-            "preLaunchTask": "ovs: up (prod-like)",
+            "preLaunchTask": "ovs: start (prod-like)",
             "postDebugTask": "ovs: down (prod-like)",
             "console": "integratedTerminal"
         }

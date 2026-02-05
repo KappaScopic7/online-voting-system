@@ -47,8 +47,23 @@
                 "--tail=200"
             ],
             "options": { "cwd": "${workspaceFolder}" },
-            "problemMatcher": [],
             "isBackground": true,
+            "problemMatcher": {
+                "owner": "ovs-logs",
+                "pattern": [
+                    {
+                        "regexp": "^(.*)$",
+                        "kind": "file",
+                        "file": 1,
+                        "message": 1
+                    }
+                ],
+                "background": {
+                    "activeOnStart": true,
+                    "beginsPattern": "^(.*)$",
+                    "endsPattern": "$^"
+                }
+            },
             "presentation": {
                 "reveal": "always",
                 "panel": "dedicated",
@@ -73,8 +88,8 @@
             "label": "ovs: start (prod-like)",
             "dependsOn": [
                 "ovs: up (prod-like)",
-                "ovs: open browser (prod-like)",
-                "ovs: logs (prod-like)"
+                "ovs: logs (prod-like)",
+                "ovs: open browser (prod-like)"
             ],
             "dependsOrder": "sequence",
             "problemMatcher": []

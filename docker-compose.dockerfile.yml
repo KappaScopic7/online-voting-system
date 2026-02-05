@@ -20,7 +20,10 @@ services:
         networks: [ovsnet]
 
     backend:
-        image: ovs-backend:latest
+        build:
+            context: ./backend
+            dockerfile: Dockerfile
+        image: ovs-backend:local
         container_name: ovs-backend
         restart: always
         depends_on:
@@ -38,7 +41,12 @@ services:
         networks: [ovsnet]
 
     frontend:
-        image: ovs-frontend:latest
+        build:
+            context: ./frontend
+            dockerfile: Dockerfile
+            args:
+                VITE_API_BASE_URL: /api
+        image: ovs-frontend:local
         container_name: ovs-frontend
         restart: always
         depends_on: [backend]
