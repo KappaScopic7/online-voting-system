@@ -1,11 +1,14 @@
 // backend/src/main/java/com/bteam/ovs/config/security/SecurityConfig.java
 package com.bteam.ovs.config.security;
 
+import java.util.Arrays; // 追加
 import java.util.List;
 
 import com.bteam.ovs.auth.entity.AccountKind;
 import com.bteam.ovs.auth.entity.Role;
 import org.springframework.context.annotation.Bean;
+import org.checkerframework.checker.units.qual.t;
+import org.springframework.beans.factory.annotation.Value; // 追加
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -24,6 +27,10 @@ import static com.bteam.ovs.shared.security.Authz.*;
 @Configuration
 public class SecurityConfig {
 
+    // ▼▼▼ 設定ファイルから許可リストを読み込む ▼▼▼
+    @Value("${app.cors.allowed-origins}")
+    private String allowedOrigins;
+
     @Bean
     PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
@@ -33,11 +40,11 @@ public class SecurityConfig {
     CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
 
-        config.setAllowedOriginPatterns(List.of("http://localhost:*", "http://127.0.0.1:*"));
+        config.setAllowedOriginPatterns(Arrays.asList(allowedOrigins.split(",")));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setExposedHeaders(List.of());
-        config.setAllowCredentials(false);
+        config.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
