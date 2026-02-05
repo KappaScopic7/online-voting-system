@@ -34,6 +34,7 @@ services:
             SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/ovs
             SPRING_DATASOURCE_USERNAME: ovs
             SPRING_DATASOURCE_PASSWORD: ovs
+            APP_CORS_ALLOWED_ORIGINS: "http://34.204.218.152,http://localhost,http://localhost:8081,http://localhost:5173,http://127.0.0.1:5173"
             SECURITY_JWT_SECRET: "change-this-to-a-long-random-secret-key-1234567890"
             SECURITY_JWT_EXPIRATION_MINUTES: "120"
             SPRING_JPA_HIBERNATE_DDL_AUTO: update
