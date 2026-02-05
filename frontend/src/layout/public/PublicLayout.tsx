@@ -5,6 +5,7 @@ import styles from "./PublicLayout.module.css";
 import logo from "../../assets/logo/ovs-logo.png";
 
 type NavItem = { to: string; label: string };
+type MenuItem = { to: string; label: string };
 
 export function PublicLayout() {
     const nav = useNavigate();
@@ -16,6 +17,8 @@ export function PublicLayout() {
 
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const menuWrapRef = useRef<HTMLDivElement>(null);
+
+    const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
 
     const closeMenu = () => setIsMenuOpen(false);
     const toggleMenu = () => setIsMenuOpen((v) => !v);
@@ -39,6 +42,15 @@ export function PublicLayout() {
 
         return [...common, { to: "/me/elections", label: "My選挙" }];
     }, [user]);
+
+    const menuItems = useMemo<MenuItem[]>(
+        () => [
+            { to: "/me", label: "マイページ →" },
+            { to: "/me/votes", label: "投票履歴 →" },
+            { to: "/me/identity", label: "本人確認 →" },
+        ],
+        [user],
+    );
 
     // ---- header show/hide on scroll (stable) ----
     useEffect(() => {
@@ -107,6 +119,15 @@ export function PublicLayout() {
             >
                 <div className={styles.barInner}>
                     <header className={styles.header}>
+                        <button
+                            type="button"
+                            className={styles.hamburgerButton}
+                            aria-label="メニュー"
+                            aria-expanded={isMobileNavOpen}
+                            onClick={() => setIsMobileNavOpen(true)}
+                        >
+                            ☰
+                        </button>
                         <Link
                             to="/"
                             className={styles.brand}
@@ -123,9 +144,9 @@ export function PublicLayout() {
                         <div className={styles.headerRight}>
                             {!user ? (
                                 <>
-                                    <span className={styles.headerMeta}>
+                                    {/*<span className={styles.headerMeta}>
                                         未ログイン
-                                    </span>
+                                    </span>*/}
 
                                     <Link
                                         className={styles.headerLink}
@@ -158,46 +179,37 @@ export function PublicLayout() {
                                     >
                                         <span aria-hidden>👤</span>
                                     </button>
+                                    {/* ----------------------------------------- MenuOpne ----------------------------------------- */}
 
                                     {isMenuOpen && (
                                         <div
-                                            className={`${styles.menuOpen} ${
-                                                showTopBar
-                                                    ? styles.withShadow
-                                                    : ""
-                                            }`}
+                                            className={`${styles.menuOpen} ${showTopBar ? styles.withShadow : ""}`}
                                             role="menu"
                                         >
-                                            <Link
-                                                className={styles.menuLink}
-                                                to="/me"
-                                                onClick={closeMenu}
-                                                role="menuitem"
-                                            >
-                                                マイページ →
-                                            </Link>
+                                            {menuItems.map((item, idx) => (
+                                                <div key={item.to}>
+                                                    <Link
+                                                        className={
+                                                            styles.menuLink
+                                                        }
+                                                        to={item.to}
+                                                        onClick={closeMenu}
+                                                        role="menuitem"
+                                                    >
+                                                        {item.label}
+                                                    </Link>
 
-                                            <hr className={styles.divider} />
-
-                                            <Link
-                                                className={styles.menuLink}
-                                                to="/me/votes"
-                                                onClick={closeMenu}
-                                                role="menuitem"
-                                            >
-                                                投票履歴 →
-                                            </Link>
-
-                                            <hr className={styles.divider} />
-
-                                            <Link
-                                                className={styles.menuLink}
-                                                to="/me/identity"
-                                                onClick={closeMenu}
-                                                role="menuitem"
-                                            >
-                                                本人確認 →
-                                            </Link>
+                                                    {idx !==
+                                                        menuItems.length -
+                                                            1 && (
+                                                        <hr
+                                                            className={
+                                                                styles.divider
+                                                            }
+                                                        />
+                                                    )}
+                                                </div>
+                                            ))}
 
                                             <hr className={styles.divider} />
 
@@ -228,6 +240,48 @@ export function PublicLayout() {
                             </Link>
                         ))}
                     </nav>
+                    <div
+                        className={`${styles.drawerOverlay} ${isMobileNavOpen ? styles.drawerOverlayOpen : ""}`}
+                        onClick={() => setIsMobileNavOpen(false)}
+                        aria-hidden={!isMobileNavOpen}
+                    >
+                        <aside
+                            className={`${styles.drawerPanel} ${isMobileNavOpen ? styles.drawerPanelOpen : ""}`}
+                            onClick={(e) => e.stopPropagation()}
+                            role="dialog"
+                            aria-modal="true"
+                            aria-label="モバイルメニュー"
+                        >
+                            <div className={styles.drawerHeader}>
+                                <span className={styles.drawerTitle}>
+                                    メニュー
+                                </span>
+                                <button
+                                    type="button"
+                                    className={styles.drawerClose}
+                                    aria-label="閉じる"
+                                    onClick={() => setIsMobileNavOpen(false)}
+                                >
+                                    ✕
+                                </button>
+                            </div>
+
+                            <div className={styles.drawerBody}>
+                                {navItems.map((item) => (
+                                    <Link
+                                        key={item.to}
+                                        to={item.to}
+                                        className={styles.drawerLink}
+                                        onClick={() =>
+                                            setIsMobileNavOpen(false)
+                                        }
+                                    >
+                                        {item.label}
+                                    </Link>
+                                ))}
+                            </div>
+                        </aside>
+                    </div>
                 </div>
             </div>
 
