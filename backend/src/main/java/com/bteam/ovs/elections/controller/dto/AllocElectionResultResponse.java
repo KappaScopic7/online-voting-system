@@ -12,8 +12,10 @@ public record AllocElectionResultResponse(
         long noneSupportPoints,
         Instant generatedAt,
         List<CandidatePointResult> results) {
+
     public record CandidatePointResult(
             UUID candidateId,
+            String candidateKey, // ★ 追加
             String name,
             long points) {
     }

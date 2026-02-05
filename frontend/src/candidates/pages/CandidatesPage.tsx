@@ -10,6 +10,7 @@ import { fetchParties } from "../../parties/api/parties";
 import { normalizeFrom } from "../../shared/normalizeFrom";
 import { Card, DevDebug, Page } from "../../shared/ui/page";
 import { formatJST, statusLabel } from "../../shared/elections/format";
+import { CandidateAvatar } from "../../shared/ui/CandidateAvatar";
 
 type LocationState = { from?: string };
 
@@ -81,6 +82,14 @@ function CandidateCard({ c, from }: { c: CandidateItem; from: string }) {
                         flexWrap: "wrap",
                     }}
                 >
+                    {/* ★ 顔写真を基本表示 */}
+                    <CandidateAvatar
+                        name={c.name}
+                        candidateKey={c.candidateKey}
+                        // imageUrl は CandidateItem に無いので無し
+                        size={44}
+                    />
+
                     <strong style={{ fontSize: 16 }}>{c.name}</strong>
 
                     {c.party ? (
@@ -160,6 +169,13 @@ function PersonCard({ p, from }: { p: PersonItem; from: string }) {
                         flexWrap: "wrap",
                     }}
                 >
+                    {/* ★ 顔写真を基本表示（candidateKeyがあればassetsが出る） */}
+                    <CandidateAvatar
+                        name={p.name}
+                        candidateKey={p.candidateKey ?? null}
+                        size={44}
+                    />
+
                     <strong style={{ fontSize: 16 }}>{p.name}</strong>
 
                     {p.party ? (

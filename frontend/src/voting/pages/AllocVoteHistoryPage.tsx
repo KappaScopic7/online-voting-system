@@ -5,6 +5,7 @@ import { allocHistory } from "../api/allocVoting";
 import type { AllocVoteHistoryItem } from "../model/allocVotingTypes";
 import { Card, DevDebug, Page } from "../../shared/ui/page";
 import { normalizeFrom } from "../../shared/normalizeFrom";
+import { CandidateAvatar } from "../../shared/ui/CandidateAvatar";
 
 function formatJST(iso?: string | null): string {
     if (!iso) return "-";
@@ -26,7 +27,7 @@ type Group = {
     items: AllocVoteHistoryItem[];
 };
 
-function AllocRow({ v }: { v: AllocVoteHistoryItem }) {
+function AllocRow({ v, from }: { v: AllocVoteHistoryItem; from: string }) {
     const [hover, setHover] = useState(false);
 
     return (
@@ -70,26 +71,73 @@ function AllocRow({ v }: { v: AllocVoteHistoryItem }) {
                     gap: 6,
                 }}
             >
-                {v.items.map((it, idx) => (
-                    <div
-                        key={idx}
-                        style={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                            gap: 12,
-                            padding: "4px 0",
-                            borderBottom:
-                                idx === v.items.length - 1
-                                    ? "none"
-                                    : "1px solid #f1f1f1",
-                        }}
-                    >
-                        <div style={{ overflow: "hidden" }}>{it.label}</div>
-                        <div style={{ whiteSpace: "nowrap" }}>
-                            <b>{it.points}</b>pt
+                {v.items.map((it, idx) => {
+                    const isCandidate =
+                        it.type === "CANDIDATE" && !!it.candidateId;
+
+                    const labelNode = isCandidate ? (
+                        <Link
+                            to={`/elections/${v.electionId}/candidates/${it.candidateId}`}
+                            state={{ from }}
+                            style={{
+                                color: "inherit",
+                                textDecoration: "none",
+                            }}
+                            title="候補者詳細へ"
+                        >
+                            {it.label}
+                        </Link>
+                    ) : (
+                        <span>{it.label}</span>
+                    );
+
+                    return (
+                        <div
+                            key={idx}
+                            style={{
+                                display: "flex",
+                                justifyContent: "space-between",
+                                gap: 12,
+                                padding: "6px 0",
+                                borderBottom:
+                                    idx === v.items.length - 1
+                                        ? "none"
+                                        : "1px solid #f1f1f1",
+                                alignItems: "center",
+                            }}
+                        >
+                            <div
+                                style={{
+                                    display: "flex",
+                                    gap: 10,
+                                    alignItems: "center",
+                                    overflow: "hidden",
+                                    minWidth: 0,
+                                }}
+                            >
+                                <CandidateAvatar
+                                    name={it.label}
+                                    imageUrl={null}
+                                    index={idx}
+                                    size={28}
+                                />
+                                <div
+                                    style={{
+                                        overflow: "hidden",
+                                        textOverflow: "ellipsis",
+                                        whiteSpace: "nowrap",
+                                    }}
+                                >
+                                    {labelNode}
+                                </div>
+                            </div>
+
+                            <div style={{ whiteSpace: "nowrap" }}>
+                                <b>{it.points}</b>pt
+                            </div>
                         </div>
-                    </div>
-                ))}
+                    );
+                })}
             </div>
 
             <div style={{ fontSize: 12, opacity: 0.65 }}>
@@ -313,7 +361,11 @@ export function AllocVoteHistoryPage() {
                                     {/* rows */}
                                     <div style={{ display: "grid", gap: 10 }}>
                                         {g.items.map((v) => (
-                                            <AllocRow key={v.castId} v={v} />
+                                            <AllocRow
+                                                key={v.castId}
+                                                v={v}
+                                                from={from}
+                                            />
                                         ))}
                                     </div>
 
@@ -333,9 +385,9 @@ export function AllocVoteHistoryPage() {
                                             候補者（公開）
                                         </Link>
 
-                                        {/* ★ 結果は入口へ統一 */}
+                                        {/* 結果は入口へ統一 */}
                                         <Link
-                                            to={`/elections/result?electionId=${g.electionId}`}
+                                            to={`/elections/${g.electionId}/result`}
                                             state={{ from }}
                                         >
                                             結果
@@ -344,7 +396,6 @@ export function AllocVoteHistoryPage() {
                                         <span style={{ marginLeft: "auto" }}>
                                             {latest?.electionStatus ===
                                             "ONGOING" ? (
-                                                /* ★ 投票変更は入口へ統一 */
                                                 <Link
                                                     to={`/voting/entry?electionId=${g.electionId}`}
                                                     state={{ from }}

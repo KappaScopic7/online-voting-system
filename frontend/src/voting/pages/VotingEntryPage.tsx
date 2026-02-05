@@ -1,7 +1,9 @@
+// frontend/src/voting/pages/VotingEntryPage.tsx
 import { useEffect, useMemo } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { fetchElections } from "../../elections/api/elections";
 import { normalizeFrom } from "../../shared/normalizeFrom";
+import { Card, DevDebug, Page } from "../../shared/ui/page";
 
 // TODO: shared に移して elections/result でも使うと良い
 function detectKind(e: any): "NORMAL" | "ALLOC" {
@@ -28,10 +30,10 @@ export function VotingEntryPage() {
     const electionId = q.get("electionId");
 
     const backTo = normalizeFrom(state?.from ?? "/me/elections");
+    const self = loc.pathname + loc.search;
 
     useEffect(() => {
         if (!electionId) {
-            // electionId が無い時は「入口として壊れている」ので一覧へ
             nav("/elections", { replace: true });
             return;
         }
@@ -40,12 +42,7 @@ export function VotingEntryPage() {
             const list = await fetchElections();
             const e = list.find((x: any) => x.electionId === electionId);
 
-            // 見つからない場合は NORMAL 扱いに倒す（最悪でも動く）
             const kind = detectKind(e);
-
-            console.log("electionId(param)", electionId);
-            console.log("list sample keys", Object.keys(list?.[0] ?? {}));
-            console.log("found", e);
 
             const to =
                 kind === "ALLOC"
@@ -54,13 +51,21 @@ export function VotingEntryPage() {
 
             nav(to, {
                 replace: true,
-                state: { from: backTo }, // ★ 常に backTo を渡す
+                state: { from: backTo },
             });
         })().catch(() => {
-            // 失敗時は来た場所へ戻すのが自然
             nav(backTo, { replace: true });
         });
     }, [electionId, nav, backTo]);
 
-    return <div style={{ padding: 16 }}>投票画面へ移動中…</div>;
+    return (
+        <Page
+            title={<h1 style={{ margin: 0, fontSize: 20 }}>投票</h1>}
+            actions={<Link to={backTo}>← 戻る</Link>}
+            maxWidth={720}
+        >
+            <Card>投票画面へ移動中…</Card>
+            <DevDebug value={{ electionId, backTo, self, state }} />
+        </Page>
+    );
 }

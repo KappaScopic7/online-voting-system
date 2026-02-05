@@ -167,7 +167,17 @@ export function ElectionDetailPage() {
                         </div>
 
                         <div style={{ display: "grid", gap: 10 }}>
-                            {data.candidates.map((c, idx) => {
+                            {data.candidates.map((c) => {
+                                const candidateKey =
+                                    typeof (c as any)?.candidateKey === "string"
+                                        ? ((c as any).candidateKey as string)
+                                        : null;
+
+                                const imageUrl =
+                                    typeof (c as any)?.imageUrl === "string"
+                                        ? ((c as any).imageUrl as string)
+                                        : null;
+
                                 return (
                                     <Link
                                         key={c.id}
@@ -191,10 +201,9 @@ export function ElectionDetailPage() {
                                         >
                                             <CandidateAvatar
                                                 name={c.name}
-                                                imageUrl={
-                                                    (c as any).imageUrl ?? null
-                                                }
-                                                index={idx}
+                                                imageUrl={imageUrl}
+                                                candidateKey={candidateKey}
+                                                // indexは渡さない（並び順依存を排除）
                                                 size={48}
                                             />
 
@@ -206,10 +215,17 @@ export function ElectionDetailPage() {
                                                     gap: 12,
                                                     flex: 1,
                                                     alignItems: "center",
+                                                    minWidth: 0,
                                                 }}
                                             >
                                                 <span
-                                                    style={{ fontWeight: 650 }}
+                                                    style={{
+                                                        fontWeight: 650,
+                                                        overflow: "hidden",
+                                                        textOverflow:
+                                                            "ellipsis",
+                                                        whiteSpace: "nowrap",
+                                                    }}
                                                 >
                                                     {c.name}
                                                 </span>
@@ -217,6 +233,7 @@ export function ElectionDetailPage() {
                                                     style={{
                                                         fontSize: 12,
                                                         opacity: 0.6,
+                                                        flexShrink: 0,
                                                     }}
                                                 >
                                                     →

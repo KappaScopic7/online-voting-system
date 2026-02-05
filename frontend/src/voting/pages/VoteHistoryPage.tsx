@@ -4,6 +4,7 @@ import { Link, useLocation } from "react-router-dom";
 import { fetchVoteHistory, type VoteHistoryItem } from "../api/votes";
 import { Card, DevDebug, Page } from "../../shared/ui/page";
 import { normalizeFrom } from "../../shared/normalizeFrom";
+import { CandidateAvatar } from "../../shared/ui/CandidateAvatar";
 
 function formatJST(iso?: string | null): string {
     if (!iso) return "-";
@@ -25,7 +26,7 @@ type Group = {
 
 type LocationState = { from?: string } | null;
 
-function VoteRow({ v }: { v: VoteHistoryItem }) {
+function VoteRow({ v, from }: { v: VoteHistoryItem; from: string }) {
     const [hover, setHover] = useState(false);
     const isDev = import.meta.env?.DEV;
 
@@ -37,29 +38,74 @@ function VoteRow({ v }: { v: VoteHistoryItem }) {
                 border: "1px solid #eee",
                 borderRadius: 12,
                 padding: 12,
-                display: "flex",
-                gap: 12,
-                alignItems: "baseline",
-                flexWrap: "wrap",
+                display: "grid",
+                gap: 8,
                 background: hover ? "#fafafa" : "#fff",
                 transition: "background 120ms ease",
             }}
         >
-            <span style={{ width: 160, fontSize: 12, opacity: 0.8 }}>
-                {formatJST(v.castedAt)}
-            </span>
-
-            <span>
-                投票先: <strong>{v.candidateName}</strong>
-            </span>
-
-            {isDev && (
-                <span
-                    style={{ marginLeft: "auto", fontSize: 12, opacity: 0.7 }}
-                >
-                    voteId: {v.voteId}
+            <div
+                style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    gap: 12,
+                    flexWrap: "wrap",
+                    alignItems: "baseline",
+                }}
+            >
+                <span style={{ fontSize: 12, opacity: 0.8 }}>
+                    {formatJST(v.castedAt)}
                 </span>
-            )}
+
+                <span style={{ fontSize: 12, opacity: 0.75 }}>
+                    {v.electionStatus}
+                </span>
+            </div>
+
+            <div
+                style={{
+                    display: "flex",
+                    gap: 10,
+                    alignItems: "center",
+                    flexWrap: "wrap",
+                }}
+            >
+                <CandidateAvatar
+                    name={v.candidateName}
+                    imageUrl={null}
+                    index={0}
+                    size={30}
+                />
+
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    <span style={{ opacity: 0.85 }}>投票先:</span>
+
+                    <Link
+                        to={`/elections/${v.electionId}/candidates/${v.candidateId}`}
+                        state={{ from }}
+                        style={{
+                            color: "inherit",
+                            textDecoration: "none",
+                            fontWeight: 800,
+                        }}
+                        title="候補者詳細へ"
+                    >
+                        {v.candidateName}
+                    </Link>
+                </div>
+
+                {isDev && (
+                    <span
+                        style={{
+                            marginLeft: "auto",
+                            fontSize: 12,
+                            opacity: 0.7,
+                        }}
+                    >
+                        voteId: {v.voteId}
+                    </span>
+                )}
+            </div>
         </div>
     );
 }
@@ -88,7 +134,7 @@ export function VoteHistoryPage() {
             setError(
                 err?.response?.data?.message ?? "Failed to load vote history",
             );
-            setItems([]); // 画面は空扱いにする
+            setItems([]); // 空扱い
         } finally {
             setIsLoading(false);
         }
@@ -144,7 +190,7 @@ export function VoteHistoryPage() {
                     (v.candidateName ?? "").toLowerCase().includes(keyword),
                 );
 
-                if (hitElection) return g; // 選挙名ヒットなら全表示
+                if (hitElection) return g;
                 if (hitItems.length === 0) return null;
                 return { ...g, items: hitItems };
             })
@@ -239,7 +285,6 @@ export function VoteHistoryPage() {
                         return (
                             <Card key={g.electionId}>
                                 <div style={{ display: "grid", gap: 10 }}>
-                                    {/* header */}
                                     <div
                                         style={{
                                             display: "flex",
@@ -275,14 +320,16 @@ export function VoteHistoryPage() {
                                         {formatJST(latest?.castedAt ?? null)}
                                     </div>
 
-                                    {/* rows */}
                                     <div style={{ display: "grid", gap: 10 }}>
                                         {g.items.map((v) => (
-                                            <VoteRow key={v.voteId} v={v} />
+                                            <VoteRow
+                                                key={v.voteId}
+                                                v={v}
+                                                from={from}
+                                            />
                                         ))}
                                     </div>
 
-                                    {/* actions */}
                                     <div
                                         style={{
                                             display: "flex",
@@ -298,9 +345,8 @@ export function VoteHistoryPage() {
                                             候補者（公開）
                                         </Link>
 
-                                        {/* ★ 結果は入口へ統一 */}
                                         <Link
-                                            to={`/elections/result?electionId=${g.electionId}`}
+                                            to={`/elections/${g.electionId}/result`}
                                             state={{ from }}
                                         >
                                             結果
@@ -309,7 +355,6 @@ export function VoteHistoryPage() {
                                         <span style={{ marginLeft: "auto" }}>
                                             {latest?.electionStatus ===
                                             "ONGOING" ? (
-                                                /* ★ 投票変更も入口へ統一 */
                                                 <Link
                                                     to={`/voting/entry?electionId=${g.electionId}`}
                                                     state={{ from }}

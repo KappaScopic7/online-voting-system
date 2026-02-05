@@ -8,6 +8,8 @@ import type {
 } from "../model/partyTypes";
 import { normalizeFrom } from "../../shared/normalizeFrom";
 import { Card, DevDebug, Page } from "../../shared/ui/page";
+import { CandidateAvatar } from "../../shared/ui/CandidateAvatar";
+import { resolveCandidateImageUrl } from "../../elections/ui/candidateImages";
 
 type LocationState = { from?: string };
 
@@ -41,11 +43,14 @@ type PartyCandidatePerson = {
     age: number | null;
     title: string | null;
     imageUrl?: string | null;
-    // 代表としてリンク先に使う
+
     representativeElectionId: string;
     representativeCandidateId: string;
-    // 何選挙に出てるか
+
     electionsCount: number;
+
+    // 画像のfallback安定化用（この政党内での並び順）
+    index: number;
 };
 
 function PartyCandidateCard({
@@ -55,6 +60,11 @@ function PartyCandidateCard({
     p: PartyCandidatePerson;
     from: string;
 }) {
+    // 優先: APIのimageUrl -> assets(candidateKey)
+    const avatarUrl =
+        (p.imageUrl && (p.imageUrl as any)) ??
+        resolveCandidateImageUrl(p.candidateKey);
+
     return (
         <Link
             to={`/elections/${p.representativeElectionId}/candidates/${p.representativeCandidateId}`}
@@ -67,63 +77,83 @@ function PartyCandidateCard({
                     borderRadius: 12,
                     padding: 12,
                     display: "grid",
-                    gap: 6,
+                    gap: 8,
                     background: "#fff",
                 }}
             >
                 <div
                     style={{
                         display: "flex",
-                        gap: 10,
-                        alignItems: "baseline",
+                        gap: 12,
+                        alignItems: "center",
                         flexWrap: "wrap",
                     }}
                 >
-                    <strong style={{ fontSize: 16 }}>{p.name}</strong>
+                    <CandidateAvatar
+                        name={p.name}
+                        imageUrl={avatarUrl}
+                        index={p.index}
+                        size={44}
+                    />
 
-                    <span
-                        style={{
-                            fontSize: 12,
-                            opacity: 0.7,
-                            padding: "2px 8px",
-                            border: "1px solid #eee",
-                            borderRadius: 999,
-                            background: "#fafafa",
-                        }}
-                        title="candidateKey"
-                    >
-                        {p.candidateKey}
-                    </span>
+                    <div style={{ display: "grid", gap: 4, flex: 1 }}>
+                        <div
+                            style={{
+                                display: "flex",
+                                gap: 10,
+                                alignItems: "baseline",
+                                flexWrap: "wrap",
+                            }}
+                        >
+                            <strong style={{ fontSize: 16 }}>{p.name}</strong>
 
-                    <span
-                        style={{
-                            fontSize: 12,
-                            opacity: 0.7,
-                            padding: "2px 8px",
-                            border: "1px solid #eee",
-                            borderRadius: 999,
-                            background: "#fafafa",
-                        }}
-                        title="elections count"
-                    >
-                        出馬 {p.electionsCount} 件
-                    </span>
+                            <span
+                                style={{
+                                    fontSize: 12,
+                                    opacity: 0.7,
+                                    padding: "2px 8px",
+                                    border: "1px solid #eee",
+                                    borderRadius: 999,
+                                    background: "#fafafa",
+                                }}
+                                title="candidateKey"
+                            >
+                                {p.candidateKey}
+                            </span>
 
-                    <span
-                        style={{
-                            marginLeft: "auto",
-                            fontSize: 12,
-                            opacity: 0.7,
-                        }}
-                    >
-                        {p.age !== null ? `${p.age}歳` : ""}
-                    </span>
-                </div>
+                            <span
+                                style={{
+                                    fontSize: 12,
+                                    opacity: 0.7,
+                                    padding: "2px 8px",
+                                    border: "1px solid #eee",
+                                    borderRadius: 999,
+                                    background: "#fafafa",
+                                }}
+                                title="elections count"
+                            >
+                                出馬 {p.electionsCount} 件
+                            </span>
 
-                <div style={{ fontSize: 13, opacity: 0.85 }}>{p.title}</div>
+                            <span
+                                style={{
+                                    marginLeft: "auto",
+                                    fontSize: 12,
+                                    opacity: 0.7,
+                                }}
+                            >
+                                {p.age !== null ? `${p.age}歳` : ""}
+                            </span>
+                        </div>
 
-                <div style={{ fontSize: 13, opacity: 0.85 }}>
-                    候補者の詳細を見る →
+                        <div style={{ fontSize: 13, opacity: 0.85 }}>
+                            {p.title ?? ""}
+                        </div>
+
+                        <div style={{ fontSize: 13, opacity: 0.85 }}>
+                            候補者の詳細を見る →
+                        </div>
+                    </div>
                 </div>
             </div>
         </Link>
@@ -171,6 +201,7 @@ export function PartyDetailPage() {
     }, [partyKey]);
 
     // ★「人物単位」へ：candidateKeyでグルーピングして集約
+    // 代表は「sortOrder が最小」優先（無ければ入力順）
     const people = useMemo<PartyCandidatePerson[] | null>(() => {
         if (cands === null) return null;
 
@@ -181,24 +212,34 @@ export function PartyDetailPage() {
         }
 
         const list: PartyCandidatePerson[] = [];
+
         for (const [candidateKey, items] of map.entries()) {
-            // 代表は「最初の1件」を使う（安定させたければソート条件を入れる）
-            const rep = items[0];
+            const rep = [...items].sort((a: any, b: any) => {
+                const sa =
+                    typeof a.sortOrder === "number" ? a.sortOrder : 999999;
+                const sb =
+                    typeof b.sortOrder === "number" ? b.sortOrder : 999999;
+                return sa - sb;
+            })[0];
+
             list.push({
                 candidateKey,
                 name: rep.name,
                 age: rep.age ?? null,
                 title: rep.title,
-                imageUrl: rep.imageUrl ?? null,
-                representativeElectionId: rep.electionId,
-                representativeCandidateId: rep.candidateId,
+                imageUrl: (rep as any).imageUrl ?? null,
+                representativeElectionId: (rep as any).electionId,
+                representativeCandidateId: (rep as any).candidateId,
                 electionsCount: items.length,
+                index: 0, // 後で付与
             });
         }
 
         // 表示順を安定させる（名前順）
         list.sort((a, b) => a.name.localeCompare(b.name, "ja"));
-        return list;
+
+        // index を再付与（fallback画像を安定させる）
+        return list.map((p, idx) => ({ ...p, index: idx }));
     }, [cands]);
 
     const count = useMemo(() => (people ? people.length : 0), [people]);

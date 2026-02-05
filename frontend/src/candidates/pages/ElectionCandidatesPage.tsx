@@ -4,6 +4,7 @@ import { Link, useLocation, useParams } from "react-router-dom";
 import { fetchElectionCandidates } from "../api/candidates";
 import type { CandidateItem } from "../model/candidateTypes";
 import { normalizeFrom } from "../../shared/normalizeFrom";
+import { CandidateAvatar } from "../../shared/ui/CandidateAvatar";
 
 type LocationState = { from?: string };
 
@@ -39,6 +40,7 @@ export function ElectionCandidatesPage() {
 
     useEffect(() => {
         load();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [electionId]);
 
     const hasCandidates = useMemo(() => {
@@ -125,7 +127,7 @@ export function ElectionCandidatesPage() {
                 </div>
             ) : (
                 <section style={{ display: "grid", gap: 8 }}>
-                    {items.map((c, idx) => {
+                    {items.map((c) => {
                         const detailUrl = `/elections/${electionId}/candidates/${c.id}`;
 
                         return (
@@ -151,42 +153,55 @@ export function ElectionCandidatesPage() {
                                         alignItems: "center",
                                     }}
                                 >
-                                    <strong style={{ fontSize: 16 }}>
-                                        {c.name}
-                                    </strong>
+                                    <div
+                                        style={{
+                                            display: "flex",
+                                            gap: 10,
+                                            alignItems: "center",
+                                            minWidth: 0,
+                                        }}
+                                    >
+                                        {/* ★ 顔写真を基本表示（candidateKeyで一致） */}
+                                        <CandidateAvatar
+                                            name={c.name}
+                                            candidateKey={c.candidateKey}
+                                            size={64}
+                                        />
 
-                                    {(() => {
-                                        const n = idx + 1;
-                                        const padded = String(n).padStart(
-                                            3,
-                                            "0",
-                                        );
-                                        const thumb = `/assets/candidates/candidate-${padded}.png`;
-
-                                        return (
-                                            <img
-                                                src={thumb}
-                                                alt={c.name}
-                                                onError={(e) => {
-                                                    e.currentTarget.style.display =
-                                                        "none";
-                                                }}
+                                        <div
+                                            style={{
+                                                display: "grid",
+                                                gap: 4,
+                                                minWidth: 0,
+                                            }}
+                                        >
+                                            <strong
                                                 style={{
-                                                    width: 64,
-                                                    height: 64,
-                                                    objectFit: "cover",
-                                                    borderRadius: 8,
-                                                    border: "1px solid #eee",
+                                                    fontSize: 16,
+                                                    overflow: "hidden",
+                                                    textOverflow: "ellipsis",
+                                                    whiteSpace: "nowrap",
                                                 }}
-                                            />
-                                        );
-                                    })()}
+                                            >
+                                                {c.name}
+                                            </strong>
+                                            <div
+                                                style={{
+                                                    fontSize: 12,
+                                                    opacity: 0.75,
+                                                }}
+                                            >
+                                                {c.title ?? ""}
+                                            </div>
+                                        </div>
+                                    </div>
 
                                     {isDev && (
                                         <span
                                             style={{
                                                 fontSize: 12,
                                                 opacity: 0.6,
+                                                flexShrink: 0,
                                             }}
                                         >
                                             {c.id}

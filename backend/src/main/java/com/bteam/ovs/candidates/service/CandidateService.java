@@ -134,11 +134,11 @@ public class CandidateService {
                         (a, b) -> a));
     }
 
-    /** 結果表示用：id,nameだけ */
+    /** 結果表示用：candidateId,candidateKey,name */
     public List<CandidateSummary> summariesByElection(UUID electionId) {
         requireElectionExists(electionId);
         return candidateRepo.findByElectionId(electionId).stream()
-                .map(c -> new CandidateSummary(c.getId(), c.getName()))
+                .map(c -> new CandidateSummary(c.getId(), c.getCandidateKey(), c.getName()))
                 .toList();
     }
 
@@ -205,6 +205,8 @@ public class CandidateService {
 
     public record CandidateSummary(
             UUID candidateId,
+            String candidateKey, // ★ 追加
             String name) {
     }
+
 }

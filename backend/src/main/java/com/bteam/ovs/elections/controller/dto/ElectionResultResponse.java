@@ -11,8 +11,10 @@ public record ElectionResultResponse(
         long totalVotes,
         Instant talliedAt,
         List<CandidateResult> results) {
+
     public record CandidateResult(
             UUID candidateId,
+            String candidateKey, // ★ 追加
             String candidateName,
             long votes) {
     }

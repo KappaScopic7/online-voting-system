@@ -29,6 +29,7 @@ export type ElectionResultResponse = {
     talliedAt: string;
     results: {
         candidateId: string;
+        candidateKey: string | null; // ★ 追加（null許容で安全）
         candidateName: string;
         votes: number;
     }[];
@@ -59,6 +60,7 @@ export type AllocElectionResultResponse = {
     talliedAt: string;
     results: {
         candidateId: string;
+        candidateKey: string | null; // ★ 追加
         candidateName: string;
         points: number;
     }[];

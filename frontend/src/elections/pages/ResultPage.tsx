@@ -5,6 +5,8 @@ import { fetchResultBundle } from "../api/elections";
 import type { ElectionResultBundleResponse } from "../model/electionTypes";
 import { normalizeFrom } from "../../shared/normalizeFrom";
 import { Card, DevDebug, Page } from "../../shared/ui/page";
+import { CandidateAvatar } from "../../shared/ui/CandidateAvatar";
+import { resolveCandidateImageUrl } from "../ui/candidateImages";
 
 type LocationState = { from?: string };
 
@@ -35,7 +37,16 @@ function rankMap(
     return map;
 }
 
+type Row = {
+    candidateId: string;
+    candidateKey: string | null;
+    candidateName: string;
+    value: number;
+};
+
 function ResultRow({
+    electionId,
+    from,
     r,
     rank,
     isTop,
@@ -43,16 +54,25 @@ function ResultRow({
     p,
     total,
     unit,
+    index,
 }: {
-    r: { candidateId: string; candidateName: string; value: number };
+    electionId: string;
+    from: string;
+    r: Row;
     rank: number | null;
     isTop: boolean;
     barW: number;
     p: string;
     total: number;
     unit: string; // "票" | "pt"
+    index: number; // fallback用
 }) {
     const [hover, setHover] = useState(false);
+
+    // candidateKey があればそれを優先で assets に落とす（CandidateAvatar の index fallback も効く）
+    const imageUrl = r.candidateKey
+        ? resolveCandidateImageUrl(r.candidateKey)
+        : null;
 
     return (
         <div
@@ -63,7 +83,7 @@ function ResultRow({
                 borderRadius: 12,
                 padding: 12,
                 display: "grid",
-                gap: 8,
+                gap: 10,
                 background: hover ? "#fafafa" : "#fff",
                 transition: "background 120ms ease",
             }}
@@ -73,7 +93,7 @@ function ResultRow({
                     display: "flex",
                     justifyContent: "space-between",
                     gap: 12,
-                    alignItems: "baseline",
+                    alignItems: "center",
                     flexWrap: "wrap",
                 }}
             >
@@ -81,8 +101,9 @@ function ResultRow({
                     style={{
                         display: "inline-flex",
                         alignItems: "center",
-                        gap: 8,
+                        gap: 10,
                         fontWeight: isTop ? 800 : 700,
+                        flexWrap: "wrap",
                     }}
                 >
                     <span
@@ -102,7 +123,25 @@ function ResultRow({
                         #{rank ?? "-"}
                     </span>
 
-                    <span style={{ fontSize: 14 }}>{r.candidateName}</span>
+                    <CandidateAvatar
+                        name={r.candidateName}
+                        imageUrl={imageUrl}
+                        index={index}
+                        size={44}
+                    />
+
+                    <Link
+                        to={`/elections/${electionId}/candidates/${r.candidateId}`}
+                        state={{ from }}
+                        style={{
+                            fontSize: 14,
+                            color: "inherit",
+                            textDecoration: "none",
+                        }}
+                        title="候補者詳細へ"
+                    >
+                        {r.candidateName}
+                    </Link>
 
                     {isTop && (
                         <span
@@ -153,6 +192,7 @@ function ResultRow({
                 label="meta"
                 value={{
                     candidateId: r.candidateId,
+                    candidateKey: r.candidateKey,
                     value: r.value,
                 }}
             />
@@ -217,7 +257,7 @@ export function ResultPage() {
     const title =
         (isAlloc ? bundle?.alloc?.title : bundle?.normal?.title) ?? "結果";
 
-    const rows = useMemo(() => {
+    const rows = useMemo<Row[]>(() => {
         if (!bundle) return [];
         if (isAlloc) {
             const a = bundle.alloc;
@@ -225,6 +265,7 @@ export function ResultPage() {
             return [...a.results]
                 .map((r) => ({
                     candidateId: r.candidateId,
+                    candidateKey: (r as any).candidateKey ?? null,
                     candidateName: r.candidateName,
                     value: r.points,
                 }))
@@ -235,6 +276,7 @@ export function ResultPage() {
             return [...n.results]
                 .map((r) => ({
                     candidateId: r.candidateId,
+                    candidateKey: (r as any).candidateKey ?? null,
                     candidateName: r.candidateName,
                     value: r.votes,
                 }))
@@ -390,7 +432,7 @@ export function ResultPage() {
                             </div>
                         ) : (
                             <div style={{ display: "grid", gap: 10 }}>
-                                {rows.map((r) => {
+                                {rows.map((r, idx) => {
                                     const rank =
                                         ranks.get(r.candidateId) ?? null;
                                     const isTop =
@@ -410,6 +452,8 @@ export function ResultPage() {
                                     return (
                                         <ResultRow
                                             key={r.candidateId}
+                                            electionId={electionId}
+                                            from={from}
                                             r={r}
                                             rank={rank}
                                             isTop={isTop}
@@ -417,6 +461,7 @@ export function ResultPage() {
                                             p={p}
                                             total={total}
                                             unit={isAlloc ? "pt" : "票"}
+                                            index={idx}
                                         />
                                     );
                                 })}

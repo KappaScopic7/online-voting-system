@@ -6,6 +6,10 @@ export type VoteHistoryItem = {
     voteId: string;
     electionId: string;
     electionTitle: string;
+
+    // ★ 追加：候補者詳細リンク用
+    candidateId: string;
+
     candidateName: string;
     castedAt: string;
     electionStatus: "ONGOING" | "ENDED" | "UPCOMING";

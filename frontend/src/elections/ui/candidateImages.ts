@@ -23,7 +23,14 @@ export function resolveCandidateImageUrl(
     };
 
     const n = map[candidateKey];
-    if (!n) return null;
+    if (!n) {
+        if (import.meta.env.DEV) {
+            console.warn(
+                `[candidateImages] no image mapping for key: ${candidateKey}`,
+            );
+        }
+        return null;
+    }
 
     const padded = String(n).padStart(3, "0");
     return assetUrl(`assets/candidates/candidate-${padded}.png`);

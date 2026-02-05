@@ -5,6 +5,7 @@ import { confirmVote, startVoting } from "../api/votes";
 import type { VoteStartResponse } from "../api/votes";
 import { Card, DevDebug, Page } from "../../shared/ui/page";
 import { normalizeFrom } from "../../shared/normalizeFrom";
+import { CandidateAvatar } from "../../shared/ui/CandidateAvatar";
 
 function useQuery() {
     const { search } = useLocation();
@@ -31,7 +32,6 @@ export function VotingStartPage() {
     const [isLoading, setIsLoading] = useState(false);
     const [busy, setBusy] = useState(false);
 
-    // 確認ステップ（ページ分けしない簡易Confirm）
     const [step, setStep] = useState<"SELECT" | "CONFIRM">("SELECT");
 
     const load = async () => {
@@ -42,8 +42,6 @@ export function VotingStartPage() {
         try {
             const res = await startVoting(electionId);
             setData(res);
-
-            // 初期選択
             setSelectedCandidateId(res.candidates?.[0]?.candidateId ?? "");
             setStep("SELECT");
         } catch (err: any) {
@@ -103,7 +101,6 @@ export function VotingStartPage() {
         try {
             const result = await confirmVote(electionId, selectedCandidateId);
 
-            // Done側で「戻る」導線を作れるように from も渡す
             nav("/voting/done", {
                 state: {
                     result,
@@ -118,7 +115,6 @@ export function VotingStartPage() {
             } else {
                 setError(msg ?? "Vote failed");
             }
-            // 失敗しても CONFIRM は維持（好み）
         } finally {
             setBusy(false);
         }
@@ -166,7 +162,6 @@ export function VotingStartPage() {
             }
             maxWidth={860}
         >
-            {/* Error + 誘導 */}
             {error && (
                 <Card role="alert">
                     <div style={{ fontWeight: 800, marginBottom: 6 }}>
@@ -179,7 +174,6 @@ export function VotingStartPage() {
                             再試行
                         </button>
 
-                        {/* 403の原因が本人認証やメール認証の可能性があるので導線（仮） */}
                         <Link to="/identity/link" state={{ from: self }}>
                             本人認証へ
                         </Link>
@@ -192,13 +186,10 @@ export function VotingStartPage() {
                 </Card>
             )}
 
-            {/* Loading */}
             {!error && isLoading && <Card>読み込み中…</Card>}
 
-            {/* Main */}
             {!isLoading && data && (
                 <div style={{ display: "grid", gap: 12 }}>
-                    {/* Election info */}
                     <Card>
                         <div style={{ display: "grid", gap: 6 }}>
                             <strong style={{ fontSize: 16 }}>
@@ -212,7 +203,6 @@ export function VotingStartPage() {
                         </div>
                     </Card>
 
-                    {/* Select / Confirm */}
                     <Card>
                         <div style={{ display: "grid", gap: 12 }}>
                             {step === "SELECT" ? (
@@ -225,7 +215,7 @@ export function VotingStartPage() {
                                         <div
                                             style={{ display: "grid", gap: 10 }}
                                         >
-                                            {data.candidates.map((c) => {
+                                            {data.candidates.map((c, idx) => {
                                                 const selectedNow =
                                                     selectedCandidateId ===
                                                     c.candidateId;
@@ -250,9 +240,9 @@ export function VotingStartPage() {
                                                                 : "pointer",
                                                             transition:
                                                                 "transform 120ms ease, box-shadow 120ms ease, background 120ms ease",
-                                                            // hover（inlineなので擬似的に）
                                                             boxShadow:
                                                                 "0 0 0 rgba(0,0,0,0)",
+                                                            flexWrap: "wrap",
                                                         }}
                                                         onMouseEnter={(e) => {
                                                             if (busy) return;
@@ -284,22 +274,45 @@ export function VotingStartPage() {
                                                             }
                                                             disabled={busy}
                                                         />
+
+                                                        <CandidateAvatar
+                                                            name={c.name}
+                                                            imageUrl={null}
+                                                            index={idx}
+                                                            size={32}
+                                                        />
+
                                                         <span
                                                             style={{
                                                                 fontWeight:
                                                                     selectedNow
-                                                                        ? 700
-                                                                        : 500,
+                                                                        ? 800
+                                                                        : 600,
                                                             }}
                                                         >
                                                             {c.name}
                                                         </span>
 
+                                                        <Link
+                                                            to={`/elections/${electionId}/candidates/${c.candidateId}`}
+                                                            state={{
+                                                                from: self,
+                                                            }}
+                                                            onClick={(ev) =>
+                                                                ev.stopPropagation()
+                                                            }
+                                                            style={{
+                                                                fontSize: 13,
+                                                                marginLeft:
+                                                                    "auto",
+                                                            }}
+                                                        >
+                                                            詳細 →
+                                                        </Link>
+
                                                         {isDev && (
                                                             <span
                                                                 style={{
-                                                                    marginLeft:
-                                                                        "auto",
                                                                     fontSize: 12,
                                                                     opacity: 0.7,
                                                                 }}
@@ -369,19 +382,50 @@ export function VotingStartPage() {
                                             borderRadius: 12,
                                             padding: 12,
                                             display: "grid",
-                                            gap: 6,
+                                            gap: 8,
                                             background: "#fafafa",
                                         }}
                                     >
                                         <div>
                                             選挙: <strong>{data.title}</strong>
                                         </div>
-                                        <div>
-                                            投票先:{" "}
-                                            <strong>
-                                                {selected?.name ?? "(不明)"}
-                                            </strong>
+
+                                        <div
+                                            style={{
+                                                display: "flex",
+                                                gap: 10,
+                                                alignItems: "center",
+                                                flexWrap: "wrap",
+                                            }}
+                                        >
+                                            <CandidateAvatar
+                                                name={selected?.name ?? "?"}
+                                                imageUrl={null}
+                                                index={0}
+                                                size={34}
+                                            />
+
+                                            <div>
+                                                投票先:{" "}
+                                                <strong>
+                                                    {selected?.name ?? "(不明)"}
+                                                </strong>
+                                            </div>
+
+                                            {selected?.candidateId && (
+                                                <Link
+                                                    to={`/elections/${electionId}/candidates/${selected.candidateId}`}
+                                                    state={{ from: self }}
+                                                    style={{
+                                                        marginLeft: "auto",
+                                                        fontSize: 13,
+                                                    }}
+                                                >
+                                                    詳細 →
+                                                </Link>
+                                            )}
                                         </div>
+
                                         <div
                                             style={{
                                                 fontSize: 12,
@@ -397,8 +441,7 @@ export function VotingStartPage() {
                                             }}
                                         >
                                             ※
-                                            投票は期間内であれば何度でも変更できます
-                                            ※ 最後に送信した内容が有効になります
+                                            投票は期間内であれば何度でも変更できます（最後に送信した内容が有効）
                                         </div>
                                     </div>
 

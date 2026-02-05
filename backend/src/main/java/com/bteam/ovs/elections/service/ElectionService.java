@@ -185,7 +185,7 @@ public class ElectionService {
 
         var candidates = candidateService.summariesByElection(electionId);
 
-        var countMap = voteCurrentRepo.countByElectionGroupByCandidate(electionId).stream()
+        Map<UUID, Long> countMap = voteCurrentRepo.countByElectionGroupByCandidate(electionId).stream()
                 .collect(Collectors.toMap(
                         VoteCurrentRepository.VoteCount::getCandidateId,
                         VoteCurrentRepository.VoteCount::getCnt));
@@ -193,10 +193,18 @@ public class ElectionService {
         long totalVotes = countMap.values().stream().mapToLong(Long::longValue).sum();
 
         var results = candidates.stream()
-                .map(c -> new ElectionResultResponse.CandidateResult(
-                        c.candidateId(),
-                        c.name(),
-                        countMap.getOrDefault(c.candidateId(), 0L)))
+                .map(c -> {
+                    UUID candidateId = c.candidateId();
+                    String candidateKey = c.candidateKey();
+                    String candidateName = c.name();
+                    long votes = countMap.getOrDefault(candidateId, 0L);
+
+                    return new ElectionResultResponse.CandidateResult(
+                            candidateId,
+                            candidateKey,
+                            candidateName,
+                            votes);
+                })
                 .sorted((a, b) -> Long.compare(b.votes(), a.votes()))
                 .toList();
 
@@ -228,20 +236,27 @@ public class ElectionService {
 
         var candidates = candidateService.summariesByElection(electionId);
 
-        var pointMap = voteAllocItemRepo.sumPointsByElectionGroupByCandidate(electionId).stream()
+        Map<UUID, Long> pointMap = voteAllocItemRepo.sumPointsByElectionGroupByCandidate(electionId).stream()
                 .collect(Collectors.toMap(
                         VoteAllocItemRepository.PointSum::getCandidateId,
                         v -> v.getPts() != null ? v.getPts() : 0L));
 
         long noneSupportPoints = voteAllocItemRepo.sumNoneSupportPointsByElection(electionId);
-
         long totalPoints = pointMap.values().stream().mapToLong(Long::longValue).sum() + noneSupportPoints;
 
         var results = candidates.stream()
-                .map(c -> new AllocElectionResultResponse.CandidatePointResult(
-                        c.candidateId(),
-                        c.name(),
-                        pointMap.getOrDefault(c.candidateId(), 0L)))
+                .map(c -> {
+                    UUID candidateId = c.candidateId();
+                    String candidateKey = c.candidateKey();
+                    String name = c.name();
+                    long points = pointMap.getOrDefault(candidateId, 0L);
+
+                    return new AllocElectionResultResponse.CandidatePointResult(
+                            candidateId,
+                            candidateKey,
+                            name,
+                            points);
+                })
                 .sorted((a, b) -> Long.compare(b.points(), a.points()))
                 .toList();
 
