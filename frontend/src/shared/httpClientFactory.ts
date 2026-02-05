@@ -3,7 +3,8 @@ import axios from "axios";
 
 type TokenStore = { get(): string | null; clear(): void };
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8080";
+// ✅ DevもProdも常に /api を叩く
+const API_BASE = "/api";
 
 export function createHttpClient(tokenStore: TokenStore) {
     const http = axios.create({
@@ -26,14 +27,10 @@ export function createHttpClient(tokenStore: TokenStore) {
             const status = err?.response?.status;
             const url: string | undefined = err?.config?.url;
 
-            if (
-                status === 401 &&
-                url &&
-                (url.includes("/auth/me") || url.includes("/api/auth/me"))
-            ) {
+            // baseURL=/api なので url は "/auth/me" になったり "/api/auth/me" になったりする
+            if (status === 401 && url && url.includes("/auth/me")) {
                 tokenStore.clear();
             }
-
             return Promise.reject(err);
         },
     );
