@@ -7,7 +7,7 @@ import type {
 } from "../model/userAuthTypes";
 
 export async function register(email: string, password: string): Promise<void> {
-    await httpUser.post("//auth/register", { email, password });
+    await httpUser.post("/auth/register", { email, password });
 }
 
 export async function verifyEmail(email: string, code: string): Promise<void> {

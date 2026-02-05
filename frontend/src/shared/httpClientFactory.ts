@@ -27,8 +27,10 @@ export function createHttpClient(tokenStore: TokenStore) {
             const status = err?.response?.status;
             const url: string | undefined = err?.config?.url;
 
-            // baseURL=/api なので url は "/auth/me" になったり "/api/auth/me" になったりする
-            if (status === 401 && url && url.includes("/auth/me")) {
+            if (
+                (status === 401 || status === 403) &&
+                url?.includes("/auth/me")
+            ) {
                 tokenStore.clear();
             }
             return Promise.reject(err);

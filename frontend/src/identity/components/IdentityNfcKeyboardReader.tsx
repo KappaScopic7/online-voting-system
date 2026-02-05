@@ -1,5 +1,5 @@
 // frontend/src/identity/components/IdentityNfcKeyboardReader.tsx
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { linkIdentity } from "../api/identity";
 import { useAuth } from "../../user/UserAuthContext";
 
@@ -8,6 +8,8 @@ function looksLikeUuid(v: string) {
         v,
     );
 }
+
+type BridgeState = "CHECKING" | "ONLINE" | "OFFLINE";
 
 export function IdentityNfcKeyboardReader(props: {
     onLinked: (accessToken: string) => void;
@@ -20,26 +22,97 @@ export function IdentityNfcKeyboardReader(props: {
     const [msg, setMsg] = useState<string | null>(null);
     const [busy, setBusy] = useState(false);
 
-    const timerRef = useRef<number | null>(null);
+    const [bridgeState, setBridgeState] = useState<BridgeState>("CHECKING");
+    const [bridgeNote, setBridgeNote] = useState<string | null>(null);
+
+    const BRIDGE_BASE = "http://127.0.0.1:39123";
+    const bridgeHealthUrl = useMemo(() => `${BRIDGE_BASE}/health`, []);
+    const bridgeLastUrl = useMemo(() => `${BRIDGE_BASE}/last`, []);
+
+    const commitTimerRef = useRef<number | null>(null);
     const scheduleCommit = () => {
-        if (timerRef.current) window.clearTimeout(timerRef.current);
-        timerRef.current = window.setTimeout(() => {
-            commit();
-        }, 250);
+        if (commitTimerRef.current) window.clearTimeout(commitTimerRef.current);
+        commitTimerRef.current = window.setTimeout(() => commit(), 250);
     };
 
+    // ✅ Bridge を「ある時だけ」ポーリングする
     useEffect(() => {
         let alive = true;
-        const bridgeUrl = "http://127.0.0.1:39123/last";
 
-        const tick = async () => {
+        let lastTimer: number | null = null;
+        let checkTimer: number | null = null;
+
+        // 失敗時はバックオフして再チェック（ログスパム防止）
+        let backoffMs = 800; // start
+        const maxBackoffMs = 10_000;
+
+        const clearLast = () => {
+            if (lastTimer) window.clearInterval(lastTimer);
+            lastTimer = null;
+        };
+        const clearCheck = () => {
+            if (checkTimer) window.clearTimeout(checkTimer);
+            checkTimer = null;
+        };
+
+        const scheduleRecheck = () => {
+            clearCheck();
+            const wait = backoffMs;
+            backoffMs = Math.min(Math.floor(backoffMs * 1.7), maxBackoffMs);
+            checkTimer = window.setTimeout(() => {
+                if (!alive) return;
+                checkHealth();
+            }, wait);
+        };
+
+        const checkHealth = async () => {
             if (!alive) return;
-            if (busy) return; // 登録中は更新しない
+            if (busy) return; // 登録中は触らない
+
+            setBridgeState("CHECKING");
 
             try {
-                const res = await fetch(bridgeUrl, { method: "GET" });
+                // cache を避ける（開発中にたまに変な挙動するの防止）
+                const res = await fetch(bridgeHealthUrl, {
+                    method: "GET",
+                    cache: "no-store",
+                });
 
-                // 204: まだ何も読めてない
+                if (!alive) return;
+
+                if (res.ok) {
+                    // ONLINE
+                    backoffMs = 800;
+                    setBridgeState("ONLINE");
+                    setBridgeNote(null);
+                    startPollingLast();
+                    return;
+                }
+            } catch {
+                // ignore
+            }
+
+            // OFFLINE
+            clearLast();
+            setBridgeState("OFFLINE");
+            setBridgeNote(
+                "NFC Bridge未接続（ローカルで runNfcBridge を起動すると自動入力が有効になります）",
+            );
+            scheduleRecheck();
+        };
+
+        const tickLast = async () => {
+            if (!alive) return;
+            if (busy) return;
+
+            try {
+                const res = await fetch(bridgeLastUrl, {
+                    method: "GET",
+                    cache: "no-store",
+                });
+
+                if (!alive) return;
+
                 if (res.status === 204) return;
 
                 if (res.ok) {
@@ -47,18 +120,37 @@ export function IdentityNfcKeyboardReader(props: {
                     const uuid = String(data.uuid ?? "").trim();
                     if (uuid && uuid !== value) {
                         setValue(uuid);
-                        scheduleCommit(); // 既存の仕組みでcommitへ
+                        scheduleCommit();
                     }
+                    return;
                 }
+
+                // 想定外の status（bridge 側が落ちた/変）
+                throw new Error(`bridge /last status=${res.status}`);
             } catch {
-                // bridgeが起動してない/落ちてる等：無視（UIが壊れないのが大事）
+                // ここに入ったら「落ちた」と判断して poll 停止→再チェック
+                clearLast();
+                setBridgeState("OFFLINE");
+                setBridgeNote(
+                    "NFC Bridgeとの通信が切れました（再接続を試行中…）",
+                );
+                scheduleRecheck();
             }
         };
 
-        const timer = window.setInterval(tick, 400);
+        const startPollingLast = () => {
+            if (lastTimer) return; // 既に動いてる
+            // 400ms はそのまま
+            lastTimer = window.setInterval(tickLast, 400);
+        };
+
+        // 初回チェック
+        checkHealth();
+
         return () => {
             alive = false;
-            window.clearInterval(timer);
+            clearLast();
+            clearCheck();
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [busy, value]);
@@ -78,7 +170,7 @@ export function IdentityNfcKeyboardReader(props: {
 
         setBusy(true);
         try {
-            const token = await linkIdentity(v); // ✅ stringで呼ぶ
+            const token = await linkIdentity(v);
             await setAccessToken(token.accessToken);
             onLinked(token.accessToken);
         } catch (err: any) {
@@ -94,6 +186,13 @@ export function IdentityNfcKeyboardReader(props: {
                 PCのNFCリーダーでカードをかざしてください（入力欄に自動入力されます）。
             </p>
 
+            {/* ✅ bridge 状態表示（OFFLINEでも手動入力は可） */}
+            {bridgeNote && (
+                <div style={{ padding: 8, border: "1px solid #ccc" }}>
+                    {bridgeNote}
+                </div>
+            )}
+
             {msg && (
                 <div
                     role="alert"
@@ -104,7 +203,11 @@ export function IdentityNfcKeyboardReader(props: {
             )}
 
             <label style={{ display: "grid", gap: 4 }}>
-                <span>読み取り結果 citizenId (UUID)</span>
+                <span>
+                    読み取り結果 citizenId (UUID)
+                    {bridgeState === "ONLINE" ? "（自動入力ON）" : ""}
+                    {bridgeState === "CHECKING" ? "（bridge確認中…）" : ""}
+                </span>
                 <input
                     ref={inputRef}
                     value={value}
@@ -119,7 +222,7 @@ export function IdentityNfcKeyboardReader(props: {
                             commit();
                         }
                     }}
-                    placeholder="ここに自動入力されます"
+                    placeholder="ここに自動入力されます（手入力もOK）"
                     style={{ width: "100%", padding: 8 }}
                 />
             </label>
