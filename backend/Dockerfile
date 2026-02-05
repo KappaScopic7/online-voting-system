@@ -7,7 +7,9 @@ COPY gradlew settings.gradle* build.gradle* gradle.properties* /app/
 COPY gradle /app/gradle
 
 # 依存解決（失敗しても後続で再実行される。キャッシュ目的）
-RUN chmod +x /app/gradlew && ./gradlew --no-daemon -v
+RUN sed -i 's/\r$//' /app/gradlew \
+ && chmod +x /app/gradlew \
+ && ./gradlew --no-daemon -v
 
 # ソースをコピーしてビルド
 COPY src /app/src
