@@ -78,20 +78,24 @@ function VoteRow({ v, from }: { v: VoteHistoryItem; from: string }) {
                 />
 
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                    <span style={{ opacity: 0.85 }}>投票先:</span>
-
-                    <Link
-                        to={`/elections/${v.electionId}/candidates/${v.candidateId}`}
-                        state={{ from }}
-                        style={{
-                            color: "inherit",
-                            textDecoration: "none",
-                            fontWeight: 800,
-                        }}
-                        title="候補者詳細へ"
-                    >
-                        {v.candidateName}
-                    </Link>
+                    <span>
+                        投票先:{" "}
+                        <strong>
+                            <Link
+                                to={`/elections/${v.electionId}/candidates/${v.candidateId}`}
+                                state={{
+                                    from: from,
+                                }}
+                                style={{
+                                    color: "inherit",
+                                    textDecoration: "none",
+                                }}
+                                title="候補者詳細へ"
+                            >
+                                {v.candidateName}
+                            </Link>
+                        </strong>
+                    </span>
                 </div>
 
                 {isDev && (

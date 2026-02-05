@@ -7,7 +7,7 @@ public record VoteHistoryItem(
         UUID voteId,
         UUID electionId,
         String electionTitle,
-        String electionStatus, // ★ 追加
+        String electionStatus,
         UUID candidateId,
         String candidateName,
         Instant castedAt) {
