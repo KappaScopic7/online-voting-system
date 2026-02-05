@@ -7,7 +7,6 @@ import java.util.List;
 import com.bteam.ovs.auth.entity.AccountKind;
 import com.bteam.ovs.auth.entity.Role;
 import org.springframework.context.annotation.Bean;
-import org.checkerframework.checker.units.qual.t;
 import org.springframework.beans.factory.annotation.Value; // 追加
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
