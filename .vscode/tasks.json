@@ -48,22 +48,7 @@
             ],
             "options": { "cwd": "${workspaceFolder}" },
             "isBackground": true,
-            "problemMatcher": {
-                "owner": "ovs-logs",
-                "pattern": [
-                    {
-                        "regexp": "^(.*)$",
-                        "kind": "file",
-                        "file": 1,
-                        "message": 1
-                    }
-                ],
-                "background": {
-                    "activeOnStart": true,
-                    "beginsPattern": "^(.*)$",
-                    "endsPattern": "$^"
-                }
-            },
+            "problemMatcher": [],
             "presentation": {
                 "reveal": "always",
                 "panel": "dedicated",
