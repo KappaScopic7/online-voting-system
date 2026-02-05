@@ -9,5 +9,5 @@ export type MeEligibilityResponse = {
 };
 
 export async function fetchMeEligibility(): Promise<MeEligibilityResponse> {
-    return httpUser.get("/api/me/eligibility");
+    return httpUser.get("/me/eligibility");
 }
