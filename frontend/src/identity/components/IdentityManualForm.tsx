@@ -57,35 +57,48 @@ export function IdentityManualForm(props: {
             await setAccessToken(token.accessToken);
             onLinked(token.accessToken);
         } catch (err: any) {
-            setMsg(err?.response?.data?.message ?? "Link failed");
+            setMsg(err?.response?.data?.message ?? "本人認証に失敗しました");
         } finally {
             setIsSubmitting(false);
         }
     };
 
     return (
-        <div style={{ display: "grid", gap: 8 }}>
-            <p style={{ margin: 0, opacity: 0.85 }}>
-                デモ用：citizenId(UUID) を入力して本人認証を完了させます。
-            </p>
+        <div style={{ display: "grid", gap: 12 }}>
+            {/* ===== 通常UI ===== */}
+            <div style={{ fontSize: 13, opacity: 0.85, lineHeight: 1.6 }}>
+                citizenId（UUID）を入力して本人認証を行います。
+            </div>
 
             {msg && (
                 <div
                     role="alert"
-                    style={{ padding: 8, border: "1px solid #ccc" }}
+                    style={{
+                        padding: 8,
+                        border: "1px solid #eee",
+                        borderRadius: 8,
+                        background: "#fafafa",
+                    }}
                 >
                     {msg}
                 </div>
             )}
 
-            <form onSubmit={onSubmit} style={{ display: "grid", gap: 8 }}>
+            <form onSubmit={onSubmit} style={{ display: "grid", gap: 10 }}>
                 <label style={{ display: "grid", gap: 4 }}>
-                    <span>citizenId (UUID)</span>
+                    <span style={{ fontSize: 13, fontWeight: 700 }}>
+                        citizenId (UUID)
+                    </span>
                     <input
                         value={citizenId}
                         onChange={(e) => setCitizenId(e.target.value)}
                         placeholder="例: 550e8400-e29b-41d4-a716-446655440000"
                         disabled={isSubmitting}
+                        style={{
+                            padding: "8px 10px",
+                            borderRadius: 8,
+                            border: "1px solid #ddd",
+                        }}
                     />
                     {fieldErr.citizenId && (
                         <small style={{ color: "crimson" }}>
@@ -94,38 +107,69 @@ export function IdentityManualForm(props: {
                     )}
                 </label>
 
-                {isDev && (
-                    <div
-                        style={{
-                            display: "flex",
-                            gap: 8,
-                            flexWrap: "wrap",
-                            marginTop: 4,
-                        }}
-                    >
-                        {Object.values(demoPersonas.voter)
-                            .filter((p) => p.citizenId)
-                            .map((p) => (
-                                <button
-                                    key={p.key}
-                                    type="button"
-                                    onClick={() =>
-                                        fillDemoCitizenId(p.citizenId)
-                                    }
-                                    disabled={isSubmitting}
-                                    style={{ fontSize: 12, padding: "4px 8px" }}
-                                    title={p.description}
-                                >
-                                    {p.label}
-                                </button>
-                            ))}
-                    </div>
-                )}
-
-                <button type="submit" disabled={!canSubmit}>
+                <button
+                    type="submit"
+                    disabled={!canSubmit}
+                    style={{ alignSelf: "flex-start" }}
+                >
                     {isSubmitting ? "登録中..." : "本人認証を登録"}
                 </button>
             </form>
+
+            {/* ===== DEV ONLY ===== */}
+            {isDev && (
+                <details>
+                    <summary style={{ cursor: "pointer", fontSize: 12 }}>
+                        DEV tools
+                    </summary>
+
+                    <div
+                        style={{
+                            display: "grid",
+                            gap: 8,
+                            marginTop: 8,
+                        }}
+                    >
+                        <div
+                            style={{
+                                fontSize: 12,
+                                fontWeight: 800,
+                                opacity: 0.85,
+                            }}
+                        >
+                            DEV: citizenId クイック入力
+                        </div>
+
+                        <div
+                            style={{
+                                display: "flex",
+                                gap: 8,
+                                flexWrap: "wrap",
+                            }}
+                        >
+                            {Object.values(demoPersonas.voter)
+                                .filter((p) => p.citizenId)
+                                .map((p) => (
+                                    <button
+                                        key={p.key}
+                                        type="button"
+                                        onClick={() =>
+                                            fillDemoCitizenId(p.citizenId!)
+                                        }
+                                        disabled={isSubmitting}
+                                        style={{
+                                            fontSize: 12,
+                                            padding: "4px 8px",
+                                        }}
+                                        title={p.description}
+                                    >
+                                        {p.label}
+                                    </button>
+                                ))}
+                        </div>
+                    </div>
+                </details>
+            )}
         </div>
     );
 }

@@ -1,5 +1,5 @@
 // frontend/src/me/pages/MePage.tsx
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 
 import { fetchMeDetail, login } from "../../user/api/userAuthApi";
@@ -140,6 +140,7 @@ export function MePage() {
 
     // UX: プロフィール編集を折りたたみ
     const [showProfileEdit, setShowProfileEdit] = useState(false);
+    const autoOpenedProfileEditRef = useRef(false);
 
     const loadMe = async () => {
         setMsg(null);
@@ -221,15 +222,34 @@ export function MePage() {
     // プロフィール入力の目安（空欄があると My選挙が出ない/減る）
     const profileFilled = !!birthDate && !!prefCode && !!cityCode;
 
-    const canSaveProfile = useMemo(() => {
-        if (disableSelfEdit) return false;
-        if (saving) return false;
+    // 不足しているなら、初回だけ自動で編集を開く
+    useEffect(() => {
+        if (autoOpenedProfileEditRef.current) return;
+        if (disableSelfEdit) return;
+        if (profileFilled) return;
+        setShowProfileEdit(true);
+        autoOpenedProfileEditRef.current = true;
+    }, [disableSelfEdit, profileFilled]);
 
+    const cannotSaveReason = useMemo(() => {
+        if (disableSelfEdit)
+            return "本人認証済み/市民情報由来のため編集できません";
+        if (saving) return "保存中です";
         const hasBirth = !!birthDate;
         const addressComplete = !!prefCode && !!cityCode;
+        const addressHalf =
+            (!!prefCode && !cityCode) || (!prefCode && !!cityCode);
 
-        return hasBirth || addressComplete;
-    }, [disableSelfEdit, birthDate, prefCode, cityCode, saving]);
+        if (addressHalf)
+            return "住所は都道府県と市区町村を両方入力してください";
+        if (!hasBirth && !addressComplete)
+            return "生年月日 もしくは 住所（都道府県+市区町村）を入力してください";
+        return null;
+    }, [disableSelfEdit, saving, birthDate, prefCode, cityCode]);
+
+    const canSaveProfile = useMemo(() => {
+        return cannotSaveReason === null;
+    }, [cannotSaveReason]);
 
     const onSaveProfile = async () => {
         setProfileMsg(null);
@@ -246,17 +266,25 @@ export function MePage() {
             return;
         }
 
+        // ★ 空欄は送らない（部分更新：未送信項目は維持）
         const payload: MeProfileUpdateRequest = {
-            birthDate: birthDate || profile?.birthDate || undefined,
-            prefCode: prefCode || profile?.prefCode || undefined,
-            cityCode: cityCode || profile?.cityCode || undefined,
+            ...(birthDate ? { birthDate } : {}),
+            ...(prefCode ? { prefCode } : {}),
+            ...(cityCode ? { cityCode } : {}),
         };
 
         setSaving(true);
         try {
             const p = await putMeProfile(payload);
             setProfile(p);
+
+            // ★ 保存結果でフォームも同期（反映されない感を消す）
+            setBirthDate(p.birthDate ?? "");
+            setPrefCode(p.prefCode ?? "");
+            setCityCode(p.cityCode ?? "");
+
             setProfileMsg("保存しました");
+            setShowProfileEdit(false);
         } catch (err: any) {
             setProfileMsg(
                 err?.response?.data?.message ??
@@ -449,15 +477,7 @@ export function MePage() {
                                         : "メール未認証"}
                                 </Badge>
 
-                                <Badge
-                                    tone={
-                                        isLinked
-                                            ? "good"
-                                            : isPending
-                                              ? "warn"
-                                              : "warn"
-                                    }
-                                >
+                                <Badge tone={isLinked ? "good" : "warn"}>
                                     {isLinked
                                         ? "本人認証済み"
                                         : isPending
@@ -705,6 +725,9 @@ export function MePage() {
                                             type="button"
                                             onClick={onSaveProfile}
                                             disabled={!canSaveProfile}
+                                            title={
+                                                cannotSaveReason ?? undefined
+                                            }
                                         >
                                             {saving ? "保存中..." : "保存"}
                                         </button>
@@ -717,17 +740,29 @@ export function MePage() {
                                             再取得
                                         </button>
 
-                                        {!profileFilled && (
+                                        {cannotSaveReason && (
                                             <span
                                                 style={{
                                                     fontSize: 12,
                                                     opacity: 0.7,
                                                 }}
                                             >
-                                                ※ 入力が揃うと
-                                                My選挙の対象判定が安定します
+                                                保存不可: {cannotSaveReason}
                                             </span>
                                         )}
+
+                                        {!profileFilled &&
+                                            !cannotSaveReason && (
+                                                <span
+                                                    style={{
+                                                        fontSize: 12,
+                                                        opacity: 0.7,
+                                                    }}
+                                                >
+                                                    ※ 入力が揃うと
+                                                    My選挙の対象判定が安定します
+                                                </span>
+                                            )}
                                     </div>
                                 </div>
                             )}
