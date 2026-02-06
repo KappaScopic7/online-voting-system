@@ -97,12 +97,42 @@ export function MyElectionsPage() {
                         flexWrap: "wrap",
                     }}
                 >
-                    <button onClick={reload} disabled={loading}>
+                    <button
+                        onClick={reload}
+                        disabled={loading}
+                        style={{
+                            padding: "5px 8px",
+                            backgroundColor: "#fafafa",
+                            borderRadius: 5,
+                            border: "1px solid #acacac",
+                            fontWeight: 600,
+                            cursor: "pointer",
+                        }}
+                    >
                         {loading ? "読み込み中..." : "再読み込み"}
                     </button>
+
                     {eligBadge}
-                    <span style={{ marginLeft: "auto" }}>
-                        <Link to="/me">マイページ →</Link>
+                    <span
+                        style={{
+                            marginLeft: "auto",
+                        }}
+                    >
+                        <Link
+                            to="/me"
+                            style={{
+                                padding: "2px 8px",
+                                backgroundColor: "#fafafa",
+                                borderRadius: 5,
+                                border: "1px solid #acacac",
+                                fontWeight: 600,
+                                cursor: "pointer",
+                                textDecoration: "none",
+                                color: "#000000",
+                            }}
+                        >
+                            マイページ →
+                        </Link>
                     </span>
                 </div>
             }
@@ -126,10 +156,36 @@ export function MyElectionsPage() {
                             flexWrap: "wrap",
                         }}
                     >
-                        <Link to="/me/identity" state={{ from: self }}>
+                        <Link
+                            to="/me/identity"
+                            state={{ from: self }}
+                            style={{
+                                padding: "2px 8px",
+                                backgroundColor: "#fafafa",
+                                borderRadius: 5,
+                                border: "1px solid #acacac",
+                                fontWeight: 600,
+                                cursor: "pointer",
+                                textDecoration: "none",
+                                color: "#000000",
+                            }}
+                        >
                             本人確認へ →
                         </Link>
-                        <Link to="/me/profile" state={{ from: self }}>
+                        <Link
+                            to="/me/profile"
+                            state={{ from: self }}
+                            style={{
+                                padding: "2px 8px",
+                                backgroundColor: "#fafafa",
+                                borderRadius: 5,
+                                border: "1px solid #acacac",
+                                fontWeight: 600,
+                                cursor: "pointer",
+                                textDecoration: "none",
+                                color: "#000000",
+                            }}
+                        >
                             プロフィールへ →
                         </Link>
                     </div>
@@ -206,7 +262,12 @@ function MyElectionCard({ e, from }: { e: MyElectionItem; from: string }) {
                 return (
                     <span style={{ fontSize: 13 }}>
                         投票済み：
-                        <b>{e.currentVote.candidateName ?? "投票済み"}</b>{" "}
+                        <b>
+                            {e.currentVote.candidateName ??
+                                (e.currentVote.candidateId
+                                    ? "投票済み"
+                                    : "誰も支持しない")}
+                        </b>{" "}
                         <Link
                             to={voteLink}
                             state={{ from }}
@@ -223,7 +284,7 @@ function MyElectionCard({ e, from }: { e: MyElectionItem; from: string }) {
                     <Link
                         to={voteLink}
                         state={{ from }}
-                        style={{ textDecoration: "none" }}
+                        style={{ marginLeft: 10, textDecoration: "none" }}
                     >
                         <b>投票する →</b>
                     </Link>
@@ -235,9 +296,7 @@ function MyElectionCard({ e, from }: { e: MyElectionItem; from: string }) {
 
         if (e.status === "ENDED") {
             return e.hasResult ? (
-                <Link to={resultLink} state={{ from }}>
-                    結果を見る →
-                </Link>
+                <span style={{ opacity: 0.6 }}>結果公開</span>
             ) : (
                 <span style={{ opacity: 0.6 }}>結果未公開</span>
             );
@@ -299,32 +358,63 @@ function MyElectionCard({ e, from }: { e: MyElectionItem; from: string }) {
                         alignItems: "center",
                     }}
                 >
-                    <Link to={`/elections/${e.electionId}`} state={{ from }}>
+                    <Link
+                        to={`/elections/${e.electionId}`}
+                        state={{ from }}
+                        style={{
+                            padding: 5,
+                            textDecoration: "none",
+                            color: "#000",
+                            fontWeight: 600,
+                            borderRadius: 8,
+                            fontSize: 15,
+                            backgroundColor: "#6dcaff",
+                            width: 100,
+                            textAlign: "center",
+                        }}
+                    >
                         詳細
                     </Link>
 
                     <Link
                         to={`/elections/${e.electionId}/candidates`}
                         state={{ from }}
+                        style={{
+                            padding: 5,
+                            textDecoration: "none",
+                            color: "#000",
+                            fontWeight: 600,
+                            borderRadius: 8,
+                            fontSize: 15,
+                            backgroundColor: "#6dcaff",
+                            width: 100,
+                            textAlign: "center",
+                        }}
                     >
                         候補者
                     </Link>
 
                     {e.hasResult ? (
-                        <Link to={resultLink} state={{ from }}>
+                        <Link
+                            to={resultLink}
+                            state={{ from }}
+                            style={{
+                                padding: 5,
+                                textDecoration: "none",
+                                color: "#000",
+                                fontWeight: 600,
+                                borderRadius: 8,
+                                fontSize: 15,
+                                backgroundColor: "#00e56f",
+                                width: 100,
+                                textAlign: "center",
+                            }}
+                        >
                             結果
                         </Link>
                     ) : (
                         <span style={{ opacity: 0.5 }}>結果（未公開）</span>
                     )}
-
-                    <Link to="/me/votes" state={{ from }}>
-                        投票履歴
-                    </Link>
-
-                    <Link to="/me/alloc-votes" state={{ from }}>
-                        配分投票履歴
-                    </Link>
 
                     <span style={{ marginLeft: "auto" }}>{voteArea}</span>
                 </div>
