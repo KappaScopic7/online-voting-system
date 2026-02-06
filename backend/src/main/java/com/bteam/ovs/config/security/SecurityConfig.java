@@ -81,7 +81,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/public/voting/**").authenticated()
 
                         // ---- public / user auth ----
-                        .requestMatchers("/api/auth/register", "/api/auth/login", "/api/auth/verify")
+                        .requestMatchers("/api/auth/register", "/api/auth/login", "/api/auth/verify", "/api/auth/nfc-login")
                         .permitAll()
 
                         // ✅ 追加：ログイン済みだけ（未ログインは 401 にしたい）
