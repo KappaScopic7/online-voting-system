@@ -127,7 +127,7 @@ export function ElectionCandidatesPage() {
                 </div>
             ) : (
                 <section style={{ display: "grid", gap: 8 }}>
-                    {items.map((c) => {
+                    {items.map((c, idx) => {
                         const detailUrl = `/elections/${electionId}/candidates/${c.id}`;
 
                         return (
@@ -161,10 +161,9 @@ export function ElectionCandidatesPage() {
                                             minWidth: 0,
                                         }}
                                     >
-                                        {/* ★ 顔写真を基本表示（candidateKeyで一致） */}
                                         <CandidateAvatar
                                             name={c.name}
-                                            candidateKey={c.candidateKey}
+                                            index={idx}
                                             size={64}
                                         />
 

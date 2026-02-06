@@ -85,8 +85,7 @@ function CandidateCard({ c, from }: { c: CandidateItem; from: string }) {
                     {/* ★ 顔写真を基本表示 */}
                     <CandidateAvatar
                         name={c.name}
-                        candidateKey={c.candidateKey}
-                        // imageUrl は CandidateItem に無いので無し
+                        index={c.sortOrder}
                         size={44}
                     />
 
@@ -137,6 +136,7 @@ type PersonItem = {
     electionsCount: number;
     repElectionId: string;
     repCandidateId: string;
+    repSortOrder: number;
 };
 
 function PersonCard({ p, from }: { p: PersonItem; from: string }) {
@@ -169,10 +169,9 @@ function PersonCard({ p, from }: { p: PersonItem; from: string }) {
                         flexWrap: "wrap",
                     }}
                 >
-                    {/* ★ 顔写真を基本表示（candidateKeyがあればassetsが出る） */}
                     <CandidateAvatar
                         name={p.name}
-                        candidateKey={p.candidateKey ?? null}
+                        index={p.repSortOrder}
                         size={44}
                     />
 
@@ -405,6 +404,7 @@ export function CandidatesPage() {
                 electionsCount: group.length,
                 repElectionId: rep.electionId,
                 repCandidateId: rep.id,
+                repSortOrder: rep.sortOrder,
             });
         }
 
