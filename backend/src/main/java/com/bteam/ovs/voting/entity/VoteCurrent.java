@@ -26,7 +26,10 @@ public class VoteCurrent {
     @Column(name = "citizen_id", nullable = false, columnDefinition = "uuid")
     private UUID citizenId;
 
-    @Column(name = "candidate_id", nullable = false, columnDefinition = "uuid")
+    @Column(name = "type", nullable = false, length = 20)
+    private String type; // "CANDIDATE" | "NONE_SUPPORT"
+
+    @Column(name = "candidate_id", nullable = true, columnDefinition = "uuid")
     private UUID candidateId;
 
     @Column(name = "casted_at", nullable = false)
@@ -36,10 +39,14 @@ public class VoteCurrent {
     void onCreate() {
         if (castedAt == null)
             castedAt = Instant.now();
+        if (type == null || type.isBlank())
+            type = "CANDIDATE"; // ★これが効く
     }
 
     @PreUpdate
     void onUpdate() {
         castedAt = Instant.now();
+        if (type == null || type.isBlank())
+            type = "CANDIDATE";
     }
 }

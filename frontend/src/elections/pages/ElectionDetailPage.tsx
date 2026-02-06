@@ -20,9 +20,10 @@ function fmt(iso: string) {
 }
 
 function resolveCandidateName(
-    candidateId: string,
+    candidateId: string | null | undefined,
     candidates: { id: string; name: string }[],
 ): string {
+    if (!candidateId) return "誰も支持しない";
     const hit = candidates.find((c) => c.id === candidateId);
     return hit?.name ?? candidateId;
 }

@@ -80,7 +80,7 @@ export function AllocVotingDonePage() {
                     </Link>
 
                     <Link
-                        to={`/elections/${result.electionId}/result`}
+                        to={`/elections/result?electionId=${result.electionId}`}
                         state={{ from: self }}
                     >
                         結果
@@ -161,6 +161,11 @@ export function AllocVotingDonePage() {
                                             imageUrl={null}
                                             index={i}
                                             size={30}
+                                            mode={
+                                                isCandidate
+                                                    ? "AUTO"
+                                                    : "SILHOUETTE"
+                                            }
                                         />
                                         <div
                                             style={{

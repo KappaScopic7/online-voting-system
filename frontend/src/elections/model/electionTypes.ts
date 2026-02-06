@@ -15,7 +15,7 @@ export type ElectionListItem = {
     candidateCount: number;
     canCast: boolean;
     currentVote: null | {
-        candidateId: string;
+        candidateId: string | null;
         candidateName: string | null;
         castedAt: string;
     };
@@ -26,10 +26,11 @@ export type ElectionResultResponse = {
     title: string;
     countingMethod: string; // "CURRENT"
     totalVotes: number;
+    noneSupportVotes: number; // ★ 追加
     talliedAt: string;
     results: {
-        candidateId: string;
-        candidateKey: string | null; // ★ 追加（null許容で安全）
+        candidateId: string | null;
+        candidateKey: string | null;
         candidateName: string;
         votes: number;
     }[];
@@ -45,7 +46,7 @@ export type ElectionDetailResponse = {
     candidates: ElectionCandidateSummary[];
     canCast: boolean;
     currentVote: null | {
-        candidateId: string;
+        candidateId: string | null;
         candidateName: string | null;
         castedAt: string;
     };
@@ -59,7 +60,7 @@ export type AllocElectionResultResponse = {
     noneSupportPoints: number;
     talliedAt: string;
     results: {
-        candidateId: string;
+        candidateId: string | null;
         candidateKey: string | null; // ★ 追加
         candidateName: string;
         points: number;

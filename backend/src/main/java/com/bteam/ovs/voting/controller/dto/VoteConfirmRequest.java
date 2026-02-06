@@ -4,5 +4,7 @@ import jakarta.validation.constraints.NotBlank;
 
 public record VoteConfirmRequest(
         @NotBlank String electionId,
-        @NotBlank String candidateId
-) {}
+        @NotBlank String type, // "CANDIDATE" | "NONE_SUPPORT"
+        String candidateId // type=CANDIDATE のとき必須
+) {
+}

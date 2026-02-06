@@ -12,6 +12,7 @@ import com.bteam.ovs.shared.auth.AccountResolver;
 import com.bteam.ovs.shared.errors.ApiException;
 import com.bteam.ovs.voting.repository.VoteAllocItemRepository;
 import com.bteam.ovs.voting.repository.VoteCurrentRepository;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
@@ -99,11 +100,18 @@ public class ElectionService {
                     if (finalIdentityLinked) {
                         var cur = finalCurrentByElectionId.get(e.getId());
                         if (cur != null) {
-                            var cid = cur.getCandidateId();
-                            currentVote = new ElectionListItem.CurrentVote(
-                                    cid,
-                                    candidateNameById.get(cid),
-                                    cur.getCastedAt());
+                            if ("NONE_SUPPORT".equals(cur.getType())) {
+                                currentVote = new ElectionListItem.CurrentVote(
+                                        null,
+                                        "誰も支持しない",
+                                        cur.getCastedAt());
+                            } else {
+                                var cid = cur.getCandidateId();
+                                currentVote = new ElectionListItem.CurrentVote(
+                                        cid,
+                                        candidateNameById.get(cid),
+                                        cur.getCastedAt());
+                            }
                         }
                     }
 
@@ -148,17 +156,24 @@ public class ElectionService {
 
         boolean canCast = identityLinked && "ONGOING".equals(st);
 
-        // 現在投票（単発取得）
         ElectionListItem.CurrentVote currentVote = null;
         if (identityLinked) {
             var curOpt = voteCurrentRepo.findByElectionIdAndCitizenId(electionId, citizenId);
             if (curOpt.isPresent()) {
                 var cur = curOpt.get();
-                UUID cid = cur.getCandidateId();
-                currentVote = new ElectionListItem.CurrentVote(
-                        cid,
-                        candidateNameById.get(cid),
-                        cur.getCastedAt());
+
+                if ("NONE_SUPPORT".equals(cur.getType())) {
+                    currentVote = new ElectionListItem.CurrentVote(
+                            null,
+                            "誰も支持しない",
+                            cur.getCastedAt());
+                } else {
+                    UUID cid = cur.getCandidateId();
+                    currentVote = new ElectionListItem.CurrentVote(
+                            cid,
+                            candidateNameById.get(cid),
+                            cur.getCastedAt());
+                }
             }
         }
 
@@ -185,12 +200,25 @@ public class ElectionService {
 
         var candidates = candidateService.summariesByElection(electionId);
 
-        Map<UUID, Long> countMap = voteCurrentRepo.countByElectionGroupByCandidate(electionId).stream()
-                .collect(Collectors.toMap(
-                        VoteCurrentRepository.VoteCount::getCandidateId,
-                        VoteCurrentRepository.VoteCount::getCnt));
+        var rows = voteCurrentRepo.countByElectionGroupByTypeAndCandidate(electionId);
 
-        long totalVotes = countMap.values().stream().mapToLong(Long::longValue).sum();
+        Map<UUID, Long> countMap = new HashMap<>();
+        long noneSupportVotes = 0L;
+
+        for (var r : rows) {
+            if ("NONE_SUPPORT".equals(r.getType())) {
+                noneSupportVotes += r.getCnt();
+                continue;
+            }
+            UUID cid = r.getCandidateId();
+            if (cid == null) {
+                noneSupportVotes += r.getCnt();
+                continue;
+            }
+            countMap.put(cid, r.getCnt());
+        }
+
+        long totalVotes = countMap.values().stream().mapToLong(Long::longValue).sum() + noneSupportVotes;
 
         var results = candidates.stream()
                 .map(c -> {
@@ -293,5 +321,4 @@ public class ElectionService {
                 result(electionId),
                 null);
     }
-
 }

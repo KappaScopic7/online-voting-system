@@ -145,8 +145,13 @@ function ElectionItemCard({
                     {voted ? (
                         <span>
                             現在の投票:{" "}
-                            {(e as any).currentVote?.candidateName ??
-                                "投票済み"}
+                            {(() => {
+                                const cv = (e as any).currentVote;
+                                if (!cv) return "なし";
+                                if (cv.candidateName) return cv.candidateName;
+                                if (!cv.candidateId) return "誰も支持しない";
+                                return "投票済み";
+                            })()}
                         </span>
                     ) : (
                         <span style={{ opacity: 0.6 }}>現在の投票: なし</span>

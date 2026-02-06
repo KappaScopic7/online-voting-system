@@ -15,7 +15,7 @@ import com.bteam.ovs.elections.repository.*;
 import com.bteam.ovs.parties.entity.Party;
 import com.bteam.ovs.parties.repository.PartyRepository;
 import com.bteam.ovs.voting.entity.VoteCast;
-import com.bteam.ovs.voting.entity.VoteCurrent;
+// import com.bteam.ovs.voting.entity.VoteCurrent;
 import com.bteam.ovs.voting.repository.VoteCastRepository;
 import com.bteam.ovs.voting.repository.VoteCurrentRepository;
 import com.bteam.ovs.voting.repository.VoteAllocCastRepository;
@@ -290,18 +290,19 @@ public class DemoDataInitializer {
             var cast = new VoteCast();
             cast.setElectionId(ce.electionId());
             cast.setCitizenId(vj.citizenId());
+            cast.setType("CANDIDATE");
             cast.setCandidateId(candidateId);
             cast.setCastedAt(castedAt);
             voteCastRepo.save(cast);
 
-            // current: upsert
-            var cur = voteCurrentRepo.findByElectionIdAndCitizenId(ce.electionId(), vj.citizenId())
-                    .orElseGet(VoteCurrent::new);
-            cur.setElectionId(ce.electionId());
-            cur.setCitizenId(vj.citizenId());
-            cur.setCandidateId(candidateId);
-            cur.setCastedAt(castedAt);
-            voteCurrentRepo.save(cur);
+            // current: upsert（type対応）
+            voteCurrentRepo.upsertCurrent(
+                    ce.electionId(),
+                    vj.citizenId(),
+                    "CANDIDATE",
+                    candidateId,
+                    castedAt);
+
         }
     }
 }

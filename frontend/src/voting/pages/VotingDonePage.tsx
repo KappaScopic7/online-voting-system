@@ -17,6 +17,21 @@ function formatJST(iso?: string | null): string {
     return `${y}/${m}/${day} ${hh}:${mm}`;
 }
 
+function EmptyAvatar({ size }: { size: number }) {
+    return (
+        <div
+            aria-hidden
+            style={{
+                width: size,
+                height: size,
+                borderRadius: 999,
+                border: "1px solid #eee",
+                background: "#fafafa",
+            }}
+        />
+    );
+}
+
 type DoneState = { result?: VoteHistoryItem; from?: string } | null;
 
 export function VotingDonePage() {
@@ -61,6 +76,11 @@ export function VotingDonePage() {
     }
 
     const self = loc.pathname + loc.search;
+
+    const isCandidate = result.type === "CANDIDATE" && !!result.candidateId;
+
+    const displayName =
+        result.candidateName ?? (isCandidate ? "(unknown)" : "誰も支持しない");
 
     return (
         <Page
@@ -122,26 +142,46 @@ export function VotingDonePage() {
                             flexWrap: "wrap",
                         }}
                     >
-                        <CandidateAvatar
-                            name={result.candidateName}
-                            imageUrl={null}
-                            index={0}
-                            size={34}
-                        />
+                        {isCandidate ? (
+                            <CandidateAvatar
+                                name={displayName}
+                                imageUrl={null}
+                                index={0}
+                                size={34}
+                            />
+                        ) : (
+                            <EmptyAvatar size={34} />
+                        )}
+
                         <div>
                             投票先:{" "}
-                            <Link
-                                to={`/elections/${result.electionId}/candidates/${result.candidateId}`}
-                                state={{ from: self }}
-                                style={{
-                                    color: "inherit",
-                                    textDecoration: "none",
-                                    fontWeight: 800,
-                                }}
-                                title="候補者詳細へ"
-                            >
-                                {result.candidateName}
-                            </Link>
+                            {isCandidate ? (
+                                <Link
+                                    to={`/elections/${result.electionId}/candidates/${result.candidateId}`}
+                                    state={{ from: self }}
+                                    style={{
+                                        color: "inherit",
+                                        textDecoration: "none",
+                                        fontWeight: 800,
+                                    }}
+                                    title="候補者詳細へ"
+                                >
+                                    {displayName}
+                                </Link>
+                            ) : (
+                                <strong>{displayName}</strong>
+                            )}
+                            {!isCandidate && (
+                                <span
+                                    style={{
+                                        marginLeft: 8,
+                                        fontSize: 12,
+                                        opacity: 0.7,
+                                    }}
+                                >
+                                    （候補者を選ばない）
+                                </span>
+                            )}
                         </div>
                     </div>
 
@@ -193,7 +233,7 @@ export function VotingDonePage() {
                 </div>
             </Card>
 
-            <DevDebug value={{ result, state, backTo, self }} />
+            <DevDebug value={{ result, state, backTo, self, isCandidate }} />
         </Page>
     );
 }

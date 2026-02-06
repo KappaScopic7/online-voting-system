@@ -24,6 +24,13 @@ type Row = {
     points: number;
 };
 
+function rowKey(r: Row): string {
+    return `${r.type}:${r.candidateId ?? "null"}`;
+}
+function isNone(r: Row) {
+    return r.type === "NONE_SUPPORT";
+}
+
 export function AllocVotingStartPage() {
     const nav = useNavigate();
     const loc = useLocation();
@@ -41,16 +48,28 @@ export function AllocVotingStartPage() {
     const [data, setData] = useState<AllocVoteStartResponse | null>(null);
 
     const [rows, setRows] = useState<Row[]>([]);
+
+    const total = data?.pointsPerVoter ?? 0;
+
     const sum = useMemo(
         () => rows.reduce((a, r) => a + (Number(r.points) || 0), 0),
         [rows],
     );
+    const rest = Math.max(0, total - sum);
+
+    const noneIdx = useMemo(() => rows.findIndex((r) => isNone(r)), [rows]);
+    const noneSelected = useMemo(() => {
+        if (noneIdx < 0) return false;
+        return (rows[noneIdx]?.points ?? 0) > 0;
+    }, [rows, noneIdx]);
 
     const canSubmit =
         !!data &&
-        sum === data.pointsPerVoter &&
+        sum === total &&
         rows.some((r) => (r.points ?? 0) > 0) &&
         !busy;
+
+    const clampInt = (v: number) => Math.max(0, Math.floor(Number(v) || 0));
 
     const load = async () => {
         if (!electionId) return;
@@ -59,11 +78,17 @@ export function AllocVotingStartPage() {
         try {
             const res = await allocStart(electionId);
             setData(res);
-            setRows(
-                res.options.map(
-                    (o, idx) => ({ ...o, points: 0, _idx: idx }) as any,
-                ),
-            );
+
+            // options はそのまま使う。ただし NONE_SUPPORT は最後に回す（目立たせない）
+            const normalized: Row[] = res.options.map((o) => ({
+                type: o.type,
+                candidateId: o.candidateId ?? null,
+                label: o.label,
+                points: 0,
+            }));
+            const candidates = normalized.filter((r) => r.type === "CANDIDATE");
+            const none = normalized.filter((r) => r.type === "NONE_SUPPORT");
+            setRows([...candidates, ...none]);
         } catch (e: any) {
             setErr(e?.response?.data?.message ?? "取得に失敗しました");
             setData(null);
@@ -83,14 +108,80 @@ export function AllocVotingStartPage() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [electionId]);
 
-    const setPoints = (idx: number, v: number) => {
-        setRows((prev) =>
-            prev.map((r, i) =>
-                i === idx
-                    ? { ...r, points: Math.max(0, Math.floor(v || 0)) }
-                    : r,
-            ),
+    // NONE_SUPPORT を全振り（確認つき）
+    const commitNoneAll = () => {
+        if (!data || busy) return;
+        const ok = window.confirm(
+            "「誰も支持しない」に全ポイントを入れます。\n（この場合、他の配分はすべて 0 になります）\n\n本当に実行しますか？",
         );
+        if (!ok) return;
+
+        setRows((prev) => {
+            const nIdx = prev.findIndex((r) => isNone(r));
+            if (nIdx < 0) return prev;
+            return prev.map((r, i) =>
+                i === nIdx ? { ...r, points: total } : { ...r, points: 0 },
+            );
+        });
+    };
+
+    const clearNone = () => {
+        if (busy) return;
+        setRows((prev) => {
+            const nIdx = prev.findIndex((r) => isNone(r));
+            if (nIdx < 0) return prev;
+            return prev.map((r, i) => (i === nIdx ? { ...r, points: 0 } : r));
+        });
+    };
+
+    // 候補者ポイント変更（NONEが入ってたら解除）
+    const setPoints = (idx: number, v: number) => {
+        if (!data || busy) return;
+
+        setRows((prev) => {
+            const next = prev.map((r) => ({ ...r }));
+            const nIdx = next.findIndex((r) => isNone(r));
+            if (nIdx >= 0 && (next[nIdx].points ?? 0) > 0) {
+                next[nIdx].points = 0; // NONE解除
+            }
+
+            // NONE_SUPPORT行は手入力させない（ボタン操作のみ）
+            if (isNone(next[idx])) return next;
+
+            next[idx].points = clampInt(v);
+
+            // 合計が total を超えたら最後に触った行を丸める
+            const s = next.reduce((a, r) => a + (Number(r.points) || 0), 0);
+            if (s > total) {
+                const over = s - total;
+                next[idx].points = Math.max(0, (next[idx].points ?? 0) - over);
+            }
+            return next;
+        });
+    };
+
+    const fillRestTo = (idx: number) => {
+        if (!data || busy) return;
+
+        setRows((prev) => {
+            const next = prev.map((r) => ({ ...r }));
+            const nIdx = next.findIndex((r) => isNone(r));
+            if (nIdx >= 0 && (next[nIdx].points ?? 0) > 0) {
+                next[nIdx].points = 0; // NONE解除
+            }
+
+            if (isNone(next[idx])) return next;
+
+            const s = next.reduce((a, r) => a + (Number(r.points) || 0), 0);
+            const r = Math.max(0, total - s);
+            next[idx].points = (next[idx].points ?? 0) + r;
+            return next;
+        });
+    };
+
+    const resetAll = () => {
+        if (busy) return;
+        setRows((prev) => prev.map((r) => ({ ...r, points: 0 })));
     };
 
     const onSubmit = async () => {
@@ -98,7 +189,7 @@ export function AllocVotingStartPage() {
 
         const req: AllocVoteConfirmRequest = {
             electionId: data.electionId,
-            pointsTotal: data.pointsPerVoter,
+            pointsTotal: total,
             items: rows
                 .filter((r) => (r.points ?? 0) > 0)
                 .map((r) => ({
@@ -114,10 +205,7 @@ export function AllocVotingStartPage() {
             const result = await allocConfirm(req);
 
             nav("/alloc-voting/done", {
-                state: {
-                    result,
-                    from: backTo,
-                },
+                state: { result, from: backTo },
             });
         } catch (e: any) {
             setErr(e?.response?.data?.message ?? "送信に失敗しました");
@@ -202,41 +290,191 @@ export function AllocVotingStartPage() {
 
             {!err && !loading && data && (
                 <div style={{ display: "grid", gap: 12 }}>
+                    {/* summary */}
                     <Card>
-                        <div style={{ display: "grid", gap: 6 }}>
+                        <div style={{ display: "grid", gap: 8 }}>
                             <strong style={{ fontSize: 16 }}>
                                 {data.electionTitle}
                             </strong>
-                            <div style={{ opacity: 0.85 }}>
-                                合計 <b>{data.pointsPerVoter}</b>pt
-                                になるように配分してください。
-                            </div>
-                            <div style={{ fontWeight: 800 }}>
-                                合計: {sum}/{data.pointsPerVoter}
-                            </div>
+
                             <div
                                 style={{
-                                    fontSize: 12,
-                                    opacity: 0.75,
-                                    lineHeight: 1.6,
+                                    display: "flex",
+                                    gap: 12,
+                                    flexWrap: "wrap",
+                                    alignItems: "baseline",
                                 }}
                             >
-                                ※ 合計が一致しないと送信できません
-                                <br />※
-                                送信後、投票履歴に記録されます（期間内なら変更可能）
+                                <div style={{ opacity: 0.85 }}>
+                                    合計 <b>{total}</b>pt
+                                    になるように配分してください。
+                                </div>
+
+                                <div
+                                    style={{
+                                        marginLeft: "auto",
+                                        fontWeight: 800,
+                                    }}
+                                >
+                                    合計: {sum}/{total}
+                                    <span
+                                        style={{
+                                            marginLeft: 10,
+                                            fontSize: 12,
+                                            opacity: 0.75,
+                                        }}
+                                    >
+                                        残り {rest}pt
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div
+                                style={{
+                                    display: "flex",
+                                    gap: 12,
+                                    flexWrap: "wrap",
+                                    alignItems: "center",
+                                }}
+                            >
+                                <button onClick={resetAll} disabled={busy}>
+                                    クリア
+                                </button>
+
+                                <span
+                                    style={{
+                                        marginLeft: "auto",
+                                        fontSize: 12,
+                                        opacity: 0.75,
+                                    }}
+                                >
+                                    ※ 合計が一致しないと送信できません /
+                                    期間内なら変更可能
+                                </span>
                             </div>
                         </div>
                     </Card>
 
+                    {/* rows */}
                     <Card>
                         <div style={{ display: "grid", gap: 10 }}>
                             {rows.map((r, idx) => {
-                                const isCandidate =
+                                const candidate =
                                     r.type === "CANDIDATE" && !!r.candidateId;
+                                const none = isNone(r);
 
+                                if (none) {
+                                    // 目立たせない “別枠”
+                                    return (
+                                        <div
+                                            key={rowKey(r)}
+                                            style={{
+                                                border: "1px dashed #eee",
+                                                borderRadius: 12,
+                                                padding: 12,
+                                                background: "#fafafa",
+                                                display: "grid",
+                                                gap: 10,
+                                                marginTop: 8,
+                                            }}
+                                        >
+                                            <div
+                                                style={{
+                                                    display: "flex",
+                                                    gap: 10,
+                                                    alignItems: "center",
+                                                    flexWrap: "wrap",
+                                                }}
+                                            >
+                                                <div
+                                                    aria-hidden
+                                                    style={{
+                                                        width: 40,
+                                                        height: 40,
+                                                        borderRadius: 999,
+                                                        border: "1px solid #eee",
+                                                        background: "#f7f7f7",
+                                                    }}
+                                                />
+
+                                                <div
+                                                    style={{
+                                                        display: "grid",
+                                                        gap: 2,
+                                                        flex: 1,
+                                                    }}
+                                                >
+                                                    <div
+                                                        style={{
+                                                            fontWeight: 700,
+                                                        }}
+                                                    >
+                                                        {r.label}
+                                                    </div>
+                                                    <div
+                                                        style={{
+                                                            fontSize: 12,
+                                                            opacity: 0.75,
+                                                            lineHeight: 1.5,
+                                                        }}
+                                                    >
+                                                        ※
+                                                        できるだけ候補者へ配分してください。
+                                                        <br />※ 選択すると{" "}
+                                                        {total}pt
+                                                        を一括で消費します。
+                                                    </div>
+                                                </div>
+
+                                                {noneSelected ? (
+                                                    <button
+                                                        type="button"
+                                                        onClick={clearNone}
+                                                        disabled={busy}
+                                                    >
+                                                        解除
+                                                    </button>
+                                                ) : (
+                                                    <button
+                                                        type="button"
+                                                        onClick={commitNoneAll}
+                                                        disabled={busy}
+                                                    >
+                                                        この選択をする…
+                                                    </button>
+                                                )}
+                                            </div>
+
+                                            <div
+                                                style={{
+                                                    display: "flex",
+                                                    gap: 8,
+                                                    alignItems: "baseline",
+                                                    flexWrap: "wrap",
+                                                }}
+                                            >
+                                                <div
+                                                    style={{
+                                                        fontSize: 12,
+                                                        opacity: 0.75,
+                                                    }}
+                                                >
+                                                    現在:
+                                                </div>
+                                                <div
+                                                    style={{ fontWeight: 800 }}
+                                                >
+                                                    {r.points}pt
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                }
+
+                                // 通常候補者
                                 return (
                                     <div
-                                        key={`${r.type}-${r.candidateId ?? "none"}`}
+                                        key={rowKey(r)}
                                         style={{
                                             border: "1px solid #eee",
                                             borderRadius: 12,
@@ -279,13 +517,11 @@ export function AllocVotingStartPage() {
                                                         opacity: 0.7,
                                                     }}
                                                 >
-                                                    {r.type === "NONE_SUPPORT"
-                                                        ? "（誰も支持しない）"
-                                                        : "候補者"}
+                                                    候補者
                                                 </div>
                                             </div>
 
-                                            {isCandidate && (
+                                            {candidate && (
                                                 <Link
                                                     to={`/elections/${data.electionId}/candidates/${r.candidateId}`}
                                                     state={{ from: self }}
@@ -319,6 +555,16 @@ export function AllocVotingStartPage() {
                                                 disabled={busy}
                                             />
                                             <span>pt</span>
+
+                                            <button
+                                                type="button"
+                                                onClick={() => fillRestTo(idx)}
+                                                disabled={busy || rest === 0}
+                                                style={{ fontSize: 12 }}
+                                                title="残りポイントをこの候補に追加します"
+                                            >
+                                                残りを入れる
+                                            </button>
 
                                             <span
                                                 style={{
@@ -379,6 +625,8 @@ export function AllocVotingStartPage() {
                     data,
                     rows,
                     sum,
+                    rest,
+                    noneSelected,
                     err,
                     loading,
                     busy,

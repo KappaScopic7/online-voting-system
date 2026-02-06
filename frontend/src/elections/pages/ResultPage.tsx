@@ -263,8 +263,9 @@ export function ResultPage() {
             const a = bundle.alloc;
             if (!a) return [];
             return [...a.results]
+                .filter((r) => !!r.candidateId) // ★ null除外（NONE_SUPPORT を混ぜてても落ちない）
                 .map((r) => ({
-                    candidateId: r.candidateId,
+                    candidateId: r.candidateId as string, // ★ ここで確定
                     candidateKey: (r as any).candidateKey ?? null,
                     candidateName: r.candidateName,
                     value: r.points,
@@ -274,8 +275,9 @@ export function ResultPage() {
             const n = bundle.normal;
             if (!n) return [];
             return [...n.results]
+                .filter((r) => !!r.candidateId) // ★ null除外
                 .map((r) => ({
-                    candidateId: r.candidateId,
+                    candidateId: r.candidateId as string, // ★ ここで確定
                     candidateKey: (r as any).candidateKey ?? null,
                     candidateName: r.candidateName,
                     value: r.votes,
@@ -394,7 +396,11 @@ export function ResultPage() {
                             {!isAlloc ? (
                                 <span style={{ opacity: 0.85 }}>
                                     総投票数:{" "}
-                                    <b>{bundle.normal?.totalVotes ?? 0}</b>
+                                    <b>{bundle.normal?.totalVotes ?? 0}</b> /
+                                    誰も支持しない:{" "}
+                                    <b>
+                                        {bundle.normal?.noneSupportVotes ?? 0}
+                                    </b>
                                 </span>
                             ) : (
                                 <span style={{ opacity: 0.85 }}>

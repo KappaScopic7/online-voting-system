@@ -2,27 +2,33 @@
 import { httpUser } from "../../shared/httpUser";
 
 /* ===== types ===== */
+export type VoteType = "CANDIDATE" | "NONE_SUPPORT";
+
 export type VoteHistoryItem = {
     voteId: string;
     electionId: string;
     electionTitle: string;
 
-    // ★ 追加：候補者詳細リンク用
-    candidateId: string;
+    electionStatus: "ONGOING" | "ENDED" | "UPCOMING" | string;
 
+    // ★ type を追加（超大事）
+    type: VoteType;
+
+    // ★ NONE_SUPPORT で null を許容
+    candidateId: string | null;
     candidateName: string;
     castedAt: string;
-    electionStatus: "ONGOING" | "ENDED" | "UPCOMING";
 };
 
 export type VoteStartResponse = {
     electionId: string;
     title: string;
-    candidates: {
-        candidateId: string;
-        name: string;
-    }[];
+    candidates: { candidateId: string; name: string }[];
 };
+
+export type VoteConfirmRequest =
+    | { electionId: string; type: "CANDIDATE"; candidateId: string }
+    | { electionId: string; type: "NONE_SUPPORT"; candidateId?: null };
 
 /* ===== api ===== */
 export async function startVoting(
@@ -34,18 +40,16 @@ export async function startVoting(
     return res.data;
 }
 
+// ★ これ1本で candidate / noneSupport 両対応
 export async function confirmVote(
-    electionId: string,
-    candidateId: string,
+    req: VoteConfirmRequest,
 ): Promise<VoteHistoryItem> {
-    const res = await httpUser.post<VoteHistoryItem>("/voting/confirm", {
-        electionId,
-        candidateId,
-    });
+    const res = await httpUser.post<VoteHistoryItem>("/voting/confirm", req);
     return res.data;
 }
 
+// ★ パスは backend に合わせて /voting/history
 export async function fetchVoteHistory(): Promise<VoteHistoryItem[]> {
-    const res = await httpUser.get<VoteHistoryItem[]>("/votes");
+    const res = await httpUser.get<VoteHistoryItem[]>("/voting/history");
     return res.data;
 }

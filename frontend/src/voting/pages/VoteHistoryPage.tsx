@@ -18,6 +18,21 @@ function formatJST(iso?: string | null): string {
     return `${y}/${m}/${day} ${hh}:${mm}`;
 }
 
+function EmptyAvatar({ size }: { size: number }) {
+    return (
+        <div
+            aria-hidden
+            style={{
+                width: size,
+                height: size,
+                borderRadius: 999,
+                border: "1px solid #eee",
+                background: "#fafafa",
+            }}
+        />
+    );
+}
+
 type Group = {
     electionId: string;
     electionTitle: string;
@@ -29,6 +44,25 @@ type LocationState = { from?: string } | null;
 function VoteRow({ v, from }: { v: VoteHistoryItem; from: string }) {
     const [hover, setHover] = useState(false);
     const isDev = import.meta.env?.DEV;
+
+    const isCandidate = v.type === "CANDIDATE" && !!v.candidateId;
+
+    const label =
+        v.candidateName ||
+        (isCandidate ? "(unknown candidate)" : "誰も支持しない");
+
+    const labelNode = isCandidate ? (
+        <Link
+            to={`/elections/${v.electionId}/candidates/${v.candidateId}`}
+            state={{ from }}
+            style={{ color: "inherit", textDecoration: "none" }}
+            title="候補者詳細へ"
+        >
+            {label}
+        </Link>
+    ) : (
+        <span>{label}</span>
+    );
 
     return (
         <div
@@ -70,31 +104,32 @@ function VoteRow({ v, from }: { v: VoteHistoryItem; from: string }) {
                     flexWrap: "wrap",
                 }}
             >
-                <CandidateAvatar
-                    name={v.candidateName}
-                    imageUrl={null}
-                    index={0}
-                    size={30}
-                />
+                {isCandidate ? (
+                    <CandidateAvatar
+                        name={label}
+                        imageUrl={null}
+                        index={0}
+                        size={30}
+                        mode={isCandidate ? "AUTO" : "SILHOUETTE"}
+                    />
+                ) : (
+                    <EmptyAvatar size={30} />
+                )}
 
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                     <span>
-                        投票先:{" "}
-                        <strong>
-                            <Link
-                                to={`/elections/${v.electionId}/candidates/${v.candidateId}`}
-                                state={{
-                                    from: from,
-                                }}
+                        投票先: <strong>{labelNode}</strong>
+                        {!isCandidate && (
+                            <span
                                 style={{
-                                    color: "inherit",
-                                    textDecoration: "none",
+                                    marginLeft: 8,
+                                    fontSize: 12,
+                                    opacity: 0.7,
                                 }}
-                                title="候補者詳細へ"
                             >
-                                {v.candidateName}
-                            </Link>
-                        </strong>
+                                （候補者を選ばない）
+                            </span>
+                        )}
                     </span>
                 </div>
 
@@ -107,6 +142,10 @@ function VoteRow({ v, from }: { v: VoteHistoryItem; from: string }) {
                         }}
                     >
                         voteId: {v.voteId}
+                        {" / "}
+                        type: {v.type}
+                        {" / "}
+                        candidateId: {v.candidateId ?? "null"}
                     </span>
                 )}
             </div>
@@ -125,7 +164,6 @@ export function VoteHistoryPage() {
     const backTo = normalizeFrom(state?.from ?? "/me");
     const from = loc.pathname + loc.search;
 
-    // UI control
     const [q, setQ] = useState("");
 
     const load = async () => {
@@ -190,9 +228,14 @@ export function VoteHistoryPage() {
                     .toLowerCase()
                     .includes(keyword);
 
-                const hitItems = g.items.filter((v) =>
-                    (v.candidateName ?? "").toLowerCase().includes(keyword),
-                );
+                const hitItems = g.items.filter((v) => {
+                    const label =
+                        v.candidateName ??
+                        (v.type === "NONE_SUPPORT"
+                            ? "誰も支持しない"
+                            : "(unknown candidate)");
+                    return label.toLowerCase().includes(keyword);
+                });
 
                 if (hitElection) return g;
                 if (hitItems.length === 0) return null;
@@ -241,7 +284,7 @@ export function VoteHistoryPage() {
                     <input
                         value={q}
                         onChange={(e) => setQ(e.target.value)}
-                        placeholder="検索（選挙名 / 候補者名）"
+                        placeholder="検索（選挙名 / 投票先）"
                         style={{ flex: 1, minWidth: 240, padding: 8 }}
                     />
                     <span style={{ fontSize: 12, opacity: 0.75 }}>

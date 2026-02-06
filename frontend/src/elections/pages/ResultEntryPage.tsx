@@ -41,6 +41,8 @@ export function ResultEntryPage() {
         (async () => {
             const list = await fetchElections();
             const e = list.find((x: any) => x.electionId === electionId);
+            if (!e) throw new Error("ELECTION_NOT_FOUND_IN_LIST");
+
             const kind = detectKind(e);
 
             // ★ queryは付けない

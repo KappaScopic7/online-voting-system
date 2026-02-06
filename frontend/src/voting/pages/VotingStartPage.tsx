@@ -1,37 +1,79 @@
 // frontend/src/voting/pages/VotingStartPage.tsx
 import { useEffect, useMemo, useState } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import {
+    Link,
+    useLocation,
+    useNavigate,
+    useSearchParams,
+} from "react-router-dom";
 import { confirmVote, startVoting } from "../api/votes";
-import type { VoteStartResponse } from "../api/votes";
+import type { VoteConfirmRequest, VoteStartResponse } from "../api/votes";
 import { Card, DevDebug, Page } from "../../shared/ui/page";
 import { normalizeFrom } from "../../shared/normalizeFrom";
 import { CandidateAvatar } from "../../shared/ui/CandidateAvatar";
 
-function useQuery() {
-    const { search } = useLocation();
-    return useMemo(() => new URLSearchParams(search), [search]);
+type LocationState = { from?: string } | null;
+
+type Option = {
+    type: "CANDIDATE" | "NONE_SUPPORT";
+    candidateId: string | null;
+    name: string;
+};
+
+function keyOf(o: Option): string {
+    return o.type === "NONE_SUPPORT"
+        ? "NONE_SUPPORT"
+        : `CANDIDATE:${o.candidateId}`;
 }
 
-type LocationState = { from?: string } | null;
+function parseSelectedKey(
+    k: string,
+):
+    | { type: "NONE_SUPPORT" }
+    | { type: "CANDIDATE"; candidateId: string }
+    | null {
+    if (!k) return null;
+    if (k === "NONE_SUPPORT") return { type: "NONE_SUPPORT" };
+    const m = k.match(/^CANDIDATE:(.+)$/);
+    if (!m) return null;
+    return { type: "CANDIDATE", candidateId: m[1] };
+}
 
 export function VotingStartPage() {
     const nav = useNavigate();
     const loc = useLocation();
     const state = (loc.state as LocationState) ?? null;
 
-    const q = useQuery();
-    const electionId = q.get("electionId");
+    const [sp] = useSearchParams();
+    const electionId = sp.get("electionId") ?? ""; // ★ string固定
 
     const self = loc.pathname + loc.search;
     const backTo = normalizeFrom(state?.from ?? "/me/elections");
 
     const [data, setData] = useState<VoteStartResponse | null>(null);
-    const [selectedCandidateId, setSelectedCandidateId] = useState<string>("");
+
+    const options = useMemo<Option[]>(() => {
+        const base: Option[] =
+            data?.candidates?.map((c) => ({
+                type: "CANDIDATE",
+                candidateId: c.candidateId,
+                name: c.name,
+            })) ?? [];
+
+        base.push({
+            type: "NONE_SUPPORT",
+            candidateId: null,
+            name: "誰も支持しない",
+        });
+
+        return base;
+    }, [data]);
+
+    const [selectedKey, setSelectedKey] = useState<string>("");
     const [error, setError] = useState<string | null>(null);
 
     const [isLoading, setIsLoading] = useState(false);
     const [busy, setBusy] = useState(false);
-
     const [step, setStep] = useState<"SELECT" | "CONFIRM">("SELECT");
 
     const load = async () => {
@@ -42,7 +84,13 @@ export function VotingStartPage() {
         try {
             const res = await startVoting(electionId);
             setData(res);
-            setSelectedCandidateId(res.candidates?.[0]?.candidateId ?? "");
+
+            const firstCandidateId = res.candidates?.[0]?.candidateId ?? null;
+            setSelectedKey(
+                firstCandidateId
+                    ? `CANDIDATE:${firstCandidateId}`
+                    : "NONE_SUPPORT",
+            );
             setStep("SELECT");
         } catch (err: any) {
             const status = err?.response?.status;
@@ -58,7 +106,7 @@ export function VotingStartPage() {
             }
 
             setData(null);
-            setSelectedCandidateId("");
+            setSelectedKey("");
             setStep("SELECT");
         } finally {
             setIsLoading(false);
@@ -66,21 +114,33 @@ export function VotingStartPage() {
     };
 
     useEffect(() => {
+        if (!electionId) return;
         load();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [electionId]);
 
-    const selected = useMemo(() => {
+    const selected = useMemo<Option | null>(() => {
+        const p = parseSelectedKey(selectedKey);
+        if (!p) return null;
+
+        if (p.type === "NONE_SUPPORT") {
+            return {
+                type: "NONE_SUPPORT",
+                candidateId: null,
+                name: "誰も支持しない",
+            };
+        }
+
         return (
-            data?.candidates?.find(
-                (c) => c.candidateId === selectedCandidateId,
+            options.find(
+                (o) =>
+                    o.type === "CANDIDATE" && o.candidateId === p.candidateId,
             ) ?? null
         );
-    }, [data, selectedCandidateId]);
+    }, [selectedKey, options]);
 
-    const canGoConfirm =
-        !!selectedCandidateId && !!data?.candidates?.length && !busy;
-    const canSubmit = step === "CONFIRM" && !!selectedCandidateId && !busy;
+    const canGoConfirm = !!selectedKey && !!data && !busy;
+    const canSubmit = step === "CONFIRM" && !!selected && !busy;
 
     const onGoConfirm = () => {
         if (!canGoConfirm) return;
@@ -94,18 +154,24 @@ export function VotingStartPage() {
     };
 
     const onSubmit = async () => {
-        if (!electionId || !selectedCandidateId) return;
+        if (!electionId || !selected || busy) return;
+
+        const req: VoteConfirmRequest =
+            selected.type === "NONE_SUPPORT"
+                ? { electionId, type: "NONE_SUPPORT" }
+                : {
+                      electionId,
+                      type: "CANDIDATE",
+                      candidateId: selected.candidateId as string,
+                  };
 
         setBusy(true);
         setError(null);
         try {
-            const result = await confirmVote(electionId, selectedCandidateId);
+            const result = await confirmVote(req);
 
             nav("/voting/done", {
-                state: {
-                    result,
-                    from: backTo,
-                },
+                state: { result, from: backTo },
             });
         } catch (err: any) {
             const status = err?.response?.status;
@@ -200,6 +266,17 @@ export function VotingStartPage() {
                                     electionId: {data.electionId}
                                 </div>
                             )}
+                            <div
+                                style={{
+                                    fontSize: 12,
+                                    opacity: 0.75,
+                                    lineHeight: 1.6,
+                                }}
+                            >
+                                ※ 送信後、投票履歴に記録されます
+                                <br />※
+                                投票は期間内であれば何度でも変更できます（最後に送信した内容が有効）
+                            </div>
                         </div>
                     </Card>
 
@@ -208,93 +285,100 @@ export function VotingStartPage() {
                             {step === "SELECT" ? (
                                 <>
                                     <div style={{ fontWeight: 800 }}>
-                                        候補者を選択
+                                        投票先を選択
                                     </div>
 
-                                    {data.candidates?.length ? (
-                                        <div
-                                            style={{ display: "grid", gap: 10 }}
-                                        >
-                                            {data.candidates.map((c, idx) => {
-                                                const selectedNow =
-                                                    selectedCandidateId ===
-                                                    c.candidateId;
+                                    <div style={{ display: "grid", gap: 10 }}>
+                                        {options.map((o, idx) => {
+                                            const key = keyOf(o);
+                                            const selectedNow =
+                                                selectedKey === key;
+                                            const isCandidate =
+                                                o.type === "CANDIDATE" &&
+                                                !!o.candidateId;
 
-                                                return (
-                                                    <label
-                                                        key={c.candidateId}
-                                                        style={{
-                                                            border: "1px solid #eee",
-                                                            borderRadius: 12,
-                                                            padding: 12,
-                                                            display: "flex",
-                                                            alignItems:
-                                                                "center",
-                                                            gap: 12,
-                                                            background:
-                                                                selectedNow
-                                                                    ? "#f5f5f5"
-                                                                    : "#fff",
-                                                            cursor: busy
-                                                                ? "not-allowed"
-                                                                : "pointer",
-                                                            transition:
-                                                                "transform 120ms ease, box-shadow 120ms ease, background 120ms ease",
-                                                            boxShadow:
-                                                                "0 0 0 rgba(0,0,0,0)",
-                                                            flexWrap: "wrap",
-                                                        }}
-                                                        onMouseEnter={(e) => {
-                                                            if (busy) return;
-                                                            e.currentTarget.style.boxShadow =
-                                                                "0 2px 10px rgba(0,0,0,0.06)";
-                                                            e.currentTarget.style.transform =
-                                                                "translateY(-1px)";
-                                                        }}
-                                                        onMouseLeave={(e) => {
-                                                            e.currentTarget.style.boxShadow =
-                                                                "0 0 0 rgba(0,0,0,0)";
-                                                            e.currentTarget.style.transform =
-                                                                "translateY(0)";
-                                                        }}
-                                                    >
-                                                        <input
-                                                            type="radio"
-                                                            name="candidate"
-                                                            value={
-                                                                c.candidateId
-                                                            }
-                                                            checked={
-                                                                selectedNow
-                                                            }
-                                                            onChange={() =>
-                                                                setSelectedCandidateId(
-                                                                    c.candidateId,
-                                                                )
-                                                            }
-                                                            disabled={busy}
-                                                        />
+                                            return (
+                                                <label
+                                                    key={key}
+                                                    style={{
+                                                        border: "1px solid #eee",
+                                                        borderRadius: 12,
+                                                        padding: 12,
+                                                        display: "flex",
+                                                        alignItems: "center",
+                                                        gap: 12,
+                                                        background: selectedNow
+                                                            ? "#f5f5f5"
+                                                            : "#fff",
+                                                        cursor: busy
+                                                            ? "not-allowed"
+                                                            : "pointer",
+                                                        transition:
+                                                            "transform 120ms ease, box-shadow 120ms ease, background 120ms ease",
+                                                        boxShadow:
+                                                            "0 0 0 rgba(0,0,0,0)",
+                                                        flexWrap: "wrap",
+                                                    }}
+                                                    onMouseEnter={(e) => {
+                                                        if (busy) return;
+                                                        e.currentTarget.style.boxShadow =
+                                                            "0 2px 10px rgba(0,0,0,0.06)";
+                                                        e.currentTarget.style.transform =
+                                                            "translateY(-1px)";
+                                                    }}
+                                                    onMouseLeave={(e) => {
+                                                        e.currentTarget.style.boxShadow =
+                                                            "0 0 0 rgba(0,0,0,0)";
+                                                        e.currentTarget.style.transform =
+                                                            "translateY(0)";
+                                                    }}
+                                                >
+                                                    <input
+                                                        type="radio"
+                                                        name="voteTarget"
+                                                        value={key}
+                                                        checked={selectedNow}
+                                                        onChange={() =>
+                                                            setSelectedKey(key)
+                                                        }
+                                                        disabled={busy}
+                                                    />
 
+                                                    {o.type === "CANDIDATE" ? (
                                                         <CandidateAvatar
-                                                            name={c.name}
+                                                            name={o.name}
                                                             imageUrl={null}
                                                             index={idx}
                                                             size={32}
                                                         />
-
-                                                        <span
+                                                    ) : (
+                                                        <div
+                                                            aria-hidden
                                                             style={{
-                                                                fontWeight:
-                                                                    selectedNow
-                                                                        ? 800
-                                                                        : 600,
+                                                                width: 32,
+                                                                height: 32,
+                                                                borderRadius: 999,
+                                                                border: "1px solid #eee",
+                                                                background:
+                                                                    "#fafafa",
                                                             }}
-                                                        >
-                                                            {c.name}
-                                                        </span>
+                                                        />
+                                                    )}
 
+                                                    <span
+                                                        style={{
+                                                            fontWeight:
+                                                                selectedNow
+                                                                    ? 800
+                                                                    : 600,
+                                                        }}
+                                                    >
+                                                        {o.name}
+                                                    </span>
+
+                                                    {isCandidate ? (
                                                         <Link
-                                                            to={`/elections/${electionId}/candidates/${c.candidateId}`}
+                                                            to={`/elections/${electionId}/candidates/${o.candidateId}`}
                                                             state={{
                                                                 from: self,
                                                             }}
@@ -309,33 +393,33 @@ export function VotingStartPage() {
                                                         >
                                                             詳細 →
                                                         </Link>
+                                                    ) : (
+                                                        <span
+                                                            style={{
+                                                                fontSize: 12,
+                                                                opacity: 0.75,
+                                                                marginLeft:
+                                                                    "auto",
+                                                            }}
+                                                        >
+                                                            （候補者を選ばない）
+                                                        </span>
+                                                    )}
 
-                                                        {isDev && (
-                                                            <span
-                                                                style={{
-                                                                    fontSize: 12,
-                                                                    opacity: 0.7,
-                                                                }}
-                                                            >
-                                                                {c.candidateId}
-                                                            </span>
-                                                        )}
-                                                    </label>
-                                                );
-                                            })}
-                                        </div>
-                                    ) : (
-                                        <div
-                                            style={{
-                                                border: "1px solid #eee",
-                                                borderRadius: 12,
-                                                padding: 12,
-                                                background: "#fafafa",
-                                            }}
-                                        >
-                                            候補者がいません（投票できません）
-                                        </div>
-                                    )}
+                                                    {isDev && isCandidate && (
+                                                        <span
+                                                            style={{
+                                                                fontSize: 12,
+                                                                opacity: 0.7,
+                                                            }}
+                                                        >
+                                                            {o.candidateId}
+                                                        </span>
+                                                    )}
+                                                </label>
+                                            );
+                                        })}
+                                    </div>
 
                                     <div
                                         style={{
@@ -390,6 +474,7 @@ export function VotingStartPage() {
                                             選挙: <strong>{data.title}</strong>
                                         </div>
 
+                                        {/* VotingStartPage CONFIRM の中 */}
                                         <div
                                             style={{
                                                 display: "flex",
@@ -398,12 +483,25 @@ export function VotingStartPage() {
                                                 flexWrap: "wrap",
                                             }}
                                         >
-                                            <CandidateAvatar
-                                                name={selected?.name ?? "?"}
-                                                imageUrl={null}
-                                                index={0}
-                                                size={34}
-                                            />
+                                            {selected?.type === "CANDIDATE" ? (
+                                                <CandidateAvatar
+                                                    name={selected?.name ?? "?"}
+                                                    imageUrl={null}
+                                                    index={0}
+                                                    size={34}
+                                                />
+                                            ) : (
+                                                <div
+                                                    aria-hidden
+                                                    style={{
+                                                        width: 34,
+                                                        height: 34,
+                                                        borderRadius: 999,
+                                                        border: "1px solid #eee",
+                                                        background: "#fafafa",
+                                                    }}
+                                                />
+                                            )}
 
                                             <div>
                                                 投票先:{" "}
@@ -412,18 +510,19 @@ export function VotingStartPage() {
                                                 </strong>
                                             </div>
 
-                                            {selected?.candidateId && (
-                                                <Link
-                                                    to={`/elections/${electionId}/candidates/${selected.candidateId}`}
-                                                    state={{ from: self }}
-                                                    style={{
-                                                        marginLeft: "auto",
-                                                        fontSize: 13,
-                                                    }}
-                                                >
-                                                    詳細 →
-                                                </Link>
-                                            )}
+                                            {selected?.type === "CANDIDATE" &&
+                                                selected.candidateId && (
+                                                    <Link
+                                                        to={`/elections/${electionId}/candidates/${selected.candidateId}`}
+                                                        state={{ from: self }}
+                                                        style={{
+                                                            marginLeft: "auto",
+                                                            fontSize: 13,
+                                                        }}
+                                                    >
+                                                        詳細 →
+                                                    </Link>
+                                                )}
                                         </div>
 
                                         <div
@@ -479,8 +578,10 @@ export function VotingStartPage() {
                 value={{
                     electionId,
                     data,
+                    optionsLen: options.length,
                     error,
-                    selectedCandidateId,
+                    selectedKey,
+                    selected,
                     busy,
                     isLoading,
                     step,
