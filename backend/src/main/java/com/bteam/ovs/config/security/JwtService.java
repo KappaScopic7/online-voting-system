@@ -15,6 +15,7 @@ import java.security.Key;
 import java.time.Instant;
 import java.util.Date;
 import java.util.UUID;
+import java.time.Duration;
 
 @Component
 public class JwtService {
@@ -79,25 +80,6 @@ public class JwtService {
         return key;
     }
 
-    public String issueVoteToken(UUID citizenId, UUID electionId) {
-        Instant now = Instant.now();
-        Instant exp = now.plusSeconds(5 * 60);
-
-        System.out.println("[JWT] issueVoteToken: citizenId=" + citizenId
-                + " electionId=" + electionId
-                + " iat=" + now
-                + " exp=" + exp);
-
-        return Jwts.builder()
-                .setSubject(citizenId.toString())
-                .claim(JwtClaims.KIND, "VOTE")
-                .claim("eid", electionId.toString())
-                .setIssuedAt(Date.from(now))
-                .setExpiration(Date.from(exp))
-                .signWith(key, SignatureAlgorithm.HS256)
-                .compact();
-    }
-
     // ===== helpers =====
 
     private static String safe(String s) {
@@ -123,5 +105,31 @@ public class JwtService {
         // 例: abcd...(len=40)
         String head = s.substring(0, k);
         return head + "...(len=" + len + ")";
+    }
+
+    public String issueVoteToken(UUID citizenId, UUID electionId, Duration ttl) {
+        Instant now = Instant.now();
+        long sec = Math.max(30, ttl == null ? 300 : ttl.toSeconds()); // 最低30秒など保険
+        Instant exp = now.plusSeconds(sec);
+
+        System.out.println("[JWT] issueVoteToken: citizenId=" + citizenId
+                + " electionId=" + electionId
+                + " ttlSec=" + sec
+                + " iat=" + now
+                + " exp=" + exp);
+
+        return Jwts.builder()
+                .setSubject(citizenId.toString())
+                .claim(JwtClaims.KIND, "VOTE")
+                .claim("eid", electionId.toString())
+                .setIssuedAt(Date.from(now))
+                .setExpiration(Date.from(exp))
+                .signWith(key, SignatureAlgorithm.HS256)
+                .compact();
+    }
+
+    // 既存互換
+    public String issueVoteToken(UUID citizenId, UUID electionId) {
+        return issueVoteToken(citizenId, electionId, Duration.ofMinutes(5));
     }
 }

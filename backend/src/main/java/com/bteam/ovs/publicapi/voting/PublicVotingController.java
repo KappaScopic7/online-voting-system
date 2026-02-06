@@ -2,6 +2,7 @@
 package com.bteam.ovs.publicapi.voting;
 
 import com.bteam.ovs.shared.errors.ApiException;
+import com.bteam.ovs.shared.security.PrincipalExtractor;
 import com.bteam.ovs.shared.validation.UuidParsers;
 import com.bteam.ovs.voting.controller.dto.VoteConfirmRequest;
 import com.bteam.ovs.voting.controller.dto.VoteHistoryItem;
@@ -46,7 +47,7 @@ public class PublicVotingController {
             Authentication auth,
             @RequestAttribute(name = ATTR_EID, required = false) Object tokenEidObj) {
 
-        UUID citizenId = requireCitizenId(auth);
+        UUID citizenId = PrincipalExtractor.requireVoteCitizenId(auth);
         UUID reqEid = UuidParsers.parseOr400(electionId, "INVALID_ELECTION_ID", "electionIdが不正です");
 
         UUID tokenEid = requireTokenElectionId(tokenEidObj);
@@ -63,7 +64,7 @@ public class PublicVotingController {
             Authentication auth,
             @RequestAttribute(name = ATTR_EID, required = false) Object tokenEidObj) {
 
-        UUID citizenId = requireCitizenId(auth);
+        UUID citizenId = PrincipalExtractor.requireVoteCitizenId(auth);
 
         UUID electionId = UuidParsers.parseOr400(req.electionId(), "INVALID_ELECTION_ID", "electionIdが不正です");
         UUID candidateId = UuidParsers.parseOr400(req.candidateId(), "INVALID_CANDIDATE_ID", "candidateIdが不正です");

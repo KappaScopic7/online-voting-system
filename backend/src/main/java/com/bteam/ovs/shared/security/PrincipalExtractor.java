@@ -57,4 +57,22 @@ public final class PrincipalExtractor {
             return null;
         return ap.accountId();
     }
+
+    public static VotePrincipal requireVotePrincipal(Authentication auth) {
+        if (auth == null || auth.getPrincipal() == null) {
+            throw new ApiException(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "本人認証が必要です");
+        }
+        Object p = auth.getPrincipal();
+        if (p instanceof VotePrincipal vp)
+            return vp;
+        throw new ApiException(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "投票用認証情報が不正です");
+    }
+
+    public static UUID requireVoteCitizenId(Authentication auth) {
+        return requireVotePrincipal(auth).citizenId();
+    }
+
+    public static UUID requireVoteElectionId(Authentication auth) {
+        return requireVotePrincipal(auth).electionId();
+    }
 }

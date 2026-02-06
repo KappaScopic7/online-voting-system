@@ -1,10 +1,10 @@
-// backend/src/main/java/com/bteam/ovs/config/security/JwtAuthenticationFilter.java
 package com.bteam.ovs.config.security;
 
 import com.bteam.ovs.auth.entity.AccountKind;
 import com.bteam.ovs.auth.entity.Role;
 import com.bteam.ovs.shared.security.AuthPrincipal;
 import com.bteam.ovs.shared.security.JwtClaims;
+import com.bteam.ovs.shared.security.VotePrincipal;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.JwtException;
@@ -45,9 +45,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         final String path = request.getRequestURI();
         final String auth = request.getHeader("Authorization");
 
-        // 入口ログ（毎回）
-        System.out.println("[JWT] hit " + method + " " + path
-                + " authPresent=" + (auth != null));
+        System.out.println("[JWT] hit " + method + " " + path + " authPresent=" + (auth != null));
 
         if (auth == null) {
             chain.doFilter(request, response);
@@ -68,7 +66,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
 
-        // トークン本体は出さない（長さだけ or 先頭少しだけ）
         System.out.println("[JWT] tokenPresent len=" + token.length() + " head=" + preview(token, 12));
 
         try {
@@ -78,19 +75,71 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     .parseClaimsJws(token)
                     .getBody();
 
-            // claimsのキー一覧（重要：ここで claim 名ズレが分かる）
-            System.out.println("[JWT] parsed OK. claimKeys=" + claims.keySet() + " sub=" + safe(claims.getSubject()));
+            System.out.println("[JWT] parsed OK. claimKeys=" + claims.keySet()
+                    + " sub=" + safe(claims.getSubject()));
 
             String sub = claims.getSubject();
-            String aid = toStr(claims.get(JwtClaims.ACCOUNT_ID));
             String kindStr = toStr(claims.get(JwtClaims.KIND));
+
+            System.out.println("[JWT] extracted kind=" + safe(kindStr));
+
+            // ===== VOTE token branch (ログインなし投票) =====
+            if ("VOTE".equalsIgnoreCase(kindStr)) {
+                if (isBlank(sub)) {
+                    System.out.println("[JWT] reject(VOTE): subject missing");
+                    SecurityContextHolder.clearContext();
+                    chain.doFilter(request, response);
+                    return;
+                }
+
+                String eid = toStr(claims.get("eid")); // JwtService.issueVoteTokenで入れてる
+                if (isBlank(eid)) {
+                    System.out.println("[JWT] reject(VOTE): eid missing");
+                    SecurityContextHolder.clearContext();
+                    chain.doFilter(request, response);
+                    return;
+                }
+
+                UUID citizenId;
+                UUID electionId;
+                try {
+                    citizenId = UUID.fromString(sub);
+                } catch (IllegalArgumentException e) {
+                    System.out.println("[JWT] reject(VOTE): citizenId not UUID. sub=" + safe(sub));
+                    SecurityContextHolder.clearContext();
+                    chain.doFilter(request, response);
+                    return;
+                }
+
+                try {
+                    electionId = UUID.fromString(eid);
+                } catch (IllegalArgumentException e) {
+                    System.out.println("[JWT] reject(VOTE): electionId not UUID. eid=" + safe(eid));
+                    SecurityContextHolder.clearContext();
+                    chain.doFilter(request, response);
+                    return;
+                }
+
+                var authorities = new ArrayList<SimpleGrantedAuthority>();
+                authorities.add(new SimpleGrantedAuthority("KIND_VOTE"));
+
+                var principal = new VotePrincipal(citizenId, electionId);
+                var authentication = new UsernamePasswordAuthenticationToken(principal, null, authorities);
+                SecurityContextHolder.getContext().setAuthentication(authentication);
+
+                System.out.println("[JWT] accepted(VOTE): citizenId=" + citizenId + " electionId=" + electionId);
+                chain.doFilter(request, response);
+                return;
+            }
+
+            // ===== Access token branch (既存：USER/STAFF) =====
+            String aid = toStr(claims.get(JwtClaims.ACCOUNT_ID));
             String roleStr = toStr(claims.get(JwtClaims.ROLE));
 
             System.out.println("[JWT] extracted aid=" + safe(aid)
                     + " kind=" + safe(kindStr)
                     + " role=" + safe(roleStr));
 
-            // 必須チェック
             if (isBlank(sub) || isBlank(aid) || isBlank(kindStr)) {
                 System.out.println("[JWT] reject: missing required fields"
                         + " subBlank=" + isBlank(sub)
@@ -101,7 +150,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 return;
             }
 
-            // UUID
             UUID accountId;
             try {
                 accountId = UUID.fromString(aid);
@@ -112,7 +160,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 return;
             }
 
-            // kind
             AccountKind kind;
             try {
                 kind = AccountKind.valueOf(kindStr);
@@ -123,7 +170,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 return;
             }
 
-            // role（任意）
             Role role = null;
             if (!isBlank(roleStr)) {
                 try {
@@ -149,14 +195,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     + " kind=" + kind + " role=" + role);
 
         } catch (JwtException ex) {
-            // 署名/期限/フォーマット/secret不一致 はここに来る
-            System.out.println("[JWT] parse FAILED: " + ex.getClass().getSimpleName()
-                    + " msg=" + ex.getMessage());
+            System.out.println("[JWT] parse FAILED: " + ex.getClass().getSimpleName() + " msg=" + ex.getMessage());
             SecurityContextHolder.clearContext();
         } catch (RuntimeException ex) {
-            // 想定外も見える化
-            System.out.println("[JWT] unexpected error: " + ex.getClass().getSimpleName()
-                    + " msg=" + ex.getMessage());
+            System.out.println("[JWT] unexpected error: " + ex.getClass().getSimpleName() + " msg=" + ex.getMessage());
             SecurityContextHolder.clearContext();
         }
 
@@ -173,7 +215,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         return Objects.toString(v, null);
     }
 
-    // 値が長い時にログ汚染しない
     private static String safe(String s) {
         if (s == null)
             return "null";
@@ -182,7 +223,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         return s.substring(0, 80) + "...";
     }
 
-    // tokenやヘッダは先頭ちょい見せ＋長さ
     private static String preview(String s, int head) {
         if (s == null)
             return "null";
