@@ -14,6 +14,7 @@ import { useFromBackTo } from "../../shared/routes/useFromBackTo";
 import { CandidateAvatar } from "../../shared/ui/CandidateAvatar";
 import { resolveCandidateImageUrl } from "../../elections/ui/candidateImages";
 import { PartyPill } from "../ui/PartyPill";
+import { FavoriteButton } from "../../me/ui/FavoriteButton";
 
 type PartyCandidatePerson = {
     candidateKey: string;
@@ -239,6 +240,16 @@ export function PartyDetailPage() {
                     }}
                 >
                     <Link to={backTo}>← 戻る</Link>
+
+                    {party?.id ? (
+                        <span style={{ marginLeft: "auto" }}>
+                            <FavoriteButton
+                                targetType="PARTY"
+                                targetId={party.id}
+                            />
+                        </span>
+                    ) : null}
+
                     <button
                         onClick={load}
                         disabled={isLoading}

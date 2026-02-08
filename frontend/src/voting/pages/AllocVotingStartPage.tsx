@@ -1,4 +1,3 @@
-// frontend/src/voting/pages/AllocVotingStartPage.tsx
 import { useEffect, useMemo, useState } from "react";
 import {
     Link,
@@ -7,6 +6,7 @@ import {
     useSearchParams,
 } from "react-router-dom";
 import { allocConfirm, allocStart } from "../api/allocVoting";
+import { publicAllocConfirm, publicAllocStart } from "../api/publicAllocVoting";
 import type {
     AllocVoteConfirmRequest,
     AllocVoteStartResponse,
@@ -14,6 +14,7 @@ import type {
 import { normalizeFrom } from "../../shared/normalizeFrom";
 import { Card, DevDebug, Page } from "../../shared/ui/page";
 import { CandidateAvatar } from "../../shared/ui/CandidateAvatar";
+import { publicToken } from "../../shared/tokenStorage";
 
 type LocationState = { from?: string } | null;
 
@@ -30,6 +31,11 @@ function rowKey(r: Row): string {
 function isNone(r: Row) {
     return r.type === "NONE_SUPPORT";
 }
+function isTruthy(s: string | null | undefined) {
+    if (!s) return false;
+    const v = s.toLowerCase();
+    return v === "1" || v === "true" || v === "yes" || v === "on";
+}
 
 export function AllocVotingStartPage() {
     const nav = useNavigate();
@@ -39,10 +45,32 @@ export function AllocVotingStartPage() {
     const [sp] = useSearchParams();
     const electionId = sp.get("electionId") ?? "";
 
+    // ✅ public モード判定（EntryPage と揃える）
+    const session = (sp.get("session") ?? "").toLowerCase();
+    const tokenFromQuery = sp.get("token");
+    const effectiveToken = tokenFromQuery?.trim() || publicToken.get();
+    const publicMode =
+        session === "public" ||
+        isTruthy(sp.get("public")) ||
+        !!(effectiveToken && effectiveToken.trim());
+
+    // ✅ token を確定したら storage に保存
+    useEffect(() => {
+        if (effectiveToken && effectiveToken.trim()) {
+            publicToken.set(effectiveToken.trim());
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [effectiveToken]);
+
     const self = loc.pathname + loc.search;
 
-    // 通常（ログイン）投票の戻り先
-    const backTo = normalizeFrom(state?.from ?? "/me/elections");
+    // ✅ 戻り先：public は /elections をデフォルト
+    const backTo = normalizeFrom(
+        state?.from ?? (publicMode ? "/elections" : "/me/elections"),
+    );
+
+    // ✅ Done へ引き継ぐ query（DonePage が query で public 判定）
+    const doneQS = publicMode ? "?session=public" : "";
 
     const [loading, setLoading] = useState(true);
     const [busy, setBusy] = useState(false);
@@ -80,7 +108,10 @@ export function AllocVotingStartPage() {
         setLoading(true);
 
         try {
-            const res = await allocStart(electionId);
+            const res = publicMode
+                ? await publicAllocStart(electionId)
+                : await allocStart(electionId);
+
             setData(res);
 
             const normalized: Row[] = res.options.map((o) => ({
@@ -103,7 +134,12 @@ export function AllocVotingStartPage() {
                         "投票を開始できません（本人認証未完了 / 期間外 など）",
                 );
             } else if (status === 401) {
-                setErr(msg ?? "ログインが必要です");
+                setErr(
+                    msg ??
+                        (publicMode
+                            ? "本人認証が必要です（アプリ/NFCから開いてください）"
+                            : "ログインが必要です"),
+                );
             } else {
                 setErr(msg ?? "取得に失敗しました");
             }
@@ -123,7 +159,7 @@ export function AllocVotingStartPage() {
         }
         load();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [electionId]);
+    }, [electionId, publicMode]);
 
     // NONE_SUPPORT を全振り（確認つき）
     const commitNoneAll = () => {
@@ -217,9 +253,12 @@ export function AllocVotingStartPage() {
                     })),
             };
 
-            const result = await allocConfirm(req);
+            const result = publicMode
+                ? await publicAllocConfirm(req)
+                : await allocConfirm(req);
 
-            nav("/alloc-voting/done", {
+            // ✅ DonePage は query で public 判定するので必ず付与
+            nav(`/alloc-voting/done${doneQS}`, {
                 state: { result, from: backTo },
             });
         } catch (e: any) {
@@ -229,7 +268,12 @@ export function AllocVotingStartPage() {
             if (status === 403) {
                 setErr(msg ?? "投票できません（期間外/権限なし）");
             } else if (status === 401) {
-                setErr(msg ?? "ログインが必要です");
+                setErr(
+                    msg ??
+                        (publicMode
+                            ? "本人認証が必要です（アプリ/NFCから開いてください）"
+                            : "ログインが必要です"),
+                );
             } else {
                 setErr(msg ?? "送信に失敗しました");
             }
@@ -259,7 +303,11 @@ export function AllocVotingStartPage() {
                     <Link
                         to={`/voting/entry?electionId=${encodeURIComponent(
                             electionId,
-                        )}`}
+                        )}${publicMode ? "&session=public" : ""}${
+                            effectiveToken
+                                ? `&token=${encodeURIComponent(effectiveToken)}`
+                                : ""
+                        }`}
                         state={{ from: backTo }}
                     >
                         投票入口へ
@@ -300,14 +348,17 @@ export function AllocVotingStartPage() {
                             再試行
                         </button>
 
-                        {/* ✅ 統一：本人認証は /me/identity */}
-                        <Link to="/me/identity" state={{ from: self }}>
-                            本人認証へ
-                        </Link>
+                        {!publicMode && (
+                            <Link to="/me/identity" state={{ from: self }}>
+                                本人認証へ
+                            </Link>
+                        )}
 
-                        <Link to="/verify" state={{ from: self }}>
-                            メール認証へ
-                        </Link>
+                        {!publicMode && (
+                            <Link to="/verify" state={{ from: self }}>
+                                メール認証へ
+                            </Link>
+                        )}
 
                         <Link to={backTo}>戻る</Link>
                     </div>
@@ -323,6 +374,12 @@ export function AllocVotingStartPage() {
                             <strong style={{ fontSize: 16 }}>
                                 {data.electionTitle}
                             </strong>
+
+                            {publicMode && (
+                                <div style={{ fontSize: 12, opacity: 0.75 }}>
+                                    本人認証で投票しています（ログイン不要）
+                                </div>
+                            )}
 
                             <div
                                 style={{
@@ -657,6 +714,10 @@ export function AllocVotingStartPage() {
                     backTo,
                     self,
                     state,
+                    publicMode,
+                    session,
+                    tokenFromQuery: tokenFromQuery ? "(present)" : null,
+                    hasStoredPublicToken: !!publicToken.get(),
                 }}
             />
         </Page>

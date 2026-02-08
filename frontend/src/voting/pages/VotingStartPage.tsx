@@ -1,4 +1,3 @@
-// frontend/src/voting/pages/VotingStartPage.tsx
 import { useEffect, useMemo, useState } from "react";
 import {
     Link,
@@ -8,9 +7,11 @@ import {
 } from "react-router-dom";
 import { confirmVote, startVoting } from "../api/votes";
 import type { VoteConfirmRequest, VoteStartResponse } from "../api/votes";
+import { publicConfirmVote, publicStartVoting } from "../api/publicVotes";
 import { Card, DevDebug, Page } from "../../shared/ui/page";
 import { normalizeFrom } from "../../shared/normalizeFrom";
 import { CandidateAvatar } from "../../shared/ui/CandidateAvatar";
+import { publicToken } from "../../shared/tokenStorage";
 
 type LocationState = { from?: string } | null;
 
@@ -39,6 +40,12 @@ function parseSelectedKey(
     return { type: "CANDIDATE", candidateId: m[1] };
 }
 
+function isTruthy(s: string | null | undefined) {
+    if (!s) return false;
+    const v = s.toLowerCase();
+    return v === "1" || v === "true" || v === "yes" || v === "on";
+}
+
 export function VotingStartPage() {
     const nav = useNavigate();
     const loc = useLocation();
@@ -47,10 +54,32 @@ export function VotingStartPage() {
     const [sp] = useSearchParams();
     const electionId = sp.get("electionId") ?? "";
 
+    // ✅ public モード判定（EntryPage と揃える）
+    const session = (sp.get("session") ?? "").toLowerCase(); // "public" | ""
+    const tokenFromQuery = sp.get("token");
+    const effectiveToken = tokenFromQuery?.trim() || publicToken.get();
+    const publicMode =
+        session === "public" ||
+        isTruthy(sp.get("public")) ||
+        !!(effectiveToken && effectiveToken.trim());
+
+    // ✅ token を確定したら storage に保存（以降のAPIで httpPublic が自動付与）
+    useEffect(() => {
+        if (effectiveToken && effectiveToken.trim()) {
+            publicToken.set(effectiveToken.trim());
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [effectiveToken]);
+
     const self = loc.pathname + loc.search;
 
-    // 通常（ログイン）投票の戻り先
-    const backTo = normalizeFrom(state?.from ?? "/me/elections");
+    // ✅ 戻り先：public は /elections をデフォルトに（EntryPage の方針と整合）
+    const backTo = normalizeFrom(
+        state?.from ?? (publicMode ? "/elections" : "/me/elections"),
+    );
+
+    // ✅ Done へ引き継ぐ query（DonePage が query で public 判定するため）
+    const doneQS = publicMode ? "?session=public" : "";
 
     const [data, setData] = useState<VoteStartResponse | null>(null);
 
@@ -84,7 +113,10 @@ export function VotingStartPage() {
         setIsLoading(true);
 
         try {
-            const res = await startVoting(electionId);
+            const res = publicMode
+                ? await publicStartVoting(electionId)
+                : await startVoting(electionId);
+
             setData(res);
 
             const firstCandidateId = res.candidates?.[0]?.candidateId ?? null;
@@ -104,7 +136,12 @@ export function VotingStartPage() {
                         "投票を開始できません（本人認証未完了 / 期間外 など）",
                 );
             } else if (status === 401) {
-                setError(msg ?? "ログインが必要です");
+                setError(
+                    msg ??
+                        (publicMode
+                            ? "本人認証が必要です（アプリ/NFCから開いてください）"
+                            : "ログインが必要です"),
+                );
             } else {
                 setError(msg ?? "投票開始に失敗しました");
             }
@@ -121,7 +158,7 @@ export function VotingStartPage() {
         if (!electionId) return;
         load();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [electionId]);
+    }, [electionId, publicMode]);
 
     const selected = useMemo<Option | null>(() => {
         const p = parseSelectedKey(selectedKey);
@@ -173,8 +210,12 @@ export function VotingStartPage() {
                           candidateId: selected.candidateId as string,
                       };
 
-            const result = await confirmVote(req);
-            nav("/voting/done", { state: { result, from: backTo } });
+            const result = publicMode
+                ? await publicConfirmVote(req)
+                : await confirmVote(req);
+
+            // ✅ DonePage は query で public 判定するので必ず付与
+            nav(`/voting/done${doneQS}`, { state: { result, from: backTo } });
         } catch (err: any) {
             const status = err?.response?.status;
             const msg = err?.response?.data?.message;
@@ -182,7 +223,12 @@ export function VotingStartPage() {
             if (status === 403) {
                 setError(msg ?? "投票できません（期間外/権限なし）");
             } else if (status === 401) {
-                setError(msg ?? "ログインが必要です");
+                setError(
+                    msg ??
+                        (publicMode
+                            ? "本人認証が必要です（アプリ/NFCから開いてください）"
+                            : "ログインが必要です"),
+                );
             } else {
                 setError(msg ?? "投票の送信に失敗しました");
             }
@@ -245,14 +291,18 @@ export function VotingStartPage() {
                             再試行
                         </button>
 
-                        {/* ✅ 統一：本人認証は /me/identity */}
-                        <Link to="/me/identity" state={{ from: self }}>
-                            本人認証へ
-                        </Link>
+                        {/* public の場合はログインを要求しないので文言だけ残す/必要なら別導線に変える */}
+                        {!publicMode && (
+                            <Link to="/me/identity" state={{ from: self }}>
+                                本人認証へ
+                            </Link>
+                        )}
 
-                        <Link to="/verify" state={{ from: self }}>
-                            メール認証へ
-                        </Link>
+                        {!publicMode && (
+                            <Link to="/verify" state={{ from: self }}>
+                                メール認証へ
+                            </Link>
+                        )}
 
                         <Link to={backTo}>戻る</Link>
                     </div>
@@ -268,6 +318,12 @@ export function VotingStartPage() {
                             <strong style={{ fontSize: 16 }}>
                                 {data.title}
                             </strong>
+
+                            {publicMode && (
+                                <div style={{ fontSize: 12, opacity: 0.75 }}>
+                                    本人認証で投票しています（ログイン不要）
+                                </div>
+                            )}
 
                             {isDev && (
                                 <div style={{ fontSize: 12, opacity: 0.7 }}>
@@ -563,6 +619,10 @@ export function VotingStartPage() {
                         backTo,
                         self,
                         state,
+                        publicMode,
+                        session,
+                        tokenFromQuery: tokenFromQuery ? "(present)" : null,
+                        hasStoredPublicToken: !!publicToken.get(),
                     }}
                 />
             )}

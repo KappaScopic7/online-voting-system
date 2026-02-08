@@ -1,9 +1,10 @@
-// backend/src/main/java/com/bteam/ovs/elections/controller/dto/PartyDetailResponse.java
 package com.bteam.ovs.parties.controller.dto;
 
 import java.util.List;
+import java.util.UUID;
 
 public record PartyDetailResponse(
+        UUID id,
         String partyKey,
         String name,
         String shortName,

@@ -1,10 +1,14 @@
-// backend/src/main/java/com/bteam/ovs/elections/controller/dto/PartyListItem.java
 package com.bteam.ovs.parties.controller.dto;
 
+import java.util.List;
+import java.util.UUID;
+
 public record PartyListItem(
-                String partyKey,
-                String name,
-                String shortName,
-                String color,
-                String description) {
+        UUID id,
+        String partyKey,
+        String name,
+        String shortName,
+        String color,
+        String description,
+        List<String> ideologyTags) {
 }

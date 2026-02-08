@@ -1,6 +1,6 @@
-// frontend/src/elections/model/partyTypes.ts
+// frontend/src/parties/model/partyTypes.ts
 export type PartyListItem = {
-    partyId: string;
+    id: string;
     partyKey: string;
     name: string;
     shortName: string;
@@ -10,7 +10,7 @@ export type PartyListItem = {
 };
 
 export type PartyDetailResponse = {
-    partyId: string;
+    id: string;
     partyKey: string;
     name: string;
     shortName: string;

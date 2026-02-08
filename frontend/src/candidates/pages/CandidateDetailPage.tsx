@@ -7,6 +7,7 @@ import { resolveCandidateImageUrl } from "../../elections/ui/candidateImages";
 import { useFromBackTo } from "../../shared/routes/useFromBackTo";
 import { ErrorCard } from "../../shared/ui/ErrorCard";
 import { PartyBadgeLink } from "../../parties/ui/PartyBadgeLink";
+import { FavoriteButton } from "../../me/ui/FavoriteButton";
 
 export function CandidateDetailPage() {
     const { electionId, candidateId } = useParams<{
@@ -124,19 +125,34 @@ export function CandidateDetailPage() {
                                 </div>
                             </div>
 
-                            {data.party ? (
-                                <PartyBadgeLink
-                                    partyKey={data.party.partyKey}
-                                    shortName={data.party.shortName}
-                                    name={data.party.name}
-                                    color={data.party.color}
-                                    from={self}
+                            <div
+                                style={{
+                                    display: "flex",
+                                    gap: 10,
+                                    alignItems: "center",
+                                }}
+                            >
+                                <FavoriteButton
+                                    targetType="CANDIDATE"
+                                    targetId={candidateId}
                                 />
-                            ) : (
-                                <span style={{ fontSize: 12, opacity: 0.6 }}>
-                                    無所属
-                                </span>
-                            )}
+
+                                {data.party ? (
+                                    <PartyBadgeLink
+                                        partyKey={data.party.partyKey}
+                                        shortName={data.party.shortName}
+                                        name={data.party.name}
+                                        color={data.party.color}
+                                        from={self}
+                                    />
+                                ) : (
+                                    <span
+                                        style={{ fontSize: 12, opacity: 0.6 }}
+                                    >
+                                        無所属
+                                    </span>
+                                )}
+                            </div>
                         </div>
                     </Card>
 

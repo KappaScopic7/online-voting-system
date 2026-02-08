@@ -58,9 +58,27 @@ public class AllocationVotingService {
         this.voteAllocCurrentRepo = currentRepo;
     }
 
+    // =========================================
+    // Login (accountId) -> citizenId -> delegate
+    // =========================================
     public AllocVoteStartResponse start(UUID accountId, UUID electionId) {
         electionEligibilityService.requireEligible(accountId, electionId);
-        citizenIdResolver.requireCitizenId(accountId);
+        UUID citizenId = citizenIdResolver.requireCitizenId(accountId);
+        return startByCitizen(citizenId, electionId);
+    }
+
+    @Transactional
+    public AllocVoteHistoryItem confirm(UUID accountId, UUID electionId, AllocVoteConfirmRequest req) {
+        electionEligibilityService.requireEligible(accountId, electionId);
+        UUID citizenId = citizenIdResolver.requireCitizenId(accountId);
+        return confirmByCitizen(citizenId, electionId, req);
+    }
+
+    // =========================================
+    // Public (vote token) entry points
+    // =========================================
+    public AllocVoteStartResponse startByCitizen(UUID citizenId, UUID electionId) {
+        electionEligibilityService.requireEligibleCitizen(citizenId, electionId);
 
         var election = electionRepo.findById(electionId)
                 .orElseThrow(() -> new ApiException(
@@ -79,9 +97,8 @@ public class AllocationVotingService {
     }
 
     @Transactional
-    public AllocVoteHistoryItem confirm(UUID accountId, UUID electionId, AllocVoteConfirmRequest req) {
-        electionEligibilityService.requireEligible(accountId, electionId);
-        UUID citizenId = citizenIdResolver.requireCitizenId(accountId);
+    public AllocVoteHistoryItem confirmByCitizen(UUID citizenId, UUID electionId, AllocVoteConfirmRequest req) {
+        electionEligibilityService.requireEligibleCitizen(citizenId, electionId);
 
         var election = electionRepo.findById(electionId)
                 .orElseThrow(() -> new ApiException(
@@ -106,12 +123,11 @@ public class AllocationVotingService {
         Set<UUID> seenCandidates = new HashSet<>();
 
         Set<UUID> candidateIds = req.items().stream()
-                .filter(i -> "CANDIDATE".equals(i.type()))
+                .filter(i -> TYPE_CANDIDATE.equals(i.type()))
                 .map(AllocVoteConfirmRequest.Item::candidateId)
                 .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
 
-        // null混入はループ内で弾いてる前提でもOKだが、ここでも弾ける
         long ok = candidateIds.isEmpty()
                 ? 0
                 : candidateRepo.countByElectionIdAndIdIn(electionId, candidateIds);
@@ -121,6 +137,9 @@ public class AllocationVotingService {
         }
 
         for (var item : req.items()) {
+            if (item == null)
+                continue;
+
             if (item.points() == null || item.points() <= 0) {
                 throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_POINTS", "ポイントは正の値である必要があります");
             }
@@ -133,6 +152,9 @@ public class AllocationVotingService {
 
             if (TYPE_CANDIDATE.equals(type)) {
                 UUID candidateId = item.candidateId();
+                if (candidateId == null) {
+                    throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_CANDIDATE", "候補が不正です");
+                }
                 if (!seenCandidates.add(candidateId)) {
                     throw new ApiException(HttpStatus.BAD_REQUEST, "DUPLICATE_CANDIDATE", "同一候補への重複配分はできません");
                 }
@@ -222,6 +244,7 @@ public class AllocationVotingService {
                 respItems);
     }
 
+    // history はログイン側だけ（public側には置かない）
     public List<AllocVoteHistoryItem> history(UUID accountId) {
         UUID citizenId = citizenIdResolver.requireCitizenId(accountId);
 

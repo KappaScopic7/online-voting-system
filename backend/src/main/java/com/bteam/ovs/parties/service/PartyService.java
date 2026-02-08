@@ -29,11 +29,13 @@ public class PartyService {
         return partyRepo.findAll().stream()
                 .sorted(Comparator.comparing(Party::getPartyKey))
                 .map(p -> new PartyListItem(
+                        p.getId(),
                         p.getPartyKey(),
                         p.getName(),
                         p.getShortName(),
                         p.getColor(),
-                        p.getDescription()))
+                        p.getDescription(),
+                        (p.getIdeologyTags() == null) ? List.of() : p.getIdeologyTags()))
                 .toList();
     }
 
@@ -45,6 +47,7 @@ public class PartyService {
                         "政党が存在しません"));
 
         return new PartyDetailResponse(
+                p.getId(),
                 p.getPartyKey(),
                 p.getName(),
                 p.getShortName(),

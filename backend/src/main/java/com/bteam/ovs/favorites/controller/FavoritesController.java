@@ -11,6 +11,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import com.bteam.ovs.favorites.service.FavoritesResolveService;
+
 import java.util.UUID;
 
 @RestController
@@ -18,9 +20,11 @@ import java.util.UUID;
 public class FavoritesController {
 
     private final FavoritesService favoritesService;
+    private final FavoritesResolveService resolveService;
 
-    public FavoritesController(FavoritesService favoritesService) {
+    public FavoritesController(FavoritesService favoritesService, FavoritesResolveService resolveService) {
         this.favoritesService = favoritesService;
+        this.resolveService = resolveService;
     }
 
     @PostMapping
@@ -71,6 +75,12 @@ public class FavoritesController {
         UUID accountId = PrincipalExtractor.requireAccountId(auth);
         FavoriteTargetType typeOrNull = (targetType == null || targetType.isBlank()) ? null : parseType(targetType);
         return favoritesService.list(accountId, typeOrNull, pageable);
+    }
+
+    @GetMapping("/resolved")
+    public ResolvedFavoritesResponse resolved(Authentication auth) {
+        UUID accountId = PrincipalExtractor.requireAccountId(auth);
+        return new ResolvedFavoritesResponse(resolveService.listResolved(accountId));
     }
 
     private static FavoriteTargetType parseType(String s) {

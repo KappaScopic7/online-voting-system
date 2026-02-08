@@ -6,6 +6,8 @@ import com.bteam.ovs.favorites.entity.PortalFavorite;
 import com.bteam.ovs.favorites.repository.PortalFavoriteRepository;
 import com.bteam.ovs.shared.auth.AccountResolver;
 import com.bteam.ovs.shared.errors.ApiException;
+
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -41,12 +43,11 @@ public class FavoritesService {
             throw new ApiException(HttpStatus.NOT_FOUND, "TARGET_NOT_FOUND", "対象が存在しません");
         }
 
-        // 二重登録は無視（OK扱い）にする：UIの連打に強い
-        if (favoriteRepository.existsByAccountIdAndTargetTypeAndTargetId(accountId, type, targetId)) {
-            return;
+        try {
+            favoriteRepository.save(new PortalFavorite(accountId, type, targetId));
+        } catch (DataIntegrityViolationException e) {
+            // UNIQUE(account_id,target_type,target_id) に当たったら「既にお気に入り」なのでOK扱い
         }
-
-        favoriteRepository.save(new PortalFavorite(accountId, type, targetId));
     }
 
     @Transactional

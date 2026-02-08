@@ -39,13 +39,17 @@ export function PublicLayout() {
         ];
 
         if (!user) return common;
-
-        return [...common, { to: "/me/elections", label: "My選挙" }];
+        return [
+            ...common,
+            { to: "/me/elections", label: "My選挙" },
+            { to: "/me/favorites", label: "ブックマーク" },
+        ];
     }, [user]);
 
     const menuItems = useMemo<MenuItem[]>(
         () => [
             { to: "/me", label: "マイページ →" },
+            { to: "/me/favorites", label: "ブックマーク →" },
             { to: "/me/votes", label: "投票履歴 →" },
             { to: "/me/identity", label: "本人確認 →" },
         ],

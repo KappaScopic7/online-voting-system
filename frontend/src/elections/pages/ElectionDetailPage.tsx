@@ -11,6 +11,7 @@ import { ElectionMetaCard } from "../ui/ElectionMetaCard";
 import { CurrentVoteCard } from "../ui/CurrentVoteCard";
 import { ElectionCandidatesListCard } from "../ui/ElectionCandidatesListCard";
 import { ElectionVoteEntryCard } from "../ui/ElectionVoteEntryCard";
+import { FavoriteButton } from "../../me/ui/FavoriteButton";
 
 export function ElectionDetailPage() {
     const { electionId } = useParams<{ electionId: string }>();
@@ -82,6 +83,13 @@ export function ElectionDetailPage() {
                             >
                                 結果へ
                             </Link>
+
+                            <span style={{ marginLeft: "auto" }}>
+                                <FavoriteButton
+                                    targetType="ELECTION"
+                                    targetId={electionId}
+                                />
+                            </span>
                         </>
                     ) : null}
                 </div>

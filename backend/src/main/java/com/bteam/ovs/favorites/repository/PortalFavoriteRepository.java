@@ -23,4 +23,7 @@ public interface PortalFavoriteRepository extends JpaRepository<PortalFavorite, 
 
     List<PortalFavorite> findByAccountIdAndTargetTypeAndTargetIdIn(
             UUID accountId, FavoriteTargetType targetType, Collection<UUID> targetIds);
+
+    List<PortalFavorite> findByAccountIdOrderByCreatedAtDesc(UUID accountId);
+
 }

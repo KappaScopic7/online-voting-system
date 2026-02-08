@@ -76,9 +76,11 @@ public class SecurityConfig {
                         // Public (no auth)
                         // =========================
                         .requestMatchers("/api/public/identity/verify").permitAll()
+                        .requestMatchers("/api/public/vote-token/**").permitAll()
 
                         // 本人認証トークンが必要（ログイン不要だが「認証は必要」）
                         .requestMatchers("/api/public/voting/**").authenticated()
+                        .requestMatchers("/api/public/alloc-voting/**").authenticated()
 
                         // ---- public / user auth ----
                         .requestMatchers("/api/auth/register", "/api/auth/login", "/api/auth/verify",

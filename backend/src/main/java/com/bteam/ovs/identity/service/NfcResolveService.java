@@ -21,8 +21,13 @@ public class NfcResolveService {
         this.citizenRepo = citizenRepo;
     }
 
+    /** NFC payload から citizenId を抽出して返す（投票トークン発行などで再利用） */
+    public UUID resolveCitizenId(String payload) {
+        return extractCitizenId(payload);
+    }
+
     public CitizenNfcResolveResponse resolve(String payload) {
-        UUID citizenId = extractCitizenId(payload);
+        UUID citizenId = resolveCitizenId(payload);
 
         var c = citizenRepo.findById(citizenId)
                 .orElseThrow(() -> new ApiException(
