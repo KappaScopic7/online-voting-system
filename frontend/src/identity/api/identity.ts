@@ -1,17 +1,14 @@
-// frontend/src/identity/api/identity.ts
 import { httpUser } from "../../shared/httpUser";
-import type { UserTokenResponse } from "../../user/model/userAuthTypes";
 
-export async function linkIdentity(
-    citizenId: string,
-): Promise<UserTokenResponse> {
-    const res = await httpUser.post<UserTokenResponse>("/identity/link", {
-        citizenId,
-    });
+export type LinkIdentityResponse = { accessToken: string };
+
+export async function linkIdentity(params: {
+    citizenId: string;
+    pin?: string; // 現状バックは無視する（後で対応）
+}): Promise<LinkIdentityResponse> {
+    const res = await httpUser.post<LinkIdentityResponse>(
+        "/identity/link", // ✅ baseURL=/api → /api/identity/link
+        params,
+    );
     return res.data;
 }
-
-// export async function linkIdentityByNfc(serialNumber: string): Promise<UserTokenResponse> {
-//     const res = await httpUser.post<UserTokenResponse>("/identity/link/nfc", { serialNumber });
-//     return res.data;
-// }

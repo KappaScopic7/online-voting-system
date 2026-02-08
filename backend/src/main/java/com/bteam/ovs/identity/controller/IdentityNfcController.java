@@ -1,3 +1,4 @@
+// backend/src/main/java/com/bteam/ovs/identity/controller/IdentityNfcController.java
 package com.bteam.ovs.identity.controller;
 
 import com.bteam.ovs.identity.controller.dto.CitizenNfcResolveResponse;
@@ -18,6 +19,6 @@ public class IdentityNfcController {
 
     @PostMapping(value = "/resolve", produces = "application/json; charset=UTF-8")
     public CitizenNfcResolveResponse resolve(@RequestBody @Valid NfcResolveRequest req) {
-        return service.resolve(req.payload());
+        return service.resolve(req.payload(), req.pin());
     }
 }

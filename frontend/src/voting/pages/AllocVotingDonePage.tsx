@@ -9,9 +9,11 @@ type DoneState = {
     result?: AllocVoteHistoryItem;
     from?: string;
 
-    // public confirm-alloc で result を作れない場合にも「完了画面」を成立させるため
     electionId?: string;
     electionTitle?: string;
+
+    // ✅ public の token を Done -> Entry へ引き回すため
+    token?: string | null;
 } | null;
 
 function isTruthy(s: string | null | undefined) {
@@ -42,9 +44,15 @@ export function AllocVotingDonePage() {
 
     const self = loc.pathname + loc.search;
 
+    const tokenFromState = (state?.token ?? "").trim();
+
     const entryLink = electionId
         ? `/voting/entry?electionId=${encodeURIComponent(electionId)}${
               isPublic ? "&session=public" : ""
+          }${
+              isPublic && tokenFromState
+                  ? `&token=${encodeURIComponent(tokenFromState)}`
+                  : ""
           }`
         : isPublic
           ? "/elections"
@@ -54,7 +62,6 @@ export function AllocVotingDonePage() {
     const electionDetailLink = electionId ? `/elections/${eid}` : "/elections";
     const resultLink = electionId ? `/elections/${eid}/result` : "/elections";
 
-    // result なしでも「送信完了」画面として成立
     if (!result) {
         return (
             <Page
@@ -145,6 +152,7 @@ export function AllocVotingDonePage() {
                         electionTitle,
                         backTo,
                         entryLink,
+                        tokenFromState: tokenFromState ? "(present)" : null,
                     }}
                 />
             </Page>
@@ -153,7 +161,6 @@ export function AllocVotingDonePage() {
 
     const rid = encodeURIComponent(result.electionId);
 
-    // result あり（従来通り）
     return (
         <Page
             title={
@@ -332,6 +339,7 @@ export function AllocVotingDonePage() {
                     backTo,
                     self,
                     entryLink,
+                    tokenFromState: tokenFromState ? "(present)" : null,
                 }}
             />
         </Page>

@@ -1,3 +1,4 @@
+// frontend/src/voting/api/publicAllocVoting.ts
 import { httpPublic } from "../../shared/httpPublic";
 import type {
     AllocVoteStartResponse,

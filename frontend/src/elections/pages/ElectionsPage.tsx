@@ -20,21 +20,27 @@ function ElectionItemAction(props: {
 
     const voteLink = `/voting/entry?electionId=${encodeURIComponent(e.electionId)}`;
     const resultLink = `/elections/result?electionId=${encodeURIComponent(e.electionId)}`;
+    const publicVoteLink = `/voting/entry?electionId=${encodeURIComponent(e.electionId)}&session=public`;
 
     if (e.status === "ONGOING") {
         if (!meExists) {
             return (
                 <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
                     <Link
+                        to={publicVoteLink}
+                        state={{ from }}
+                        style={{ textDecoration: "none" }}
+                    >
+                        <b>本人認証で投票 →</b>
+                    </Link>
+
+                    <Link
                         to="/login"
                         state={{ from }}
                         style={{ textDecoration: "none" }}
                     >
-                        <b>ログインして投票 →</b>
+                        ログインして投票 →
                     </Link>
-                    <span style={{ opacity: 0.6 }}>
-                        （未ログイン投票は停止中）
-                    </span>
                 </div>
             );
         }

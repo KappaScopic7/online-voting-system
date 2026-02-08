@@ -1,3 +1,4 @@
+// frontend/src/voting/pages/VotingStartPage.tsx
 import { useEffect, useMemo, useState } from "react";
 import {
     Link,
@@ -54,31 +55,33 @@ export function VotingStartPage() {
     const [sp] = useSearchParams();
     const electionId = sp.get("electionId") ?? "";
 
-    // ✅ public モード判定（EntryPage と揃える）
-    const session = (sp.get("session") ?? "").toLowerCase(); // "public" | ""
-    const tokenFromQuery = sp.get("token");
-    const effectiveToken = tokenFromQuery?.trim() || publicToken.get();
-    const publicMode =
-        session === "public" ||
-        isTruthy(sp.get("public")) ||
-        !!(effectiveToken && effectiveToken.trim());
+    // ✅ public モード判定：session=public か public=1 のみ（token有無では決めない）
+    const session = (sp.get("session") ?? "").toLowerCase();
+    const publicMode = session === "public" || isTruthy(sp.get("public"));
 
-    // ✅ token を確定したら storage に保存（以降のAPIで httpPublic が自動付与）
+    // ✅ token は publicMode のときだけ使う（混線防止）
+    const tokenFromQuery = publicMode ? sp.get("token") : null;
+    const effectiveToken = publicMode
+        ? tokenFromQuery?.trim() || publicToken.get()
+        : null;
+
+    // ✅ publicMode で token を確定したら storage に保存
     useEffect(() => {
+        if (!publicMode) return;
         if (effectiveToken && effectiveToken.trim()) {
             publicToken.set(effectiveToken.trim());
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [effectiveToken]);
+    }, [publicMode, effectiveToken]);
 
     const self = loc.pathname + loc.search;
 
-    // ✅ 戻り先：public は /elections をデフォルトに（EntryPage の方針と整合）
+    // ✅ 戻り先
     const backTo = normalizeFrom(
         state?.from ?? (publicMode ? "/elections" : "/me/elections"),
     );
 
-    // ✅ Done へ引き継ぐ query（DonePage が query で public 判定するため）
+    // ✅ Done へ引き継ぐ query
     const doneQS = publicMode ? "?session=public" : "";
 
     const [data, setData] = useState<VoteStartResponse | null>(null);
@@ -96,13 +99,11 @@ export function VotingStartPage() {
             candidateId: null,
             name: "誰も支持しない",
         });
-
         return base;
     }, [data]);
 
     const [selectedKey, setSelectedKey] = useState<string>("");
     const [error, setError] = useState<string | null>(null);
-
     const [isLoading, setIsLoading] = useState(false);
     const [busy, setBusy] = useState(false);
     const [step, setStep] = useState<"SELECT" | "CONFIRM">("SELECT");
@@ -113,6 +114,7 @@ export function VotingStartPage() {
         setIsLoading(true);
 
         try {
+            // ✅ publicMode のときは public API（token必須）
             const res = publicMode
                 ? await publicStartVoting(electionId)
                 : await startVoting(electionId);
@@ -139,7 +141,7 @@ export function VotingStartPage() {
                 setError(
                     msg ??
                         (publicMode
-                            ? "本人認証が必要です（アプリ/NFCから開いてください）"
+                            ? "本人認証の有効期限が切れました。もう一度本人認証してください。"
                             : "ログインが必要です"),
                 );
             } else {
@@ -171,7 +173,6 @@ export function VotingStartPage() {
                 name: "誰も支持しない",
             };
         }
-
         return (
             options.find(
                 (o) =>
@@ -214,8 +215,13 @@ export function VotingStartPage() {
                 ? await publicConfirmVote(req)
                 : await confirmVote(req);
 
-            // ✅ DonePage は query で public 判定するので必ず付与
-            nav(`/voting/done${doneQS}`, { state: { result, from: backTo } });
+            nav(`/voting/done${doneQS}`, {
+                state: {
+                    result,
+                    from: backTo,
+                    token: publicMode ? effectiveToken?.trim() || null : null,
+                },
+            });
         } catch (err: any) {
             const status = err?.response?.status;
             const msg = err?.response?.data?.message;
@@ -226,7 +232,7 @@ export function VotingStartPage() {
                 setError(
                     msg ??
                         (publicMode
-                            ? "本人認証が必要です（アプリ/NFCから開いてください）"
+                            ? "本人認証の有効期限が切れました。もう一度本人認証してください。"
                             : "ログインが必要です"),
                 );
             } else {
@@ -267,7 +273,6 @@ export function VotingStartPage() {
                     }}
                 >
                     <Link to={backTo}>← 戻る</Link>
-
                     <button
                         onClick={load}
                         disabled={isLoading || busy}
@@ -291,16 +296,12 @@ export function VotingStartPage() {
                             再試行
                         </button>
 
-                        {/* public の場合はログインを要求しないので文言だけ残す/必要なら別導線に変える */}
-                        {!publicMode && (
-                            <Link to="/me/identity" state={{ from: self }}>
-                                本人認証へ
-                            </Link>
-                        )}
-
-                        {!publicMode && (
-                            <Link to="/verify" state={{ from: self }}>
-                                メール認証へ
+                        {publicMode && (
+                            <Link
+                                to={`/identity/vote?electionId=${encodeURIComponent(electionId)}&session=public&returnTo=${encodeURIComponent(self)}`}
+                                state={{ from: backTo }}
+                            >
+                                本人認証（PIN+NFC）へ →
                             </Link>
                         )}
 
@@ -622,6 +623,7 @@ export function VotingStartPage() {
                         publicMode,
                         session,
                         tokenFromQuery: tokenFromQuery ? "(present)" : null,
+                        effectiveToken: effectiveToken ? "(present)" : null,
                         hasStoredPublicToken: !!publicToken.get(),
                     }}
                 />

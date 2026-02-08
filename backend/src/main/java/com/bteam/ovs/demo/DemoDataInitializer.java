@@ -100,7 +100,7 @@ public class DemoDataInitializer {
                 elections, indexed.candidateMap());
 
         // ===== seed =====
-        seedCitizens(citizenRepo, citizens);
+        seedCitizens(citizenRepo, passwordEncoder, citizens);
         seedUsers(userRepo, passwordEncoder, users);
         seedParties(partyRepo, parties);
         seedRules(ruleRepo, rules, createdElections);
@@ -160,9 +160,14 @@ public class DemoDataInitializer {
         }
     }
 
-    private void seedCitizens(CitizenRepository citizenRepo, List<CitizenJson> items) {
+    private void seedCitizens(
+            CitizenRepository citizenRepo,
+            PasswordEncoder passwordEncoder,
+            List<CitizenJson> items) {
+
         for (var j : items) {
             var citizen = citizenRepo.findById(j.citizenId()).orElseGet(Citizen::new);
+
             citizen.setCitizenId(j.citizenId());
             citizen.setFamilyName(j.familyName());
             citizen.setGivenName(j.givenName());
@@ -171,6 +176,14 @@ public class DemoDataInitializer {
             citizen.setCityCode(j.cityCode());
             citizen.setAddressLine(j.addressLine());
             citizen.setGender(parseGender(j.gender()));
+
+            String pin = j.nfcPin();
+            if (pin == null || !pin.matches("^\\d{4}$")) {
+                throw new IllegalStateException(
+                        "citizens.json: nfcPin must be 4 digits. citizenId=" + j.citizenId() + " nfcPin=" + pin);
+            }
+            citizen.setNfcPinHash(passwordEncoder.encode(pin));
+
             citizenRepo.save(citizen);
         }
     }

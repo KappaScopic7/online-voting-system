@@ -52,7 +52,12 @@ export function VotingEntryPage() {
         isTruthy(q.get("public")) ||
         !!(effectiveToken && effectiveToken.trim());
 
-    // ✅ StartPage へ引き回すクエリ（storage token でも token を付ける）
+    // ✅ public なら未ログインでも戻れるように /elections をデフォルトに
+    const backTo = normalizeFrom(
+        state?.from ?? (publicMode ? "/elections" : "/me/elections"),
+    );
+    const self = loc.pathname + loc.search;
+    // ✅ StartPage へ引き回すクエリ（token を付けて引き継ぐ）
     const sessionQS = publicMode
         ? `&session=public${
               effectiveToken
@@ -61,19 +66,27 @@ export function VotingEntryPage() {
           }`
         : "";
 
-    // ✅ public なら未ログインでも戻れるように /elections をデフォルトに
-    const backTo = normalizeFrom(
-        state?.from ?? (publicMode ? "/elections" : "/me/elections"),
-    );
-    const self = loc.pathname + loc.search;
-
     useEffect(() => {
-        // ✅ StrictMode(DEV) 対策：二重起動しない
         if (didRunRef.current) return;
         didRunRef.current = true;
 
         if (!electionId) {
             nav("/elections", { replace: true });
+            return;
+        }
+
+        // ✅ public 投票は token 必須：無ければ vote用本人認証へ
+        if (publicMode && !(effectiveToken && effectiveToken.trim())) {
+            const returnTo = `/voting/entry?electionId=${encodeURIComponent(
+                electionId,
+            )}&session=public`;
+
+            nav(
+                `/identity/vote?electionId=${encodeURIComponent(
+                    electionId,
+                )}&session=public&returnTo=${encodeURIComponent(returnTo)}`,
+                { replace: true, state: { from: backTo } },
+            );
             return;
         }
 
@@ -100,7 +113,7 @@ export function VotingEntryPage() {
         })().catch(() => {
             nav(backTo, { replace: true });
         });
-    }, [electionId, nav, backTo, sessionQS, effectiveToken]);
+    }, [electionId, nav, backTo, sessionQS, effectiveToken, publicMode]);
 
     return (
         <Page
@@ -117,7 +130,6 @@ export function VotingEntryPage() {
                     state,
                     session,
                     publicMode,
-                    sessionQS,
                     tokenFromQuery: tokenFromQuery ? "(present)" : null,
                     hasStoredPublicToken: !!publicToken.get(),
                     effectiveToken: effectiveToken ? "(present)" : null,

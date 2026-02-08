@@ -25,13 +25,13 @@ import { VotingDonePage } from "../voting/pages/VotingDonePage";
 import { AllocVotingStartPage } from "../voting/pages/AllocVotingStartPage";
 import { AllocVotingDonePage } from "../voting/pages/AllocVotingDonePage";
 import { IdentityLinkPage } from "../identity/pages/IdentityLinkPage";
+import { IdentityVotePage } from "../identity/pages/IdentityVotePage";
 
 export function PublicRoutes() {
     return (
         <Routes>
             {/* Home */}
             <Route path="/" element={<PublicHomePage />} />
-
             {/* 公開情報 */}
             <Route path="/elections" element={<ElectionsPage />} />
             <Route
@@ -46,22 +46,18 @@ export function PublicRoutes() {
                 path="/elections/:electionId/candidates/:candidateId"
                 element={<CandidateDetailPage />}
             />
-
             <Route path="/elections/result" element={<ResultEntryPage />} />
             <Route
                 path="/elections/:electionId/result"
                 element={<ResultPage />}
             />
-
             <Route path="/candidates" element={<CandidatesPage />} />
             <Route
                 path="/candidates/:candidateId"
                 element={<CandidateDetailPage />}
             />
-
             <Route path="/parties" element={<PartiesPage />} />
             <Route path="/parties/:partyKey" element={<PartyDetailPage />} />
-
             {/* 認証（公開） */}
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/login" element={<LoginPage />} />
@@ -70,12 +66,10 @@ export function PublicRoutes() {
                 path="/verify-email"
                 element={<Navigate to="/verify" replace />}
             />
-
             {/* 本人認証投票（ログイン不要） */}
             <Route path="/voting/entry" element={<VotingEntryPage />} />
             <Route path="/voting/start" element={<VotingStartPage />} />
             <Route path="/voting/done" element={<VotingDonePage />} />
-
             <Route
                 path="/alloc-voting/start"
                 element={<AllocVotingStartPage />}
@@ -86,6 +80,9 @@ export function PublicRoutes() {
             />
             {/* 本人認証（ログイン不要でも使う） */}
             <Route path="/identity/link" element={<IdentityLinkPage />} />
+
+            {/* ✅ 投票用本人認証（ログイン不要） */}
+            <Route path="/identity/vote" element={<IdentityVotePage />} />
 
             <Route path="*" element={<div>Not Found</div>} />
         </Routes>

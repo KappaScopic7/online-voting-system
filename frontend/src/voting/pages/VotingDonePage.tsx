@@ -38,6 +38,9 @@ type DoneState = {
 
     electionId?: string;
     electionTitle?: string;
+
+    // ✅ public の token を Done -> Entry へ引き回すため
+    token?: string | null;
 } | null;
 
 function isTruthy(s: string | null | undefined) {
@@ -68,9 +71,16 @@ export function VotingDonePage() {
 
     const self = loc.pathname + loc.search;
 
+    // ✅ Done → Entry を安定させる（state.token を優先）
+    const tokenFromState = (state?.token ?? "").trim();
+
     const entryLink = electionId
         ? `/voting/entry?electionId=${encodeURIComponent(electionId)}${
               isPublic ? "&session=public" : ""
+          }${
+              isPublic && tokenFromState
+                  ? `&token=${encodeURIComponent(tokenFromState)}`
+                  : ""
           }`
         : isPublic
           ? "/elections"
@@ -175,6 +185,7 @@ export function VotingDonePage() {
                             electionTitle,
                             backTo,
                             entryLink,
+                            tokenFromState: tokenFromState ? "(present)" : null,
                         }}
                     />
                 )}
@@ -352,6 +363,7 @@ export function VotingDonePage() {
                         self,
                         isCandidate,
                         entryLink,
+                        tokenFromState: tokenFromState ? "(present)" : null,
                     }}
                 />
             )}

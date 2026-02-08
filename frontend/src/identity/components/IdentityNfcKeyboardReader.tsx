@@ -9,12 +9,21 @@ function looksLikeUuid(v: string) {
     );
 }
 
+function isPinValid(pin: string) {
+    return /^\d{4}$/.test(pin);
+}
+
 type BridgeState = "CHECKING" | "ONLINE" | "OFFLINE";
 
 export function IdentityNfcKeyboardReader(props: {
     onLinked: (accessToken: string) => void;
+    onError?: (msg: string) => void;
+
+    // ✅ 追加
+    pin?: string;
+    pinRequired?: boolean;
 }) {
-    const { onLinked } = props;
+    const { onLinked, onError, pin = "", pinRequired = false } = props;
     const { setAccessToken } = useAuth();
 
     const inputRef = useRef<HTMLInputElement>(null);
@@ -35,15 +44,13 @@ export function IdentityNfcKeyboardReader(props: {
         commitTimerRef.current = window.setTimeout(() => commit(), 250);
     };
 
-    // ✅ Bridge を「ある時だけ」ポーリングする
     useEffect(() => {
         let alive = true;
 
         let lastTimer: number | null = null;
         let checkTimer: number | null = null;
 
-        // 失敗時はバックオフして再チェック（ログスパム防止）
-        let backoffMs = 800; // start
+        let backoffMs = 800;
         const maxBackoffMs = 10_000;
 
         const clearLast = () => {
@@ -67,12 +74,11 @@ export function IdentityNfcKeyboardReader(props: {
 
         const checkHealth = async () => {
             if (!alive) return;
-            if (busy) return; // 登録中は触らない
+            if (busy) return;
 
             setBridgeState("CHECKING");
 
             try {
-                // cache を避ける（開発中にたまに変な挙動するの防止）
                 const res = await fetch(bridgeHealthUrl, {
                     method: "GET",
                     cache: "no-store",
@@ -81,7 +87,6 @@ export function IdentityNfcKeyboardReader(props: {
                 if (!alive) return;
 
                 if (res.ok) {
-                    // ONLINE
                     backoffMs = 800;
                     setBridgeState("ONLINE");
                     setBridgeNote(null);
@@ -92,7 +97,6 @@ export function IdentityNfcKeyboardReader(props: {
                 // ignore
             }
 
-            // OFFLINE
             clearLast();
             setBridgeState("OFFLINE");
             setBridgeNote(
@@ -125,10 +129,8 @@ export function IdentityNfcKeyboardReader(props: {
                     return;
                 }
 
-                // 想定外の status（bridge 側が落ちた/変）
                 throw new Error(`bridge /last status=${res.status}`);
             } catch {
-                // ここに入ったら「落ちた」と判断して poll 停止→再チェック
                 clearLast();
                 setBridgeState("OFFLINE");
                 setBridgeNote(
@@ -139,12 +141,10 @@ export function IdentityNfcKeyboardReader(props: {
         };
 
         const startPollingLast = () => {
-            if (lastTimer) return; // 既に動いてる
-            // 400ms はそのまま
+            if (lastTimer) return;
             lastTimer = window.setInterval(tickLast, 400);
         };
 
-        // 初回チェック
         checkHealth();
 
         return () => {
@@ -161,24 +161,39 @@ export function IdentityNfcKeyboardReader(props: {
 
         setMsg(null);
 
+        if (pinRequired && !isPinValid(pin)) {
+            const m = "先にPIN（4桁）を入力してください";
+            setMsg(m);
+            onError?.(m);
+            return;
+        }
+
         if (!looksLikeUuid(v)) {
-            setMsg(
-                "UUID形式ではありません。タグ内容/リーダー設定を確認してください。",
-            );
+            const m =
+                "UUID形式ではありません。タグ内容/リーダー設定を確認してください。";
+            setMsg(m);
+            onError?.(m);
             return;
         }
 
         setBusy(true);
         try {
-            const token = await linkIdentity(v);
+            const token = await linkIdentity({
+                citizenId: v,
+                pin: pinRequired ? pin : undefined,
+            });
             await setAccessToken(token.accessToken);
             onLinked(token.accessToken);
         } catch (err: any) {
-            setMsg(err?.response?.data?.message ?? "Link failed");
+            const m = err?.response?.data?.message ?? "Link failed";
+            setMsg(m);
+            onError?.(m);
         } finally {
             setBusy(false);
         }
     };
+
+    const pinOk = !pinRequired || isPinValid(pin);
 
     return (
         <div style={{ display: "grid", gap: 8 }}>
@@ -186,7 +201,12 @@ export function IdentityNfcKeyboardReader(props: {
                 PCのNFCリーダーでカードをかざしてください（入力欄に自動入力されます）。
             </p>
 
-            {/* ✅ bridge 状態表示（OFFLINEでも手動入力は可） */}
+            {!pinOk && (
+                <div style={{ padding: 8, border: "1px solid #ccc" }}>
+                    先に PIN（4桁）を入力してください
+                </div>
+            )}
+
             {bridgeNote && (
                 <div style={{ padding: 8, border: "1px solid #ccc" }}>
                     {bridgeNote}
@@ -227,7 +247,7 @@ export function IdentityNfcKeyboardReader(props: {
                 />
             </label>
 
-            <button onClick={commit} disabled={busy || !value.trim()}>
+            <button onClick={commit} disabled={busy || !value.trim() || !pinOk}>
                 {busy ? "登録中..." : "この読み取り結果で本人認証を登録"}
             </button>
         </div>

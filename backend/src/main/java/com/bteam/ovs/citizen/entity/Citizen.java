@@ -10,10 +10,13 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.UUID;
 
-@Entity @Table(name = "citizen") @EntityListeners(AuditingEntityListener.class)
+@Entity
+@Table(name = "citizen")
+@EntityListeners(AuditingEntityListener.class)
 public class Citizen {
 
-    @Id @Column(name = "citizen_id", nullable = false)
+    @Id
+    @Column(name = "citizen_id", nullable = false)
     private UUID citizenId;
 
     @Column(name = "family_name", nullable = false, length = 100)
@@ -34,13 +37,20 @@ public class Citizen {
     @Column(name = "address_line", nullable = false, length = 200)
     private String addressLine;
 
-    @Enumerated(EnumType.STRING) @Column(name = "gender", nullable = false, length = 5)
+    @Enumerated(EnumType.STRING)
+    @Column(name = "gender", nullable = false, length = 5)
     private Gender gender;
 
-    @CreatedDate @Column(name = "created_at", nullable = false, updatable = false)
+    // ✅ 追加：NFC投票PIN（BCrypt hash）
+    @Column(name = "nfc_pin_hash", nullable = false, length = 255)
+    private String nfcPinHash;
+
+    @CreatedDate
+    @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
-    @LastModifiedDate @Column(name = "updated_at", nullable = false)
+    @LastModifiedDate
+    @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
     // --- getters/setters ---
@@ -106,6 +116,14 @@ public class Citizen {
 
     public void setGender(Gender gender) {
         this.gender = gender;
+    }
+
+    public String getNfcPinHash() {
+        return nfcPinHash;
+    }
+
+    public void setNfcPinHash(String nfcPinHash) {
+        this.nfcPinHash = nfcPinHash;
     }
 
     public Instant getCreatedAt() {

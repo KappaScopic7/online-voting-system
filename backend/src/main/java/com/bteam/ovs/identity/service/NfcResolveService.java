@@ -4,6 +4,7 @@ import com.bteam.ovs.citizen.repository.CitizenRepository;
 import com.bteam.ovs.identity.controller.dto.CitizenNfcResolveResponse;
 import com.bteam.ovs.shared.errors.ApiException;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.UUID;
@@ -16,24 +17,42 @@ public class NfcResolveService {
             "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}");
 
     private final CitizenRepository citizenRepo;
+    private final PasswordEncoder passwordEncoder;
 
-    public NfcResolveService(CitizenRepository citizenRepo) {
+    public NfcResolveService(CitizenRepository citizenRepo, PasswordEncoder passwordEncoder) {
         this.citizenRepo = citizenRepo;
+        this.passwordEncoder = passwordEncoder;
     }
 
-    /** NFC payload から citizenId を抽出して返す（投票トークン発行などで再利用） */
-    public UUID resolveCitizenId(String payload) {
-        return extractCitizenId(payload);
-    }
-
-    public CitizenNfcResolveResponse resolve(String payload) {
-        UUID citizenId = resolveCitizenId(payload);
+    public CitizenNfcResolveResponse resolve(String payload, String pin) {
+        UUID citizenId = extractCitizenId(payload);
 
         var c = citizenRepo.findById(citizenId)
                 .orElseThrow(() -> new ApiException(
                         HttpStatus.NOT_FOUND,
                         "CITIZEN_NOT_FOUND",
                         "Citizen not found: " + citizenId));
+
+        // ✅ PIN照合（hash）
+        String hash = c.getNfcPinHash();
+        if (hash == null || hash.isBlank()) {
+            throw new ApiException(
+                    HttpStatus.UNAUTHORIZED,
+                    "PIN_NOT_SET",
+                    "PIN is not set for this citizen");
+        }
+        if (pin == null || !pin.matches("^\\d{4}$")) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "INVALID_PIN",
+                    "pin is invalid");
+        }
+        if (!passwordEncoder.matches(pin, hash)) {
+            throw new ApiException(
+                    HttpStatus.UNAUTHORIZED,
+                    "INVALID_PIN",
+                    "PIN is incorrect");
+        }
 
         return new CitizenNfcResolveResponse(
                 c.getCitizenId().toString(),
@@ -72,4 +91,37 @@ public class NfcResolveService {
 
         return UUID.fromString(m.group());
     }
+
+    public UUID resolveCitizenId(String payload, String pin) {
+        UUID citizenId = extractCitizenId(payload);
+
+        var c = citizenRepo.findById(citizenId)
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.NOT_FOUND,
+                        "CITIZEN_NOT_FOUND",
+                        "Citizen not found: " + citizenId));
+
+        String hash = c.getNfcPinHash();
+        if (hash == null || hash.isBlank()) {
+            throw new ApiException(
+                    HttpStatus.UNAUTHORIZED,
+                    "PIN_NOT_SET",
+                    "PIN is not set for this citizen");
+        }
+        if (pin == null || !pin.matches("^\\d{4}$")) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "INVALID_PIN",
+                    "pin is invalid");
+        }
+        if (!passwordEncoder.matches(pin, hash)) {
+            throw new ApiException(
+                    HttpStatus.UNAUTHORIZED,
+                    "INVALID_PIN",
+                    "PIN is incorrect");
+        }
+
+        return citizenId;
+    }
+
 }

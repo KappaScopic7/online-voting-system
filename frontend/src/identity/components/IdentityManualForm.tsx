@@ -10,10 +10,19 @@ function isUuidLike(v: string) {
     );
 }
 
+function isPinValid(pin: string) {
+    return /^\d{4}$/.test(pin);
+}
+
 export function IdentityManualForm(props: {
     onLinked: (accessToken: string) => void;
+    onError?: (msg: string) => void;
+
+    // ✅ 追加
+    pin?: string;
+    pinRequired?: boolean;
 }) {
-    const { onLinked } = props;
+    const { onLinked, onError, pin = "", pinRequired = false } = props;
     const { setAccessToken } = useAuth();
 
     const isDev = import.meta.env?.DEV;
@@ -23,12 +32,15 @@ export function IdentityManualForm(props: {
     const [fieldErr, setFieldErr] = useState<{ citizenId?: string }>({});
     const [isSubmitting, setIsSubmitting] = useState(false);
 
+    const pinOk = !pinRequired || isPinValid(pin);
+
     const canSubmit = useMemo(() => {
         const v = citizenId.trim();
         if (!v) return false;
         if (!isUuidLike(v)) return false;
+        if (!pinOk) return false;
         return !isSubmitting;
-    }, [citizenId, isSubmitting]);
+    }, [citizenId, isSubmitting, pinOk]);
 
     const fillDemoCitizenId = (id: string) => {
         setCitizenId(id);
@@ -50,14 +62,25 @@ export function IdentityManualForm(props: {
             setFieldErr({ citizenId: "UUID形式が不正です" });
             return;
         }
+        if (!pinOk) {
+            const m = "PINは4桁の数字で入力してください";
+            setMsg(m);
+            onError?.(m);
+            return;
+        }
 
         try {
             setIsSubmitting(true);
-            const token = await linkIdentity(v);
+            const token = await linkIdentity({
+                citizenId: v,
+                pin: pinRequired ? pin : undefined,
+            });
             await setAccessToken(token.accessToken);
             onLinked(token.accessToken);
         } catch (err: any) {
-            setMsg(err?.response?.data?.message ?? "本人認証に失敗しました");
+            const m = err?.response?.data?.message ?? "本人認証に失敗しました";
+            setMsg(m);
+            onError?.(m);
         } finally {
             setIsSubmitting(false);
         }
@@ -65,7 +88,6 @@ export function IdentityManualForm(props: {
 
     return (
         <div style={{ display: "grid", gap: 12 }}>
-            {/* ===== 通常UI ===== */}
             <div style={{ fontSize: 13, opacity: 0.85, lineHeight: 1.6 }}>
                 citizenId（UUID）を入力して本人認証を行います。
             </div>
@@ -114,22 +136,21 @@ export function IdentityManualForm(props: {
                 >
                     {isSubmitting ? "登録中..." : "本人認証を登録"}
                 </button>
+
+                {!pinOk && (
+                    <div style={{ fontSize: 12, opacity: 0.75 }}>
+                        ※ 先に PIN（4桁）を入力してください
+                    </div>
+                )}
             </form>
 
-            {/* ===== DEV ONLY ===== */}
             {isDev && (
                 <details>
                     <summary style={{ cursor: "pointer", fontSize: 12 }}>
                         DEV tools
                     </summary>
 
-                    <div
-                        style={{
-                            display: "grid",
-                            gap: 8,
-                            marginTop: 8,
-                        }}
-                    >
+                    <div style={{ display: "grid", gap: 8, marginTop: 8 }}>
                         <div
                             style={{
                                 fontSize: 12,

@@ -1,3 +1,4 @@
+// backend/src/main/java/com/bteam/ovs/publicapi/voting/VoteTokenController.java
 package com.bteam.ovs.publicapi.voting;
 
 import com.bteam.ovs.identity.service.NfcResolveService;
@@ -26,8 +27,8 @@ public class VoteTokenController {
     public VoteTokenIssueResponse issue(@Valid @RequestBody VoteTokenIssueRequest req) {
         UUID electionId = UuidParsers.parseOr400(req.electionId(), "INVALID_ELECTION_ID", "electionIdが不正です");
 
-        // payload から citizenId を抽出（存在チェックは投票側で弾かれても良いが、ここで弾きたければ resolve() を使う）
-        UUID citizenId = nfcResolveService.resolveCitizenId(req.payload());
+        // ✅ payload + pin で citizenId を確定
+        UUID citizenId = nfcResolveService.resolveCitizenId(req.payload(), req.pin());
 
         String token = voteTokenService.issue(citizenId, electionId);
         return new VoteTokenIssueResponse(token);

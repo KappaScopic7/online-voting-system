@@ -3,12 +3,14 @@ import axios from "axios";
 
 type TokenStore = { get(): string | null; clear(): void };
 
-// ✅ DevもProdも常に /api を叩く
-const API_BASE = "/api";
+export function createHttpClient(
+    tokenStore: TokenStore,
+    opts?: { clearOnAuthError?: boolean },
+) {
+    const clearOnAuthError = opts?.clearOnAuthError ?? false;
 
-export function createHttpClient(tokenStore: TokenStore) {
     const http = axios.create({
-        baseURL: API_BASE,
+        baseURL: "/api",
         headers: { "Content-Type": "application/json" },
     });
 
@@ -25,14 +27,12 @@ export function createHttpClient(tokenStore: TokenStore) {
         (res) => res,
         (err) => {
             const status = err?.response?.status;
-            const url: string | undefined = err?.config?.url;
 
-            if (
-                (status === 401 || status === 403) &&
-                url?.includes("/auth/me")
-            ) {
+            // ✅ public token は期限切れ/無効なら即クリアしてループを止める
+            if (clearOnAuthError && (status === 401 || status === 403)) {
                 tokenStore.clear();
             }
+
             return Promise.reject(err);
         },
     );

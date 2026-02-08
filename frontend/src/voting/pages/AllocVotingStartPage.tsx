@@ -1,3 +1,4 @@
+// frontend/src/voting/pages/AllocVotingStartPage.tsx
 import { useEffect, useMemo, useState } from "react";
 import {
     Link,
@@ -45,31 +46,29 @@ export function AllocVotingStartPage() {
     const [sp] = useSearchParams();
     const electionId = sp.get("electionId") ?? "";
 
-    // ✅ public モード判定（EntryPage と揃える）
+    // ✅ public モード判定：session=public / public=1 のみ
     const session = (sp.get("session") ?? "").toLowerCase();
-    const tokenFromQuery = sp.get("token");
-    const effectiveToken = tokenFromQuery?.trim() || publicToken.get();
-    const publicMode =
-        session === "public" ||
-        isTruthy(sp.get("public")) ||
-        !!(effectiveToken && effectiveToken.trim());
+    const publicMode = session === "public" || isTruthy(sp.get("public"));
 
-    // ✅ token を確定したら storage に保存
+    // ✅ token は publicMode のときだけ使う（混線防止）
+    const tokenFromQuery = publicMode ? sp.get("token") : null;
+    const effectiveToken = publicMode
+        ? tokenFromQuery?.trim() || publicToken.get()
+        : null;
+
     useEffect(() => {
+        if (!publicMode) return;
         if (effectiveToken && effectiveToken.trim()) {
             publicToken.set(effectiveToken.trim());
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [effectiveToken]);
+    }, [publicMode, effectiveToken]);
 
     const self = loc.pathname + loc.search;
 
-    // ✅ 戻り先：public は /elections をデフォルト
     const backTo = normalizeFrom(
         state?.from ?? (publicMode ? "/elections" : "/me/elections"),
     );
-
-    // ✅ Done へ引き継ぐ query（DonePage が query で public 判定）
     const doneQS = publicMode ? "?session=public" : "";
 
     const [loading, setLoading] = useState(true);
@@ -98,7 +97,6 @@ export function AllocVotingStartPage() {
         sum === total &&
         rows.some((r) => (r.points ?? 0) > 0) &&
         !busy;
-
     const clampInt = (v: number) => Math.max(0, Math.floor(Number(v) || 0));
 
     const load = async () => {
@@ -137,7 +135,7 @@ export function AllocVotingStartPage() {
                 setErr(
                     msg ??
                         (publicMode
-                            ? "本人認証が必要です（アプリ/NFCから開いてください）"
+                            ? "本人認証の有効期限が切れました。もう一度本人認証してください。"
                             : "ログインが必要です"),
                 );
             } else {
@@ -161,7 +159,6 @@ export function AllocVotingStartPage() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [electionId, publicMode]);
 
-    // NONE_SUPPORT を全振り（確認つき）
     const commitNoneAll = () => {
         if (!data || busy) return;
         const ok = window.confirm(
@@ -194,7 +191,7 @@ export function AllocVotingStartPage() {
             const next = prev.map((r) => ({ ...r }));
             const nIdx = next.findIndex((r) => isNone(r));
             if (nIdx >= 0 && (next[nIdx].points ?? 0) > 0) {
-                next[nIdx].points = 0; // NONE解除
+                next[nIdx].points = 0;
             }
 
             if (isNone(next[idx])) return next;
@@ -217,7 +214,7 @@ export function AllocVotingStartPage() {
             const next = prev.map((r) => ({ ...r }));
             const nIdx = next.findIndex((r) => isNone(r));
             if (nIdx >= 0 && (next[nIdx].points ?? 0) > 0) {
-                next[nIdx].points = 0; // NONE解除
+                next[nIdx].points = 0;
             }
 
             if (isNone(next[idx])) return next;
@@ -257,9 +254,12 @@ export function AllocVotingStartPage() {
                 ? await publicAllocConfirm(req)
                 : await allocConfirm(req);
 
-            // ✅ DonePage は query で public 判定するので必ず付与
             nav(`/alloc-voting/done${doneQS}`, {
-                state: { result, from: backTo },
+                state: {
+                    result,
+                    from: backTo,
+                    token: publicMode ? effectiveToken?.trim() || null : null,
+                },
             });
         } catch (e: any) {
             const status = e?.response?.status;
@@ -271,7 +271,7 @@ export function AllocVotingStartPage() {
                 setErr(
                     msg ??
                         (publicMode
-                            ? "本人認証が必要です（アプリ/NFCから開いてください）"
+                            ? "本人認証の有効期限が切れました。もう一度本人認証してください。"
                             : "ログインが必要です"),
                 );
             } else {
@@ -301,13 +301,9 @@ export function AllocVotingStartPage() {
                     <Link to={backTo}>← 戻る</Link>
 
                     <Link
-                        to={`/voting/entry?electionId=${encodeURIComponent(
-                            electionId,
-                        )}${publicMode ? "&session=public" : ""}${
-                            effectiveToken
-                                ? `&token=${encodeURIComponent(effectiveToken)}`
-                                : ""
-                        }`}
+                        to={`/voting/entry?electionId=${encodeURIComponent(electionId)}${
+                            publicMode ? "&session=public" : ""
+                        }${effectiveToken ? `&token=${encodeURIComponent(effectiveToken)}` : ""}`}
                         state={{ from: backTo }}
                     >
                         投票入口へ
@@ -347,6 +343,15 @@ export function AllocVotingStartPage() {
                         <button onClick={load} disabled={loading || busy}>
                             再試行
                         </button>
+
+                        {publicMode && (
+                            <Link
+                                to={`/identity/vote?electionId=${encodeURIComponent(electionId)}&session=public&returnTo=${encodeURIComponent(self)}`}
+                                state={{ from: backTo }}
+                            >
+                                本人認証（PIN+NFC）へ →
+                            </Link>
+                        )}
 
                         {!publicMode && (
                             <Link to="/me/identity" state={{ from: self }}>
@@ -717,6 +722,7 @@ export function AllocVotingStartPage() {
                     publicMode,
                     session,
                     tokenFromQuery: tokenFromQuery ? "(present)" : null,
+                    effectiveToken: effectiveToken ? "(present)" : null,
                     hasStoredPublicToken: !!publicToken.get(),
                 }}
             />

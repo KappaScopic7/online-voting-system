@@ -1,5 +1,5 @@
 // frontend/src/elections/ui/ElectionVoteEntryCard.tsx
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { Card } from "../../shared/ui/page";
 import type { ElectionDetailResponse } from "../model/electionTypes";
 
@@ -13,18 +13,24 @@ export function ElectionVoteEntryCard(props: {
     authLoading: boolean;
 }) {
     const { data, electionId, from, me, authLoading } = props;
-    const nav = useNavigate();
 
-    const canStartVote = data.canCast && data.status === "ONGOING";
+    const isOngoing = data.status === "ONGOING";
+    const canPublicVote = isOngoing && !!electionId;
 
-    // 公開投票: canCastに依存させない（本人認証側で弾く）
-    const canPublicVote = data.status === "ONGOING" && !!electionId;
-    const publicEntryLink = `/public/voting/${encodeURIComponent(electionId)}`;
+    // ✅ ログイン投票は VotingEntryPage に寄せて NORMAL/ALLOC を振り分けさせる
+    const loginEntryLink = `/voting/entry?electionId=${encodeURIComponent(
+        electionId,
+    )}`;
+
+    // ✅ 本人認証投票も VotingEntryPage に寄せる（token無ければ /identity/vote に送られる）
+    const publicEntryLink = `/voting/entry?electionId=${encodeURIComponent(
+        electionId,
+    )}&session=public`;
 
     return (
         <Card>
             <div style={{ display: "grid", gap: 10 }}>
-                {/* --- 公開投票（未ログインでも可） --- */}
+                {/* --- 本人認証投票（未ログインでも可） --- */}
                 {canPublicVote ? (
                     <div
                         style={{
@@ -43,7 +49,7 @@ export function ElectionVoteEntryCard(props: {
                         </Link>
 
                         <span style={{ fontSize: 12, opacity: 0.75 }}>
-                            NFC / アプリから投票できます
+                            PIN（4桁）+ NFC/手入力で投票できます
                         </span>
                     </div>
                 ) : (
@@ -69,7 +75,7 @@ export function ElectionVoteEntryCard(props: {
                         }}
                     >
                         <Link to="/login" state={{ from }}>
-                            ログインして投票
+                            ログインして投票 →
                         </Link>
                         <span style={{ fontSize: 12, opacity: 0.7 }}>
                             ログイン後、この詳細に戻ります
@@ -82,34 +88,35 @@ export function ElectionVoteEntryCard(props: {
                                 display: "flex",
                                 gap: 12,
                                 flexWrap: "wrap",
+                                alignItems: "center",
                             }}
                         >
-                            <button
-                                disabled={!canStartVote}
-                                onClick={() =>
-                                    nav(
-                                        `/voting/start?electionId=${data.electionId}`,
-                                        { state: { from } },
-                                    )
-                                }
+                            <Link
+                                to={loginEntryLink}
+                                state={{ from }}
+                                style={{ textDecoration: "none" }}
                             >
-                                投票を開始
-                            </button>
+                                <b>投票を開始 →</b>
+                            </Link>
 
-                            <button
-                                disabled={!canStartVote}
-                                onClick={() =>
-                                    nav(
-                                        `/alloc-voting/start?electionId=${data.electionId}`,
-                                        { state: { from } },
-                                    )
-                                }
-                            >
-                                配分投票を開始
-                            </button>
+                            <span style={{ fontSize: 12, opacity: 0.7 }}>
+                                ※ 配分投票か通常投票かは自動で振り分けます
+                            </span>
                         </div>
 
-                        {!canStartVote && (
+                        {!isOngoing && (
+                            <div
+                                style={{
+                                    fontSize: 12,
+                                    opacity: 0.7,
+                                    marginTop: 6,
+                                }}
+                            >
+                                投票は開催中のみ開始できます
+                            </div>
+                        )}
+
+                        {isOngoing && !data.canCast && (
                             <div
                                 style={{
                                     fontSize: 12,
@@ -118,7 +125,7 @@ export function ElectionVoteEntryCard(props: {
                                 }}
                             >
                                 投票開始できません（本人認証未完了 /
-                                期間外など）
+                                メール未認証 / 条件未達など）
                             </div>
                         )}
                     </>

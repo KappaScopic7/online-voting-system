@@ -7,7 +7,8 @@
         "prefCode": "13",
         "cityCode": "13209",
         "addressLine": "東京都町田市 原町田",
-        "gender": "M"
+        "gender": "M",
+        "nfcPin": "1234"
     },
     {
         "citizenId": "550e8400-e29b-41d4-a716-446655440001",
@@ -17,7 +18,8 @@
         "prefCode": "13",
         "cityCode": "13209",
         "addressLine": "東京都町田市 鶴間",
-        "gender": "F"
+        "gender": "F",
+        "nfcPin": "0001"
     },
     {
         "citizenId": "550e8400-e29b-41d4-a716-446655440002",
@@ -27,7 +29,8 @@
         "prefCode": "14",
         "cityCode": "14100",
         "addressLine": "神奈川県横浜市 中区",
-        "gender": "M"
+        "gender": "M",
+        "nfcPin": "2222"
     },
     {
         "citizenId": "550e8400-e29b-41d4-a716-446655440003",
@@ -37,7 +40,8 @@
         "prefCode": "13",
         "cityCode": "13209",
         "addressLine": "東京都町田市 成瀬",
-        "gender": "F"
+        "gender": "F",
+        "nfcPin": "3333"
     },
     {
         "citizenId": "550e8400-e29b-41d4-a716-446655440004",
@@ -47,7 +51,8 @@
         "prefCode": "13",
         "cityCode": "13209",
         "addressLine": "東京都町田市 玉川学園",
-        "gender": "M"
+        "gender": "M",
+        "nfcPin": "4444"
     },
     {
         "citizenId": "550e8400-e29b-41d4-a716-446655440005",
@@ -57,7 +62,8 @@
         "prefCode": "13",
         "cityCode": "13209",
         "addressLine": "東京都町田市",
-        "gender": "M"
+        "gender": "M",
+        "nfcPin": "5555"
     },
     {
         "citizenId": "550e8400-e29b-41d4-a716-446655440006",
@@ -67,7 +73,8 @@
         "prefCode": "13",
         "cityCode": "13209",
         "addressLine": "東京都町田市",
-        "gender": "F"
+        "gender": "F",
+        "nfcPin": "6666"
     },
     {
         "citizenId": "550e8400-e29b-41d4-a716-446655440007",
@@ -77,7 +84,8 @@
         "prefCode": "13",
         "cityCode": "13209",
         "addressLine": "東京都町田市",
-        "gender": "M"
+        "gender": "M",
+        "nfcPin": "7777"
     },
     {
         "citizenId": "550e8400-e29b-41d4-a716-446655440008",
@@ -87,7 +95,8 @@
         "prefCode": "13",
         "cityCode": "13209",
         "addressLine": "東京都町田市",
-        "gender": "F"
+        "gender": "F",
+        "nfcPin": "8888"
     },
     {
         "citizenId": "550e8400-e29b-41d4-a716-446655440009",
@@ -97,6 +106,7 @@
         "prefCode": "13",
         "cityCode": "13209",
         "addressLine": "東京都町田市",
-        "gender": "X"
+        "gender": "X",
+        "nfcPin": "9999"
     }
 ]

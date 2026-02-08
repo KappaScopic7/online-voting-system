@@ -28,7 +28,7 @@ export function FavoritesPage() {
 
     return (
         <div style={{ maxWidth: 900, margin: "0 auto", padding: 16 }}>
-            <h2 style={{ marginBottom: 12 }}>お気に入り</h2>
+            <h2 style={{ marginBottom: 12 }}>ブックマーク</h2>
 
             {error && (
                 <div
@@ -46,7 +46,7 @@ export function FavoritesPage() {
             {!data && !error && <div>読み込み中...</div>}
 
             {data && items.length === 0 && (
-                <div>まだお気に入りがありません</div>
+                <div>まだブックマークがありません</div>
             )}
 
             {items.map((it) => {

@@ -1,3 +1,4 @@
+// frontend/src/voting/api/publicVotes.ts
 import { httpPublic } from "../../shared/httpPublic";
 import type {
     VoteConfirmRequest,

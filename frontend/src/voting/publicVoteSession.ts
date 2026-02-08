@@ -1,25 +1,28 @@
+// frontend/src/voting/publicVoteSession.ts
 import { publicToken } from "../shared/tokenStorage";
-import { issueVoteToken } from "./api/voteToken";
+import { issueVoteToken } from "../public/api/voteToken";
 
-export type EnsurePublicVoteTokenArgs = {
+export function setPublicVoteToken(token: string) {
+    publicToken.set(token);
+}
+
+export function clearPublicVoteToken() {
+    publicToken.clear();
+}
+
+export function getPublicVoteToken() {
+    return publicToken.get();
+}
+
+/**
+ * PIN + payload(UUID文字列) + electionId から voteToken を発行して保存
+ */
+export async function issueAndStorePublicVoteToken(params: {
     electionId: string;
-    payload?: string | null; // NFC payload（URLに載せるなら短命で）
-};
-
-export async function ensurePublicVoteToken(
-    args: EnsurePublicVoteTokenArgs,
-): Promise<boolean> {
-    // 既に token があるならOK
-    if (publicToken.get()) return true;
-
-    // payload が無いと発行できない（今のバックエンド仕様）
-    if (!args.payload) return false;
-
-    const r = await issueVoteToken({
-        electionId: args.electionId,
-        payload: args.payload,
-    });
-
+    payload: string;
+    pin: string;
+}): Promise<string> {
+    const r = await issueVoteToken(params);
     publicToken.set(r.voteToken);
-    return true;
+    return r.voteToken;
 }
