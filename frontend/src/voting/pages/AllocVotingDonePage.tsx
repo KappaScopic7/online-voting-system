@@ -5,55 +5,155 @@ import { normalizeFrom } from "../../shared/normalizeFrom";
 import { Card, DevDebug, Page } from "../../shared/ui/page";
 import { CandidateAvatar } from "../../shared/ui/CandidateAvatar";
 
-type DoneState = { result?: AllocVoteHistoryItem; from?: string } | null;
+type DoneState = {
+    result?: AllocVoteHistoryItem;
+    from?: string;
+
+    // public confirm-alloc で result を作れない場合にも「完了画面」を成立させるため
+    electionId?: string;
+    electionTitle?: string;
+} | null;
+
+function isTruthy(s: string | null | undefined) {
+    if (!s) return false;
+    const v = s.toLowerCase();
+    return v === "1" || v === "true" || v === "yes" || v === "on";
+}
 
 export function AllocVotingDonePage() {
     const loc = useLocation();
     const state = (loc.state as DoneState) ?? null;
 
-    const result = state?.result ?? null;
-    const backTo = normalizeFrom(state?.from ?? "/me/elections");
+    const q = new URLSearchParams(loc.search);
+    const session = (q.get("session") ?? "").toLowerCase();
+    const isPublic = session === "public" || isTruthy(q.get("public"));
 
+    const result = state?.result ?? null;
+
+    const electionId =
+        result?.electionId ?? state?.electionId ?? q.get("electionId") ?? "";
+    const electionTitle =
+        result?.electionTitle ??
+        state?.electionTitle ??
+        (isPublic ? "配分投票（本人認証）" : "配分投票");
+
+    const defaultBack = isPublic ? "/elections" : "/me/elections";
+    const backTo = normalizeFrom(state?.from ?? defaultBack);
+
+    const self = loc.pathname + loc.search;
+
+    const entryLink = electionId
+        ? `/voting/entry?electionId=${encodeURIComponent(electionId)}${
+              isPublic ? "&session=public" : ""
+          }`
+        : isPublic
+          ? "/elections"
+          : "/me/elections";
+
+    const eid = encodeURIComponent(electionId);
+    const electionDetailLink = electionId ? `/elections/${eid}` : "/elections";
+    const resultLink = electionId ? `/elections/${eid}/result` : "/elections";
+
+    // result なしでも「送信完了」画面として成立
     if (!result) {
         return (
             <Page
                 title={
                     <h1 style={{ margin: 0, fontSize: 20 }}>
-                        投票完了（配分投票）
+                        投票が完了しました（配分投票）
                     </h1>
                 }
-                actions={<Link to={backTo}>← 戻る</Link>}
-                maxWidth={860}
-            >
-                <Card role="alert">
-                    <div style={{ fontWeight: 800, marginBottom: 6 }}>
-                        投票結果がありません
-                    </div>
-                    <div style={{ fontSize: 13, opacity: 0.85 }}>
-                        ページを直接開いた可能性があります。履歴から確認してください。
-                    </div>
-
+                actions={
                     <div
                         style={{
-                            marginTop: 10,
                             display: "flex",
                             gap: 12,
                             flexWrap: "wrap",
+                            alignItems: "center",
                         }}
                     >
-                        <Link to="/me/alloc-votes">履歴へ</Link>
-                        <Link to="/elections">選挙一覧へ</Link>
-                        <Link to={backTo}>戻る</Link>
+                        <Link to={backTo}>← 戻る</Link>
+                        <Link to={electionDetailLink} state={{ from: self }}>
+                            選挙詳細
+                        </Link>
+                        <Link to={resultLink} state={{ from: self }}>
+                            結果
+                        </Link>
+                    </div>
+                }
+                maxWidth={860}
+            >
+                <Card>
+                    <div style={{ display: "grid", gap: 8 }}>
+                        <div style={{ fontWeight: 800 }}>{electionTitle}</div>
+                        <div style={{ fontSize: 13, opacity: 0.85 }}>
+                            配分投票は送信されました。
+                            {isPublic ? "（本人認証投票）" : ""}
+                        </div>
+                        <div
+                            style={{
+                                fontSize: 12,
+                                opacity: 0.75,
+                                lineHeight: 1.6,
+                            }}
+                        >
+                            ※
+                            ページを直接開いた/更新した場合、配分内訳は表示できないことがあります。
+                            <br />※
+                            投票は期間内であれば変更できます（最後に送信した内容が有効）
+                        </div>
+
+                        <div
+                            style={{
+                                marginTop: 6,
+                                display: "flex",
+                                gap: 12,
+                                flexWrap: "wrap",
+                                alignItems: "center",
+                            }}
+                        >
+                            <Link to={entryLink}>
+                                <b>投票を変更する →</b>
+                            </Link>
+
+                            <span
+                                style={{
+                                    marginLeft: "auto",
+                                    display: "inline-flex",
+                                    gap: 12,
+                                    flexWrap: "wrap",
+                                }}
+                            >
+                                <Link to="/elections">選挙一覧へ</Link>
+                                {!isPublic && (
+                                    <Link to="/me/alloc-votes">履歴へ</Link>
+                                )}
+                                {!isPublic && <Link to={backTo}>My選挙へ</Link>}
+                                {isPublic && <Link to={backTo}>戻る</Link>}
+                            </span>
+                        </div>
                     </div>
                 </Card>
 
-                <DevDebug value={{ state, loc }} />
+                <DevDebug
+                    value={{
+                        isPublic,
+                        session,
+                        state,
+                        loc,
+                        electionId,
+                        electionTitle,
+                        backTo,
+                        entryLink,
+                    }}
+                />
             </Page>
         );
     }
 
-    const self = loc.pathname + loc.search;
+    const rid = encodeURIComponent(result.electionId);
 
+    // result あり（従来通り）
     return (
         <Page
             title={
@@ -72,15 +172,12 @@ export function AllocVotingDonePage() {
                 >
                     <Link to={backTo}>← 戻る</Link>
 
-                    <Link
-                        to={`/elections/${result.electionId}`}
-                        state={{ from: self }}
-                    >
+                    <Link to={`/elections/${rid}`} state={{ from: self }}>
                         選挙詳細
                     </Link>
 
                     <Link
-                        to={`/elections/result?electionId=${result.electionId}`}
+                        to={`/elections/${rid}/result`}
                         state={{ from: self }}
                     >
                         結果
@@ -94,6 +191,12 @@ export function AllocVotingDonePage() {
                     <strong style={{ fontSize: 16 }}>
                         {result.electionTitle}
                     </strong>
+
+                    {isPublic && (
+                        <div style={{ fontSize: 12, opacity: 0.75 }}>
+                            本人認証（NFC / アプリ）で投票中
+                        </div>
+                    )}
 
                     <div style={{ fontSize: 12, opacity: 0.75 }}>
                         ※
@@ -194,14 +297,13 @@ export function AllocVotingDonePage() {
                             alignItems: "center",
                         }}
                     >
-                        <Link to="/me/alloc-votes">
-                            <b>履歴を見る</b>
-                        </Link>
+                        {!isPublic && (
+                            <Link to="/me/alloc-votes">
+                                <b>履歴を見る</b>
+                            </Link>
+                        )}
 
-                        <Link
-                            to={`/voting/entry?electionId=${result.electionId}`}
-                            state={{ from: backTo }}
-                        >
+                        <Link to={entryLink} state={{ from: backTo }}>
                             <b>投票を変更する →</b>
                         </Link>
 
@@ -214,13 +316,24 @@ export function AllocVotingDonePage() {
                             }}
                         >
                             <Link to="/elections">選挙一覧へ</Link>
-                            <Link to={backTo}>My選挙へ</Link>
+                            {!isPublic && <Link to={backTo}>My選挙へ</Link>}
+                            {isPublic && <Link to={backTo}>戻る</Link>}
                         </span>
                     </div>
                 </div>
             </Card>
 
-            <DevDebug value={{ result, state, backTo, self }} />
+            <DevDebug
+                value={{
+                    isPublic,
+                    session,
+                    result,
+                    state,
+                    backTo,
+                    self,
+                    entryLink,
+                }}
+            />
         </Page>
     );
 }

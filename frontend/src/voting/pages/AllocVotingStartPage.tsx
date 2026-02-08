@@ -40,13 +40,15 @@ export function AllocVotingStartPage() {
     const electionId = sp.get("electionId") ?? "";
 
     const self = loc.pathname + loc.search;
+
+    // 通常（ログイン）投票の戻り先
     const backTo = normalizeFrom(state?.from ?? "/me/elections");
 
     const [loading, setLoading] = useState(true);
     const [busy, setBusy] = useState(false);
     const [err, setErr] = useState<string | null>(null);
-    const [data, setData] = useState<AllocVoteStartResponse | null>(null);
 
+    const [data, setData] = useState<AllocVoteStartResponse | null>(null);
     const [rows, setRows] = useState<Row[]>([]);
 
     const total = data?.pointsPerVoter ?? 0;
@@ -73,24 +75,39 @@ export function AllocVotingStartPage() {
 
     const load = async () => {
         if (!electionId) return;
+
         setErr(null);
         setLoading(true);
+
         try {
             const res = await allocStart(electionId);
             setData(res);
 
-            // options はそのまま使う。ただし NONE_SUPPORT は最後に回す（目立たせない）
             const normalized: Row[] = res.options.map((o) => ({
                 type: o.type,
                 candidateId: o.candidateId ?? null,
                 label: o.label,
                 points: 0,
             }));
+
             const candidates = normalized.filter((r) => r.type === "CANDIDATE");
             const none = normalized.filter((r) => r.type === "NONE_SUPPORT");
             setRows([...candidates, ...none]);
         } catch (e: any) {
-            setErr(e?.response?.data?.message ?? "取得に失敗しました");
+            const status = e?.response?.status;
+            const msg = e?.response?.data?.message;
+
+            if (status === 403) {
+                setErr(
+                    msg ??
+                        "投票を開始できません（本人リンク未完了 / 期間外 など）",
+                );
+            } else if (status === 401) {
+                setErr(msg ?? "ログインが必要です");
+            } else {
+                setErr(msg ?? "取得に失敗しました");
+            }
+
             setData(null);
             setRows([]);
         } finally {
@@ -134,7 +151,6 @@ export function AllocVotingStartPage() {
         });
     };
 
-    // 候補者ポイント変更（NONEが入ってたら解除）
     const setPoints = (idx: number, v: number) => {
         if (!data || busy) return;
 
@@ -145,12 +161,10 @@ export function AllocVotingStartPage() {
                 next[nIdx].points = 0; // NONE解除
             }
 
-            // NONE_SUPPORT行は手入力させない（ボタン操作のみ）
             if (isNone(next[idx])) return next;
 
             next[idx].points = clampInt(v);
 
-            // 合計が total を超えたら最後に触った行を丸める
             const s = next.reduce((a, r) => a + (Number(r.points) || 0), 0);
             if (s > total) {
                 const over = s - total;
@@ -187,28 +201,38 @@ export function AllocVotingStartPage() {
     const onSubmit = async () => {
         if (!data || busy) return;
 
-        const req: AllocVoteConfirmRequest = {
-            electionId: data.electionId,
-            pointsTotal: total,
-            items: rows
-                .filter((r) => (r.points ?? 0) > 0)
-                .map((r) => ({
-                    type: r.type,
-                    candidateId: r.candidateId,
-                    points: r.points,
-                })),
-        };
-
         setBusy(true);
         setErr(null);
+
         try {
+            const req: AllocVoteConfirmRequest = {
+                electionId: data.electionId,
+                pointsTotal: total,
+                items: rows
+                    .filter((r) => (r.points ?? 0) > 0)
+                    .map((r) => ({
+                        type: r.type,
+                        candidateId: r.candidateId,
+                        points: r.points,
+                    })),
+            };
+
             const result = await allocConfirm(req);
 
             nav("/alloc-voting/done", {
                 state: { result, from: backTo },
             });
         } catch (e: any) {
-            setErr(e?.response?.data?.message ?? "送信に失敗しました");
+            const status = e?.response?.status;
+            const msg = e?.response?.data?.message;
+
+            if (status === 403) {
+                setErr(msg ?? "投票できません（期間外/権限なし）");
+            } else if (status === 401) {
+                setErr(msg ?? "ログインが必要です");
+            } else {
+                setErr(msg ?? "送信に失敗しました");
+            }
         } finally {
             setBusy(false);
         }
@@ -233,7 +257,7 @@ export function AllocVotingStartPage() {
                     <Link to={backTo}>← 戻る</Link>
 
                     <Link
-                        to={`/voting/entry?electionId=${electionId}`}
+                        to={`/voting/entry?electionId=${encodeURIComponent(electionId)}`}
                         state={{ from: backTo }}
                     >
                         投票入口へ
@@ -290,7 +314,6 @@ export function AllocVotingStartPage() {
 
             {!err && !loading && data && (
                 <div style={{ display: "grid", gap: 12 }}>
-                    {/* summary */}
                     <Card>
                         <div style={{ display: "grid", gap: 8 }}>
                             <strong style={{ fontSize: 16 }}>
@@ -355,7 +378,6 @@ export function AllocVotingStartPage() {
                         </div>
                     </Card>
 
-                    {/* rows */}
                     <Card>
                         <div style={{ display: "grid", gap: 10 }}>
                             {rows.map((r, idx) => {
@@ -364,7 +386,6 @@ export function AllocVotingStartPage() {
                                 const none = isNone(r);
 
                                 if (none) {
-                                    // 目立たせない “別枠”
                                     return (
                                         <div
                                             key={rowKey(r)}
@@ -471,7 +492,6 @@ export function AllocVotingStartPage() {
                                     );
                                 }
 
-                                // 通常候補者
                                 return (
                                     <div
                                         key={rowKey(r)}
@@ -594,7 +614,7 @@ export function AllocVotingStartPage() {
                                 to={`/elections/${data.electionId}/candidates`}
                                 state={{ from: self }}
                             >
-                                候補者（公開）を見る
+                                候補者を見る
                             </Link>
 
                             <span

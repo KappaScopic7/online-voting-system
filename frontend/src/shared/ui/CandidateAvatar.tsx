@@ -5,12 +5,14 @@ type Mode = "AUTO" | "EMPTY" | "SILHOUETTE";
 export function CandidateAvatar({
     name,
     imageUrl,
+    candidateKey,
     index = 0,
     size = 36,
     mode = "AUTO",
 }: {
     name: string;
     imageUrl?: string | null;
+    candidateKey?: string | null;
     index?: number;
     size?: number;
     mode?: Mode;
@@ -74,13 +76,23 @@ export function CandidateAvatar({
         );
     }
 
-    // 3) AUTO（従来互換）
-    //    imageUrl があればそれ優先。
-    //    imageUrl が無ければ index からローカル画像を使う。
-    const src =
-        imageUrl && imageUrl.trim().length > 0
-            ? imageUrl
-            : `/assets/candidates/candidate-${String(index + 1).padStart(3, "0")}.png`;
+    // 3) AUTO
+    // 優先順位:
+    // imageUrl > candidateKey > index > silhouette
+    let src: string | null = null;
+
+    if (imageUrl && imageUrl.trim()) {
+        src = imageUrl;
+    } else if (candidateKey) {
+        src = `/assets/candidates/${candidateKey}.png`;
+    } else if (index != null) {
+        src = `/assets/candidates/candidate-${String(index + 1).padStart(3, "0")}.png`;
+    }
+
+    if (!src) {
+        // どれも無ければ silhouette
+        return <CandidateAvatar name={name} size={size} mode="SILHOUETTE" />;
+    }
 
     return (
         <img

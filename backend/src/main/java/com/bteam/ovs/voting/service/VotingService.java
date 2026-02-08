@@ -5,8 +5,12 @@ import com.bteam.ovs.elections.repository.ElectionRepository;
 import com.bteam.ovs.elections.service.ElectionEligibilityService;
 import com.bteam.ovs.shared.errors.ApiException;
 import com.bteam.ovs.shared.identity.CitizenIdResolver;
+import com.bteam.ovs.shared.validation.UuidParsers;
+import com.bteam.ovs.voting.controller.dto.VoteAllocConfirmRequest;
 import com.bteam.ovs.voting.controller.dto.VoteHistoryItem;
 import com.bteam.ovs.voting.controller.dto.VoteStartResponse;
+import com.bteam.ovs.voting.entity.VoteAllocCast;
+import com.bteam.ovs.voting.entity.VoteAllocItem;
 import com.bteam.ovs.voting.entity.VoteCast;
 // import com.bteam.ovs.voting.entity.VoteCurrent;
 import com.bteam.ovs.voting.repository.VoteCastRepository;
@@ -18,10 +22,15 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.HashMap;
+
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import com.bteam.ovs.voting.repository.VoteAllocCastRepository;
+import com.bteam.ovs.voting.repository.VoteAllocItemRepository;
 
 @Service
 public class VotingService {
@@ -32,6 +41,8 @@ public class VotingService {
     private final CandidateRepository candidateRepo;
     private final VoteCastRepository voteCastRepo;
     private final VoteCurrentRepository voteCurrentRepo;
+    private final VoteAllocCastRepository voteAllocCastRepo;
+    private final VoteAllocItemRepository voteAllocItemRepo;
 
     public VotingService(
             CitizenIdResolver citizenIdResolver,
@@ -39,13 +50,18 @@ public class VotingService {
             ElectionRepository electionRepo,
             CandidateRepository candidateRepo,
             VoteCastRepository voteCastRepo,
-            VoteCurrentRepository voteCurrentRepo) {
+            VoteCurrentRepository voteCurrentRepo,
+            VoteAllocCastRepository voteAllocCastRepo,
+            VoteAllocItemRepository voteAllocItemRepo) {
+
         this.citizenIdResolver = citizenIdResolver;
         this.electionEligibilityService = electionEligibilityService;
         this.electionRepo = electionRepo;
         this.candidateRepo = candidateRepo;
         this.voteCastRepo = voteCastRepo;
         this.voteCurrentRepo = voteCurrentRepo;
+        this.voteAllocCastRepo = voteAllocCastRepo;
+        this.voteAllocItemRepo = voteAllocItemRepo;
     }
 
     public VoteStartResponse start(UUID accountId, UUID electionId) {
@@ -247,6 +263,139 @@ public class VotingService {
                 candidate.getId(),
                 candidate.getName(),
                 now);
+    }
+
+    @Transactional
+    public VoteHistoryItem confirmNoneSupportByCitizen(UUID citizenId, UUID electionId) {
+        electionEligibilityService.requireEligibleCitizen(citizenId, electionId);
+
+        var election = electionRepo.findById(electionId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "ELECTION_NOT_FOUND", "選挙が存在しません"));
+
+        var now = Instant.now();
+        boolean withinPeriod = !now.isBefore(election.getStartsAt()) && now.isBefore(election.getEndsAt());
+        if (!withinPeriod) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "ELECTION_NOT_ONGOING", "投票可能期間外です");
+        }
+
+        // 履歴
+        var cast = new VoteCast();
+        cast.setElectionId(electionId);
+        cast.setCitizenId(citizenId);
+        cast.setType("NONE_SUPPORT");
+        cast.setCandidateId(null);
+        cast.setCastedAt(now);
+        voteCastRepo.save(cast);
+
+        // 現在票（UPSERT）
+        voteCurrentRepo.upsertCurrent(electionId, citizenId, "NONE_SUPPORT", null, now);
+
+        return new VoteHistoryItem(
+                cast.getId(),
+                election.getId(),
+                election.getTitle(),
+                resolveElectionStatus(now, election.getStartsAt(), election.getEndsAt()),
+                null,
+                "誰も支持しない",
+                now);
+    }
+
+    @Transactional
+    public void confirmAllocByCitizen(UUID citizenId, UUID electionId,
+            java.util.List<VoteAllocConfirmRequest.Item> items) {
+        electionEligibilityService.requireEligibleCitizen(citizenId, electionId);
+
+        var election = electionRepo.findById(electionId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "ELECTION_NOT_FOUND", "選挙が存在しません"));
+
+        var now = Instant.now();
+        boolean withinPeriod = !now.isBefore(election.getStartsAt()) && now.isBefore(election.getEndsAt());
+        if (!withinPeriod) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "ELECTION_NOT_ONGOING", "投票可能期間外です");
+        }
+
+        if (items == null || items.isEmpty()) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_ALLOC_ITEMS", "itemsが空です");
+        }
+
+        int total = 0;
+        int noneSupportPts = 0;
+
+        // candidateId -> points（重複は合算）
+        Map<UUID, Integer> candPts = new HashMap<>();
+
+        for (var it : items) {
+            if (it == null)
+                continue;
+
+            Integer ptsObj = it.points();
+            int pts = (ptsObj == null ? 0 : ptsObj);
+
+            if (pts <= 0 || pts > 100) {
+                throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_POINTS", "pointsが不正です");
+            }
+            total += pts;
+
+            String t = it.targetType();
+            if ("NONE_SUPPORT".equals(t)) {
+                noneSupportPts += pts;
+                continue;
+            }
+            if (!"CANDIDATE".equals(t)) {
+                throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_TARGET_TYPE", "targetTypeが不正です");
+            }
+
+            if (it.candidateId() == null || it.candidateId().isBlank()) {
+                throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_CANDIDATE_ID", "candidateIdが不正です");
+            }
+
+            UUID cid = UuidParsers.parseOr400(it.candidateId(), "INVALID_CANDIDATE_ID", "candidateIdが不正です");
+
+            if (!candidateRepo.existsByIdAndElectionId(cid, electionId)) {
+                throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_CANDIDATE", "候補が不正です");
+            }
+
+            candPts.merge(cid, pts, Integer::sum);
+        }
+
+        // 合計100（VoteAllocCast.pointsTotal と一致させる）
+        if (total != 100) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_TOTAL_POINTS", "points合計は100である必要があります");
+        }
+
+        // Cast を 1人1選挙で維持（現在票）
+        VoteAllocCast cast = voteAllocCastRepo.findByElectionIdAndCitizenId(electionId, citizenId)
+                .orElseGet(() -> {
+                    var c = new VoteAllocCast();
+                    c.setElectionId(electionId);
+                    c.setCitizenId(citizenId);
+                    return c;
+                });
+
+        cast.setCastedAt(now);
+        cast.setPointsTotal(100);
+        cast = voteAllocCastRepo.save(cast);
+
+        // items差し替え
+        voteAllocItemRepo.deleteByCastId(cast.getId());
+
+        if (noneSupportPts > 0) {
+            var ni = new VoteAllocItem();
+            ni.setCastId(cast.getId());
+            ni.setTargetType(VoteAllocItem.TargetType.NONE_SUPPORT);
+            ni.setCandidateId(null);
+            ni.setPoints(noneSupportPts);
+            voteAllocItemRepo.save(ni);
+        }
+
+        for (var e : candPts.entrySet()) {
+            var vi = new VoteAllocItem();
+            vi.setCastId(cast.getId());
+            vi.setTargetType(VoteAllocItem.TargetType.CANDIDATE);
+            vi.setCandidateId(e.getKey());
+            vi.setPoints(e.getValue());
+            voteAllocItemRepo.save(vi);
+        }
     }
 
 }

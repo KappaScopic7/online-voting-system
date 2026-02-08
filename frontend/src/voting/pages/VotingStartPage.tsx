@@ -45,9 +45,11 @@ export function VotingStartPage() {
     const state = (loc.state as LocationState) ?? null;
 
     const [sp] = useSearchParams();
-    const electionId = sp.get("electionId") ?? ""; // ★ string固定
+    const electionId = sp.get("electionId") ?? "";
 
     const self = loc.pathname + loc.search;
+
+    // 通常（ログイン）投票の戻り先
     const backTo = normalizeFrom(state?.from ?? "/me/elections");
 
     const [data, setData] = useState<VoteStartResponse | null>(null);
@@ -101,6 +103,8 @@ export function VotingStartPage() {
                     msg ??
                         "投票を開始できません（本人リンク未完了 / 期間外 など）",
                 );
+            } else if (status === 401) {
+                setError(msg ?? "ログインが必要です");
             } else {
                 setError(msg ?? "Failed to start voting");
             }
@@ -156,28 +160,29 @@ export function VotingStartPage() {
     const onSubmit = async () => {
         if (!electionId || !selected || busy) return;
 
-        const req: VoteConfirmRequest =
-            selected.type === "NONE_SUPPORT"
-                ? { electionId, type: "NONE_SUPPORT" }
-                : {
-                      electionId,
-                      type: "CANDIDATE",
-                      candidateId: selected.candidateId as string,
-                  };
-
         setBusy(true);
         setError(null);
-        try {
-            const result = await confirmVote(req);
 
-            nav("/voting/done", {
-                state: { result, from: backTo },
-            });
+        try {
+            const req: VoteConfirmRequest =
+                selected.type === "NONE_SUPPORT"
+                    ? { electionId, type: "NONE_SUPPORT" }
+                    : {
+                          electionId,
+                          type: "CANDIDATE",
+                          candidateId: selected.candidateId as string,
+                      };
+
+            const result = await confirmVote(req);
+            nav("/voting/done", { state: { result, from: backTo } });
         } catch (err: any) {
             const status = err?.response?.status;
             const msg = err?.response?.data?.message;
+
             if (status === 403) {
                 setError(msg ?? "投票できません（期間外/権限なし）");
+            } else if (status === 401) {
+                setError(msg ?? "ログインが必要です");
             } else {
                 setError(msg ?? "Vote failed");
             }
@@ -239,14 +244,6 @@ export function VotingStartPage() {
                         <button onClick={load} disabled={isLoading || busy}>
                             再試行
                         </button>
-
-                        <Link to="/identity/link" state={{ from: self }}>
-                            本人認証へ
-                        </Link>
-                        <Link to="/verify" state={{ from: self }}>
-                            メール認証へ
-                        </Link>
-
                         <Link to={backTo}>戻る</Link>
                     </div>
                 </Card>
@@ -261,11 +258,13 @@ export function VotingStartPage() {
                             <strong style={{ fontSize: 16 }}>
                                 {data.title}
                             </strong>
+
                             {isDev && (
                                 <div style={{ fontSize: 12, opacity: 0.7 }}>
                                     electionId: {data.electionId}
                                 </div>
                             )}
+
                             <div
                                 style={{
                                     fontSize: 12,
@@ -318,19 +317,6 @@ export function VotingStartPage() {
                                                         boxShadow:
                                                             "0 0 0 rgba(0,0,0,0)",
                                                         flexWrap: "wrap",
-                                                    }}
-                                                    onMouseEnter={(e) => {
-                                                        if (busy) return;
-                                                        e.currentTarget.style.boxShadow =
-                                                            "0 2px 10px rgba(0,0,0,0.06)";
-                                                        e.currentTarget.style.transform =
-                                                            "translateY(-1px)";
-                                                    }}
-                                                    onMouseLeave={(e) => {
-                                                        e.currentTarget.style.boxShadow =
-                                                            "0 0 0 rgba(0,0,0,0)";
-                                                        e.currentTarget.style.transform =
-                                                            "translateY(0)";
                                                     }}
                                                 >
                                                     <input
@@ -405,17 +391,6 @@ export function VotingStartPage() {
                                                             （候補者を選ばない）
                                                         </span>
                                                     )}
-
-                                                    {isDev && isCandidate && (
-                                                        <span
-                                                            style={{
-                                                                fontSize: 12,
-                                                                opacity: 0.7,
-                                                            }}
-                                                        >
-                                                            {o.candidateId}
-                                                        </span>
-                                                    )}
                                                 </label>
                                             );
                                         })}
@@ -440,7 +415,7 @@ export function VotingStartPage() {
                                             to={`/elections/${electionId}/candidates`}
                                             state={{ from: self }}
                                         >
-                                            候補者（公開）を見る
+                                            候補者を見る
                                         </Link>
 
                                         <span
@@ -474,7 +449,6 @@ export function VotingStartPage() {
                                             選挙: <strong>{data.title}</strong>
                                         </div>
 
-                                        {/* VotingStartPage CONFIRM の中 */}
                                         <div
                                             style={{
                                                 display: "flex",
@@ -509,20 +483,6 @@ export function VotingStartPage() {
                                                     {selected?.name ?? "(不明)"}
                                                 </strong>
                                             </div>
-
-                                            {selected?.type === "CANDIDATE" &&
-                                                selected.candidateId && (
-                                                    <Link
-                                                        to={`/elections/${electionId}/candidates/${selected.candidateId}`}
-                                                        state={{ from: self }}
-                                                        style={{
-                                                            marginLeft: "auto",
-                                                            fontSize: 13,
-                                                        }}
-                                                    >
-                                                        詳細 →
-                                                    </Link>
-                                                )}
                                         </div>
 
                                         <div

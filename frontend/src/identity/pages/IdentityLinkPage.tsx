@@ -24,14 +24,18 @@ export function IdentityLinkPage() {
     const nav = useNavigate();
     const loc = useLocation();
     const state = (loc.state ?? {}) as LocationState;
+
     const { setAccessToken } = useAuth();
 
     const [method, setMethod] = useState<IdentityMethod>("MANUAL");
+    const [err, setErr] = useState<string | null>(null);
+    const [busy, setBusy] = useState(false);
 
     const backTo = normalizeFrom(state.from ?? "/me");
     const from = loc.pathname + loc.search;
 
-    const to = useMemo(() => {
+    // 認証後は state.from か /me/elections に戻す
+    const toUser = useMemo(() => {
         const fallback = "/me/elections";
         return state.from && state.from !== loc.pathname
             ? state.from
@@ -39,19 +43,31 @@ export function IdentityLinkPage() {
     }, [state.from, loc.pathname]);
 
     const canWebNfc = hasWebNfc();
-
-    const onLinked = (_accessToken: string) => {
-        nav(to, { replace: true });
-    };
-
-    // ★ DEV用：スタブログイン
-    const loginAs = async (p: { email: string; password: string }) => {
-        const token = await login(p.email, p.password);
-        await setAccessToken(token.accessToken);
-        nav(to, { replace: true });
-    };
-
     const isDev = import.meta.env?.DEV;
+
+    // 既存の linkIdentity 完了時
+    const onLinkedUser = (_accessToken: string) => {
+        nav(toUser, { replace: true });
+    };
+
+    // DEV: スタブログイン
+    const loginAs = async (p: { email: string; password: string }) => {
+        setBusy(true);
+        setErr(null);
+        try {
+            const token = await login(p.email, p.password);
+            await setAccessToken(token.accessToken);
+            nav(toUser, { replace: true });
+        } catch (e: any) {
+            setErr(
+                e?.response?.data?.message ??
+                    e?.message ??
+                    "ログインに失敗しました",
+            );
+        } finally {
+            setBusy(false);
+        }
+    };
 
     return (
         <Page
@@ -71,10 +87,12 @@ export function IdentityLinkPage() {
                     <div style={{ fontWeight: 900 }}>
                         認証方法を選択してください
                     </div>
+
                     <div
                         style={{ fontSize: 13, opacity: 0.85, lineHeight: 1.7 }}
                     >
                         ・NFC または 手入力で本人認証できます
+                        <br />
                         ・認証後は元の画面へ戻ります
                     </div>
 
@@ -99,21 +117,29 @@ export function IdentityLinkPage() {
                             端末:{" "}
                             {canWebNfc ? "Web NFC 対応" : "Web NFC 非対応"}
                         </span>
-
-                        {state.from && (
-                            <span
-                                style={{
-                                    marginLeft: "auto",
-                                    fontSize: 12,
-                                    opacity: 0.7,
-                                }}
-                            >
-                                認証後は元の画面へ戻ります
-                            </span>
-                        )}
                     </div>
                 </div>
             </Card>
+
+            {err && (
+                <Card role="alert">
+                    <div style={{ fontWeight: 800, marginBottom: 6 }}>
+                        エラー
+                    </div>
+                    <div style={{ marginBottom: 10 }}>{err}</div>
+
+                    <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+                        <button
+                            type="button"
+                            onClick={() => setErr(null)}
+                            disabled={busy}
+                        >
+                            閉じる
+                        </button>
+                        <Link to={backTo}>戻る</Link>
+                    </div>
+                </Card>
+            )}
 
             <Card>
                 <IdentityMethodTabs value={method} onChange={setMethod} />
@@ -127,11 +153,11 @@ export function IdentityLinkPage() {
                     }}
                 >
                     {method === "MANUAL" ? (
-                        <IdentityManualForm onLinked={onLinked} />
+                        <IdentityManualForm onLinked={onLinkedUser} />
                     ) : canWebNfc ? (
-                        <IdentityNfcScanner onLinked={onLinked} />
+                        <IdentityNfcScanner onLinked={onLinkedUser} />
                     ) : (
-                        <IdentityNfcKeyboardReader onLinked={onLinked} />
+                        <IdentityNfcKeyboardReader onLinked={onLinkedUser} />
                     )}
                 </div>
 
@@ -140,7 +166,6 @@ export function IdentityLinkPage() {
                 </div>
             </Card>
 
-            {/* ===== DEV ONLY ===== */}
             {isDev && (
                 <Card>
                     <details>
@@ -148,54 +173,53 @@ export function IdentityLinkPage() {
                             DEV tools
                         </summary>
 
-                        <div
-                            style={{ display: "grid", gap: 12, marginTop: 10 }}
-                        >
-                            <div>
-                                <div
-                                    style={{ fontWeight: 900, marginBottom: 6 }}
-                                >
-                                    DEV: スタブログイン
-                                </div>
-                                <div
-                                    style={{
-                                        display: "flex",
-                                        gap: 8,
-                                        flexWrap: "wrap",
-                                    }}
-                                >
-                                    {Object.values(demoPersonas.voter).map(
-                                        (p) => (
-                                            <button
-                                                key={p.key}
-                                                type="button"
-                                                onClick={() => loginAs(p)}
-                                                style={{
-                                                    fontSize: 12,
-                                                    padding: "6px 10px",
-                                                }}
-                                                title={p.description}
-                                            >
-                                                {p.label}
-                                            </button>
-                                        ),
-                                    )}
-                                </div>
-                            </div>
+                        <DevDebug
+                            value={{
+                                method,
+                                err,
+                                busy,
+                                backTo,
+                                toUser,
+                                from,
+                                state,
+                            }}
+                        />
 
-                            <DevDebug
-                                value={{
-                                    method,
-                                    state,
-                                    backTo,
-                                    to,
-                                    canWebNfc,
+                        <div style={{ marginTop: 12 }}>
+                            <div style={{ fontWeight: 900, marginBottom: 6 }}>
+                                DEV: スタブログイン
+                            </div>
+                            <div
+                                style={{
+                                    display: "flex",
+                                    gap: 8,
+                                    flexWrap: "wrap",
                                 }}
-                            />
+                            >
+                                {Object.values(demoPersonas.voter).map((p) => (
+                                    <button
+                                        key={p.key}
+                                        type="button"
+                                        onClick={() => loginAs(p)}
+                                        style={{
+                                            fontSize: 12,
+                                            padding: "6px 10px",
+                                        }}
+                                        title={p.description}
+                                        disabled={busy}
+                                    >
+                                        {p.label}
+                                    </button>
+                                ))}
+                            </div>
                         </div>
                     </details>
                 </Card>
             )}
+
+            <DevDebug
+                value={{ method, err, busy, backTo, toUser, from, state }}
+            />
         </Page>
     );
 }

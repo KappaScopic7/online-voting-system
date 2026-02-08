@@ -37,36 +37,76 @@ function ElectionItemCard({
         opacity: 0.95,
     };
 
-    const voteLink = `/voting/entry?electionId=${e.electionId}`;
+    const voteLink = `/voting/entry?electionId=${encodeURIComponent(e.electionId)}`;
     const resultLink = `/elections/result?electionId=${e.electionId}`;
+    const publicIdentityLink = `/identity/link?session=public&electionId=${encodeURIComponent(
+        e.electionId,
+    )}`;
 
     const action = (() => {
         if (e.status === "ONGOING") {
+            // 未ログイン
             if (!meExists) {
                 return (
-                    <Link
-                        to="/login"
-                        state={{ from }}
-                        style={{ textDecoration: "none" }}
-                    >
-                        <b>ログインして投票 →</b>
-                    </Link>
+                    <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+                        <Link
+                            to="/login"
+                            state={{ from }}
+                            style={{ textDecoration: "none" }}
+                        >
+                            <b>ログインして投票 →</b>
+                        </Link>
+
+                        <Link
+                            to={publicIdentityLink}
+                            state={{ from }}
+                            style={{ textDecoration: "none" }}
+                        >
+                            本人認証して投票 →
+                        </Link>
+                    </div>
                 );
             }
 
+            // ログイン済みで通常投票できる
             if (e.canCast) {
                 return (
-                    <Link
-                        to={voteLink}
-                        state={{ from }}
-                        style={{ textDecoration: "none" }}
-                    >
-                        <b>投票する →</b>
-                    </Link>
+                    <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+                        <Link
+                            to={voteLink}
+                            state={{ from }}
+                            style={{ textDecoration: "none" }}
+                        >
+                            <b>投票する →</b>
+                        </Link>
+
+                        <Link
+                            to={publicIdentityLink}
+                            state={{ from }}
+                            style={{ textDecoration: "none" }}
+                        >
+                            本人認証して投票 →
+                        </Link>
+                    </div>
                 );
             }
 
-            return <span style={{ opacity: 0.6 }}>投票不可</span>;
+            // ログイン済みだけど通常投票できない（メール未認証 / 本人リンク未完了 など想定）
+            return (
+                <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+                    <Link
+                        to={publicIdentityLink}
+                        state={{ from }}
+                        style={{ textDecoration: "none" }}
+                    >
+                        本人認証して投票 →
+                    </Link>
+
+                    <span style={{ opacity: 0.6 }}>
+                        （ログイン投票は利用できません）
+                    </span>
+                </div>
+            );
         }
 
         if (e.status === "ENDED") {
@@ -182,7 +222,7 @@ function ElectionItemCard({
                         <span style={{ opacity: 0.5 }}>結果（未公開）</span>
                     )}
 
-                    <span style={{ marginLeft: "auto" }}>{action}</span>
+                    <div style={{ marginLeft: "auto" }}>{action}</div>
                 </div>
             </div>
         </Card>

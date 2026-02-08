@@ -1,34 +1,30 @@
 // frontend/src/routes/publicRoutes.tsx
 import { Routes, Route, Navigate } from "react-router-dom";
-import { PublicHomePage } from "../public";
+
+import { PublicHomePage } from "../public/pages/PublicHomePage";
+
 import { ElectionsPage } from "../elections/pages/ElectionsPage";
 import { ElectionDetailPage } from "../elections/pages/ElectionDetailPage";
 import { ElectionCandidatesPage } from "../candidates/pages/ElectionCandidatesPage";
 import { CandidateDetailPage } from "../candidates/pages/CandidateDetailPage";
+
 import { ResultEntryPage } from "../elections/pages/ResultEntryPage";
 import { ResultPage } from "../elections/pages/ResultPage";
-import { MyElectionsPage } from "../elections/pages/MyElectionsPage";
-import { RegisterPage } from "../user/pages/RegisterPage";
-import { LoginPage } from "../user/pages/LoginPage";
-import { VerifyEmailPage } from "../user/pages/VerifyEmailPage";
-import { MePage } from "../me/pages/MePage";
-import { IdentityLinkPage } from "../identity/pages/IdentityLinkPage";
-import { IdentityPendingPage } from "../identity/pages/IdentityPendingPage";
-import { VotingStartPage } from "../voting/pages/VotingStartPage";
-import { VotingDonePage } from "../voting/pages/VotingDonePage";
-import { VoteHistoryPage } from "../voting/pages/VoteHistoryPage";
 
-import { RequireAuth } from "../auth/routes/RequireAuth";
-import { RequireVerifiedEmail } from "../auth/routes/RequireVerifiedEmail";
-import { RequireIdentityLinked } from "../auth/routes/RequireIdentityLinked";
 import { CandidatesPage } from "../candidates/pages/CandidatesPage";
 import { PartiesPage } from "../parties/pages/PartiesPage";
 import { PartyDetailPage } from "../parties/pages/PartyDetailPage";
+
+import { RegisterPage } from "../user/pages/RegisterPage";
+import { LoginPage } from "../user/pages/LoginPage";
+import { VerifyEmailPage } from "../user/pages/VerifyEmailPage";
+
+import { VotingEntryPage } from "../voting/pages/VotingEntryPage";
+import { VotingStartPage } from "../voting/pages/VotingStartPage";
+import { VotingDonePage } from "../voting/pages/VotingDonePage";
 import { AllocVotingStartPage } from "../voting/pages/AllocVotingStartPage";
 import { AllocVotingDonePage } from "../voting/pages/AllocVotingDonePage";
-import { AllocVoteHistoryPage } from "../voting/pages/AllocVoteHistoryPage";
-import { VotingEntryPage } from "../voting/pages/VotingEntryPage";
-import { PublicNfcVotePage } from "../public/pages/PublicNfcVotePage";
+import { IdentityLinkPage } from "../identity/pages/IdentityLinkPage";
 
 export function PublicRoutes() {
     return (
@@ -36,7 +32,7 @@ export function PublicRoutes() {
             {/* Home */}
             <Route path="/" element={<PublicHomePage />} />
 
-            {/* Public */}
+            {/* 公開情報 */}
             <Route path="/elections" element={<ElectionsPage />} />
             <Route
                 path="/elections/:electionId"
@@ -50,8 +46,8 @@ export function PublicRoutes() {
                 path="/elections/:electionId/candidates/:candidateId"
                 element={<CandidateDetailPage />}
             />
-            <Route path="/elections/result" element={<ResultEntryPage />} />
 
+            <Route path="/elections/result" element={<ResultEntryPage />} />
             <Route
                 path="/elections/:electionId/result"
                 element={<ResultPage />}
@@ -66,7 +62,7 @@ export function PublicRoutes() {
             <Route path="/parties" element={<PartiesPage />} />
             <Route path="/parties/:partyKey" element={<PartyDetailPage />} />
 
-            {/* Auth */}
+            {/* 認証（公開） */}
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/verify" element={<VerifyEmailPage />} />
@@ -74,57 +70,22 @@ export function PublicRoutes() {
                 path="/verify-email"
                 element={<Navigate to="/verify" replace />}
             />
+
+            {/* 本人認証投票（ログイン不要） */}
+            <Route path="/voting/entry" element={<VotingEntryPage />} />
+            <Route path="/voting/start" element={<VotingStartPage />} />
+            <Route path="/voting/done" element={<VotingDonePage />} />
+
             <Route
-                path="/public/voting/:electionId"
-                element={<PublicNfcVotePage />}
+                path="/alloc-voting/start"
+                element={<AllocVotingStartPage />}
             />
-
-            {/* Login-only */}
-            <Route element={<RequireAuth />}>
-                <Route path="/me" element={<MePage />} />
-                <Route path="/me/identity" element={<IdentityLinkPage />} />
-                <Route
-                    path="/me/identity/pending"
-                    element={<IdentityPendingPage />}
-                />
-            </Route>
-
-            {/* Verified-email-only（ここに My選挙 / 投票履歴 を入れるのが自然） */}
-            <Route element={<RequireVerifiedEmail />}>
-                <Route path="/me/elections" element={<MyElectionsPage />} />
-                <Route path="/me/votes" element={<VoteHistoryPage />} />
-            </Route>
-
-            {/* Identity-linked-only（投票） */}
-            <Route element={<RequireIdentityLinked />}>
-                <Route path="/voting/start" element={<VotingStartPage />} />
-                <Route path="/voting/done" element={<VotingDonePage />} />
-            </Route>
-            {/* Verified-email-only */}
-            <Route element={<RequireVerifiedEmail />}>
-                <Route path="/me/elections" element={<MyElectionsPage />} />
-                <Route path="/me/votes" element={<VoteHistoryPage />} />
-                <Route
-                    path="/me/alloc-votes"
-                    element={<AllocVoteHistoryPage />}
-                />
-            </Route>
-
-            {/* Identity-linked-only（投票） */}
-            <Route element={<RequireIdentityLinked />}>
-                <Route path="/voting/entry" element={<VotingEntryPage />} />
-                <Route path="/voting/start" element={<VotingStartPage />} />
-                <Route path="/voting/done" element={<VotingDonePage />} />
-
-                <Route
-                    path="/alloc-voting/start"
-                    element={<AllocVotingStartPage />}
-                />
-                <Route
-                    path="/alloc-voting/done"
-                    element={<AllocVotingDonePage />}
-                />
-            </Route>
+            <Route
+                path="/alloc-voting/done"
+                element={<AllocVotingDonePage />}
+            />
+            {/* 本人認証（ログイン不要でも使う） */}
+            <Route path="/identity/link" element={<IdentityLinkPage />} />
 
             <Route path="*" element={<div>Not Found</div>} />
         </Routes>
