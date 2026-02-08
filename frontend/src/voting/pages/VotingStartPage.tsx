@@ -101,12 +101,12 @@ export function VotingStartPage() {
             if (status === 403) {
                 setError(
                     msg ??
-                        "投票を開始できません（本人リンク未完了 / 期間外 など）",
+                        "投票を開始できません（本人認証未完了 / 期間外 など）",
                 );
             } else if (status === 401) {
                 setError(msg ?? "ログインが必要です");
             } else {
-                setError(msg ?? "Failed to start voting");
+                setError(msg ?? "投票開始に失敗しました");
             }
 
             setData(null);
@@ -184,7 +184,7 @@ export function VotingStartPage() {
             } else if (status === 401) {
                 setError(msg ?? "ログインが必要です");
             } else {
-                setError(msg ?? "Vote failed");
+                setError(msg ?? "投票の送信に失敗しました");
             }
         } finally {
             setBusy(false);
@@ -227,7 +227,7 @@ export function VotingStartPage() {
                         disabled={isLoading || busy}
                         style={{ marginLeft: 8 }}
                     >
-                        {isLoading ? "Reloading..." : "再読み込み"}
+                        {isLoading ? "読み込み中..." : "再読み込み"}
                     </button>
                 </div>
             }
@@ -244,6 +244,16 @@ export function VotingStartPage() {
                         <button onClick={load} disabled={isLoading || busy}>
                             再試行
                         </button>
+
+                        {/* ✅ 統一：本人認証は /me/identity */}
+                        <Link to="/me/identity" state={{ from: self }}>
+                            本人認証へ
+                        </Link>
+
+                        <Link to="/verify" state={{ from: self }}>
+                            メール認証へ
+                        </Link>
+
                         <Link to={backTo}>戻る</Link>
                     </div>
                 </Card>
@@ -459,7 +469,10 @@ export function VotingStartPage() {
                                         >
                                             {selected?.type === "CANDIDATE" ? (
                                                 <CandidateAvatar
-                                                    name={selected?.name ?? "?"}
+                                                    name={
+                                                        selected?.name ??
+                                                        "（不明）"
+                                                    }
                                                     imageUrl={null}
                                                     index={0}
                                                     size={34}
@@ -480,7 +493,8 @@ export function VotingStartPage() {
                                             <div>
                                                 投票先:{" "}
                                                 <strong>
-                                                    {selected?.name ?? "(不明)"}
+                                                    {selected?.name ??
+                                                        "（不明）"}
                                                 </strong>
                                             </div>
                                         </div>
@@ -534,22 +548,24 @@ export function VotingStartPage() {
                 </div>
             )}
 
-            <DevDebug
-                value={{
-                    electionId,
-                    data,
-                    optionsLen: options.length,
-                    error,
-                    selectedKey,
-                    selected,
-                    busy,
-                    isLoading,
-                    step,
-                    backTo,
-                    self,
-                    state,
-                }}
-            />
+            {isDev && (
+                <DevDebug
+                    value={{
+                        electionId,
+                        data,
+                        optionsLen: options.length,
+                        error,
+                        selectedKey,
+                        selected,
+                        busy,
+                        isLoading,
+                        step,
+                        backTo,
+                        self,
+                        state,
+                    }}
+                />
+            )}
         </Page>
     );
 }

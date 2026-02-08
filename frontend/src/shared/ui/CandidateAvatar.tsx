@@ -1,4 +1,4 @@
-// frontend/src/shared/ui/CandidateAvatar.tsx
+import { useEffect, useMemo, useState } from "react";
 
 type Mode = "AUTO" | "EMPTY" | "SILHOUETTE";
 
@@ -76,21 +76,20 @@ export function CandidateAvatar({
         );
     }
 
-    // 3) AUTO
-    // 優先順位:
-    // imageUrl > candidateKey > index > silhouette
-    let src: string | null = null;
+    // 3) AUTO: 優先順位 imageUrl > candidateKey > index
+    const src = useMemo(() => {
+        if (imageUrl && imageUrl.trim()) return imageUrl.trim();
+        if (candidateKey) return `/assets/candidates/${candidateKey}.png`;
+        if (index != null) {
+            return `/assets/candidates/candidate-${String(index + 1).padStart(3, "0")}.png`;
+        }
+        return null;
+    }, [imageUrl, candidateKey, index]);
 
-    if (imageUrl && imageUrl.trim()) {
-        src = imageUrl;
-    } else if (candidateKey) {
-        src = `/assets/candidates/${candidateKey}.png`;
-    } else if (index != null) {
-        src = `/assets/candidates/candidate-${String(index + 1).padStart(3, "0")}.png`;
-    }
+    const [broken, setBroken] = useState(false);
+    useEffect(() => setBroken(false), [src]);
 
-    if (!src) {
-        // どれも無ければ silhouette
+    if (!src || broken) {
         return <CandidateAvatar name={name} size={size} mode="SILHOUETTE" />;
     }
 
@@ -100,11 +99,12 @@ export function CandidateAvatar({
             width={px}
             height={px}
             src={src}
+            onError={() => setBroken(true)}
             style={{
                 width: px,
                 height: px,
                 objectFit: "cover",
-                borderRadius: 10,
+                borderRadius: 999,
                 border: "1px solid #eee",
                 flexShrink: 0,
                 background: "#fafafa",

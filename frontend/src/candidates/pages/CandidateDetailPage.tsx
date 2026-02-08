@@ -1,47 +1,12 @@
-// frontend/src/candidates/pages/CandidateDetailPage.tsx
-import { useEffect, useState } from "react";
-import { Link, useLocation, useParams } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { Link, useParams } from "react-router-dom";
 import { fetchCandidateDetail } from "../api/candidates";
 import type { CandidateDetailResponse } from "../model/candidateTypes";
-import { normalizeFrom } from "../../shared/normalizeFrom";
 import { Card, DevDebug, Page } from "../../shared/ui/page";
 import { resolveCandidateImageUrl } from "../../elections/ui/candidateImages";
-
-type LocationState = { from?: string };
-
-function PartyBadge({
-    shortName,
-    name,
-    color,
-    to,
-    fromSelf,
-}: {
-    shortName: string;
-    name?: string;
-    color?: string | null;
-    to: string;
-    fromSelf: string;
-}) {
-    return (
-        <Link
-            to={to}
-            state={{ from: fromSelf }}
-            title={name ?? shortName}
-            style={{
-                fontSize: 12,
-                padding: "4px 10px",
-                border: "1px solid #eee",
-                borderRadius: 999,
-                textDecoration: "none",
-                color: "inherit",
-                background: "#fafafa",
-                boxShadow: color ? `inset 4px 0 0 0 ${color}` : undefined,
-            }}
-        >
-            {shortName}
-        </Link>
-    );
-}
+import { useFromBackTo } from "../../shared/routes/useFromBackTo";
+import { ErrorCard } from "../../shared/ui/ErrorCard";
+import { PartyBadgeLink } from "../../parties/ui/PartyBadgeLink";
 
 export function CandidateDetailPage() {
     const { electionId, candidateId } = useParams<{
@@ -49,26 +14,11 @@ export function CandidateDetailPage() {
         candidateId: string;
     }>();
 
-    const loc = useLocation();
-    const state = (loc.state ?? {}) as LocationState;
-
-    const backTo = normalizeFrom(state.from ?? "/elections");
-    const self = loc.pathname + loc.search;
+    const { self, backTo } = useFromBackTo("/elections");
 
     const [data, setData] = useState<CandidateDetailResponse | null>(null);
     const [err, setErr] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
-
-    const [imgSrc, setImgSrc] = useState<string | null>(null);
-
-    useEffect(() => {
-        if (!data) {
-            setImgSrc(null);
-            return;
-        }
-        // 優先: APIのimageUrl -> assets(candidateKey)
-        setImgSrc(data.imageUrl ?? resolveCandidateImageUrl(data.candidateKey));
-    }, [data]);
 
     const load = async () => {
         if (!electionId || !candidateId) return;
@@ -90,6 +40,11 @@ export function CandidateDetailPage() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [electionId, candidateId]);
 
+    const imgSrc = useMemo(() => {
+        if (!data) return null;
+        return resolveCandidateImageUrl(data.candidateKey) ?? data.imageUrl;
+    }, [data]);
+
     if (!electionId || !candidateId) {
         return (
             <Page
@@ -97,7 +52,7 @@ export function CandidateDetailPage() {
                 actions={<Link to="/elections">← 戻る</Link>}
                 maxWidth={760}
             >
-                <Card role="alert">Invalid params</Card>
+                <ErrorCard message="Invalid params" />
             </Page>
         );
     }
@@ -115,12 +70,14 @@ export function CandidateDetailPage() {
                     }}
                 >
                     <Link to={backTo}>← 戻る</Link>
+
                     <Link
                         to={`/elections/${electionId}`}
                         state={{ from: self }}
                     >
                         選挙詳細へ
                     </Link>
+
                     <Link
                         to={`/elections/${electionId}/candidates`}
                         state={{ from: self }}
@@ -139,20 +96,12 @@ export function CandidateDetailPage() {
             }
             maxWidth={760}
         >
-            {err && (
-                <Card role="alert">
-                    <div style={{ fontWeight: 800, marginBottom: 6 }}>
-                        エラー
-                    </div>
-                    <div style={{ color: "crimson" }}>{err}</div>
-                </Card>
-            )}
+            {err && <ErrorCard message={err} />}
 
             {!data ? (
                 <Card>{isLoading ? "読み込み中…" : "データがありません"}</Card>
             ) : (
                 <>
-                    {/* Header */}
                     <Card>
                         <div
                             style={{
@@ -176,12 +125,12 @@ export function CandidateDetailPage() {
                             </div>
 
                             {data.party ? (
-                                <PartyBadge
+                                <PartyBadgeLink
+                                    partyKey={data.party.partyKey}
                                     shortName={data.party.shortName}
                                     name={data.party.name}
                                     color={data.party.color}
-                                    to={`/parties/${data.party.partyKey}`}
-                                    fromSelf={self}
+                                    from={self}
                                 />
                             ) : (
                                 <span style={{ fontSize: 12, opacity: 0.6 }}>
@@ -191,20 +140,11 @@ export function CandidateDetailPage() {
                         </div>
                     </Card>
 
-                    {/* Image */}
                     <Card>
                         {imgSrc ? (
                             <img
                                 src={imgSrc}
                                 alt={data.name}
-                                onError={() => {
-                                    const fb = resolveCandidateImageUrl(
-                                        data.candidateKey,
-                                    );
-                                    setImgSrc((prev) =>
-                                        prev !== fb ? fb : null,
-                                    );
-                                }}
                                 style={{
                                     width: "100%",
                                     maxWidth: 560,
@@ -233,7 +173,6 @@ export function CandidateDetailPage() {
                         )}
                     </Card>
 
-                    {/* Bio */}
                     <Card>
                         <div style={{ display: "grid", gap: 8 }}>
                             <div style={{ fontWeight: 800 }}>プロフィール</div>
@@ -249,7 +188,6 @@ export function CandidateDetailPage() {
                         </div>
                     </Card>
 
-                    {/* Policies */}
                     <Card>
                         <div style={{ display: "grid", gap: 8 }}>
                             <div style={{ fontWeight: 800 }}>主な政策</div>
@@ -273,7 +211,6 @@ export function CandidateDetailPage() {
                         </div>
                     </Card>
 
-                    {/* Links */}
                     <Card>
                         <div
                             style={{
@@ -315,6 +252,9 @@ export function CandidateDetailPage() {
                 value={{
                     electionId,
                     candidateId,
+                    candidateKey: data?.candidateKey ?? null,
+                    imageUrl: data?.imageUrl ?? null,
+                    resolved: imgSrc,
                     data,
                     err,
                     isLoading,

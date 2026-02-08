@@ -19,8 +19,9 @@ export async function getCities(
     prefCode: string,
     q?: string,
 ): Promise<CityItem[]> {
+    const qq = q?.trim();
     const r = await httpUser.get("/master/cities", {
-        params: { prefCode, q },
+        params: qq ? { prefCode, q: qq } : { prefCode },
     });
     return r.data;
 }

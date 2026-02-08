@@ -1,103 +1,56 @@
-// frontend/src/parties/pages/PartiesPage.tsx
-import { useEffect, useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { fetchParties } from "../api/parties";
 import type { PartyListItem } from "../model/partyTypes";
-import { normalizeFrom } from "../../shared/normalizeFrom";
-import { Card, DevDebug, Page } from "../../shared/ui/page";
 
-type LocationState = { from?: string };
+import { Page, Card, DevDebug } from "../../shared/ui/page";
+import { FilterBar } from "../../shared/ui/FilterBar";
+import { ErrorCard } from "../../shared/ui/ErrorCard";
+import { useAsyncLoad } from "../../shared/hooks/useAsyncLoad";
+import { useFromBackTo } from "../../shared/routes/useFromBackTo";
 
-function PartyCard({ p, fromSelf }: { p: PartyListItem; fromSelf: string }) {
-    const color = (p.color ?? "").trim() || null;
-
-    return (
-        <Card>
-            <div
-                style={{
-                    border: "1px solid #eee",
-                    borderRadius: 12,
-                    padding: 12,
-                    display: "grid",
-                    gap: 8,
-                    background: "#fff",
-                    boxShadow: color ? `inset 4px 0 0 0 ${color}` : undefined,
-                }}
-            >
-                <div
-                    style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        gap: 12,
-                        alignItems: "center",
-                        flexWrap: "wrap",
-                    }}
-                >
-                    <strong style={{ fontSize: 16 }}>
-                        <Link
-                            to={`/parties/${p.partyKey}`}
-                            state={{ from: fromSelf }}
-                            style={{ textDecoration: "none", color: "inherit" }}
-                        >
-                            {p.name}
-                        </Link>
-                    </strong>
-
-                    <span
-                        style={{
-                            fontSize: 12,
-                            padding: "2px 10px",
-                            border: "1px solid #eee",
-                            borderRadius: 999,
-                            background: "#fafafa",
-                        }}
-                        title={p.partyKey}
-                    >
-                        {p.shortName}
-                    </span>
-                </div>
-
-                {p.description ? (
-                    <div
-                        style={{ fontSize: 13, opacity: 0.85, lineHeight: 1.6 }}
-                    >
-                        {p.description}
-                    </div>
-                ) : null}
-            </div>
-        </Card>
-    );
-}
+import { PartyCard } from "../ui/PartyCard";
 
 export function PartiesPage() {
-    const loc = useLocation();
-    const state = (loc.state ?? {}) as LocationState;
+    // ✅ 共通：from/backTo/self
+    const { self, backTo } = useFromBackTo("/");
 
-    const backTo = normalizeFrom(state.from ?? "/");
-    const self = loc.pathname + loc.search;
+    const {
+        data: items,
+        error,
+        isLoading,
+        run,
+    } = useAsyncLoad<PartyListItem[]>(fetchParties);
 
-    const [items, setItems] = useState<PartyListItem[] | null>(null);
-    const [err, setErr] = useState<string | null>(null);
-    const [isLoading, setIsLoading] = useState(false);
-
-    const load = async () => {
-        setErr(null);
-        setIsLoading(true);
-        try {
-            const d = await fetchParties();
-            setItems(d);
-        } catch (e: any) {
-            setErr(e?.response?.data?.message ?? "Failed to load parties");
-            setItems([]);
-        } finally {
-            setIsLoading(false);
-        }
-    };
+    const [q, setQ] = useState("");
 
     useEffect(() => {
-        load();
+        run();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
+
+    const filtered = useMemo(() => {
+        if (!items) return null;
+
+        const keyword = q.trim().toLowerCase();
+        if (!keyword) return items;
+
+        return items.filter((p) => {
+            const name = (p.name ?? "").toLowerCase();
+            const shortName = (p.shortName ?? "").toLowerCase();
+            const key = (p.partyKey ?? "").toLowerCase();
+            const desc = (p.description ?? "").toLowerCase();
+            return (
+                name.includes(keyword) ||
+                shortName.includes(keyword) ||
+                key.includes(keyword) ||
+                desc.includes(keyword)
+            );
+        });
+    }, [items, q]);
+
+    const totalCount = items?.length ?? 0;
+    const filteredCount = filtered?.length ?? 0;
 
     return (
         <Page
@@ -112,41 +65,68 @@ export function PartiesPage() {
                     }}
                 >
                     <Link to={backTo}>← 戻る</Link>
+
                     <button
-                        onClick={load}
+                        onClick={run}
                         disabled={isLoading}
                         style={{ marginLeft: 8 }}
                     >
-                        {isLoading ? "Reloading..." : "再読み込み"}
+                        {isLoading ? "読み込み中..." : "再読み込み"}
                     </button>
                 </div>
             }
             maxWidth={760}
         >
-            {err && (
-                <Card role="alert">
-                    <div style={{ fontWeight: 800, marginBottom: 6 }}>
-                        エラー
-                    </div>
-                    <div style={{ color: "crimson" }}>{err}</div>
-                </Card>
+            {error && (
+                <ErrorCard
+                    message={error}
+                    actions={<button onClick={run}>再試行</button>}
+                />
             )}
 
-            {items === null ? (
+            <FilterBar
+                value={q}
+                onChange={setQ}
+                placeholder="検索（政党名 / 略称 / キー / 説明）"
+                disabled={isLoading}
+                right={
+                    <span>
+                        表示 <b>{filteredCount}</b> 件（全 <b>{totalCount}</b>{" "}
+                        件）
+                    </span>
+                }
+            />
+
+            {filtered === null ? (
                 <Card>読み込み中…</Card>
-            ) : items.length === 0 ? (
+            ) : filtered.length === 0 ? (
                 <Card>
-                    <p style={{ margin: 0, opacity: 0.8 }}>政党がありません</p>
+                    <p style={{ margin: 0, opacity: 0.8 }}>
+                        {totalCount === 0
+                            ? "政党がありません"
+                            : "該当する政党が見つかりません"}
+                    </p>
                 </Card>
             ) : (
                 <div style={{ display: "grid", gap: 12 }}>
-                    {items.map((p) => (
-                        <PartyCard key={p.partyKey} p={p} fromSelf={self} />
+                    {filtered.map((p) => (
+                        <PartyCard key={p.partyKey} p={p} from={self} />
                     ))}
                 </div>
             )}
 
-            <DevDebug value={{ items, err, isLoading, backTo, self }} />
+            <DevDebug
+                value={{
+                    items,
+                    filteredCount,
+                    totalCount,
+                    error,
+                    isLoading,
+                    backTo,
+                    self,
+                    q,
+                }}
+            />
         </Page>
     );
 }

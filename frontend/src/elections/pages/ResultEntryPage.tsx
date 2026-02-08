@@ -1,28 +1,10 @@
+// frontend/src/elections/pages/ResultEntryPage.tsx
 import { useEffect, useMemo } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { fetchElections } from "../api/elections";
+import { detectKind } from "../ui/result/resultUtils";
 
 type LocationState = { from?: string } | null;
-
-type ElectionKind = "NORMAL" | "ALLOC";
-
-function detectKind(e: any): ElectionKind {
-    const bt = (e?.ballotType ?? e?.ballot ?? e?.mode ?? "")
-        .toString()
-        .toUpperCase();
-    if (
-        bt === "ALLOCATION" ||
-        bt === "ALLOC" ||
-        bt === "ALLOCATED" ||
-        bt === "POINTS"
-    )
-        return "ALLOC";
-
-    const key = (e?.electionKey ?? "").toString().toLowerCase();
-    if (key.includes("alloc")) return "ALLOC";
-
-    return "NORMAL";
-}
 
 export function ResultEntryPage() {
     const nav = useNavigate();
@@ -45,14 +27,13 @@ export function ResultEntryPage() {
 
             const kind = detectKind(e);
 
-            // ★ queryは付けない
             const to = `/elections/${electionId}/result`;
 
             nav(to, {
                 replace: true,
                 state: {
                     from: state?.from,
-                    mode: kind, // ← ここが本命
+                    mode: kind,
                 },
             });
         })().catch(() => {

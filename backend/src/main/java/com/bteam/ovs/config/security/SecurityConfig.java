@@ -81,7 +81,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/public/voting/**").authenticated()
 
                         // ---- public / user auth ----
-                        .requestMatchers("/api/auth/register", "/api/auth/login", "/api/auth/verify", "/api/auth/nfc-login")
+                        .requestMatchers("/api/auth/register", "/api/auth/login", "/api/auth/verify",
+                                "/api/auth/nfc-login")
                         .permitAll()
 
                         // ✅ 追加：ログイン済みだけ（未ログインは 401 にしたい）
@@ -130,6 +131,9 @@ public class SecurityConfig {
                         // =========================
                         // User-only APIs
                         // =========================
+                        // ---- favorites (user only) ----
+                        .requestMatchers("/api/favorites/**")
+                        .access((a, c) -> decide(a.get(), AccountKind.USER))
 
                         // ---- identity (user only) ----
                         .requestMatchers("/api/identity/**")

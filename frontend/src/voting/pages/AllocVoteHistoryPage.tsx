@@ -6,6 +6,7 @@ import type { AllocVoteHistoryItem } from "../model/allocVotingTypes";
 import { Card, DevDebug, Page } from "../../shared/ui/page";
 import { normalizeFrom } from "../../shared/normalizeFrom";
 import { CandidateAvatar } from "../../shared/ui/CandidateAvatar";
+import { FilterBar } from "../../shared/ui/FilterBar";
 
 function formatJST(iso?: string | null): string {
     if (!iso) return "-";
@@ -27,8 +28,17 @@ type Group = {
     items: AllocVoteHistoryItem[];
 };
 
-function AllocRow({ v, from }: { v: AllocVoteHistoryItem; from: string }) {
+function AllocRow({
+    v,
+    from,
+    indexOffset = 0,
+}: {
+    v: AllocVoteHistoryItem;
+    from: string;
+    indexOffset?: number;
+}) {
     const [hover, setHover] = useState(false);
+    const isDev = import.meta.env?.DEV;
 
     return (
         <div
@@ -79,10 +89,7 @@ function AllocRow({ v, from }: { v: AllocVoteHistoryItem; from: string }) {
                         <Link
                             to={`/elections/${v.electionId}/candidates/${it.candidateId}`}
                             state={{ from }}
-                            style={{
-                                color: "inherit",
-                                textDecoration: "none",
-                            }}
+                            style={{ color: "inherit", textDecoration: "none" }}
                             title="候補者詳細へ"
                         >
                             {it.label}
@@ -118,9 +125,10 @@ function AllocRow({ v, from }: { v: AllocVoteHistoryItem; from: string }) {
                                 <CandidateAvatar
                                     name={it.label}
                                     imageUrl={null}
-                                    index={idx}
+                                    index={indexOffset + idx}
                                     size={28}
                                 />
+
                                 <div
                                     style={{
                                         overflow: "hidden",
@@ -140,9 +148,11 @@ function AllocRow({ v, from }: { v: AllocVoteHistoryItem; from: string }) {
                 })}
             </div>
 
-            <div style={{ fontSize: 12, opacity: 0.65 }}>
-                castId: {v.castId}
-            </div>
+            {isDev && (
+                <div style={{ fontSize: 12, opacity: 0.65 }}>
+                    castId: {v.castId}
+                </div>
+            )}
         </div>
     );
 }
@@ -158,7 +168,6 @@ export function AllocVoteHistoryPage() {
     const backTo = normalizeFrom(state?.from ?? "/me");
     const from = loc.pathname + loc.search;
 
-    // UI control
     const [q, setQ] = useState("");
 
     const load = async () => {
@@ -169,7 +178,7 @@ export function AllocVoteHistoryPage() {
             setItems(res);
         } catch (e: any) {
             setError(e?.response?.data?.message ?? "取得に失敗しました");
-            setItems([]); // 空扱い
+            setItems([]);
         } finally {
             setIsLoading(false);
         }
@@ -196,14 +205,12 @@ export function AllocVoteHistoryPage() {
             map.get(key)!.items.push(v);
         }
 
-        // 各グループ内：新しい順
         for (const g of map.values()) {
             g.items.sort((a, b) =>
                 (b.castedAt ?? "").localeCompare(a.castedAt ?? ""),
             );
         }
 
-        // グループ：最新投票が新しい順
         return Array.from(map.values()).sort((a, b) => {
             const at = a.items[0]?.castedAt ?? "";
             const bt = b.items[0]?.castedAt ?? "";
@@ -227,7 +234,7 @@ export function AllocVoteHistoryPage() {
                     ),
                 );
 
-                if (hitElection) return g; // 選挙名ヒットなら全表示
+                if (hitElection) return g;
                 if (hitItems.length === 0) return null;
                 return { ...g, items: hitItems };
             })
@@ -236,6 +243,8 @@ export function AllocVoteHistoryPage() {
 
     const totalVotes = items?.length ?? 0;
     const totalGroups = groups.length;
+
+    const isDev = import.meta.env?.DEV;
 
     return (
         <Page
@@ -256,32 +265,23 @@ export function AllocVoteHistoryPage() {
                         disabled={isLoading}
                         style={{ marginLeft: 8 }}
                     >
-                        {isLoading ? "Reloading..." : "再読み込み"}
+                        {isLoading ? "読み込み中..." : "再読み込み"}
                     </button>
                 </div>
             }
             maxWidth={920}
         >
-            <Card>
-                <div
-                    style={{
-                        display: "flex",
-                        gap: 12,
-                        alignItems: "center",
-                        flexWrap: "wrap",
-                    }}
-                >
-                    <input
-                        value={q}
-                        onChange={(e) => setQ(e.target.value)}
-                        placeholder="検索（選挙名 / 配分項目）"
-                        style={{ flex: 1, minWidth: 240, padding: 8 }}
-                    />
-                    <span style={{ fontSize: 12, opacity: 0.75 }}>
-                        合計 {totalVotes} 件（{totalGroups} 選挙）
+            <FilterBar
+                value={q}
+                onChange={setQ}
+                placeholder="検索（選挙名 / 配分項目）"
+                disabled={isLoading}
+                right={
+                    <span>
+                        合計 <b>{totalVotes}</b> 件（<b>{totalGroups}</b> 選挙）
                     </span>
-                </div>
-            </Card>
+                }
+            />
 
             {error && (
                 <Card role="alert">
@@ -316,13 +316,12 @@ export function AllocVoteHistoryPage() {
                 </Card>
             ) : (
                 <div style={{ display: "grid", gap: 12 }}>
-                    {filteredGroups.map((g) => {
+                    {filteredGroups.map((g, gi) => {
                         const latest = g.items[0];
 
                         return (
                             <Card key={g.electionId}>
                                 <div style={{ display: "grid", gap: 10 }}>
-                                    {/* header */}
                                     <div
                                         style={{
                                             display: "flex",
@@ -358,18 +357,17 @@ export function AllocVoteHistoryPage() {
                                         {formatJST(latest?.castedAt ?? null)}
                                     </div>
 
-                                    {/* rows */}
                                     <div style={{ display: "grid", gap: 10 }}>
-                                        {g.items.map((v) => (
+                                        {g.items.map((v, vi) => (
                                             <AllocRow
                                                 key={v.castId}
                                                 v={v}
                                                 from={from}
+                                                indexOffset={gi * 100 + vi * 10}
                                             />
                                         ))}
                                     </div>
 
-                                    {/* actions */}
                                     <div
                                         style={{
                                             display: "flex",
@@ -385,7 +383,6 @@ export function AllocVoteHistoryPage() {
                                             候補者（公開）
                                         </Link>
 
-                                        {/* 結果は入口へ統一 */}
                                         <Link
                                             to={`/elections/${g.electionId}/result`}
                                             state={{ from }}
@@ -396,8 +393,11 @@ export function AllocVoteHistoryPage() {
                                         <span style={{ marginLeft: "auto" }}>
                                             {latest?.electionStatus ===
                                             "ONGOING" ? (
+                                                // ✅ 統一：配分履歴 → 配分投票の開始（変更）
                                                 <Link
-                                                    to={`/voting/entry?electionId=${g.electionId}`}
+                                                    to={`/alloc-voting/start?electionId=${encodeURIComponent(
+                                                        g.electionId,
+                                                    )}`}
                                                     state={{ from }}
                                                 >
                                                     <b>投票を変更する →</b>
@@ -428,18 +428,20 @@ export function AllocVoteHistoryPage() {
                 </div>
             )}
 
-            <DevDebug
-                value={{
-                    itemsLen: items?.length ?? null,
-                    error,
-                    groupsLen: groups.length,
-                    filteredGroupsLen: filteredGroups.length,
-                    backTo,
-                    from,
-                    q,
-                    isLoading,
-                }}
-            />
+            {isDev && (
+                <DevDebug
+                    value={{
+                        itemsLen: items?.length ?? null,
+                        error,
+                        groupsLen: groups.length,
+                        filteredGroupsLen: filteredGroups.length,
+                        backTo,
+                        from,
+                        q,
+                        isLoading,
+                    }}
+                />
+            )}
         </Page>
     );
 }

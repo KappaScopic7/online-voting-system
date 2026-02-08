@@ -3,17 +3,39 @@
 const assetUrl = (path: string) =>
     `${import.meta.env.BASE_URL}${path.replace(/^\/+/, "")}`;
 
+function normalizeKey(raw?: string | null): string | null {
+    if (!raw) return null;
+    const s = raw.trim();
+    if (!s) return null;
+    return s.toLowerCase().replace(/-/g, "_");
+}
+
+function tryExtractNumber(key: string): number | null {
+    // 例: cand_001 / cand001 / candidate_12 / cand-12 etc...
+    const m = key.match(/(\d{1,4})$/);
+    if (!m) return null;
+    const n = Number(m[1]);
+    return Number.isFinite(n) && n > 0 ? n : null;
+}
+
 /**
  * candidateKey から assets の画像パスを返す
- * 例: cand_suzuki -> assets/candidates/candidate-001.png
+ * assets/candidates/candidate-001.png のような番号形式を想定
  */
 export function resolveCandidateImageUrl(
     candidateKey?: string | null,
 ): string | null {
-    if (!candidateKey) return null;
+    const key = normalizeKey(candidateKey);
+    if (!key) return null;
 
-    // ここは君の既存ルールに合わせてOK（例：キー順で採番しているならその表）
-    // とりあえず例として "cand_xxx" の末尾で分岐するなら map を持つ
+    // 1) 末尾数字から推測（運用がラク）
+    const extracted = tryExtractNumber(key);
+    if (extracted) {
+        const padded = String(extracted).padStart(3, "0");
+        return assetUrl(`assets/candidates/candidate-${padded}.png`);
+    }
+
+    // 2) 固定マップ（例外対応用）
     const map: Record<string, number> = {
         cand_suzuki: 1,
         cand_tanaka: 2,
@@ -22,11 +44,11 @@ export function resolveCandidateImageUrl(
         cand_nakamura: 5,
     };
 
-    const n = map[candidateKey];
+    const n = map[key];
     if (!n) {
         if (import.meta.env.DEV) {
             console.warn(
-                `[candidateImages] no image mapping for key: ${candidateKey}`,
+                `[candidateImages] no image mapping for key="${key}" raw="${candidateKey}"`,
             );
         }
         return null;

@@ -36,7 +36,6 @@ type DoneState = {
     result?: VoteHistoryItem;
     from?: string;
 
-    // result が無いケース（public配分や直リンクなど）でも最低限の遷移ができるように
     electionId?: string;
     electionTitle?: string;
 } | null;
@@ -81,7 +80,8 @@ export function VotingDonePage() {
     const electionDetailLink = electionId ? `/elections/${eid}` : "/elections";
     const resultLink = electionId ? `/elections/${eid}/result` : "/elections";
 
-    // result が無い場合でも「完了画面」として成立させる（public配分や直リンク対策）
+    const isDev = import.meta.env?.DEV;
+
     if (!result) {
         return (
             <Page
@@ -164,26 +164,27 @@ export function VotingDonePage() {
                     </div>
                 </Card>
 
-                <DevDebug
-                    value={{
-                        isPublic,
-                        session,
-                        state,
-                        loc,
-                        electionId,
-                        electionTitle,
-                        backTo,
-                        entryLink,
-                    }}
-                />
+                {isDev && (
+                    <DevDebug
+                        value={{
+                            isPublic,
+                            session,
+                            state,
+                            loc,
+                            electionId,
+                            electionTitle,
+                            backTo,
+                            entryLink,
+                        }}
+                    />
+                )}
             </Page>
         );
     }
 
-    // result がある場合は従来どおり詳細表示
     const isCandidate = !!result.candidateId;
     const displayName =
-        result.candidateName ?? (isCandidate ? "(unknown)" : "誰も支持しない");
+        result.candidateName ?? (isCandidate ? "（不明）" : "誰も支持しない");
     const rid = encodeURIComponent(result.electionId);
 
     return (
@@ -334,24 +335,26 @@ export function VotingDonePage() {
                         }}
                     >
                         <Link to="/elections">選挙一覧へ</Link>
-                        {!isPublic && <Link to={backTo}>My選挙へ</Link>}
+                        {!isPublic && <Link to={backTo}>マイ選挙へ</Link>}
                         {isPublic && <Link to={backTo}>戻る</Link>}
                     </span>
                 </div>
             </Card>
 
-            <DevDebug
-                value={{
-                    isPublic,
-                    session,
-                    result,
-                    state,
-                    backTo,
-                    self,
-                    isCandidate,
-                    entryLink,
-                }}
-            />
+            {isDev && (
+                <DevDebug
+                    value={{
+                        isPublic,
+                        session,
+                        result,
+                        state,
+                        backTo,
+                        self,
+                        isCandidate,
+                        entryLink,
+                    }}
+                />
+            )}
         </Page>
     );
 }

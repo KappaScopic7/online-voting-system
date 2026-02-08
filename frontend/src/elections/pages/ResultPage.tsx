@@ -1,204 +1,21 @@
-// frontend/src/elections/pages/ResultPage.tsx
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
 import { fetchResultBundle } from "../api/elections";
 import type { ElectionResultBundleResponse } from "../model/electionTypes";
 import { normalizeFrom } from "../../shared/normalizeFrom";
 import { Card, DevDebug, Page } from "../../shared/ui/page";
-import { CandidateAvatar } from "../../shared/ui/CandidateAvatar";
-import { resolveCandidateImageUrl } from "../ui/candidateImages";
+import { ErrorCard } from "../../shared/ui/ErrorCard";
+import { useAsyncLoad } from "../../shared/hooks/useAsyncLoad";
+
+import {
+    clamp,
+    percent,
+    rankMap,
+    toResultRows,
+} from "../ui/result/resultUtils";
+import { ResultRowCard } from "../ui/result/ResultRowCard";
 
 type LocationState = { from?: string };
-
-function percent(v: number, total: number) {
-    if (total <= 0) return "0.0%";
-    const p = (v / total) * 100;
-    return `${p.toFixed(1)}%`;
-}
-
-function clamp(n: number, min: number, max: number) {
-    return Math.max(min, Math.min(max, n));
-}
-
-function rankMap(
-    rows: { candidateId: string; value: number }[],
-): Map<string, number> {
-    const map = new Map<string, number>();
-    let rank = 0;
-    let prev: number | null = null;
-    for (let i = 0; i < rows.length; i++) {
-        const v = rows[i].value;
-        if (prev === null || v !== prev) {
-            rank = i + 1;
-            prev = v;
-        }
-        map.set(rows[i].candidateId, rank);
-    }
-    return map;
-}
-
-type Row = {
-    candidateId: string;
-    candidateKey: string | null;
-    candidateName: string;
-    value: number;
-};
-
-function ResultRow({
-    electionId,
-    from,
-    r,
-    rank,
-    isTop,
-    barW,
-    p,
-    total,
-    unit,
-    index,
-}: {
-    electionId: string;
-    from: string;
-    r: Row;
-    rank: number | null;
-    isTop: boolean;
-    barW: number;
-    p: string;
-    total: number;
-    unit: string; // "票" | "pt"
-    index: number; // fallback用
-}) {
-    const [hover, setHover] = useState(false);
-
-    // candidateKey があればそれを優先で assets に落とす（CandidateAvatar の index fallback も効く）
-    const imageUrl = r.candidateKey
-        ? resolveCandidateImageUrl(r.candidateKey)
-        : null;
-
-    return (
-        <div
-            onMouseEnter={() => setHover(true)}
-            onMouseLeave={() => setHover(false)}
-            style={{
-                border: "1px solid #eee",
-                borderRadius: 12,
-                padding: 12,
-                display: "grid",
-                gap: 10,
-                background: hover ? "#fafafa" : "#fff",
-                transition: "background 120ms ease",
-            }}
-        >
-            <div
-                style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    gap: 12,
-                    alignItems: "center",
-                    flexWrap: "wrap",
-                }}
-            >
-                <span
-                    style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: 10,
-                        fontWeight: isTop ? 800 : 700,
-                        flexWrap: "wrap",
-                    }}
-                >
-                    <span
-                        style={{
-                            display: "inline-flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            minWidth: 34,
-                            padding: "2px 8px",
-                            border: "1px solid #eee",
-                            borderRadius: 999,
-                            fontSize: 12,
-                            background: "#fafafa",
-                        }}
-                        title="順位"
-                    >
-                        #{rank ?? "-"}
-                    </span>
-
-                    <CandidateAvatar
-                        name={r.candidateName}
-                        imageUrl={imageUrl}
-                        index={index}
-                        size={44}
-                    />
-
-                    <Link
-                        to={`/elections/${electionId}/candidates/${r.candidateId}`}
-                        state={{ from }}
-                        style={{
-                            fontSize: 14,
-                            color: "inherit",
-                            textDecoration: "none",
-                        }}
-                        title="候補者詳細へ"
-                    >
-                        {r.candidateName}
-                    </Link>
-
-                    {isTop && (
-                        <span
-                            style={{
-                                fontSize: 12,
-                                padding: "2px 8px",
-                                border: "1px solid #eee",
-                                borderRadius: 999,
-                                background: "#fff",
-                            }}
-                            title="トップ（同率含む）"
-                        >
-                            🏆 1位
-                        </span>
-                    )}
-                </span>
-
-                <span style={{ opacity: 0.95 }}>
-                    <b>{r.value}</b> {unit}（{p}）
-                </span>
-            </div>
-
-            <div
-                role="progressbar"
-                aria-label={`${r.candidateName} の割合`}
-                aria-valuenow={total > 0 ? (r.value / total) * 100 : 0}
-                aria-valuemin={0}
-                aria-valuemax={100}
-                style={{
-                    height: 12,
-                    border: "1px solid #eee",
-                    borderRadius: 999,
-                    overflow: "hidden",
-                    background: "#fafafa",
-                }}
-            >
-                <div
-                    style={{
-                        width: `${barW}%`,
-                        height: "100%",
-                        borderRadius: 999,
-                        background: isTop ? "#666" : "#999",
-                    }}
-                />
-            </div>
-
-            <DevDebug
-                label="meta"
-                value={{
-                    candidateId: r.candidateId,
-                    candidateKey: r.candidateKey,
-                    value: r.value,
-                }}
-            />
-        </div>
-    );
-}
 
 export function ResultPage() {
     const { electionId } = useParams<{ electionId: string }>();
@@ -209,88 +26,39 @@ export function ResultPage() {
     const backTo = normalizeFrom(state.from ?? "/elections");
     const from = loc.pathname + loc.search;
 
-    const [bundle, setBundle] = useState<ElectionResultBundleResponse | null>(
-        null,
-    );
-
-    const [error, setError] = useState<string | null>(null);
     const [isForbidden, setIsForbidden] = useState(false);
-    const [isLoading, setIsLoading] = useState(false);
 
-    const load = async () => {
-        if (!electionId) return;
-
-        setError(null);
-        setIsForbidden(false);
-        setIsLoading(true);
-
+    const loadFn = async () => {
+        if (!electionId) throw new Error("Invalid electionId");
         try {
             const res = await fetchResultBundle(electionId);
-            setBundle(res);
+            setIsForbidden(false);
+            return res;
         } catch (err: any) {
             const status = err?.response?.status;
-            const msg = err?.response?.data?.message;
-
-            if (status === 403) {
-                setIsForbidden(true);
-                setError(msg ?? "この選挙はまだ結果を公開できません（未終了）");
-            } else {
-                setError(msg ?? "Failed to load result");
-            }
-            setBundle(null);
-        } finally {
-            setIsLoading(false);
+            if (status === 403) setIsForbidden(true);
+            throw err;
         }
     };
 
+    const {
+        data: bundle,
+        error,
+        isLoading,
+        run: load,
+        setError,
+    } = useAsyncLoad<ElectionResultBundleResponse>(loadFn);
+
     useEffect(() => {
+        if (!electionId) return;
         load();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [electionId]);
 
-    const ballotType = (bundle?.ballotType ?? "SINGLE_CHOICE")
-        .toString()
-        .toUpperCase();
-
-    const isAlloc = ballotType === "ALLOCATION";
-
-    const title =
-        (isAlloc ? bundle?.alloc?.title : bundle?.normal?.title) ?? "結果";
-
-    const rows = useMemo<Row[]>(() => {
-        if (!bundle) return [];
-        if (isAlloc) {
-            const a = bundle.alloc;
-            if (!a) return [];
-            return [...a.results]
-                .filter((r) => !!r.candidateId) // ★ null除外（NONE_SUPPORT を混ぜてても落ちない）
-                .map((r) => ({
-                    candidateId: r.candidateId as string, // ★ ここで確定
-                    candidateKey: (r as any).candidateKey ?? null,
-                    candidateName: r.candidateName,
-                    value: r.points,
-                }))
-                .sort((x, y) => y.value - x.value);
-        } else {
-            const n = bundle.normal;
-            if (!n) return [];
-            return [...n.results]
-                .filter((r) => !!r.candidateId) // ★ null除外
-                .map((r) => ({
-                    candidateId: r.candidateId as string, // ★ ここで確定
-                    candidateKey: (r as any).candidateKey ?? null,
-                    candidateName: r.candidateName,
-                    value: r.votes,
-                }))
-                .sort((x, y) => y.value - x.value);
-        }
-    }, [bundle, ballotType]);
-
-    const total = useMemo(() => {
-        if (!bundle) return 0;
-        if (isAlloc) return bundle.alloc?.totalPoints ?? 0;
-        return bundle.normal?.totalVotes ?? 0;
-    }, [bundle, ballotType]);
+    const { ballotType, isAlloc, title, rows, total, noneSupport } = useMemo(
+        () => toResultRows(bundle),
+        [bundle],
+    );
 
     const maxValue = useMemo(
         () => rows.reduce((m, x) => Math.max(m, x.value), 0),
@@ -326,6 +94,13 @@ export function ResultPage() {
         );
     }
 
+    const errorTitle = isForbidden ? "結果は未公開です" : "エラー";
+    const errorMsg =
+        error ??
+        (isForbidden
+            ? "この選挙はまだ結果を公開できません（未終了）"
+            : "Failed to load result");
+
     return (
         <Page
             title={<h1 style={{ margin: 0, fontSize: 20 }}>{title}</h1>}
@@ -348,7 +123,11 @@ export function ResultPage() {
                     </Link>
 
                     <button
-                        onClick={load}
+                        onClick={() => {
+                            setError(null);
+                            setIsForbidden(false);
+                            load();
+                        }}
                         style={{ marginLeft: "auto" }}
                         disabled={isLoading}
                     >
@@ -358,23 +137,36 @@ export function ResultPage() {
             }
         >
             {error && (
-                <Card role="alert">
-                    <div style={{ fontWeight: 800, marginBottom: 6 }}>
-                        {isForbidden ? "結果は未公開です" : "エラー"}
-                    </div>
-                    <div style={{ marginBottom: 10 }}>{error}</div>
-
-                    <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-                        <button onClick={load}>再試行</button>
-                        <Link
-                            to={`/elections/${electionId}/candidates`}
-                            state={{ from }}
+                <ErrorCard
+                    title={errorTitle}
+                    message={errorMsg}
+                    actions={
+                        <div
+                            style={{
+                                display: "flex",
+                                gap: 12,
+                                flexWrap: "wrap",
+                            }}
                         >
-                            候補者へ
-                        </Link>
-                        <Link to={backTo}>戻る</Link>
-                    </div>
-                </Card>
+                            <button
+                                onClick={() => {
+                                    setError(null);
+                                    setIsForbidden(false);
+                                    load();
+                                }}
+                            >
+                                再試行
+                            </button>
+                            <Link
+                                to={`/elections/${electionId}/candidates`}
+                                state={{ from }}
+                            >
+                                候補者へ
+                            </Link>
+                            <Link to={backTo}>戻る</Link>
+                        </div>
+                    }
+                />
             )}
 
             {!error && isLoading && <Card>読み込み中…</Card>}
@@ -393,25 +185,19 @@ export function ResultPage() {
                         >
                             <strong style={{ fontSize: 16 }}>{title}</strong>
 
-                            {!isAlloc ? (
-                                <span style={{ opacity: 0.85 }}>
-                                    総投票数:{" "}
-                                    <b>{bundle.normal?.totalVotes ?? 0}</b> /
-                                    誰も支持しない:{" "}
-                                    <b>
-                                        {bundle.normal?.noneSupportVotes ?? 0}
-                                    </b>
-                                </span>
-                            ) : (
-                                <span style={{ opacity: 0.85 }}>
-                                    総ポイント:{" "}
-                                    <b>{bundle.alloc?.totalPoints ?? 0}</b> /
-                                    誰も支持しない:{" "}
-                                    <b>
-                                        {bundle.alloc?.noneSupportPoints ?? 0}
-                                    </b>
-                                </span>
-                            )}
+                            <span style={{ opacity: 0.85 }}>
+                                {isAlloc ? (
+                                    <>
+                                        総ポイント: <b>{total}</b> /
+                                        誰も支持しない: <b>{noneSupport}</b>
+                                    </>
+                                ) : (
+                                    <>
+                                        総投票数: <b>{total}</b> /
+                                        誰も支持しない: <b>{noneSupport}</b>
+                                    </>
+                                )}
+                            </span>
                         </div>
 
                         {rows.length === 0 ? (
@@ -456,7 +242,7 @@ export function ResultPage() {
                                     const p = percent(r.value, total);
 
                                     return (
-                                        <ResultRow
+                                        <ResultRowCard
                                             key={r.candidateId}
                                             electionId={electionId}
                                             from={from}

@@ -1,4 +1,3 @@
-// frontend/src/voting/pages/VoteHistoryPage.tsx
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { fetchVoteHistory, type VoteHistoryItem } from "../api/votes";
@@ -7,6 +6,7 @@ import { normalizeFrom } from "../../shared/normalizeFrom";
 import { CandidateAvatar } from "../../shared/ui/CandidateAvatar";
 import { fetchMeDetail } from "../../user/api/userAuthApi";
 import type { MeDetailResponse } from "../../user/model/userAuthTypes";
+import { FilterBar } from "../../shared/ui/FilterBar";
 
 function formatJST(iso?: string | null): string {
     if (!iso) return "-";
@@ -50,8 +50,8 @@ function VoteRow({ v, from }: { v: VoteHistoryItem; from: string }) {
     const isCandidate = v.type === "CANDIDATE" && !!v.candidateId;
 
     const label =
-        v.candidateName ||
-        (isCandidate ? "(unknown candidate)" : "誰も支持しない");
+        v.candidateName ??
+        (isCandidate ? "（不明な候補者）" : "誰も支持しない");
 
     const labelNode = isCandidate ? (
         <Link
@@ -107,8 +107,7 @@ function VoteRow({ v, from }: { v: VoteHistoryItem; from: string }) {
                 }}
             >
                 {isCandidate ? (
-                    // NOTE: VoteHistoryItem に candidateKey / sortOrder が無い前提なので、
-                    // とりあえず固定 index。将来、voteHistory API に candidateKey を追加したらここを改善できる。
+                    // NOTE: VoteHistoryItem に candidateKey / sortOrder が無い前提。
                     <CandidateAvatar
                         name={label}
                         imageUrl={null}
@@ -162,7 +161,7 @@ export function VoteHistoryPage() {
     const [error, setError] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
 
-    // ★ 本人認証状態のために me を取得
+    // 本人認証状態のために me を取得
     const [me, setMe] = useState<MeDetailResponse | null>(null);
     const [meError, setMeError] = useState<string | null>(null);
 
@@ -180,12 +179,11 @@ export function VoteHistoryPage() {
             const m = await fetchMeDetail();
             setMe(m);
         } catch (err: any) {
-            // me が取れない = 未ログイン等の可能性
             setMe(null);
             setMeError(
                 err?.response?.data?.message ??
                     err?.message ??
-                    "Failed to load user",
+                    "ユーザー情報の取得に失敗しました",
             );
         }
     };
@@ -199,15 +197,14 @@ export function VoteHistoryPage() {
         } catch (err: any) {
             const status = err?.response?.status;
             const message =
-                err?.response?.data?.message ?? "Failed to load vote history";
+                err?.response?.data?.message ?? "投票履歴の取得に失敗しました";
 
-            // ★ 認可系は「未本人認証/未ログイン」等の導線に寄せる
             if (status === 401 || status === 403) {
-                setError(null); // エラー表示より導線カードを優先
-                setItems([]); // 空扱い
+                setError(null);
+                setItems([]);
             } else {
                 setError(message);
-                setItems([]); // 空扱い
+                setItems([]);
             }
         } finally {
             setIsLoading(false);
@@ -215,7 +212,6 @@ export function VoteHistoryPage() {
     };
 
     const load = async () => {
-        // ★ まず me を更新してから履歴を取る（導線の精度UP）
         await loadMe();
         await loadVotes();
     };
@@ -230,7 +226,7 @@ export function VoteHistoryPage() {
     const isPending = identityStatus === "PENDING";
     const emailVerified = me?.emailVerified === true;
 
-    const showIdentityGuide = me !== null && !isLinked; // ログインはしてるが本人認証が未完了
+    const showIdentityGuide = me !== null && !isLinked;
     const showEmailGuide = me !== null && !emailVerified;
 
     const groups: Group[] = useMemo(() => {
@@ -249,14 +245,12 @@ export function VoteHistoryPage() {
             map.get(key)!.items.push(v);
         }
 
-        // 各グループ内：新しい順
         for (const g of map.values()) {
             g.items.sort((a, b) =>
                 (b.castedAt ?? "").localeCompare(a.castedAt ?? ""),
             );
         }
 
-        // グループ：最新投票が新しい順
         return Array.from(map.values()).sort((a, b) => {
             const at = a.items[0]?.castedAt ?? "";
             const bt = b.items[0]?.castedAt ?? "";
@@ -279,7 +273,7 @@ export function VoteHistoryPage() {
                         v.candidateName ??
                         (v.type === "NONE_SUPPORT"
                             ? "誰も支持しない"
-                            : "(unknown candidate)");
+                            : "（不明な候補者）");
                     return label.toLowerCase().includes(keyword);
                 });
 
@@ -314,13 +308,12 @@ export function VoteHistoryPage() {
                         disabled={isLoading}
                         style={{ marginLeft: 8 }}
                     >
-                        {isLoading ? "Reloading..." : "再読み込み"}
+                        {isLoading ? "読み込み中..." : "再読み込み"}
                     </button>
                 </div>
             }
             maxWidth={920}
         >
-            {/* ★ 未ログインっぽい導線 */}
             {me === null && meError && (
                 <Card role="alert">
                     <div style={{ display: "grid", gap: 8 }}>
@@ -350,7 +343,6 @@ export function VoteHistoryPage() {
                 </Card>
             )}
 
-            {/* ★ メール未認証の導線 */}
             {showEmailGuide && (
                 <Card>
                     <div style={{ display: "grid", gap: 8 }}>
@@ -378,7 +370,6 @@ export function VoteHistoryPage() {
                 </Card>
             )}
 
-            {/* ★ 本人認証の導線（未認証/審査中） */}
             {showIdentityGuide && (
                 <Card>
                     <div style={{ display: "grid", gap: 8 }}>
@@ -423,26 +414,17 @@ export function VoteHistoryPage() {
                 </Card>
             )}
 
-            <Card>
-                <div
-                    style={{
-                        display: "flex",
-                        gap: 12,
-                        alignItems: "center",
-                        flexWrap: "wrap",
-                    }}
-                >
-                    <input
-                        value={q}
-                        onChange={(e) => setQ(e.target.value)}
-                        placeholder="検索（選挙名 / 投票先）"
-                        style={{ flex: 1, minWidth: 240, padding: 8 }}
-                    />
-                    <span style={{ fontSize: 12, opacity: 0.75 }}>
-                        合計 {totalVotes} 件（{totalGroups} 選挙）
+            <FilterBar
+                value={q}
+                onChange={setQ}
+                placeholder="検索（選挙名 / 投票先）"
+                disabled={isLoading}
+                right={
+                    <span>
+                        合計 <b>{totalVotes}</b> 件（<b>{totalGroups}</b> 選挙）
                     </span>
-                </div>
-            </Card>
+                }
+            />
 
             {error && (
                 <Card role="alert">
@@ -470,7 +452,6 @@ export function VoteHistoryPage() {
             ) : items.length === 0 ? (
                 <Card>
                     <p style={{ margin: 0 }}>投票履歴はありません</p>
-                    {/* 未本人認証の時に「空」に見えないよう補助 */}
                     {me !== null && !isLinked && (
                         <p
                             style={{
@@ -598,20 +579,22 @@ export function VoteHistoryPage() {
                 </div>
             )}
 
-            <DevDebug
-                value={{
-                    me,
-                    meError,
-                    itemsLen: items?.length ?? null,
-                    error,
-                    groupsLen: groups.length,
-                    filteredGroupsLen: filteredGroups.length,
-                    backTo,
-                    from,
-                    q,
-                    isLoading,
-                }}
-            />
+            {isDev && (
+                <DevDebug
+                    value={{
+                        me,
+                        meError,
+                        itemsLen: items?.length ?? null,
+                        error,
+                        groupsLen: groups.length,
+                        filteredGroupsLen: filteredGroups.length,
+                        backTo,
+                        from,
+                        q,
+                        isLoading,
+                    }}
+                />
+            )}
         </Page>
     );
 }

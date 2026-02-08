@@ -1,6 +1,6 @@
 // frontend/src/committee/pages/CommitteeElectionsPage.tsx
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ElectionListView } from "../../shared/components/ElectionListView";
+import { ElectionListView } from "../../elections/components/ElectionListView";
 import {
     fetchCommitteeElections,
     type CommitteeElectionListItem,

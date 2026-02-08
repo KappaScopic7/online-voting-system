@@ -1,41 +1,19 @@
-// frontend/src/parties/pages/PartyDetailPage.tsx
-import { useEffect, useMemo, useState } from "react";
-import { Link, useLocation, useParams } from "react-router-dom";
+import { useEffect, useMemo } from "react";
+import { Link, useParams } from "react-router-dom";
 import { fetchPartyDetail, fetchPartyCandidates } from "../api/parties";
 import type {
     PartyCandidateItem,
     PartyDetailResponse,
 } from "../model/partyTypes";
-import { normalizeFrom } from "../../shared/normalizeFrom";
-import { Card, DevDebug, Page } from "../../shared/ui/page";
+
+import { Page, Card, DevDebug } from "../../shared/ui/page";
+import { ErrorCard } from "../../shared/ui/ErrorCard";
+import { useAsyncLoad } from "../../shared/hooks/useAsyncLoad";
+import { useFromBackTo } from "../../shared/routes/useFromBackTo";
+
 import { CandidateAvatar } from "../../shared/ui/CandidateAvatar";
 import { resolveCandidateImageUrl } from "../../elections/ui/candidateImages";
-
-type LocationState = { from?: string };
-
-function Chip({
-    children,
-    color,
-}: {
-    children: React.ReactNode;
-    color?: string | null;
-}) {
-    return (
-        <span
-            style={{
-                fontSize: 12,
-                padding: "2px 10px",
-                border: "1px solid #eee",
-                borderRadius: 999,
-                background: "#fafafa",
-                boxShadow: color ? `inset 4px 0 0 0 ${color}` : undefined,
-                opacity: 0.95,
-            }}
-        >
-            {children}
-        </span>
-    );
-}
+import { PartyPill } from "../ui/PartyPill";
 
 type PartyCandidatePerson = {
     candidateKey: string;
@@ -49,17 +27,13 @@ type PartyCandidatePerson = {
 
     electionsCount: number;
 
-    // 画像のfallback安定化用（この政党内での並び順）
+    // 画像fallback安定化（表示順）
     index: number;
 };
 
-function PartyCandidateCard({
-    p,
-    from,
-}: {
-    p: PartyCandidatePerson;
-    from: string;
-}) {
+function PartyCandidateCard(props: { p: PartyCandidatePerson; from: string }) {
+    const { p, from } = props;
+
     // 優先: APIのimageUrl -> assets(candidateKey)
     const avatarUrl =
         (p.imageUrl && (p.imageUrl as any)) ??
@@ -163,36 +137,34 @@ function PartyCandidateCard({
 export function PartyDetailPage() {
     const { partyKey } = useParams<{ partyKey: string }>();
 
-    const loc = useLocation();
-    const state = (loc.state ?? {}) as LocationState;
+    // ✅ 共通：from/backTo/self
+    const { self, backTo } = useFromBackTo("/parties");
 
-    const backTo = normalizeFrom(state.from ?? "/parties");
-    const self = loc.pathname + loc.search;
+    const {
+        data: party,
+        error: partyError,
+        isLoading: partyLoading,
+        run: loadParty,
+    } = useAsyncLoad<PartyDetailResponse>(async () => {
+        if (!partyKey) throw new Error("Invalid partyKey");
+        return fetchPartyDetail(partyKey);
+    });
 
-    const [party, setParty] = useState<PartyDetailResponse | null>(null);
-    const [cands, setCands] = useState<PartyCandidateItem[] | null>(null);
+    const {
+        data: cands,
+        error: candsError,
+        isLoading: candsLoading,
+        run: loadCands,
+    } = useAsyncLoad<PartyCandidateItem[]>(async () => {
+        if (!partyKey) throw new Error("Invalid partyKey");
+        return fetchPartyCandidates(partyKey);
+    });
 
-    const [err, setErr] = useState<string | null>(null);
-    const [isLoading, setIsLoading] = useState(false);
+    const isLoading = partyLoading || candsLoading;
+    const err = partyError ?? candsError ?? null;
 
     const load = async () => {
-        if (!partyKey) return;
-        setErr(null);
-        setIsLoading(true);
-        try {
-            const [p, list] = await Promise.all([
-                fetchPartyDetail(partyKey),
-                fetchPartyCandidates(partyKey),
-            ]);
-            setParty(p);
-            setCands(list);
-        } catch (e: any) {
-            setErr(e?.response?.data?.message ?? "Failed to load party");
-            setParty(null);
-            setCands([]);
-        } finally {
-            setIsLoading(false);
-        }
+        await Promise.all([loadParty(), loadCands()]);
     };
 
     useEffect(() => {
@@ -200,8 +172,7 @@ export function PartyDetailPage() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [partyKey]);
 
-    // ★「人物単位」へ：candidateKeyでグルーピングして集約
-    // 代表は「sortOrder が最小」優先（無ければ入力順）
+    // 人物単位：candidateKeyでグルーピング
     const people = useMemo<PartyCandidatePerson[] | null>(() => {
         if (cands === null) return null;
 
@@ -231,27 +202,24 @@ export function PartyDetailPage() {
                 representativeElectionId: (rep as any).electionId,
                 representativeCandidateId: (rep as any).candidateId,
                 electionsCount: items.length,
-                index: 0, // 後で付与
+                index: 0,
             });
         }
 
-        // 表示順を安定させる（名前順）
         list.sort((a, b) => a.name.localeCompare(b.name, "ja"));
-
-        // index を再付与（fallback画像を安定させる）
         return list.map((p, idx) => ({ ...p, index: idx }));
     }, [cands]);
 
-    const count = useMemo(() => (people ? people.length : 0), [people]);
+    const count = people ? people.length : 0;
 
     if (!partyKey) {
         return (
             <Page
                 title={<h1 style={{ margin: 0, fontSize: 20 }}>政党詳細</h1>}
-                actions={<Link to="/parties">← 戻る</Link>}
+                actions={<Link to={backTo}>← 戻る</Link>}
                 maxWidth={980}
             >
-                <Card>Invalid partyKey</Card>
+                <ErrorCard message="Invalid partyKey" />
             </Page>
         );
     }
@@ -283,12 +251,10 @@ export function PartyDetailPage() {
             maxWidth={980}
         >
             {err && (
-                <Card role="alert">
-                    <div style={{ fontWeight: 800, marginBottom: 6 }}>
-                        エラー
-                    </div>
-                    <div style={{ color: "crimson" }}>{err}</div>
-                </Card>
+                <ErrorCard
+                    message={err}
+                    actions={<button onClick={load}>再試行</button>}
+                />
             )}
 
             {!party ? (
@@ -297,12 +263,11 @@ export function PartyDetailPage() {
                 <Card>
                     <div
                         style={{
-                            border: "1px solid #eee",
-                            borderRadius: 12,
                             padding: 12,
                             display: "grid",
                             gap: 10,
                             background: "#fff",
+                            borderRadius: 12,
                             boxShadow: color
                                 ? `inset 4px 0 0 0 ${color}`
                                 : undefined,
@@ -320,7 +285,11 @@ export function PartyDetailPage() {
                                 {party.name}
                             </strong>
 
-                            <Chip color={party.color}>{party.shortName}</Chip>
+                            <PartyPill
+                                shortName={party.shortName}
+                                name={party.name}
+                                color={party.color}
+                            />
 
                             <span
                                 style={{
@@ -352,9 +321,12 @@ export function PartyDetailPage() {
                                 }}
                             >
                                 {party.ideologyTags.map((t) => (
-                                    <Chip key={t} color={party.color}>
-                                        {t}
-                                    </Chip>
+                                    <PartyPill
+                                        key={t}
+                                        shortName={t}
+                                        name={t}
+                                        color={party.color}
+                                    />
                                 ))}
                             </div>
                         )}

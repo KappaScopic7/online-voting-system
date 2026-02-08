@@ -1,14 +1,16 @@
-import { useMemo, useState } from "react";
+// frontend/src/auth/pages/LoginPage.tsx
+import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { login } from "../../user/api/userAuthApi";
 import { useAuth } from "../../user/UserAuthContext";
 import { demoPersonas } from "../../demo/personas";
 import { sanitizeReturnTo } from "../../auth/routes/returnTo";
+import { Card, Page, DevDebug } from "../../shared/ui/page";
 
 type LocationState = {
     email?: string;
     from?: string;
-    verified?: boolean; // Verifyから戻ってきた合図（任意）
+    verified?: boolean;
 };
 
 function isValidEmail(v: string) {
@@ -20,7 +22,6 @@ export function LoginPage() {
     const loc = useLocation();
     const state = (loc.state ?? {}) as LocationState;
 
-    // ★ auth全体で統一：戻り先は returnTo のみ
     const returnTo = useMemo(
         () => sanitizeReturnTo(state.from, "/"),
         [state.from],
@@ -32,16 +33,19 @@ export function LoginPage() {
     const [password, setPassword] = useState("");
     const [showPw, setShowPw] = useState(false);
 
-    const [msg, setMsg] = useState<string | null>(
-        state.verified
-            ? "メール認証が完了しました。ログインしてください。"
-            : null,
-    );
+    const [msg, setMsg] = useState<string | null>(null);
     const [fieldErr, setFieldErr] = useState<{
         email?: string;
         password?: string;
     }>({});
     const [isSubmitting, setIsSubmitting] = useState(false);
+
+    useEffect(() => {
+        if (state.verified) {
+            setMsg("メール認証が完了しました。ログインしてください。");
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     const canSubmit = useMemo(() => {
         const em = email.trim();
@@ -62,11 +66,12 @@ export function LoginPage() {
             nav(returnTo, { replace: true });
         } catch (err: any) {
             const apiMsg =
-                err?.response?.data?.message ?? err?.message ?? "Login failed";
+                err?.response?.data?.message ??
+                err?.message ??
+                "ログインに失敗しました";
             const apiCode = err?.response?.data?.code;
 
             if (apiCode === "EMAIL_NOT_VERIFIED") {
-                // ★ verify へも returnTo を渡す（authページを戻り先にしない）
                 nav("/verify", { state: { email: em, from: returnTo } });
                 return;
             }
@@ -106,122 +111,147 @@ export function LoginPage() {
     const isDev = import.meta.env?.DEV;
 
     return (
-        <div style={{ padding: 16, display: "grid", gap: 12, maxWidth: 420 }}>
-            <h2 style={{ margin: 0 }}>Login</h2>
-
-            {msg && (
-                <div
-                    role="alert"
-                    style={{
-                        padding: 10,
-                        border: "1px solid #ddd",
-                        borderRadius: 10,
-                    }}
-                >
-                    {msg}
+        <Page
+            title={<h1 style={{ margin: 0, fontSize: 20 }}>ログイン</h1>}
+            actions={
+                <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+                    <Link to={returnTo}>← 戻る</Link>
                 </div>
+            }
+            maxWidth={520}
+        >
+            {msg && (
+                <Card role="alert">
+                    <div style={{ fontWeight: 900, marginBottom: 6 }}>
+                        メッセージ
+                    </div>
+                    <div style={{ opacity: 0.9, lineHeight: 1.6 }}>{msg}</div>
+                </Card>
             )}
 
-            <form
-                onSubmit={onSubmit}
-                aria-busy={isSubmitting}
-                style={{ display: "grid", gap: 10 }}
-            >
-                <label style={{ display: "grid", gap: 4 }}>
-                    <span>Email</span>
-                    <input
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        placeholder="email"
-                        autoComplete="email"
-                        inputMode="email"
-                        disabled={isSubmitting}
-                    />
-                    {fieldErr.email && (
-                        <small style={{ color: "crimson" }}>
-                            {fieldErr.email}
-                        </small>
-                    )}
-                </label>
-
-                <label style={{ display: "grid", gap: 4 }}>
-                    <span>Password</span>
-                    <div style={{ display: "flex", gap: 8 }}>
+            <Card>
+                <form
+                    onSubmit={onSubmit}
+                    aria-busy={isSubmitting}
+                    style={{ display: "grid", gap: 10 }}
+                >
+                    <label style={{ display: "grid", gap: 6 }}>
+                        <div style={{ fontSize: 13, fontWeight: 900 }}>
+                            メールアドレス
+                        </div>
                         <input
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            placeholder="password"
-                            type={showPw ? "text" : "password"}
-                            autoComplete="current-password"
-                            style={{ flex: 1 }}
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            placeholder="例: user@example.com"
+                            autoComplete="email"
+                            inputMode="email"
                             disabled={isSubmitting}
+                            style={{
+                                padding: "10px 12px",
+                                borderRadius: 10,
+                                border: "1px solid #e5e5e5",
+                            }}
                         />
-                        <button
-                            type="button"
-                            onClick={() => setShowPw((v) => !v)}
-                            aria-pressed={showPw}
-                            disabled={isSubmitting}
+                        {fieldErr.email && (
+                            <small style={{ color: "crimson" }}>
+                                {fieldErr.email}
+                            </small>
+                        )}
+                    </label>
+
+                    <label style={{ display: "grid", gap: 6 }}>
+                        <div style={{ fontSize: 13, fontWeight: 900 }}>
+                            パスワード
+                        </div>
+                        <div style={{ display: "flex", gap: 8 }}>
+                            <input
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                placeholder="パスワード"
+                                type={showPw ? "text" : "password"}
+                                autoComplete="current-password"
+                                style={{
+                                    flex: 1,
+                                    padding: "10px 12px",
+                                    borderRadius: 10,
+                                    border: "1px solid #e5e5e5",
+                                }}
+                                disabled={isSubmitting}
+                            />
+                            <button
+                                type="button"
+                                onClick={() => setShowPw((v) => !v)}
+                                aria-pressed={showPw}
+                                disabled={isSubmitting}
+                                style={{ padding: "0 10px" }}
+                            >
+                                {showPw ? "非表示" : "表示"}
+                            </button>
+                        </div>
+                        {fieldErr.password && (
+                            <small style={{ color: "crimson" }}>
+                                {fieldErr.password}
+                            </small>
+                        )}
+                    </label>
+
+                    <button type="submit" disabled={!canSubmit || isSubmitting}>
+                        {isSubmitting ? "ログイン中..." : "ログイン"}
+                    </button>
+
+                    <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+                        <Link to="/register" state={{ email, from: returnTo }}>
+                            新規登録
+                        </Link>
+                        <Link
+                            to="/password/forgot"
+                            state={{ email, from: returnTo }}
                         >
-                            {showPw ? "Hide" : "Show"}
-                        </button>
+                            パスワードを忘れた
+                        </Link>
+                        <Link to="/verify" state={{ email, from: returnTo }}>
+                            メール認証へ
+                        </Link>
                     </div>
-                    {fieldErr.password && (
-                        <small style={{ color: "crimson" }}>
-                            {fieldErr.password}
-                        </small>
-                    )}
-                </label>
-
-                <button type="submit" disabled={!canSubmit || isSubmitting}>
-                    {isSubmitting ? "Logging in..." : "Login"}
-                </button>
-
-                <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-                    <Link to="/register" state={{ email, from: returnTo }}>
-                        新規登録
-                    </Link>
-                    <Link
-                        to="/password/forgot"
-                        state={{ email, from: returnTo }}
-                    >
-                        パスワードを忘れた
-                    </Link>
-                    <Link to="/verify" state={{ email, from: returnTo }}>
-                        メール認証へ
-                    </Link>
-                </div>
-            </form>
+                </form>
+            </Card>
 
             {isDev && (
-                <details>
-                    <summary>Debug</summary>
-                    <div style={{ display: "grid", gap: 6, marginTop: 6 }}>
-                        {Object.values(demoPersonas.voter).map((p) => (
-                            <button
-                                key={p.key}
-                                type="button"
-                                onClick={() => doLogin(p.email, p.password)}
-                                disabled={isSubmitting}
-                                style={{
-                                    fontSize: 12,
-                                    padding: "6px 10px",
-                                    textAlign: "left",
-                                }}
-                                title={p.description}
-                            >
-                                {p.label}
-                            </button>
-                        ))}
-                    </div>
-                    <pre style={{ whiteSpace: "pre-wrap" }}>
-                        {JSON.stringify(
-                            { email, isSubmitting, fieldErr, state, returnTo },
-                            null,
-                            2,
-                        )}
-                    </pre>
-                </details>
+                <Card>
+                    <details>
+                        <summary style={{ cursor: "pointer" }}>
+                            DEV tools
+                        </summary>
+                        <div style={{ display: "grid", gap: 6, marginTop: 10 }}>
+                            {Object.values(demoPersonas.voter).map((p) => (
+                                <button
+                                    key={p.key}
+                                    type="button"
+                                    onClick={() => doLogin(p.email, p.password)}
+                                    disabled={isSubmitting}
+                                    style={{
+                                        fontSize: 12,
+                                        padding: "6px 10px",
+                                        textAlign: "left",
+                                    }}
+                                    title={p.description}
+                                >
+                                    {p.label}
+                                </button>
+                            ))}
+                        </div>
+                        <DevDebug
+                            value={{
+                                email,
+                                isSubmitting,
+                                fieldErr,
+                                state,
+                                returnTo,
+                            }}
+                        />
+                    </details>
+                </Card>
             )}
-        </div>
+        </Page>
     );
 }

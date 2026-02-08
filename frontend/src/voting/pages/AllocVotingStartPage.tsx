@@ -100,7 +100,7 @@ export function AllocVotingStartPage() {
             if (status === 403) {
                 setErr(
                     msg ??
-                        "投票を開始できません（本人リンク未完了 / 期間外 など）",
+                        "投票を開始できません（本人認証未完了 / 期間外 など）",
                 );
             } else if (status === 401) {
                 setErr(msg ?? "ログインが必要です");
@@ -257,7 +257,9 @@ export function AllocVotingStartPage() {
                     <Link to={backTo}>← 戻る</Link>
 
                     <Link
-                        to={`/voting/entry?electionId=${encodeURIComponent(electionId)}`}
+                        to={`/voting/entry?electionId=${encodeURIComponent(
+                            electionId,
+                        )}`}
                         state={{ from: backTo }}
                     >
                         投票入口へ
@@ -268,7 +270,7 @@ export function AllocVotingStartPage() {
                         disabled={loading || busy || !electionId}
                         style={{ marginLeft: "auto" }}
                     >
-                        {loading ? "Reloading..." : "再読み込み"}
+                        {loading ? "読み込み中..." : "再読み込み"}
                     </button>
                 </div>
             }
@@ -298,9 +300,11 @@ export function AllocVotingStartPage() {
                             再試行
                         </button>
 
-                        <Link to="/identity/link" state={{ from: self }}>
+                        {/* ✅ 統一：本人認証は /me/identity */}
+                        <Link to="/me/identity" state={{ from: self }}>
                             本人認証へ
                         </Link>
+
                         <Link to="/verify" state={{ from: self }}>
                             メール認証へ
                         </Link>

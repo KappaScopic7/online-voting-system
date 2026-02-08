@@ -1,3 +1,4 @@
+// frontend/src/me/ui/AddressInput.tsx
 import { useEffect, useMemo, useRef, useState } from "react";
 import { getCities, getPrefs, lookupByZip } from "../api/master";
 import type { CityItem, PrefItem, ZipCandidate } from "../api/master";
@@ -23,14 +24,16 @@ export function AddressInput({
     onChangePref,
     onChangeCity,
     disabled,
+    initialMode = "ZIP",
 }: {
     prefCode: string;
     cityCode: string;
     onChangePref: (v: string) => void;
     onChangeCity: (v: string) => void;
     disabled?: boolean;
+    initialMode?: AddressMode;
 }) {
-    const [mode, setMode] = useState<AddressMode>("ZIP");
+    const [mode, setMode] = useState<AddressMode>(initialMode);
 
     return (
         <div style={{ display: "grid", gap: 10 }}>
@@ -116,10 +119,12 @@ function ZipMode({
     const search = async () => {
         setMsg(null);
         setCandidates([]);
+
         if (zip.length !== 7) {
             setMsg("郵便番号は7桁で入力してください");
             return;
         }
+
         setLoading(true);
         try {
             const res = await lookupByZip(zip);
@@ -167,6 +172,9 @@ function ZipMode({
                     <input
                         value={zip}
                         onChange={(e) => setZip(normalizeZip(e.target.value))}
+                        onKeyDown={(e) => {
+                            if (e.key === "Enter" && canSearch) search();
+                        }}
                         inputMode="numeric"
                         placeholder="例: 1940001"
                         disabled={disabled || loading}
@@ -207,7 +215,7 @@ function ZipMode({
                             <button
                                 key={idx}
                                 type="button"
-                                disabled={disabled}
+                                disabled={disabled || loading}
                                 onClick={() => {
                                     onResolved({
                                         prefCode: c.prefCode,
@@ -249,6 +257,7 @@ function SelectMode({
     const [prefs, setPrefs] = useState<PrefItem[]>([]);
     const [cities, setCities] = useState<CityItem[]>([]);
     const [q, setQ] = useState("");
+
     const qDebounced = useDebouncedValue(q, 250);
 
     const [msg, setMsg] = useState<string | null>(null);
@@ -257,82 +266,90 @@ function SelectMode({
 
     // prefs 初回ロード
     useEffect(() => {
+        let cancelled = false;
         (async () => {
             setMsg(null);
             setLoadingPrefs(true);
             try {
                 const res = await getPrefs();
-                setPrefs(res);
+                if (!cancelled) setPrefs(res);
             } catch (err: any) {
-                setMsg(
-                    err?.response?.data?.message ??
-                        err?.message ??
-                        "都道府県の取得に失敗しました",
-                );
+                if (!cancelled)
+                    setMsg(
+                        err?.response?.data?.message ??
+                            err?.message ??
+                            "都道府県の取得に失敗しました",
+                    );
             } finally {
-                setLoadingPrefs(false);
+                if (!cancelled) setLoadingPrefs(false);
             }
         })();
+        return () => {
+            cancelled = true;
+        };
     }, []);
 
-    // pref を変えたら city をリセット & city候補ロード（qなし）
+    // pref 変更時：cityCode と検索語をリセット
     const lastPrefRef = useRef<string>("");
-
     useEffect(() => {
         if (lastPrefRef.current !== prefCode) {
             lastPrefRef.current = prefCode;
             onChangeCity("");
             setQ("");
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [prefCode]);
+
+    // cities ロード（pref + qDebounced を1本で）
+    const reqSeqRef = useRef(0);
+    useEffect(() => {
         if (!prefCode) {
             setCities([]);
             return;
         }
+
+        const seq = ++reqSeqRef.current;
+        let cancelled = false;
+
         (async () => {
             setMsg(null);
             setLoadingCities(true);
             try {
-                const res = await getCities(prefCode);
+                const keyword = qDebounced.trim();
+                const res = keyword
+                    ? await getCities(prefCode, keyword)
+                    : await getCities(prefCode);
+
+                if (cancelled) return;
+                if (seq !== reqSeqRef.current) return; // 古い結果は捨てる
                 setCities(res);
             } catch (err: any) {
+                if (cancelled) return;
+                if (seq !== reqSeqRef.current) return;
                 setMsg(
                     err?.response?.data?.message ??
                         err?.message ??
                         "市区町村の取得に失敗しました",
                 );
+                setCities([]);
             } finally {
-                setLoadingCities(false);
+                if (!cancelled && seq === reqSeqRef.current)
+                    setLoadingCities(false);
             }
         })();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [prefCode]);
 
-    // q（debounced）で検索し直す
-    useEffect(() => {
-        if (!prefCode) return;
-        if (!qDebounced.trim()) return;
-
-        (async () => {
-            setMsg(null);
-            setLoadingCities(true);
-            try {
-                const res = await getCities(prefCode, qDebounced.trim());
-                setCities(res);
-            } catch (err: any) {
-                setMsg(
-                    err?.response?.data?.message ??
-                        err?.message ??
-                        "検索に失敗しました",
-                );
-            } finally {
-                setLoadingCities(false);
-            }
-        })();
+        return () => {
+            cancelled = true;
+        };
     }, [prefCode, qDebounced]);
 
     const selectedPrefName = useMemo(() => {
         return prefs.find((p) => p.prefCode === prefCode)?.prefName ?? "";
     }, [prefs, prefCode]);
+
+    const cityPlaceholder = !prefCode
+        ? "先に都道府県を選択"
+        : "例: 町田 / 13209";
 
     return (
         <div style={{ display: "grid", gap: 10 }}>
@@ -380,9 +397,7 @@ function SelectMode({
                 <input
                     value={q}
                     onChange={(e) => setQ(e.target.value)}
-                    placeholder={
-                        prefCode ? "例: 町田 / 13209" : "先に都道府県を選択"
-                    }
+                    placeholder={cityPlaceholder}
                     disabled={disabled || !prefCode}
                     style={{
                         padding: "10px 12px",
