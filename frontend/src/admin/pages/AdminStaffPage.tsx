@@ -50,7 +50,10 @@ export function AdminStaffPage() {
 
             {/* Error Message */}
             {msg && (
-                <div role="alert" style={{ padding: 8, border: "1px solid #ccc" }}>
+                <div
+                    role="alert"
+                    style={{ padding: 8, border: "1px solid #ccc" }}
+                >
                     {msg}
                 </div>
             )}

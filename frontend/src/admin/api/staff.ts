@@ -9,9 +9,9 @@ export type StaffListItem = {
 };
 
 export async function fetchStaffList(): Promise<StaffListItem[]> {
-    const res = await fetch("/admin/staff", {
+    const res = await fetch("/api/admin/staff", {
         credentials: "include",
     });
-    if (!res.ok) throw new Error("Failed to load staff");
+    //    if (!res.ok) throw new Error("Failed to load staff");
     return res.json();
 }
