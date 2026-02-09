@@ -9,7 +9,7 @@ import React, {
 } from "react";
 import type { MeResponse } from "./model/userAuthTypes";
 import { fetchMe } from "../user/api/userAuthApi";
-import { userToken } from "../shared/tokenStorage";
+import { publicToken, staffToken, userToken } from "../shared/tokenStorage";
 
 type AuthState = {
     me: MeResponse | null;
@@ -96,6 +96,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     const setAccessTokenAndLoadMe = async (token: string): Promise<void> => {
+        publicToken.clear();
+        staffToken.clear();
+
         userToken.set(token);
         setHasToken(true);
         await refreshMe();
@@ -147,9 +150,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setAccessToken: setAccessTokenAndLoadMe,
             logout: () => {
                 userToken.clear();
+                // 任意（混線防止）
+                publicToken.clear();
+                staffToken.clear();
+
                 setHasToken(false);
                 setMe(null);
             },
+
             refreshMe,
         }),
         [me, isLoading, hasToken],
