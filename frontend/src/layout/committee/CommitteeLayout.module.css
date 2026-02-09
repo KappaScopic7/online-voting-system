@@ -1,119 +1,392 @@
+/* アプリ全体のコンテンツ枠 */
+.main {
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 16px;
+    display: block;
+}
+
+/* ===== sticky header wrapper ===== */
 .publicLayout {
-  position: sticky;
-  top: 0;
-  z-index: 1000;
-  background-color: white;
-  transition: transform 180ms ease, box-shadow 180ms ease;
-  width: 100%;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    background-color: #fff;
+    transition:
+        transform 180ms ease,
+        box-shadow 180ms ease;
+    width: 100%;
 }
 
-/* ヘッダー見える、見えない調節 */
+/* header show/hide */
 .headerVisible {
-  transform: translateY(0);
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
-}
-/* ヘッダー見える、見えない調節 */
-.headerHidden {
-  transform: translateY(-110%);
-  box-shadow: none;
+    transform: translateY(0);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
 }
 
-.menubutton {
-  background-color:#ffffff;
-  color: #000000;
-  border-radius:4px;
-  min-width: 40px;
-  min-height: 37px;
-  border-width: 2px;
-  cursor: pointer;
-  margin-right: 8px;
-  margin-top: 6px;   
-  border-color: #ccc;  
-  font-size: 16px;    
-  color: #333;       
-  display: block;     
+.headerHidden {
+    transform: translateY(-110%);
+    box-shadow: none;
+}
+
+/* ===== header ===== */
+.header {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+    height: 64px;
+    border: 1px solid #ddd;
+}
+
+.brand {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    text-decoration: none;
 }
 
 .logoImage {
-  align-items: center;
-  width: 150px;   
-  height: auto;
-  object-fit: contain;
+    width: 150px;
+    height: auto;
+    object-fit: contain;
+    display: block;
+    margin-left: 20px;
 }
 
-.menuopen{
-    position: absolute;
-    top: calc(100%); 
-    right: 0px;
-    background-Color: #ffffff; 
-    padding: 10px;
+@media (pointer: coarse) {
 
-    border: 1px solid #ddd;
-    min-Width: 200px;         
-    white-Space: nowrap;      
-    display: flex;          
-    flex-Direction: column;
-    color: #000000;
-    text-decoration-line: none;
-    font-weight :500;
-}    
-
-.divider {
-  border: 0;
-  border-top: 1px solid #eee;  
-  margin: 10px 0;              
-  width: 100%;                 
-  box-sizing: border-box;      
+    .logoImage {
+        width: 80px;
+        height: auto;
+        object-fit: contain;
+        display: block;
+    }
 }
 
-.header {
-        display: flex;
-        gap: 12px;
-        margin-Bottom: 16px;
-        align-Items: center;
-        flex-Wrap: wrap;
-}
-
-.headerin {
-        margin-Left: auto;
-        display: flex;
-        gap: 12px;
-        align-Items: center;
-        flex-Wrap: wrap;
-}
-
-.nav {
-    gap: 0;
-    font-size: 16px;       /* ハイフン(-) 必須　及び px単位必須 */
-    display: flex;         /* 、はNG */
-    align-items: center;   /* ハイフン(-) 必須　及び  、はNG*/
-    border: 1px solid #ccc; /* 色指定 */
-    color: #000000;
-}
-
-.navlink { 
-    flex: 1px; 
-    padding: 12px; 
-    text-Align: center;
-    color: #000000;
-    text-decoration-line: none;
-    font-weight :500;
-}
-
-.footer {
-    margin-Top: 24px;
-    opacity: 0.85px;
-    font-Size: 12px;
+.headerRight {
+    margin-left: auto;
     display: flex;
-    gap: 12px;
-    flex-Wrap: wrap;
-    align-Items: center;
-    border-Top: 1px solid #eee;
-    padding-Top: 12px;
+    gap: 5px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.headerMeta {
+    font-size: 12px;
+    opacity: 0.7;
+}
+
+.headerLink {
+    padding: 8px 10px;
+    text-decoration: none;
+    color: #000;
+    font-weight: 600;
+    border-radius: 8px;
+    font-size: 15px;
+    margin-right: 10px;
+}
+
+@media (pointer: coarse) {
+    .headerLink {
+        padding: 0px;
+        text-decoration: none;
+        color: #000;
+        font-weight: 600;
+        border-radius: 8px;
+        font-size: 10px;
+        margin-right: 15px;
+    }
 }
 
 
+.headerLink:hover {
+    background-color: #f5f5f5;
+}
+
+/* ===== global nav ===== */
+.nav {
+    display: flex;
+    align-items: stretch;
+    border: 1px solid #ccc;
+    color: #000;
+}
+
+.navLink {
+    flex: 1;
+    padding: 12px;
+    text-align: center;
+    color: #000;
+    text-decoration: none;
+    font-weight: 500;
+
+    /* 崩れ防止 */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* separators */
+.navLink+.navLink {
+    border-left: 1px solid #ccc;
+}
+
+.navLink:hover {
+    background-color: #f5f5f5;
+}
+
+.barInner {
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 0 16px;
+}
+
+/* ===== menu ===== */
+.menuWrap {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    background-color: #fff;
+}
+
+.menuButton {
+    border: 1px solid #ccc;
+    background: #fff;
+    cursor: pointer;
+    font-size: 16px;
+    padding: 6px 10px;
+    border-radius: 8px;
+    margin-right: 15px;
+}
+
+.menuOpen {
+    position: absolute;
+    top: calc(100% + 8px);
+    /* ★少し下に空ける */
+    right: 0;
+    background-color: #fff;
+    padding: 10px;
+    border: 1px solid #ddd;
+    min-width: 200px;
+    white-space: nowrap;
+    display: flex;
+    flex-direction: column;
+    color: #000;
+    border-radius: 10px;
+}
 
 .withShadow {
-    box-shadow: 0px 2px 10px rgba(0, 0, 0, 0.06);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+}
+
+.divider {
+    border: 0;
+    border-top: 1px solid #eee;
+    margin: 10px 0;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.menuLink {
+    display: block;
+    padding: 8px 10px;
+    text-decoration: none;
+    color: #000;
+    border-radius: 8px;
+}
+
+.menuLink:hover {
+    background-color: #f5f5f5;
+}
+
+.logoutButton {
+    width: 100%;
+    border: 1px solid #ccc;
+    background: #fff;
+    cursor: pointer;
+    padding: 8px 10px;
+    border-radius: 8px;
+}
+
+.logoutButton:hover {
+    background-color: #f5f5f5;
+}
+
+/* ===== footer ===== */
+.footer {
+    max-width: 980px;
+    margin: 24px auto 0;
+    padding: 12px 16px 0;
+    opacity: 0.85;
+    font-size: 12px;
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    align-items: center;
+    border-top: 1px solid #eee;
+}
+
+.footerText {
+    opacity: 0.7;
+}
+
+/* ===== accessibility (focus) ===== */
+.headerLink:focus-visible,
+.navLink:focus-visible,
+.menuButton:focus-visible,
+.menuLink:focus-visible,
+.logoutButton:focus-visible {
+    outline: 2px solid #999;
+    outline-offset: 2px;
+}
+
+/* ===== Mobile Hamburger ===== */
+.hamburgerButton {
+    display: none;
+    background: #fff;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    width: 40px;
+    height: 36px;
+    cursor: pointer;
+    font-size: 18px;
+    margin-left: 15px;
+}
+
+/*  */
+@media (pointer: coarse) {
+    .hamburgerButton {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .nav {
+        display: none;
+    }
+}
+
+/* ===== Mobile Drawer ===== */
+.drawerOverlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.35);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 180ms ease;
+    z-index: 3000;
+}
+
+@media (pointer: coarse) {
+    .drawerOverlay {
+        display: block;
+    }
+}
+
+.drawerOverlayOpen {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.drawerPanel {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 66vh;
+    /* 2/3 */
+    background: #fff;
+
+    transform: translateY(-105%);
+    transition: transform 220ms ease;
+
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+    display: flex;
+    flex-direction: column;
+
+    border-bottom-left-radius: 16px;
+    border-bottom-right-radius: 16px;
+}
+
+.drawerPanelOpen {
+    transform: translateY(0);
+}
+
+
+.drawerHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 12px;
+    border-bottom: 1px solid #eee;
+}
+
+.drawerTitle {
+    font-weight: 600;
+}
+
+.drawerClose {
+    background: #fff;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    width: 36px;
+    height: 32px;
+    cursor: pointer;
+}
+
+.drawerBody {
+    display: grid;
+    padding: 8px 0;
+}
+
+.drawerLink {
+    display: block;
+    padding: 12px 14px;
+    text-decoration: none;
+    color: #000;
+    border-bottom: 1px solid #f0f0f0;
+    font-weight: 600;
+}
+
+.drawerLogout {
+    margin: 12px 14px;
+    padding: 10px 12px;
+    border: 1px solid #ccc;
+    border-radius: 10px;
+    background: #fff;
+    cursor: pointer;
+    font-weight: 700;
+}
+
+.adminlogo {
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: left;
+    font-size: 24px;
+    text-align: center;
+    padding: 0px 12px;
+    color: #000000;
+    text-decoration: none;
+    font-weight: 700;
+    gap: 10px;
+    margin-left: 10px;
+}
+
+@media(pointer: coarse) {
+    .adminlogo {
+        height: 60px;
+        display: flex;
+        align-items: center;
+        justify-content: left;
+        font-size: 24px;
+        text-align: center;
+        padding: 0px 12px;
+        color: #000000;
+        text-decoration: none;
+        font-weight: 700;
+        gap: 10px;
+        text-align: center;
+    }
 }
