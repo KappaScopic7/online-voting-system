@@ -223,7 +223,8 @@ public class DemoDataInitializer {
             CandidateRepository candidateRepo,
             List<ElectionJson> elections,
             Map<String, CandidateJson> candidateMap) {
-        var now = Instant.now();
+
+        Instant now = Instant.now();
         Map<String, ElectionCreated> created = new HashMap<>();
 
         for (var ej : elections) {
@@ -236,14 +237,35 @@ public class DemoDataInitializer {
             e.setDistrictPrefCode(ej.district().prefCode());
             e.setDistrictCityCode(ej.district().cityCode());
             e.setDistrictLabel(ej.district().label());
-            e.setStartsAt(now.plusSeconds(ej.startsAtOffsetSec()));
-            e.setEndsAt(now.plusSeconds(ej.endsAtOffsetSec()));
+
+            Instant startsAt = now.plusSeconds(ej.startsAtOffsetSec());
+            Instant endsAt = now.plusSeconds(ej.endsAtOffsetSec());
+            e.setStartsAt(startsAt);
+            e.setEndsAt(endsAt);
+
+            // ★ 追加：seed時に status を時刻から付与（DRAFT固定事故を防ぐ）
+            // 開始前 -> READY / 開催中 -> OPEN / 終了後 -> CLOSED
+            ElectionStatus st;
+            if (now.isBefore(startsAt)) {
+                st = ElectionStatus.READY;
+            } else if (now.isBefore(endsAt)) {
+                st = ElectionStatus.OPEN;
+            } else {
+                st = ElectionStatus.CLOSED;
+            }
+            e.setStatus(st);
+
             electionRepo.save(e);
 
             List<UUID> candidateIds = new ArrayList<>();
             for (int i = 0; i < ej.candidates().size(); i++) {
                 String candidateKey = ej.candidates().get(i);
                 CandidateJson cj = candidateMap.get(candidateKey);
+                if (cj == null) {
+                    throw new IllegalStateException(
+                            "elections.json: unknown candidateKey=" + candidateKey + " in electionKey="
+                                    + ej.electionKey());
+                }
 
                 var c = new Candidate();
                 c.setElectionId(e.getId());
