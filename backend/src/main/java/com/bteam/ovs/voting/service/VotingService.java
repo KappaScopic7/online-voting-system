@@ -398,4 +398,8 @@ public class VotingService {
         }
     }
 
+    @Transactional
+    public void tally(UUID electionId) {
+    }
+
 }

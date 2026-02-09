@@ -1,161 +1,111 @@
 package com.bteam.ovs.elections.service;
 
-import com.bteam.ovs.auth.entity.Role;
-import com.bteam.ovs.auth.repository.StaffAccountRepository;
-import com.bteam.ovs.elections.controller.dto.ElectionResponse;
+import com.bteam.ovs.elections.controller.dto.ElectionDetailResponse;
 import com.bteam.ovs.elections.entity.BallotType;
 import com.bteam.ovs.elections.entity.Election;
-import com.bteam.ovs.elections.entity.ElectionType;
+import com.bteam.ovs.elections.entity.ElectionStatus;
 import com.bteam.ovs.elections.repository.ElectionRepository;
-import com.bteam.ovs.elections.controller.dto.ElectionCreateRequest;
 import com.bteam.ovs.shared.errors.ApiException;
-import com.bteam.ovs.shared.security.PrincipalExtractor;
-
+import com.bteam.ovs.voting.service.AllocationVotingService;
+import com.bteam.ovs.voting.service.VotingService;
 import org.springframework.http.HttpStatus;
-import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
+import java.time.Instant;
 import java.util.UUID;
 
 @Service
 public class CommitteeElectionService {
 
     private final ElectionRepository electionRepo;
-    private final StaffAccountRepository staffRepo;
+    private final VotingService votingService;
+    private final AllocationVotingService allocVotingService;
+    private final ElectionService electionService;
 
-    public CommitteeElectionService(ElectionRepository electionRepo, StaffAccountRepository staffRepo) {
+    public CommitteeElectionService(
+            ElectionRepository electionRepo,
+            VotingService votingService,
+            AllocationVotingService allocVotingService,
+            ElectionService electionService) {
         this.electionRepo = electionRepo;
-        this.staffRepo = staffRepo;
+        this.votingService = votingService;
+        this.allocVotingService = allocVotingService;
+        this.electionService = electionService;
     }
 
-    /**
-     * 選挙一覧取得（Committeeの担当自治体のみ）
-     */
-    @Transactional(readOnly = true)
-    public List<ElectionResponse> listElections(Authentication auth) {
-        UUID staffId = PrincipalExtractor.requireAccountId(auth);
-
-        var staff = staffRepo.findById(staffId)
-                .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "未ログインです"));
-
-        if (staff.getRole() != Role.COMMITTEE) {
-            throw new ApiException(HttpStatus.FORBIDDEN, "FORBIDDEN", "権限がありません");
-        }
-
-        String pref = staff.getAssignedPrefCode();
-        String city = staff.getAssignedCityCode();
-        if (isBlank(pref) || isBlank(city)) {
-            throw new ApiException(HttpStatus.FORBIDDEN, "COMMITTEE_AREA_NOT_SET", "担当自治体が設定されていません");
-        }
-
-        return electionRepo
-                .findByDistrictPrefCodeAndDistrictCityCodeOrderByStartsAtDesc(pref, city)
-                .stream()
-                .map(this::toResponse)
-                .toList();
+    @Transactional
+    public ElectionDetailResponse markReady(UUID electionId) {
+        Election e = requireElection(electionId);
+        requireStatus(e, ElectionStatus.DRAFT);
+        e.setStatus(ElectionStatus.READY);
+        return electionService.toDetailResponse(e);
     }
 
-    /**
-     * 選挙詳細取得（Committeeの担当自治体のみ）
-     */
-    @Transactional(readOnly = true)
-    public ElectionResponse getElection(UUID electionId, Authentication auth) {
-        UUID staffId = PrincipalExtractor.requireAccountId(auth);
+    @Transactional
+    public ElectionDetailResponse start(UUID electionId) {
+        Election e = requireElection(electionId);
+        requireStatus(e, ElectionStatus.READY);
+        e.setStatus(ElectionStatus.OPEN);
+        return electionService.toDetailResponse(e);
+    }
 
-        var staff = staffRepo.findById(staffId)
-                .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "未ログインです"));
+    @Transactional
+    public ElectionDetailResponse close(UUID electionId) {
+        Election e = requireElection(electionId);
+        requireStatus(e, ElectionStatus.OPEN);
+        e.setStatus(ElectionStatus.CLOSED);
+        return electionService.toDetailResponse(e);
+    }
 
-        if (staff.getRole() != Role.COMMITTEE) {
-            throw new ApiException(HttpStatus.FORBIDDEN, "FORBIDDEN", "権限がありません");
+    @Transactional
+    public ElectionDetailResponse tally(UUID electionId) {
+        Election e = requireElection(electionId);
+        requireStatus(e, ElectionStatus.CLOSED);
+
+        if (e.getBallotType() == BallotType.ALLOCATION) {
+            allocVotingService.tally(electionId);
+        } else {
+            votingService.tally(electionId);
         }
 
-        String pref = staff.getAssignedPrefCode();
-        String city = staff.getAssignedCityCode();
-        if (isBlank(pref) || isBlank(city)) {
-            throw new ApiException(HttpStatus.FORBIDDEN, "COMMITTEE_AREA_NOT_SET", "担当自治体が設定されていません");
-        }
+        e.setTalliedAt(Instant.now());
+        e.setStatus(ElectionStatus.TALLIED);
+        return electionService.toDetailResponse(e);
+    }
 
-        Election e = electionRepo.findById(electionId)
+    @Transactional
+    public ElectionDetailResponse publish(UUID electionId) {
+        Election e = requireElection(electionId);
+        requireStatus(e, ElectionStatus.TALLIED);
+        e.setPublishedAt(Instant.now());
+        e.setStatus(ElectionStatus.PUBLISHED);
+        return electionService.toDetailResponse(e);
+    }
+
+    @Transactional
+    public ElectionDetailResponse unpublish(UUID electionId) {
+        Election e = requireElection(electionId);
+        requireStatus(e, ElectionStatus.PUBLISHED);
+        e.setPublishedAt(null);
+        e.setStatus(ElectionStatus.TALLIED);
+        return electionService.toDetailResponse(e);
+    }
+
+    private Election requireElection(UUID electionId) {
+        return electionRepo.findById(electionId)
                 .orElseThrow(() -> new ApiException(
                         HttpStatus.NOT_FOUND,
                         "ELECTION_NOT_FOUND",
-                        "選挙が存在しません"));
-
-        // ★ 担当外の選挙は見れない
-        if (!pref.equals(e.getDistrictPrefCode()) || !city.equals(e.getDistrictCityCode())) {
-            throw new ApiException(HttpStatus.NOT_FOUND, "ELECTION_NOT_FOUND", "選挙が存在しません");
-            // 403でもいいけど、存在隠しなら404が無難
-        }
-
-        return toResponse(e);
+                        "Election not found"));
     }
 
-    public ElectionResponse createElection(
-            ElectionCreateRequest req,
-            Authentication auth) {
-        UUID staffId = PrincipalExtractor.requireAccountId(auth);
-
-        var staff = staffRepo.findById(staffId)
-                .orElseThrow(() -> new ApiException(
-                        HttpStatus.UNAUTHORIZED,
-                        "UNAUTHORIZED",
-                        "未ログインです"));
-
-        if (staff.getRole() != Role.COMMITTEE) {
+    private static void requireStatus(Election e, ElectionStatus expected) {
+        if (e.getStatus() != expected) {
             throw new ApiException(
-                    HttpStatus.FORBIDDEN,
-                    "FORBIDDEN",
-                    "権限がありません");
+                    HttpStatus.CONFLICT,
+                    "ELECTION_STATUS_INVALID",
+                    "Expected status " + expected + " but was " + e.getStatus());
         }
-
-        String pref = staff.getAssignedPrefCode();
-        String city = staff.getAssignedCityCode();
-        if (isBlank(pref) || isBlank(city)) {
-            throw new ApiException(
-                    HttpStatus.FORBIDDEN,
-                    "COMMITTEE_AREA_NOT_SET",
-                    "担当自治体が設定されていません");
-        }
-
-        if (req.startsAt().isAfter(req.endsAt())) {
-            throw new ApiException(
-                    HttpStatus.BAD_REQUEST,
-                    "INVALID_TERM",
-                    "開始日時は終了日時より前である必要があります");
-        }
-
-        Election election = new Election();
-
-        election.setTitle(req.title());
-        election.setStartsAt(req.startsAt());
-        election.setEndsAt(req.endsAt());
-
-        election.setDistrictPrefCode(pref);
-        election.setDistrictCityCode(city);
-
-        election.setSummary("");
-        election.setElectionType(ElectionType.DEMO);
-        election.setBallotType(BallotType.SINGLE_CHOICE);
-        election.setDistrictLabel(pref + city);
-
-        election.setElectionKey(UUID.randomUUID().toString());
-
-        Election saved = electionRepo.save(election);
-
-        return toResponse(saved);
-    }
-
-    private ElectionResponse toResponse(Election e) {
-        return new ElectionResponse(
-                e.getId(),
-                e.getTitle(),
-                e.getStartsAt(),
-                e.getEndsAt());
-    }
-
-    private static boolean isBlank(String s) {
-        return s == null || s.isBlank();
     }
 }

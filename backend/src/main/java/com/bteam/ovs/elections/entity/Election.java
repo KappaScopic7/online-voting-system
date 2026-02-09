@@ -1,15 +1,21 @@
-// backend/src/main/java/com/bteam/ovs/elections/entity/Election.java
 package com.bteam.ovs.elections.entity;
 
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.Setter;
+
 import java.time.Instant;
 import java.util.UUID;
 
-@Entity @Table(name = "election", uniqueConstraints = {
+@Entity
+@Table(name = "election", uniqueConstraints = {
         @UniqueConstraint(name = "uq_election_election_key", columnNames = "election_key")
 })
+@Getter
+@Setter
 public class Election {
-    @Id @GeneratedValue
+    @Id
+    @GeneratedValue
     private UUID id;
 
     @Column(name = "election_key", nullable = false, length = 120)
@@ -21,10 +27,12 @@ public class Election {
     @Column(nullable = false, length = 2000)
     private String summary;
 
-    @Enumerated(EnumType.STRING) @Column(name = "election_type", nullable = false, length = 30)
+    @Enumerated(EnumType.STRING)
+    @Column(name = "election_type", nullable = false, length = 30)
     private ElectionType electionType;
 
-    @Enumerated(EnumType.STRING) @Column(name = "ballot_type", nullable = false, length = 30)
+    @Enumerated(EnumType.STRING)
+    @Column(name = "ballot_type", nullable = false, length = 30)
     private BallotType ballotType;
 
     @Column(name = "district_pref_code", nullable = false, length = 10)
@@ -42,88 +50,14 @@ public class Election {
     @Column(name = "ends_at", nullable = false)
     private Instant endsAt;
 
-    // getters/setters
-    public UUID getId() {
-        return id;
-    }
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false, length = 30)
+    private ElectionStatus status = ElectionStatus.DRAFT;
 
-    public String getElectionKey() {
-        return electionKey;
-    }
+    @Column(name = "tallied_at")
+    private Instant talliedAt;
 
-    public void setElectionKey(String electionKey) {
-        this.electionKey = electionKey;
-    }
+    @Column(name = "published_at")
+    private Instant publishedAt;
 
-    public String getTitle() {
-        return title;
-    }
-
-    public void setTitle(String title) {
-        this.title = title;
-    }
-
-    public String getSummary() {
-        return summary;
-    }
-
-    public void setSummary(String summary) {
-        this.summary = summary;
-    }
-
-    public ElectionType getElectionType() {
-        return electionType;
-    }
-
-    public void setElectionType(ElectionType electionType) {
-        this.electionType = electionType;
-    }
-
-    public BallotType getBallotType() {
-        return ballotType;
-    }
-
-    public void setBallotType(BallotType ballotType) {
-        this.ballotType = ballotType;
-    }
-
-    public String getDistrictPrefCode() {
-        return districtPrefCode;
-    }
-
-    public void setDistrictPrefCode(String districtPrefCode) {
-        this.districtPrefCode = districtPrefCode;
-    }
-
-    public String getDistrictCityCode() {
-        return districtCityCode;
-    }
-
-    public void setDistrictCityCode(String districtCityCode) {
-        this.districtCityCode = districtCityCode;
-    }
-
-    public String getDistrictLabel() {
-        return districtLabel;
-    }
-
-    public void setDistrictLabel(String districtLabel) {
-        this.districtLabel = districtLabel;
-    }
-
-    public Instant getStartsAt() {
-        return startsAt;
-    }
-
-    public void setStartsAt(Instant startsAt) {
-        this.startsAt = startsAt;
-    }
-
-    public Instant getEndsAt() {
-        return endsAt;
-    }
-
-    public void setEndsAt(Instant endsAt) {
-        this.endsAt = endsAt;
-    }
 }

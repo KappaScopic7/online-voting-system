@@ -1,38 +1,62 @@
 package com.bteam.ovs.elections.controller;
 
-import com.bteam.ovs.elections.controller.dto.ElectionResponse;
+import com.bteam.ovs.elections.controller.dto.ElectionDetailResponse;
 import com.bteam.ovs.elections.service.CommitteeElectionService;
-import org.springframework.security.core.Authentication;
-
+import com.bteam.ovs.shared.security.Authz;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-
-import com.bteam.ovs.elections.controller.dto.ElectionCreateRequest;
-import jakarta.validation.Valid;
-import org.springframework.http.HttpStatus;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/committee/elections")
 public class CommitteeElectionsController {
 
-    private final CommitteeElectionService committeeService;
+    private final CommitteeElectionService service;
 
-    public CommitteeElectionsController(CommitteeElectionService committeeService) {
-        this.committeeService = committeeService;
+    public CommitteeElectionsController(CommitteeElectionService service) {
+        this.service = service;
     }
 
-    @GetMapping
-    public List<ElectionResponse> list(Authentication auth) {
-        return committeeService.listElections(auth);
+    @PostMapping("/{electionId}/actions/ready")
+    @PreAuthorize(Authz.STAFF)
+    public ElectionDetailResponse markReady(@PathVariable String electionId) {
+        UUID eid = UUID.fromString(electionId);
+        return service.markReady(eid);
     }
 
-    @PostMapping
-    @ResponseStatus(HttpStatus.CREATED)
-    public void create(
-            @RequestBody @Valid ElectionCreateRequest request,
-            Authentication auth) {
-        committeeService.createElection(request, auth);
+    @PostMapping("/{electionId}/actions/start")
+    @PreAuthorize(Authz.STAFF)
+    public ElectionDetailResponse start(@PathVariable String electionId) {
+        UUID eid = UUID.fromString(electionId);
+        return service.start(eid);
     }
 
+    @PostMapping("/{electionId}/actions/close")
+    @PreAuthorize(Authz.STAFF)
+    public ElectionDetailResponse close(@PathVariable String electionId) {
+        UUID eid = UUID.fromString(electionId);
+        return service.close(eid);
+    }
+
+    @PostMapping("/{electionId}/actions/tally")
+    @PreAuthorize(Authz.STAFF)
+    public ElectionDetailResponse tally(@PathVariable String electionId) {
+        UUID eid = UUID.fromString(electionId);
+        return service.tally(eid);
+    }
+
+    @PostMapping("/{electionId}/actions/publish")
+    @PreAuthorize(Authz.STAFF)
+    public ElectionDetailResponse publish(@PathVariable String electionId) {
+        UUID eid = UUID.fromString(electionId);
+        return service.publish(eid);
+    }
+
+    @PostMapping("/{electionId}/actions/unpublish")
+    @PreAuthorize(Authz.STAFF)
+    public ElectionDetailResponse unpublish(@PathVariable String electionId) {
+        UUID eid = UUID.fromString(electionId);
+        return service.unpublish(eid);
+    }
 }

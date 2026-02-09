@@ -7,12 +7,13 @@ import com.bteam.ovs.elections.controller.dto.ElectionListItem;
 import com.bteam.ovs.elections.controller.dto.ElectionResultBundleResponse;
 import com.bteam.ovs.elections.controller.dto.ElectionResultResponse;
 import com.bteam.ovs.elections.entity.BallotType;
+import com.bteam.ovs.elections.entity.Election;
+import com.bteam.ovs.elections.entity.ElectionStatus;
 import com.bteam.ovs.elections.repository.ElectionRepository;
 import com.bteam.ovs.shared.auth.AccountResolver;
 import com.bteam.ovs.shared.errors.ApiException;
 import com.bteam.ovs.voting.repository.VoteAllocItemRepository;
 import com.bteam.ovs.voting.repository.VoteCurrentRepository;
-
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
@@ -47,13 +48,13 @@ public class ElectionService {
     }
 
     public List<ElectionListItem> list(UUID accountIdOrNull) {
-        final Instant now = Instant.now();
+        // final Instant now = Instant.now();
 
         var elections = electionRepo.findAllByOrderByStartsAtDesc();
         if (elections.isEmpty())
             return List.of();
 
-        var electionIds = elections.stream().map(e -> e.getId()).toList();
+        var electionIds = elections.stream().map(Election::getId).toList();
 
         // 候補者数
         Map<UUID, Long> candidateCountByElectionId = candidateService.countByElectionIds(electionIds);
@@ -85,14 +86,14 @@ public class ElectionService {
 
         return elections.stream()
                 .map(e -> {
-                    String st = status(now, e.getStartsAt(), e.getEndsAt());
-                    boolean hasResult = "ENDED".equals(st);
+                    String st = status(e);
+                    boolean hasResult = (e.getStatus() == ElectionStatus.PUBLISHED);
 
                     long cnt = candidateCountByElectionId.getOrDefault(e.getId(), 0L);
                     int candidateCount = (cnt > Integer.MAX_VALUE) ? Integer.MAX_VALUE : (int) cnt;
 
                     boolean canCast = finalIdentityLinked
-                            && "ONGOING".equals(st)
+                            && e.getStatus() == ElectionStatus.OPEN
                             && accountIdOrNull != null
                             && electionEligibilityService.isEligible(accountIdOrNull, e.getId());
 
@@ -131,12 +132,12 @@ public class ElectionService {
     }
 
     public ElectionDetailResponse detail(UUID electionId, UUID accountIdOrNull) {
-        final Instant now = Instant.now();
+        // final Instant now = Instant.now();
 
         var election = electionRepo.findById(electionId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "ELECTION_NOT_FOUND", "選挙が存在しません"));
 
-        String st = status(now, election.getStartsAt(), election.getEndsAt());
+        String st = status(election);
 
         // 候補者（一覧＋candidateId->name）
         var bundle = candidateService.bundleByElection(electionId);
@@ -154,7 +155,7 @@ public class ElectionService {
             identityLinked = (citizenId != null);
         }
 
-        boolean canCast = identityLinked && "ONGOING".equals(st);
+        boolean canCast = identityLinked && election.getStatus() == ElectionStatus.OPEN;
 
         ElectionListItem.CurrentVote currentVote = null;
         if (identityLinked) {
@@ -193,13 +194,12 @@ public class ElectionService {
         var election = electionRepo.findById(electionId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "ELECTION_NOT_FOUND", "選挙が存在しません"));
 
-        var now = Instant.now();
-        if (now.isBefore(election.getEndsAt())) {
-            throw new ApiException(HttpStatus.FORBIDDEN, "RESULT_NOT_AVAILABLE", "結果は選挙終了後に公開されます");
+        // ★ 公開判定：PUBLISHED のみ
+        if (election.getStatus() != ElectionStatus.PUBLISHED) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "RESULT_NOT_AVAILABLE", "結果は選挙管理委員会の公開後に閲覧できます");
         }
 
         var candidates = candidateService.summariesByElection(electionId);
-
         var rows = voteCurrentRepo.countByElectionGroupByTypeAndCandidate(electionId);
 
         Map<UUID, Long> countMap = new HashMap<>();
@@ -236,15 +236,19 @@ public class ElectionService {
                 .sorted((a, b) -> Long.compare(b.votes(), a.votes()))
                 .toList();
 
+        // 既存のDTO仕様に合わせて talliedAt は now を維持（厳密にしたいなら election.getTalliedAt() へ）
+        Instant talliedAt = (election.getTalliedAt() != null) ? election.getTalliedAt() : Instant.now();
+
         return new ElectionResultResponse(
                 election.getId(),
                 election.getTitle(),
                 "CURRENT",
                 totalVotes,
-                now,
+                talliedAt,
                 results);
     }
 
+    // 旧：時刻判定。マイグレーション中の保険用に残す
     public static String status(Instant now, Instant startsAt, Instant endsAt) {
         if (now.isBefore(startsAt))
             return "UPCOMING";
@@ -253,13 +257,26 @@ public class ElectionService {
         return "ONGOING";
     }
 
+    // ★ 新：ElectionStatus から画面用3値へ
+    public static String status(Election e) {
+        ElectionStatus s = e.getStatus();
+        if (s == null) {
+            return status(Instant.now(), e.getStartsAt(), e.getEndsAt());
+        }
+        return switch (s) {
+            case DRAFT, READY -> "UPCOMING";
+            case OPEN -> "ONGOING";
+            case CLOSED, TALLIED, PUBLISHED, ARCHIVED -> "ENDED";
+        };
+    }
+
     public AllocElectionResultResponse allocResult(UUID electionId) {
         var election = electionRepo.findById(electionId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "ELECTION_NOT_FOUND", "選挙が存在しません"));
 
-        var now = Instant.now();
-        if (now.isBefore(election.getEndsAt())) {
-            throw new ApiException(HttpStatus.FORBIDDEN, "RESULT_NOT_AVAILABLE", "結果は選挙終了後に公開されます");
+        // ★ 公開判定：PUBLISHED のみ
+        if (election.getStatus() != ElectionStatus.PUBLISHED) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "RESULT_NOT_AVAILABLE", "結果は選挙管理委員会の公開後に閲覧できます");
         }
 
         var candidates = candidateService.summariesByElection(electionId);
@@ -288,13 +305,15 @@ public class ElectionService {
                 .sorted((a, b) -> Long.compare(b.points(), a.points()))
                 .toList();
 
+        Instant talliedAt = (election.getTalliedAt() != null) ? election.getTalliedAt() : Instant.now();
+
         return new AllocElectionResultResponse(
                 election.getId(),
                 election.getTitle(),
                 "CURRENT",
                 totalPoints,
                 noneSupportPoints,
-                now,
+                talliedAt,
                 results);
     }
 
@@ -302,9 +321,9 @@ public class ElectionService {
         var election = electionRepo.findById(electionId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "ELECTION_NOT_FOUND", "選挙が存在しません"));
 
-        var now = Instant.now();
-        if (now.isBefore(election.getEndsAt())) {
-            throw new ApiException(HttpStatus.FORBIDDEN, "RESULT_NOT_AVAILABLE", "結果は選挙終了後に公開されます");
+        // ★ 公開判定：PUBLISHED のみ
+        if (election.getStatus() != ElectionStatus.PUBLISHED) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "RESULT_NOT_AVAILABLE", "結果は選挙管理委員会の公開後に閲覧できます");
         }
 
         if (election.getBallotType() == BallotType.ALLOCATION) {
@@ -319,6 +338,27 @@ public class ElectionService {
                 election.getId(),
                 election.getBallotType().name(),
                 result(electionId),
+                null);
+    }
+
+    // ★ 追加：CommitteeElectionService が呼ぶ
+    public ElectionDetailResponse toDetailResponse(Election election) {
+        String st = status(election);
+
+        var bundle = candidateService.bundleByElection(election.getId());
+        var candidates = bundle.items();
+        int candidateCount = candidates.size();
+
+        // committee用途：投票可否/現在票は不要（false/null）
+        return new ElectionDetailResponse(
+                election.getId(),
+                election.getTitle(),
+                election.getStartsAt(),
+                election.getEndsAt(),
+                st,
+                candidateCount,
+                candidates,
+                false,
                 null);
     }
 }

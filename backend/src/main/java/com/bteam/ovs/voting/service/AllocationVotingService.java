@@ -317,4 +317,8 @@ public class AllocationVotingService {
             return "ENDED";
         return "ONGOING";
     }
+
+    @Transactional
+    public void tally(UUID electionId) {
+    }
 }
