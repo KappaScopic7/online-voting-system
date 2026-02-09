@@ -1,9 +1,12 @@
+// frontend/src/public/pages/PublicHomePage.tsx
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Card, DevDebug, Page } from "../../shared/ui/page";
 import { useAuth } from "../../user/UserAuthContext";
 import { fetchPublicAnnouncement } from "../api/announcement";
 import type { SystemAnnouncement } from "../../shared/model/announcement";
+import { fetchPublicNotices, type PublicNotice } from "../api/notices";
+import { formatLocal } from "../../shared/datetime/formatLocal";
 
 function actorLabel(actor: SystemAnnouncement["actor"]) {
     return actor === "SYSTEM_ADMIN"
@@ -18,7 +21,9 @@ export function PublicHomePage() {
     const from = loc.pathname + loc.search;
 
     const [notice, setNotice] = useState<SystemAnnouncement | null>(null);
+    const [notices, setNotices] = useState<PublicNotice[]>([]);
 
+    // 単発バナー（SystemAnnouncement）
     useEffect(() => {
         (async () => {
             try {
@@ -27,6 +32,19 @@ export function PublicHomePage() {
             } catch {
                 // 失敗したら黙って非表示（デモ中の事故を防ぐ）
                 setNotice(null);
+            }
+        })();
+    }, []);
+
+    // 複数件お知らせ（PublicNotice）
+    useEffect(() => {
+        (async () => {
+            try {
+                const items = await fetchPublicNotices(5);
+                setNotices(items ?? []);
+            } catch {
+                // 失敗したら黙って非表示
+                setNotices([]);
             }
         })();
     }, []);
@@ -64,6 +82,7 @@ export function PublicHomePage() {
             }
             maxWidth={820}
         >
+            {/* 単発バナー */}
             {notice && (
                 <Card>
                     <div style={{ display: "grid", gap: 6 }}>
@@ -90,6 +109,74 @@ export function PublicHomePage() {
                     </div>
                 </Card>
             )}
+
+            <Card>
+                <div style={{ display: "grid", gap: 10 }}>
+                    <div style={{ fontWeight: 900 }}>お知らせ</div>
+
+                    {notices.length === 0 ? (
+                        <div style={{ fontSize: 13, opacity: 0.6 }}>
+                            現在、お知らせはありません。
+                        </div>
+                    ) : (
+                        <div style={{ display: "grid", gap: 10 }}>
+                            {notices.map((n) => (
+                                <div
+                                    key={n.id}
+                                    style={{
+                                        border: "1px solid rgba(0,0,0,0.12)",
+                                        borderRadius: 12,
+                                        padding: 12,
+                                        display: "grid",
+                                        gap: 6,
+                                    }}
+                                >
+                                    <div
+                                        style={{
+                                            display: "flex",
+                                            gap: 8,
+                                            flexWrap: "wrap",
+                                            alignItems: "center",
+                                        }}
+                                    >
+                                        {n.pinned && (
+                                            <span
+                                                style={{
+                                                    fontSize: 12,
+                                                    padding: "2px 8px",
+                                                    borderRadius: 999,
+                                                    border: "1px solid rgba(0,0,0,0.2)",
+                                                    opacity: 0.9,
+                                                }}
+                                            >
+                                                固定
+                                            </span>
+                                        )}
+                                        <div style={{ fontWeight: 800 }}>
+                                            {n.title}
+                                        </div>
+                                    </div>
+
+                                    <div
+                                        style={{
+                                            fontSize: 13,
+                                            opacity: 0.9,
+                                            lineHeight: 1.6,
+                                            whiteSpace: "pre-wrap",
+                                        }}
+                                    >
+                                        {n.body}
+                                    </div>
+
+                                    <div style={{ fontSize: 12, opacity: 0.6 }}>
+                                        公開: {formatLocal(n.publishedAt)}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            </Card>
 
             <Card>
                 <div style={{ display: "grid", gap: 10 }}>
@@ -150,7 +237,15 @@ export function PublicHomePage() {
                 </div>
             </Card>
 
-            <DevDebug value={{ me: !!me, authLoading, from, notice }} />
+            <DevDebug
+                value={{
+                    me: !!me,
+                    authLoading,
+                    from,
+                    notice,
+                    noticesCount: notices.length,
+                }}
+            />
         </Page>
     );
 }

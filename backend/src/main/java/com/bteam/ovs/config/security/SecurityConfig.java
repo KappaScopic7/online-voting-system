@@ -69,14 +69,19 @@ public class SecurityConfig {
                         }))
 
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        .requestMatchers("/error").permitAll()
 
                         // =========================
                         // Public (no auth)
                         // =========================
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        .requestMatchers("/error").permitAll()
+
                         .requestMatchers("/api/public/identity/verify").permitAll()
                         .requestMatchers("/api/public/vote-token/**").permitAll()
+
+                        // ✅ 追加：PublicHomePage 表示用
+                        .requestMatchers(HttpMethod.GET, "/api/public/notices/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/public/announcement/**").permitAll()
 
                         // 本人認証トークンが必要（ログイン不要だが「認証は必要」）
                         .requestMatchers("/api/public/voting/**").authenticated()
