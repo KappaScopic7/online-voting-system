@@ -41,3 +41,8 @@ out/
 !.vscode/tasks.json
 !.vscode/online-voting-system.code-workspace
 !.vscode/eclipse-java-formatter.xml
+
+### https ###
+
+*.12
+*.pem
