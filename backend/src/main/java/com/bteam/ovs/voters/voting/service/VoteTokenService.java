@@ -1,5 +1,5 @@
 // backend/src/main/java/com/bteam/ovs/publicapi/voting/service/VoteTokenService.java
-package com.bteam.ovs.publicapi.voting.service;
+package com.bteam.ovs.voters.voting.service;
 
 import com.bteam.ovs.config.security.JwtService;
 import com.bteam.ovs.shared.errors.ApiException;

@@ -29,19 +29,22 @@ export function CommitteeLayout() {
         nav("/committee/login", { replace: true });
     };
 
+    // Committee: 選挙管理 + User/Voter(最小)
     const navItems = useMemo<NavItem[]>(
         () => [
             { to: "/committee/elections", label: "選挙管理" },
-            { to: "/committee/staff", label: "委員会/管理者" },
+            { to: "/committee/voters", label: "有権者管理" }, // 無ければ後で消す/追加
             { to: "/committee/me", label: "Me" },
         ],
         [],
     );
 
+    // 右上メニュー（最小）
     const menuItems = useMemo<MenuItem[]>(
         () => [
-            { to: "/committee", label: "Home →" },
+            { to: "/committee", label: "ホーム →" },
             { to: "/committee/elections", label: "選挙管理 →" },
+            { to: "/committee/voters", label: "有権者管理 →" },
             { to: "/committee/me", label: "Me →" },
         ],
         [],

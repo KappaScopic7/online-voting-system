@@ -1,8 +1,15 @@
-// frontend/src/public/pages/PublicHomePage.tsx
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Card, DevDebug, Page } from "../../shared/ui/page";
 import { useAuth } from "../../user/UserAuthContext";
+import { fetchPublicAnnouncement } from "../api/announcement";
+import type { SystemAnnouncement } from "../../shared/model/announcement";
+
+function actorLabel(actor: SystemAnnouncement["actor"]) {
+    return actor === "SYSTEM_ADMIN"
+        ? "システム管理者から"
+        : "選挙管理委員会から";
+}
 
 export function PublicHomePage() {
     const { me, isLoading: authLoading } = useAuth();
@@ -10,11 +17,18 @@ export function PublicHomePage() {
     const loc = useLocation();
     const from = loc.pathname + loc.search;
 
-    const [notice, setNotice] = useState<string | null>(null);
+    const [notice, setNotice] = useState<SystemAnnouncement | null>(null);
 
-    // 仮：public機能を落としている旨を表示（必要なければ消してOK）
     useEffect(() => {
-        setNotice("現在、本人認証（未ログイン）投票は一時停止中です。");
+        (async () => {
+            try {
+                const a = await fetchPublicAnnouncement();
+                setNotice(a && a.enabled ? a : null);
+            } catch {
+                // 失敗したら黙って非表示（デモ中の事故を防ぐ）
+                setNotice(null);
+            }
+        })();
     }, []);
 
     return (
@@ -53,16 +67,26 @@ export function PublicHomePage() {
             {notice && (
                 <Card>
                     <div style={{ display: "grid", gap: 6 }}>
-                        <div style={{ fontWeight: 900 }}>お知らせ</div>
+                        <div style={{ fontWeight: 900 }}>
+                            [{actorLabel(notice.actor)}]
+                        </div>
+
                         <div
                             style={{
                                 fontSize: 13,
                                 opacity: 0.9,
                                 lineHeight: 1.6,
+                                whiteSpace: "pre-wrap",
                             }}
                         >
-                            {notice}
+                            {notice.message}
                         </div>
+
+                        {notice.updatedAt && (
+                            <div style={{ fontSize: 12, opacity: 0.6 }}>
+                                更新: {notice.updatedAt}
+                            </div>
+                        )}
                     </div>
                 </Card>
             )}
@@ -126,14 +150,7 @@ export function PublicHomePage() {
                 </div>
             </Card>
 
-            <DevDebug
-                value={{
-                    me: !!me,
-                    authLoading,
-                    from,
-                    notice,
-                }}
-            />
+            <DevDebug value={{ me: !!me, authLoading, from, notice }} />
         </Page>
     );
 }

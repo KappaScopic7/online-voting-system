@@ -1,4 +1,4 @@
-package com.bteam.ovs.publicapi.voting.dto;
+package com.bteam.ovs.voters.voting.dto;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;

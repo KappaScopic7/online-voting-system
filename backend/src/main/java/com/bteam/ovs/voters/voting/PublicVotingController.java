@@ -1,4 +1,4 @@
-package com.bteam.ovs.publicapi.voting;
+package com.bteam.ovs.voters.voting;
 
 import com.bteam.ovs.shared.errors.ApiException;
 import com.bteam.ovs.shared.security.PrincipalExtractor;

@@ -10,6 +10,7 @@ import { CommitteeStaffPage } from "../committee/pages/CommitteeStaffPage";
 import { CommitteeMePage } from "../committee/pages/CommitteeMePage";
 import { CommitteeElectionCreatePage } from "../committee/pages/CommitteeElectionCreatePage";
 import { CommitteeElectionOpsPage } from "../committee/pages/CommitteeElectionOpsPage";
+import { CommitteeAnnouncementPage } from "../committee/pages/CommitteeAnnouncementPage";
 
 export function CommitteeRoutes() {
     return (
@@ -37,10 +38,13 @@ export function CommitteeRoutes() {
                         element={<CommitteeElectionCreatePage />}
                     />
 
-                    {/* ★ここ：相対パスにする */}
                     <Route
                         path="elections/:electionId/ops"
                         element={<CommitteeElectionOpsPage />}
+                    />
+                    <Route
+                        path="announcement"
+                        element={<CommitteeAnnouncementPage />}
                     />
 
                     <Route path="staff" element={<CommitteeStaffPage />} />

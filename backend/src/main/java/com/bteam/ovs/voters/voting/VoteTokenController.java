@@ -1,11 +1,12 @@
 // backend/src/main/java/com/bteam/ovs/publicapi/voting/VoteTokenController.java
-package com.bteam.ovs.publicapi.voting;
+package com.bteam.ovs.voters.voting;
 
 import com.bteam.ovs.identity.service.NfcResolveService;
-import com.bteam.ovs.publicapi.voting.dto.VoteTokenIssueRequest;
-import com.bteam.ovs.publicapi.voting.dto.VoteTokenIssueResponse;
-import com.bteam.ovs.publicapi.voting.service.VoteTokenService;
 import com.bteam.ovs.shared.validation.UuidParsers;
+import com.bteam.ovs.voters.voting.dto.VoteTokenIssueRequest;
+import com.bteam.ovs.voters.voting.dto.VoteTokenIssueResponse;
+import com.bteam.ovs.voters.voting.service.VoteTokenService;
+
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
