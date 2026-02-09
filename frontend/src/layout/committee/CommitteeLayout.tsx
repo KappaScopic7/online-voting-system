@@ -1,164 +1,328 @@
-import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { useMemo } from "react";
+// frontend/src/layout/committee/CommitteeLayout.tsx
+import { Link, Outlet, useNavigate } from "react-router-dom";
 import { useStaffAuth } from "../../staff/StaffAuthContext";
+import { useEffect, useMemo, useRef, useState } from "react";
+import styles from "./CommitteeLayout.module.css";
 
 type NavItem = { to: string; label: string };
+type MenuItem = { to: string; label: string };
 
 export function CommitteeLayout() {
     const nav = useNavigate();
-    const loc = useLocation();
     const { staff, logout } = useStaffAuth();
+
+    const [showTopBar, setShowTopBar] = useState(true);
+    const lastYRef = useRef(0);
+    const tickingRef = useRef(false);
+
+    const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const menuWrapRef = useRef<HTMLDivElement>(null);
+
+    const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
+
+    const closeMenu = () => setIsMenuOpen(false);
+    const toggleMenu = () => setIsMenuOpen((v) => !v);
 
     const onLogout = () => {
         logout();
-        nav("/", { replace: true });
+        closeMenu();
+        nav("/committee/login", { replace: true });
     };
 
     const navItems = useMemo<NavItem[]>(
         () => [
-            { to: "/committee", label: "Home" },
-            { to: "/committee/elections", label: "Elections" },
-            { to: "/committee/staff", label: "Staff" },
+            { to: "/committee/elections", label: "選挙管理" },
+            { to: "/committee/staff", label: "委員会/管理者" },
             { to: "/committee/me", label: "Me" },
         ],
         [],
     );
 
-    const isActive = (to: string) =>
-        to === "/committee"
-            ? loc.pathname === "/committee"
-            : loc.pathname.startsWith(to);
+    const menuItems = useMemo<MenuItem[]>(
+        () => [
+            { to: "/committee", label: "Home →" },
+            { to: "/committee/elections", label: "選挙管理 →" },
+            { to: "/committee/me", label: "Me →" },
+        ],
+        [],
+    );
+
+    // ---- header show/hide on scroll (stable) ----
+    useEffect(() => {
+        lastYRef.current = window.scrollY;
+
+        const onScroll = () => {
+            if (tickingRef.current) return;
+            tickingRef.current = true;
+
+            window.requestAnimationFrame(() => {
+                const y = window.scrollY;
+                const lastY = lastYRef.current;
+                const diff = y - lastY;
+
+                const THRESHOLD = 20;
+                const TOP_LOCK = 60;
+
+                if (y <= TOP_LOCK) {
+                    setShowTopBar(true);
+                } else if (Math.abs(diff) >= THRESHOLD) {
+                    setShowTopBar(diff < 0);
+                }
+
+                lastYRef.current = y;
+                tickingRef.current = false;
+            });
+        };
+
+        window.addEventListener("scroll", onScroll, { passive: true });
+        return () => window.removeEventListener("scroll", onScroll);
+    }, []);
+
+    // ---- close menu on outside click / Esc ----
+    useEffect(() => {
+        if (!isMenuOpen) return;
+
+        const handleClickOutside = (event: MouseEvent) => {
+            if (
+                menuWrapRef.current &&
+                !menuWrapRef.current.contains(event.target as Node)
+            ) {
+                closeMenu();
+            }
+        };
+
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if (event.key === "Escape") closeMenu();
+        };
+
+        document.addEventListener("mousedown", handleClickOutside);
+        document.addEventListener("keydown", handleKeyDown);
+
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+            document.removeEventListener("keydown", handleKeyDown);
+        };
+    }, [isMenuOpen]);
 
     return (
-        <div
-            style={{
-                minHeight: "100vh",
-                display: "flex",
-                flexDirection: "column",
-            }}
-        >
-            <header
-                style={{
-                    position: "sticky",
-                    top: 0,
-                    zIndex: 10,
-                    background: "white",
-                    borderBottom: "1px solid #e5e7eb",
-                }}
+        <div className={styles.page}>
+            <div
+                className={`${styles.committeeLayout} ${
+                    showTopBar ? styles.headerVisible : styles.headerHidden
+                }`}
             >
-                <div
-                    style={{
-                        display: "flex",
-                        gap: 12,
-                        padding: "12px 16px",
-                        alignItems: "center",
-                        flexWrap: "wrap",
-                    }}
-                >
-                    <Link
-                        to="/committee"
-                        style={{
-                            fontWeight: 800,
-                            textDecoration: "none",
-                            color: "black",
-                        }}
-                    >
-                        OVS Committee
-                    </Link>
+                <div className={styles.barInner}>
+                    <header className={styles.header}>
+                        <button
+                            type="button"
+                            className={styles.hamburgerButton}
+                            aria-label="メニュー"
+                            aria-expanded={isMobileNavOpen}
+                            onClick={() => setIsMobileNavOpen(true)}
+                        >
+                            ☰
+                        </button>
 
-                    <nav
-                        style={{
-                            display: "flex",
-                            gap: 10,
-                            flexWrap: "wrap",
-                        }}
-                    >
-                        {navItems.map((it) => (
+                        <Link
+                            to="/committee"
+                            className={styles.brand}
+                            onClick={closeMenu}
+                            aria-label="委員会トップへ"
+                        >
+                            選挙管理（委員会）
+                        </Link>
+
+                        <div className={styles.headerRight}>
+                            <div ref={menuWrapRef} className={styles.menuWrap}>
+                                <button
+                                    type="button"
+                                    className={styles.menuButton}
+                                    onClick={toggleMenu}
+                                    aria-haspopup="menu"
+                                    aria-expanded={isMenuOpen}
+                                    aria-label="委員会メニュー"
+                                >
+                                    <span aria-hidden>🛠️</span>
+                                </button>
+
+                                {isMenuOpen && (
+                                    <div
+                                        className={`${styles.menuOpen} ${
+                                            showTopBar ? styles.withShadow : ""
+                                        }`}
+                                        role="menu"
+                                    >
+                                        {/* staff info */}
+                                        <div className={styles.menuMeta}>
+                                            {staff ? (
+                                                <>
+                                                    <div
+                                                        className={
+                                                            styles.menuMetaTitle
+                                                        }
+                                                    >
+                                                        {staff.loginId}
+                                                    </div>
+                                                    <div
+                                                        className={
+                                                            styles.menuMetaSub
+                                                        }
+                                                    >
+                                                        {staff.role}
+                                                    </div>
+                                                </>
+                                            ) : (
+                                                <div
+                                                    className={
+                                                        styles.menuMetaSub
+                                                    }
+                                                >
+                                                    未ログイン
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        <hr className={styles.divider} />
+
+                                        {menuItems.map((item, idx) => (
+                                            <div key={item.to}>
+                                                <Link
+                                                    className={styles.menuLink}
+                                                    to={item.to}
+                                                    onClick={closeMenu}
+                                                    role="menuitem"
+                                                >
+                                                    {item.label}
+                                                </Link>
+
+                                                {idx !==
+                                                    menuItems.length - 1 && (
+                                                    <hr
+                                                        className={
+                                                            styles.divider
+                                                        }
+                                                    />
+                                                )}
+                                            </div>
+                                        ))}
+
+                                        <hr className={styles.divider} />
+
+                                        {staff ? (
+                                            <button
+                                                className={styles.logoutButton}
+                                                type="button"
+                                                onClick={onLogout}
+                                                role="menuitem"
+                                            >
+                                                ログアウト
+                                            </button>
+                                        ) : (
+                                            <Link
+                                                className={styles.menuLink}
+                                                to="/committee/login"
+                                                onClick={closeMenu}
+                                                role="menuitem"
+                                            >
+                                                ログイン →
+                                            </Link>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </header>
+
+                    <nav className={styles.nav} aria-label="委員会ナビ">
+                        {navItems.map((item) => (
                             <Link
-                                key={it.to}
-                                to={it.to}
-                                style={{
-                                    textDecoration: "none",
-                                    padding: "6px 10px",
-                                    borderRadius: 8,
-                                    border: "1px solid #e5e7eb",
-                                    background: isActive(it.to)
-                                        ? "#f3f4f6"
-                                        : "transparent",
-                                    color: "black",
-                                }}
+                                key={item.to}
+                                to={item.to}
+                                className={styles.navLink}
+                                onClick={closeMenu}
                             >
-                                {it.label}
+                                {item.label}
                             </Link>
                         ))}
                     </nav>
 
                     <div
-                        style={{
-                            marginLeft: "auto",
-                            display: "flex",
-                            gap: 10,
-                            alignItems: "center",
-                        }}
+                        className={`${styles.drawerOverlay} ${
+                            isMobileNavOpen ? styles.drawerOverlayOpen : ""
+                        }`}
+                        onClick={() => setIsMobileNavOpen(false)}
+                        aria-hidden={!isMobileNavOpen}
                     >
-                        {staff ? (
-                            <>
-                                <span
-                                    style={{
-                                        fontSize: 12,
-                                        color: "#6b7280",
-                                    }}
-                                >
-                                    {staff.loginId} ({staff.role})
+                        <aside
+                            className={`${styles.drawerPanel} ${
+                                isMobileNavOpen ? styles.drawerPanelOpen : ""
+                            }`}
+                            onClick={(e) => e.stopPropagation()}
+                            role="dialog"
+                            aria-modal="true"
+                            aria-label="モバイルメニュー"
+                        >
+                            <div className={styles.drawerHeader}>
+                                <span className={styles.drawerTitle}>
+                                    メニュー
                                 </span>
-
                                 <button
                                     type="button"
-                                    onClick={onLogout}
-                                    style={{
-                                        padding: "6px 10px",
-                                        borderRadius: 8,
-                                        border: "1px solid #e5e7eb",
-                                        background: "white",
-                                        cursor: "pointer",
-                                    }}
+                                    className={styles.drawerClose}
+                                    aria-label="閉じる"
+                                    onClick={() => setIsMobileNavOpen(false)}
                                 >
-                                    Logout
+                                    ✕
                                 </button>
-                            </>
-                        ) : (
-                            <Link
-                                to="/committee/login"
-                                style={{
-                                    textDecoration: "none",
-                                    padding: "6px 10px",
-                                    borderRadius: 8,
-                                    border: "1px solid #e5e7eb",
-                                    background: "white",
-                                    color: "black",
-                                }}
-                            >
-                                Login
-                            </Link>
-                        )}
+                            </div>
+
+                            <div className={styles.drawerBody}>
+                                {navItems.map((item) => (
+                                    <Link
+                                        key={item.to}
+                                        to={item.to}
+                                        className={styles.drawerLink}
+                                        onClick={() =>
+                                            setIsMobileNavOpen(false)
+                                        }
+                                    >
+                                        {item.label}
+                                    </Link>
+                                ))}
+
+                                <hr className={styles.drawerDivider} />
+
+                                {staff ? (
+                                    <button
+                                        type="button"
+                                        className={styles.drawerLogout}
+                                        onClick={onLogout}
+                                    >
+                                        ログアウト
+                                    </button>
+                                ) : (
+                                    <Link
+                                        to="/committee/login"
+                                        className={styles.drawerLink}
+                                        onClick={() =>
+                                            setIsMobileNavOpen(false)
+                                        }
+                                    >
+                                        ログイン →
+                                    </Link>
+                                )}
+                            </div>
+                        </aside>
                     </div>
                 </div>
-            </header>
+            </div>
 
-            <main style={{ flex: 1, padding: 16 }}>
+            <main className={styles.main}>
                 <Outlet />
             </main>
 
-            <footer
-                style={{
-                    padding: 12,
-                    borderTop: "1px solid #e5e7eb",
-                    color: "#6b7280",
-                    fontSize: 12,
-                    textAlign: "center",
-                }}
-            >
-                © OVS / B-team
+            <footer className={styles.footer}>
+                <span className={styles.footerText}>© OVS / B-team</span>
             </footer>
         </div>
     );
