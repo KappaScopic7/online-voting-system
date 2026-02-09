@@ -83,11 +83,11 @@ function AllocRow({
             >
                 {v.items.map((it, idx) => {
                     const isCandidate =
-                        it.type === "CANDIDATE" && !!it.candidateId;
+                        it.type === "CANDIDATE" && !!it.targetId;
 
                     const labelNode = isCandidate ? (
                         <Link
-                            to={`/elections/${v.electionId}/candidates/${it.candidateId}`}
+                            to={`/elections/${v.electionId}/candidates/${it.targetId}`}
                             state={{ from }}
                             style={{ color: "inherit", textDecoration: "none" }}
                             title="候補者詳細へ"
@@ -319,6 +319,11 @@ export function AllocVoteHistoryPage() {
                     {filteredGroups.map((g, gi) => {
                         const latest = g.items[0];
 
+                        const hasCandidate =
+                            latest?.items?.some(
+                                (it) => it.type === "CANDIDATE",
+                            ) ?? false;
+
                         return (
                             <Card key={g.electionId}>
                                 <div style={{ display: "grid", gap: 10 }}>
@@ -376,12 +381,14 @@ export function AllocVoteHistoryPage() {
                                             alignItems: "center",
                                         }}
                                     >
-                                        <Link
-                                            to={`/elections/${g.electionId}/candidates`}
-                                            state={{ from }}
-                                        >
-                                            候補者（公開）
-                                        </Link>
+                                        {hasCandidate && (
+                                            <Link
+                                                to={`/elections/${g.electionId}/candidates`}
+                                                state={{ from }}
+                                            >
+                                                候補者（公開）
+                                            </Link>
+                                        )}
 
                                         <Link
                                             to={`/elections/${g.electionId}/result`}
@@ -393,7 +400,6 @@ export function AllocVoteHistoryPage() {
                                         <span style={{ marginLeft: "auto" }}>
                                             {latest?.electionStatus ===
                                             "ONGOING" ? (
-                                                // ✅ 統一：配分履歴 → 配分投票の開始（変更）
                                                 <Link
                                                     to={`/alloc-voting/start?electionId=${encodeURIComponent(
                                                         g.electionId,

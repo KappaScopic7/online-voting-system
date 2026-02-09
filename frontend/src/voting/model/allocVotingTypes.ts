@@ -1,10 +1,14 @@
+// frontend/src/voting/model/allocVotingTypes.ts
+
+export type AllocTargetType = "CANDIDATE" | "PARTY" | "NONE_SUPPORT";
+
 export type AllocVoteStartResponse = {
     electionId: string;
     electionTitle: string;
     pointsPerVoter: number; // 100
     options: {
-        type: "CANDIDATE" | "NONE_SUPPORT";
-        candidateId: string | null;
+        type: AllocTargetType;
+        targetId: string | null; // NONE_SUPPORT は null
         label: string;
     }[];
 };
@@ -13,8 +17,8 @@ export type AllocVoteConfirmRequest = {
     electionId: string;
     pointsTotal: number; // 100
     items: {
-        type: "CANDIDATE" | "NONE_SUPPORT";
-        candidateId: string | null;
+        type: AllocTargetType;
+        targetId: string | null; // NONE_SUPPORT は null
         points: number;
     }[];
 };
@@ -27,8 +31,8 @@ export type AllocVoteHistoryItem = {
     pointsTotal: number;
     castedAt: string;
     items: {
-        type: "CANDIDATE" | "NONE_SUPPORT";
-        candidateId: string | null;
+        type: AllocTargetType;
+        targetId: string | null; // NONE_SUPPORT は null
         label: string;
         points: number;
     }[];

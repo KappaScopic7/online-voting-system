@@ -78,8 +78,8 @@ public class SecurityConfig {
 
                         .requestMatchers("/api/public/identity/verify").permitAll()
                         .requestMatchers("/api/public/vote-token/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/demo/personas").permitAll()
 
-                        // ✅ 追加：PublicHomePage 表示用
                         .requestMatchers(HttpMethod.GET, "/api/public/notices/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/public/announcement/**").permitAll()
 
@@ -92,7 +92,6 @@ public class SecurityConfig {
                                 "/api/auth/nfc-login")
                         .permitAll()
 
-                        // ✅ 追加：ログイン済みだけ（未ログインは 401 にしたい）
                         .requestMatchers(HttpMethod.GET, "/api/auth/me", "/api/auth/me/detail")
                         .authenticated()
 
@@ -132,8 +131,8 @@ public class SecurityConfig {
                                                 Role.COMMITTEE)))
 
                         // ---- demo tools (staff admin only) ----
-                        .requestMatchers("/api/demo/**")
-                        .access((a, c) -> decide(a.get(), AccountKind.STAFF, Role.ADMIN))
+                        // .requestMatchers("/api/demo/**")
+                        // .access((a, c) -> decide(a.get(), AccountKind.STAFF, Role.ADMIN))
 
                         // =========================
                         // User-only APIs

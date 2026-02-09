@@ -14,6 +14,7 @@ import java.util.UUID;
 @Getter
 @Setter
 public class Election {
+
     @Id
     @GeneratedValue
     private UUID id;
@@ -59,5 +60,9 @@ public class Election {
 
     @Column(name = "published_at")
     private Instant publishedAt;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "allocation_target", nullable = false, length = 30)
+    private AllocationTarget allocationTarget = AllocationTarget.CANDIDATE;
 
 }

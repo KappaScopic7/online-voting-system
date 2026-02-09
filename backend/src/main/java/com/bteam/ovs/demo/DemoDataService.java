@@ -4,16 +4,14 @@ import com.bteam.ovs.auth.repository.StaffAccountRepository;
 import com.bteam.ovs.auth.repository.UserAccountRepository;
 import com.bteam.ovs.candidates.repository.CandidateRepository;
 import com.bteam.ovs.citizen.repository.CitizenRepository;
-import com.bteam.ovs.elections.repository.*;
+import com.bteam.ovs.elections.repository.ElectionEligibilityRuleRepository;
+import com.bteam.ovs.elections.repository.ElectionRepository;
+import com.bteam.ovs.parties.repository.PartyRepository;
 import com.bteam.ovs.voting.repository.VoteAllocCastRepository;
 import com.bteam.ovs.voting.repository.VoteAllocCurrentRepository;
 import com.bteam.ovs.voting.repository.VoteAllocItemRepository;
-import com.bteam.ovs.parties.repository.PartyRepository;
 import com.bteam.ovs.voting.repository.VoteCastRepository;
 import com.bteam.ovs.voting.repository.VoteCurrentRepository;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-// import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Profile;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -42,7 +40,6 @@ public class DemoDataService {
     private final CitizenRepository citizenRepo;
 
     private final PasswordEncoder passwordEncoder;
-    private final ObjectMapper objectMapper;
     private final TransactionTemplate tx;
 
     public DemoDataService(
@@ -60,7 +57,6 @@ public class DemoDataService {
             VoteAllocItemRepository voteAllocItemRepo,
             CitizenRepository citizenRepo,
             PasswordEncoder passwordEncoder,
-            ObjectMapper objectMapper,
             TransactionTemplate tx) {
         this.initializer = initializer;
         this.userRepo = userRepo;
@@ -76,7 +72,6 @@ public class DemoDataService {
         this.voteAllocItemRepo = voteAllocItemRepo;
         this.citizenRepo = citizenRepo;
         this.passwordEncoder = passwordEncoder;
-        this.objectMapper = objectMapper;
         this.tx = tx;
     }
 
@@ -86,14 +81,19 @@ public class DemoDataService {
             initializer.init(
                     userRepo, staffRepo,
                     partyRepo, electionRepo, candidateRepo, ruleRepo,
-                    voteCastRepo, voteCurrentRepo, voteAllocCastRepo, voteAllocCurrentRepo, voteAllocItemRepo,
+                    voteCastRepo, voteCurrentRepo,
+                    voteAllocCastRepo, voteAllocCurrentRepo, voteAllocItemRepo,
                     citizenRepo,
-                    passwordEncoder, objectMapper);
+                    passwordEncoder);
         });
     }
 
     private void wipeAll() {
-        // FK順で消す（あなたの initializer の順に合わせる）
+        // FK順で消す（initializer の保存順に合わせる）
+        voteAllocCurrentRepo.deleteAll();
+        voteAllocItemRepo.deleteAll();
+        voteAllocCastRepo.deleteAll();
+
         voteCurrentRepo.deleteAll();
         voteCastRepo.deleteAll();
 
@@ -103,7 +103,7 @@ public class DemoDataService {
         partyRepo.deleteAll();
 
         userRepo.deleteAll();
-        staffRepo.deleteAll(); // admin/committeeを毎回作り直すならOK
+        staffRepo.deleteAll(); // admin/committee を毎回作り直すならOK
         citizenRepo.deleteAll();
     }
 }

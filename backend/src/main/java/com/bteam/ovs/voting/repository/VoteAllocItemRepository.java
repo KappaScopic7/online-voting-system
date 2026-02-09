@@ -43,4 +43,21 @@ public interface VoteAllocItemRepository extends JpaRepository<VoteAllocItem, UU
     @Modifying
     @Transactional
     void deleteByCastId(UUID castId);
+
+    interface PartyPointSum {
+        UUID getPartyId();
+
+        Long getPts();
+    }
+
+    @Query("""
+              select i.partyId as partyId, sum(i.points) as pts
+              from VoteAllocItem i, VoteAllocCast c
+              where c.id = i.castId
+                and c.electionId = :electionId
+                and i.targetType = com.bteam.ovs.voting.entity.VoteAllocItem.TargetType.PARTY
+              group by i.partyId
+            """)
+    List<PartyPointSum> sumPointsByElectionGroupByParty(@Param("electionId") UUID electionId);
+
 }

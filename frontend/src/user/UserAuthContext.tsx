@@ -4,6 +4,7 @@ import React, {
     useContext,
     useEffect,
     useMemo,
+    useRef,
     useState,
 } from "react";
 import type { MeResponse } from "./model/userAuthTypes";
@@ -22,39 +23,89 @@ type AuthState = {
 
 const AuthContext = createContext<AuthState | null>(null);
 
+// --- JWT expiry guard (to avoid /api/auth/me 401 at startup) ---
+function base64UrlDecode(input: string): string {
+    // base64url -> base64
+    let s = input.replace(/-/g, "+").replace(/_/g, "/");
+    while (s.length % 4) s += "=";
+    // decode
+    const decoded = atob(s);
+    // handle unicode safely
+    try {
+        return decodeURIComponent(
+            Array.from(decoded)
+                .map((c) => "%" + c.charCodeAt(0).toString(16).padStart(2, "0"))
+                .join(""),
+        );
+    } catch {
+        return decoded;
+    }
+}
+
+function isJwtExpired(token: string, skewSec = 10): boolean {
+    // if token isn't a JWT, don't block the request (fallback)
+    const parts = token.split(".");
+    if (parts.length < 2) return false;
+
+    try {
+        const payloadJson = base64UrlDecode(parts[1]);
+        const payload = JSON.parse(payloadJson) as { exp?: number };
+        if (!payload?.exp) return false; // no exp -> treat as not expired
+
+        const nowSec = Math.floor(Date.now() / 1000);
+        return payload.exp <= nowSec + skewSec;
+    } catch {
+        return false;
+    }
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [me, setMe] = useState<MeResponse | null>(null);
     const [isLoading, setIsLoading] = useState(true);
-    const [hasToken, setHasToken] = useState(!!userToken.get());
 
-    const refreshMe = async () => {
+    const [hasToken, setHasToken] = useState(() => {
+        const t = userToken.get();
+        return !!t && !isJwtExpired(t);
+    });
+
+    // ✅ React StrictMode で useEffect が2回走るのを抑制（DEVの無駄リクエスト減）
+    const didInitRef = useRef(false);
+
+    const refreshMe = async (): Promise<void> => {
         const token = userToken.get();
-        setHasToken(!!token);
 
-        if (!token) {
+        // 未ログイン or 期限切れは「叩かない」
+        if (!token || isJwtExpired(token)) {
+            if (token) userToken.clear();
+            setHasToken(false);
             setMe(null);
             return;
         }
+
+        setHasToken(true);
 
         try {
             const data = await fetchMe();
             setMe(data);
         } catch {
-            // token が死んでる or サーバー側で無効化 etc
-            userToken.clear(); // subscribe が走る想定
+            // token が死んでる / サーバ側で無効化 / role変更など
+            userToken.clear();
             setHasToken(false);
             setMe(null);
         }
     };
 
-    const setAccessTokenAndLoadMe = async (token: string) => {
-        userToken.set(token); // subscribe が走る想定
+    const setAccessTokenAndLoadMe = async (token: string): Promise<void> => {
+        userToken.set(token);
         setHasToken(true);
         await refreshMe();
     };
 
     // 初期ロード
     useEffect(() => {
+        if (didInitRef.current) return;
+        didInitRef.current = true;
+
         (async () => {
             setIsLoading(true);
             await refreshMe();
@@ -66,12 +117,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // token変更（別タブ含む）に追従
     useEffect(() => {
         const unsub = userToken.subscribe(() => {
-            const token = userToken.get();
-            setHasToken(!!token);
+            const t = userToken.get();
 
-            if (!token) setMe(null);
-            // token がセットされた時は setAccessToken() 側で refreshMe するのでここでは呼ばない
+            // 期限切れなら即クリア（401を出さない）
+            if (t && isJwtExpired(t)) {
+                userToken.clear();
+                setHasToken(false);
+                setMe(null);
+                return;
+            }
+
+            setHasToken(!!t);
+
+            if (!t) setMe(null);
+            // token セット時の refreshMe は setAccessToken() が担当
         });
+
         return unsub;
     }, []);
 
@@ -80,6 +141,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             me,
             isLoading,
             hasToken,
+            // 「トークンあるだけ」を authed 扱いにするならこのまま
+            // 「me が取れて初めて authed」にしたいなら: isAuthed: !!me
             isAuthed: hasToken,
             setAccessToken: setAccessTokenAndLoadMe,
             logout: () => {

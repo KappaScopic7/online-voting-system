@@ -1,5 +1,5 @@
 // frontend/src/me/pages/MePage.tsx
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 
 import { fetchMeDetail, login } from "../../user/api/userAuthApi";
@@ -8,8 +8,6 @@ import { useAuth } from "../../user/UserAuthContext";
 
 import { getMeProfileOrNull } from "../api/profile";
 import type { MeProfileResponse } from "../model/profileTypes";
-
-import { demoPersonas } from "../../demo/personas";
 
 import { Page, Card, DevDebug } from "../../shared/ui/page";
 import { ErrorCard } from "../../shared/ui/ErrorCard";
@@ -20,6 +18,11 @@ import { MeHeaderActions } from "../ui/me/MeHeaderActions";
 import { QuickOverviewCard } from "../ui/me/QuickOverviewCard";
 import { IdentityCard } from "../ui/me/IdentityCard";
 
+import {
+    fetchDemoPersonas,
+    type DemoPersonaDto,
+} from "../../demo/api/demoPersonas";
+
 export function MePage() {
     const { refreshMe, setAccessToken } = useAuth();
     const { self, backTo } = useFromBackTo("/");
@@ -28,6 +31,32 @@ export function MePage() {
     const profileLoad = useAsyncLoad<MeProfileResponse | null>(
         getMeProfileOrNull,
     );
+
+    // ✅ DEV personas (dynamic)
+    const isDev = import.meta.env?.DEV;
+    const [demoPersonas, setDemoPersonas] = useState<DemoPersonaDto[]>([]);
+    const [demoErr, setDemoErr] = useState<string | null>(null);
+    const [demoLoading, setDemoLoading] = useState(false);
+
+    const loadDemoPersonas = async () => {
+        if (!isDev) return;
+        setDemoErr(null);
+        setDemoLoading(true);
+        try {
+            const list = await fetchDemoPersonas();
+            setDemoPersonas(Array.isArray(list) ? list : []);
+        } catch (e: any) {
+            // demoは失敗しても本体は動かす
+            setDemoErr(
+                e?.response?.data?.message ??
+                    e?.message ??
+                    "DEV personas の取得に失敗しました",
+            );
+            setDemoPersonas([]);
+        } finally {
+            setDemoLoading(false);
+        }
+    };
 
     const reloadAll = async () => {
         meLoad.setError(null);
@@ -44,6 +73,7 @@ export function MePage() {
 
     useEffect(() => {
         reloadAll();
+        loadDemoPersonas();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
@@ -72,6 +102,14 @@ export function MePage() {
         try {
             const token = await login(p.email, p.password);
             await setAccessToken(token.accessToken);
+
+            // refreshMe があれば実施、なくても me/profile を取り直す
+            try {
+                await refreshMe();
+            } catch {
+                // ignore
+            }
+
             await Promise.all([meLoad.run(), profileLoad.run()]);
         } catch (err: any) {
             meLoad.setError(
@@ -79,8 +117,6 @@ export function MePage() {
             );
         }
     };
-
-    const isDev = import.meta.env?.DEV;
 
     return (
         <Page
@@ -197,21 +233,66 @@ export function MePage() {
                                 <Card>
                                     <div
                                         style={{
-                                            fontWeight: 900,
-                                            marginBottom: 10,
+                                            display: "flex",
+                                            alignItems: "center",
+                                            gap: 12,
+                                            flexWrap: "wrap",
                                         }}
                                     >
-                                        DEV: クイック状態切替
+                                        <div style={{ fontWeight: 900 }}>
+                                            DEV: クイック状態切替
+                                        </div>
+
+                                        <button
+                                            type="button"
+                                            onClick={loadDemoPersonas}
+                                            disabled={demoLoading}
+                                            style={{
+                                                marginLeft: "auto",
+                                                fontSize: 12,
+                                                padding: "6px 10px",
+                                            }}
+                                            title="バックエンドの /api/demo/personas から再取得"
+                                        >
+                                            {demoLoading
+                                                ? "再読込中..."
+                                                : "DEV一覧 再読込"}
+                                        </button>
                                     </div>
+
+                                    {demoErr && (
+                                        <div
+                                            style={{
+                                                marginTop: 10,
+                                                fontSize: 12,
+                                                color: "crimson",
+                                            }}
+                                        >
+                                            {demoErr}
+                                        </div>
+                                    )}
+
                                     <div
                                         style={{
                                             display: "flex",
                                             gap: 8,
                                             flexWrap: "wrap",
+                                            marginTop: 10,
                                         }}
                                     >
-                                        {Object.values(demoPersonas.voter).map(
-                                            (p) => (
+                                        {demoPersonas.length === 0 ? (
+                                            <div
+                                                style={{
+                                                    fontSize: 12,
+                                                    opacity: 0.7,
+                                                }}
+                                            >
+                                                {demoLoading
+                                                    ? "読み込み中..."
+                                                    : "DEV persona がありません（/api/demo/personas を確認）"}
+                                            </div>
+                                        ) : (
+                                            demoPersonas.map((p) => (
                                                 <button
                                                     key={p.key}
                                                     type="button"
@@ -222,10 +303,11 @@ export function MePage() {
                                                         textAlign: "left",
                                                     }}
                                                     title={p.description}
+                                                    disabled={isLoading}
                                                 >
                                                     {p.label}
                                                 </button>
-                                            ),
+                                            ))
                                         )}
                                     </div>
                                 </Card>
@@ -239,6 +321,9 @@ export function MePage() {
                                         isLoading,
                                         meError: meLoad.error,
                                         profileError: profileLoad.error,
+                                        demoLoading,
+                                        demoErr,
+                                        demoPersonasCount: demoPersonas.length,
                                     }}
                                 />
                             </div>

@@ -20,17 +20,20 @@ import { publicToken } from "../../shared/tokenStorage";
 type LocationState = { from?: string } | null;
 
 type Row = {
-    type: "CANDIDATE" | "NONE_SUPPORT";
-    candidateId: string | null;
+    type: "CANDIDATE" | "PARTY" | "NONE_SUPPORT";
+    targetId: string | null;
     label: string;
     points: number;
 };
 
 function rowKey(r: Row): string {
-    return `${r.type}:${r.candidateId ?? "null"}`;
+    return `${r.type}:${r.targetId ?? "null"}`;
 }
 function isNone(r: Row) {
     return r.type === "NONE_SUPPORT";
+}
+function isCandidate(r: Row) {
+    return r.type === "CANDIDATE";
 }
 function isTruthy(s: string | null | undefined) {
     if (!s) return false;
@@ -114,14 +117,15 @@ export function AllocVotingStartPage() {
 
             const normalized: Row[] = res.options.map((o) => ({
                 type: o.type,
-                candidateId: o.candidateId ?? null,
+                targetId: o.targetId ?? null,
                 label: o.label,
                 points: 0,
             }));
 
-            const candidates = normalized.filter((r) => r.type === "CANDIDATE");
+            // NONE_SUPPORT は末尾に寄せる（見た目安定）
+            const main = normalized.filter((r) => r.type !== "NONE_SUPPORT");
             const none = normalized.filter((r) => r.type === "NONE_SUPPORT");
-            setRows([...candidates, ...none]);
+            setRows([...main, ...none]);
         } catch (e: any) {
             const status = e?.response?.status;
             const msg = e?.response?.data?.message;
@@ -189,6 +193,8 @@ export function AllocVotingStartPage() {
 
         setRows((prev) => {
             const next = prev.map((r) => ({ ...r }));
+
+            // NONE_SUPPORT を選んでいたら解除
             const nIdx = next.findIndex((r) => isNone(r));
             if (nIdx >= 0 && (next[nIdx].points ?? 0) > 0) {
                 next[nIdx].points = 0;
@@ -212,6 +218,8 @@ export function AllocVotingStartPage() {
 
         setRows((prev) => {
             const next = prev.map((r) => ({ ...r }));
+
+            // NONE_SUPPORT を選んでいたら解除
             const nIdx = next.findIndex((r) => isNone(r));
             if (nIdx >= 0 && (next[nIdx].points ?? 0) > 0) {
                 next[nIdx].points = 0;
@@ -245,7 +253,7 @@ export function AllocVotingStartPage() {
                     .filter((r) => (r.points ?? 0) > 0)
                     .map((r) => ({
                         type: r.type,
-                        candidateId: r.candidateId,
+                        targetId: r.targetId,
                         points: r.points,
                     })),
             };
@@ -286,6 +294,8 @@ export function AllocVotingStartPage() {
         ? `配分投票 / ${data.electionTitle}`
         : "配分投票";
 
+    const hasCandidate = rows.some((r) => r.type === "CANDIDATE");
+
     return (
         <Page
             title={<h1 style={{ margin: 0, fontSize: 20 }}>{title}</h1>}
@@ -301,9 +311,13 @@ export function AllocVotingStartPage() {
                     <Link to={backTo}>← 戻る</Link>
 
                     <Link
-                        to={`/voting/entry?electionId=${encodeURIComponent(electionId)}${
-                            publicMode ? "&session=public" : ""
-                        }${effectiveToken ? `&token=${encodeURIComponent(effectiveToken)}` : ""}`}
+                        to={`/voting/entry?electionId=${encodeURIComponent(
+                            electionId,
+                        )}${publicMode ? "&session=public" : ""}${
+                            effectiveToken
+                                ? `&token=${encodeURIComponent(effectiveToken)}`
+                                : ""
+                        }`}
                         state={{ from: backTo }}
                     >
                         投票入口へ
@@ -346,7 +360,11 @@ export function AllocVotingStartPage() {
 
                         {publicMode && (
                             <Link
-                                to={`/identity/vote?electionId=${encodeURIComponent(electionId)}&session=public&returnTo=${encodeURIComponent(self)}`}
+                                to={`/identity/vote?electionId=${encodeURIComponent(
+                                    electionId,
+                                )}&session=public&returnTo=${encodeURIComponent(
+                                    self,
+                                )}`}
                                 state={{ from: backTo }}
                             >
                                 本人認証（PIN+NFC）へ →
@@ -447,8 +465,7 @@ export function AllocVotingStartPage() {
                     <Card>
                         <div style={{ display: "grid", gap: 10 }}>
                             {rows.map((r, idx) => {
-                                const candidate =
-                                    r.type === "CANDIDATE" && !!r.candidateId;
+                                const cand = isCandidate(r) && !!r.targetId;
                                 const none = isNone(r);
 
                                 if (none) {
@@ -603,13 +620,15 @@ export function AllocVotingStartPage() {
                                                         opacity: 0.7,
                                                     }}
                                                 >
-                                                    候補者
+                                                    {isCandidate(r)
+                                                        ? "候補者"
+                                                        : "政党"}
                                                 </div>
                                             </div>
 
-                                            {candidate && (
+                                            {cand && (
                                                 <Link
-                                                    to={`/elections/${data.electionId}/candidates/${r.candidateId}`}
+                                                    to={`/elections/${data.electionId}/candidates/${r.targetId}`}
                                                     state={{ from: self }}
                                                     style={{ fontSize: 13 }}
                                                 >
@@ -647,7 +666,7 @@ export function AllocVotingStartPage() {
                                                 onClick={() => fillRestTo(idx)}
                                                 disabled={busy || rest === 0}
                                                 style={{ fontSize: 12 }}
-                                                title="残りポイントをこの候補に追加します"
+                                                title="残りポイントをこの項目に追加します"
                                             >
                                                 残りを入れる
                                             </button>
@@ -676,12 +695,14 @@ export function AllocVotingStartPage() {
                                 alignItems: "center",
                             }}
                         >
-                            <Link
-                                to={`/elections/${data.electionId}/candidates`}
-                                state={{ from: self }}
-                            >
-                                候補者を見る
-                            </Link>
+                            {hasCandidate && (
+                                <Link
+                                    to={`/elections/${data.electionId}/candidates`}
+                                    state={{ from: self }}
+                                >
+                                    候補者を見る
+                                </Link>
+                            )}
 
                             <span
                                 style={{

@@ -225,11 +225,11 @@ export function AllocVotingDonePage() {
                     >
                         {result.items.map((it, i) => {
                             const isCandidate =
-                                it.type === "CANDIDATE" && !!it.candidateId;
+                                it.type === "CANDIDATE" && !!it.targetId;
 
                             const labelNode = isCandidate ? (
                                 <Link
-                                    to={`/elections/${result.electionId}/candidates/${it.candidateId}`}
+                                    to={`/elections/${result.electionId}/candidates/${it.targetId}`}
                                     state={{ from: self }}
                                     style={{
                                         color: "inherit",
@@ -305,7 +305,7 @@ export function AllocVotingDonePage() {
                         }}
                     >
                         {!isPublic && (
-                            <Link to="/me/alloc-votes">
+                            <Link to="/me/votes">
                                 <b>履歴を見る</b>
                             </Link>
                         )}

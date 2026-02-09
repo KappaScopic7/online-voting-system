@@ -10,12 +10,16 @@ import { Card, DevDebug, Page } from "../../shared/ui/page";
 import { normalizeFrom } from "../../shared/normalizeFrom";
 import { publicToken } from "../../shared/tokenStorage";
 import { issueVoteToken } from "../../public/api/voteToken";
+import {
+    fetchDemoPersonas,
+    type DemoPersonaDto,
+} from "../../demo/api/demoPersonas";
 
 type LocationState = { from?: string } | null;
 
 function looksLikeUuid(v: string) {
-    return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
-        v,
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+        String(v ?? "").trim(),
     );
 }
 
@@ -39,8 +43,9 @@ function extractUuidFromNdef(event: any): string | null {
                     ? new TextDecoder("utf-8").decode(rec.data)
                     : "";
                 const m = String(url).match(
-                    /[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}/i,
+                    /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i,
                 );
+
                 if (m?.[0]) return m[0];
             }
         } catch {
@@ -241,6 +246,44 @@ export function IdentityVotePage() {
     };
 
     const isDev = import.meta.env?.DEV;
+    // ✅ DEV: personas
+    const [devPersonas, setDevPersonas] = useState<DemoPersonaDto[]>([]);
+    const [devLoading, setDevLoading] = useState(false);
+    const [devErr, setDevErr] = useState<string | null>(null);
+
+    const reloadDevPersonas = async () => {
+        if (!isDev) return;
+        try {
+            setDevErr(null);
+            setDevLoading(true);
+            const list = await fetchDemoPersonas();
+            setDevPersonas(Array.isArray(list) ? list : []);
+        } catch (e: any) {
+            const m =
+                e?.response?.data?.message ??
+                e?.message ??
+                "DEV personas の取得に失敗しました";
+            setDevErr(m);
+            setDevPersonas([]);
+        } finally {
+            setDevLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        reloadDevPersonas();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isDev]);
+
+    const fillDev = (p: DemoPersonaDto) => {
+        const cid = (p.citizenId ?? "").trim();
+        if (!cid) return;
+        setErr(null);
+        setMethod("MANUAL");
+        setManualPayload(cid);
+        // PINも一緒に入れたいなら（好みで）
+        // setPin("1234");
+    };
 
     const scanDisabled =
         !webNfc ||
@@ -456,19 +499,167 @@ export function IdentityVotePage() {
             </Card>
 
             {isDev && (
-                <DevDebug
-                    value={{
-                        electionId,
-                        returnTo,
-                        method,
-                        pin: pin ? "(present)" : null,
-                        status,
-                        webNfc,
-                        hasStoredPublicToken: !!publicToken.get(),
-                        state,
-                        loc,
-                    }}
-                />
+                <Card>
+                    <details>
+                        <summary style={{ cursor: "pointer" }}>
+                            DEV tools
+                        </summary>
+
+                        <div
+                            style={{ display: "grid", gap: 10, marginTop: 10 }}
+                        >
+                            <div
+                                style={{
+                                    display: "flex",
+                                    gap: 8,
+                                    flexWrap: "wrap",
+                                }}
+                            >
+                                <button
+                                    type="button"
+                                    onClick={() => setPin("1234")}
+                                    disabled={
+                                        status === "PROCESSING" ||
+                                        status === "SUCCESS"
+                                    }
+                                    style={{
+                                        fontSize: 12,
+                                        padding: "6px 10px",
+                                    }}
+                                >
+                                    PIN=1234
+                                </button>
+
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setErr(null);
+                                        setMethod("MANUAL");
+                                        setManualPayload(
+                                            "550e8400-e29b-41d4-a716-446655440000",
+                                        );
+                                    }}
+                                    disabled={
+                                        status === "PROCESSING" ||
+                                        status === "SUCCESS"
+                                    }
+                                    style={{
+                                        fontSize: 12,
+                                        padding: "6px 10px",
+                                    }}
+                                    title="固定UUIDを入れる"
+                                >
+                                    payload(例)セット
+                                </button>
+
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        publicToken.clear();
+                                        setErr(null);
+                                    }}
+                                    style={{
+                                        fontSize: 12,
+                                        padding: "6px 10px",
+                                    }}
+                                    title="本人認証トークンを消してテストをやり直す"
+                                >
+                                    publicTokenクリア
+                                </button>
+
+                                <button
+                                    type="button"
+                                    onClick={reloadDevPersonas}
+                                    disabled={devLoading}
+                                    style={{
+                                        fontSize: 12,
+                                        padding: "6px 10px",
+                                    }}
+                                >
+                                    {devLoading
+                                        ? "読み込み中..."
+                                        : "personas再読込"}
+                                </button>
+
+                                <button
+                                    type="button"
+                                    onClick={async () => {
+                                        // ワンクリ送信（手入力）
+                                        setMethod("MANUAL");
+                                        await submitManual();
+                                    }}
+                                    disabled={manualDisabled}
+                                    style={{
+                                        fontSize: 12,
+                                        padding: "6px 10px",
+                                    }}
+                                    title="MANUAL の内容で doIssue まで実行"
+                                >
+                                    手入力で送信
+                                </button>
+                            </div>
+
+                            {devErr && (
+                                <div
+                                    style={{
+                                        color: "crimson",
+                                        fontSize: 12,
+                                        lineHeight: 1.5,
+                                    }}
+                                >
+                                    {devErr}
+                                </div>
+                            )}
+
+                            <div
+                                style={{
+                                    display: "flex",
+                                    gap: 8,
+                                    flexWrap: "wrap",
+                                }}
+                            >
+                                {devPersonas.map((p) => (
+                                    <button
+                                        key={p.key}
+                                        type="button"
+                                        onClick={() => fillDev(p)}
+                                        style={{
+                                            fontSize: 12,
+                                            padding: "6px 10px",
+                                        }}
+                                        title={p.description}
+                                    >
+                                        {p.label}
+                                    </button>
+                                ))}
+                            </div>
+
+                            {!devLoading &&
+                                !devErr &&
+                                devPersonas.length === 0 && (
+                                    <div
+                                        style={{ fontSize: 12, opacity: 0.75 }}
+                                    >
+                                        DEVユーザーが0件です（/api/demo/personas
+                                        を確認）
+                                    </div>
+                                )}
+                        </div>
+                    </details>
+                    <DevDebug
+                        value={{
+                            electionId,
+                            returnTo,
+                            method,
+                            pin: pin ? "(present)" : null,
+                            status,
+                            webNfc,
+                            hasStoredPublicToken: !!publicToken.get(),
+                            state,
+                            loc,
+                        }}
+                    />
+                </Card>
             )}
         </Page>
     );

@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { fetchVoteHistory, type VoteHistoryItem } from "../api/votes";
+import { allocHistory } from "../api/allocVoting";
+import type { AllocVoteHistoryItem } from "../model/allocVotingTypes";
 import { Card, DevDebug, Page } from "../../shared/ui/page";
 import { normalizeFrom } from "../../shared/normalizeFrom";
 import { CandidateAvatar } from "../../shared/ui/CandidateAvatar";
@@ -35,13 +37,19 @@ function EmptyAvatar({ size }: { size: number }) {
     );
 }
 
-type Group = {
+type LocationState = { from?: string } | null;
+
+type UnifiedGroup = {
     electionId: string;
     electionTitle: string;
-    items: VoteHistoryItem[];
-};
 
-type LocationState = { from?: string } | null;
+    normal: VoteHistoryItem[];
+    alloc: AllocVoteHistoryItem[];
+
+    // 表示の並び順用
+    latestAt: string;
+    latestStatus: string;
+};
 
 function VoteRow({ v, from }: { v: VoteHistoryItem; from: string }) {
     const [hover, setHover] = useState(false);
@@ -107,7 +115,6 @@ function VoteRow({ v, from }: { v: VoteHistoryItem; from: string }) {
                 }}
             >
                 {isCandidate ? (
-                    // NOTE: VoteHistoryItem に candidateKey / sortOrder が無い前提。
                     <CandidateAvatar
                         name={label}
                         imageUrl={null}
@@ -156,12 +163,150 @@ function VoteRow({ v, from }: { v: VoteHistoryItem; from: string }) {
     );
 }
 
+function AllocRow({
+    v,
+    from,
+    indexOffset = 0,
+}: {
+    v: AllocVoteHistoryItem;
+    from: string;
+    indexOffset?: number;
+}) {
+    const [hover, setHover] = useState(false);
+    const isDev = import.meta.env?.DEV;
+
+    return (
+        <div
+            onMouseEnter={() => setHover(true)}
+            onMouseLeave={() => setHover(false)}
+            style={{
+                border: "1px solid #eee",
+                borderRadius: 12,
+                padding: 12,
+                display: "grid",
+                gap: 8,
+                background: hover ? "#fafafa" : "#fff",
+                transition: "background 120ms ease",
+            }}
+        >
+            <div
+                style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    gap: 12,
+                    flexWrap: "wrap",
+                    alignItems: "baseline",
+                }}
+            >
+                <span style={{ fontSize: 12, opacity: 0.8 }}>
+                    {formatJST(v.castedAt)}
+                </span>
+                <span style={{ fontSize: 12, opacity: 0.75 }}>
+                    {v.electionStatus}
+                </span>
+            </div>
+
+            <div
+                style={{
+                    border: "1px solid #eee",
+                    borderRadius: 12,
+                    padding: 10,
+                    background: "#fafafa",
+                    display: "grid",
+                    gap: 6,
+                }}
+            >
+                {v.items.map((it, idx) => {
+                    const isCandidate =
+                        it.type === "CANDIDATE" && !!it.targetId;
+
+                    const labelNode = isCandidate ? (
+                        <Link
+                            to={`/elections/${v.electionId}/candidates/${it.targetId}`}
+                            state={{ from }}
+                            style={{ color: "inherit", textDecoration: "none" }}
+                            title="候補者詳細へ"
+                        >
+                            {it.label}
+                        </Link>
+                    ) : (
+                        <span>{it.label}</span>
+                    );
+
+                    return (
+                        <div
+                            key={idx}
+                            style={{
+                                display: "flex",
+                                justifyContent: "space-between",
+                                gap: 12,
+                                padding: "6px 0",
+                                borderBottom:
+                                    idx === v.items.length - 1
+                                        ? "none"
+                                        : "1px solid #f1f1f1",
+                                alignItems: "center",
+                            }}
+                        >
+                            <div
+                                style={{
+                                    display: "flex",
+                                    gap: 10,
+                                    alignItems: "center",
+                                    overflow: "hidden",
+                                    minWidth: 0,
+                                }}
+                            >
+                                <CandidateAvatar
+                                    name={it.label}
+                                    imageUrl={null}
+                                    index={indexOffset + idx}
+                                    size={28}
+                                />
+
+                                <div
+                                    style={{
+                                        overflow: "hidden",
+                                        textOverflow: "ellipsis",
+                                        whiteSpace: "nowrap",
+                                    }}
+                                >
+                                    {labelNode}
+                                </div>
+                            </div>
+
+                            <div style={{ whiteSpace: "nowrap" }}>
+                                <b>{it.points}</b>pt
+                            </div>
+                        </div>
+                    );
+                })}
+            </div>
+
+            {isDev && (
+                <div style={{ fontSize: 12, opacity: 0.65 }}>
+                    castId: {v.castId}
+                </div>
+            )}
+        </div>
+    );
+}
+
+type ViewMode = "ALL" | "NORMAL" | "ALLOC";
+
 export function VoteHistoryPage() {
-    const [items, setItems] = useState<VoteHistoryItem[] | null>(null);
+    // ---- data ----
+    const [normalItems, setNormalItems] = useState<VoteHistoryItem[] | null>(
+        null,
+    );
+    const [allocItems, setAllocItems] = useState<AllocVoteHistoryItem[] | null>(
+        null,
+    );
+
     const [error, setError] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
 
-    // 本人認証状態のために me を取得
+    // 本人認証/メール認証ガイド用
     const [me, setMe] = useState<MeDetailResponse | null>(null);
     const [meError, setMeError] = useState<string | null>(null);
 
@@ -172,6 +317,9 @@ export function VoteHistoryPage() {
     const from = loc.pathname + loc.search;
 
     const [q, setQ] = useState("");
+    const [mode, setMode] = useState<ViewMode>("ALL");
+
+    const isDev = import.meta.env?.DEV;
 
     const loadMe = async () => {
         setMeError(null);
@@ -188,23 +336,46 @@ export function VoteHistoryPage() {
         }
     };
 
-    const loadVotes = async () => {
+    const loadHistories = async () => {
         setError(null);
         setIsLoading(true);
-        try {
-            const data = await fetchVoteHistory();
-            setItems(data);
-        } catch (err: any) {
-            const status = err?.response?.status;
-            const message =
-                err?.response?.data?.message ?? "投票履歴の取得に失敗しました";
 
-            if (status === 401 || status === 403) {
-                setError(null);
-                setItems([]);
+        try {
+            const [n, a] = await Promise.allSettled([
+                fetchVoteHistory(),
+                allocHistory(),
+            ]);
+
+            // 通常投票
+            if (n.status === "fulfilled") {
+                setNormalItems(n.value);
             } else {
-                setError(message);
-                setItems([]);
+                const status = (n.reason as any)?.response?.status;
+                const message =
+                    (n.reason as any)?.response?.data?.message ??
+                    "投票履歴（通常）の取得に失敗しました";
+                if (status === 401 || status === 403) {
+                    setNormalItems([]);
+                } else {
+                    setNormalItems([]);
+                    setError(message);
+                }
+            }
+
+            // 配分投票
+            if (a.status === "fulfilled") {
+                setAllocItems(a.value);
+            } else {
+                const status = (a.reason as any)?.response?.status;
+                const message =
+                    (a.reason as any)?.response?.data?.message ??
+                    "投票履歴（配分）の取得に失敗しました";
+                if (status === 401 || status === 403) {
+                    setAllocItems([]);
+                } else {
+                    setAllocItems([]);
+                    setError((prev) => prev ?? message);
+                }
             }
         } finally {
             setIsLoading(false);
@@ -213,7 +384,7 @@ export function VoteHistoryPage() {
 
     const load = async () => {
         await loadMe();
-        await loadVotes();
+        await loadHistories();
     };
 
     useEffect(() => {
@@ -229,38 +400,75 @@ export function VoteHistoryPage() {
     const showIdentityGuide = me !== null && !isLinked;
     const showEmailGuide = me !== null && !emailVerified;
 
-    const groups: Group[] = useMemo(() => {
-        if (!items) return [];
-        const map = new Map<string, Group>();
+    // ---- unify by election ----
+    const groups: UnifiedGroup[] = useMemo(() => {
+        if (!normalItems || !allocItems) return [];
 
-        for (const v of items) {
-            const key = v.electionId;
-            if (!map.has(key)) {
-                map.set(key, {
-                    electionId: v.electionId,
-                    electionTitle: v.electionTitle,
-                    items: [],
+        const map = new Map<string, UnifiedGroup>();
+
+        const ensure = (electionId: string, electionTitle: string) => {
+            if (!map.has(electionId)) {
+                map.set(electionId, {
+                    electionId,
+                    electionTitle,
+                    normal: [],
+                    alloc: [],
+                    latestAt: "",
+                    latestStatus: "",
                 });
+            } else {
+                // title は空で上書きしない
+                const g = map.get(electionId)!;
+                if (!g.electionTitle && electionTitle)
+                    g.electionTitle = electionTitle;
             }
-            map.get(key)!.items.push(v);
+            return map.get(electionId)!;
+        };
+
+        for (const v of normalItems) {
+            ensure(v.electionId, v.electionTitle).normal.push(v);
+        }
+        for (const v of allocItems) {
+            ensure(v.electionId, v.electionTitle).alloc.push(v);
         }
 
         for (const g of map.values()) {
-            g.items.sort((a, b) =>
+            g.normal.sort((a, b) =>
                 (b.castedAt ?? "").localeCompare(a.castedAt ?? ""),
             );
+            g.alloc.sort((a, b) =>
+                (b.castedAt ?? "").localeCompare(a.castedAt ?? ""),
+            );
+
+            const latestNormal = g.normal[0]?.castedAt ?? "";
+            const latestAlloc = g.alloc[0]?.castedAt ?? "";
+
+            const latestAt =
+                latestNormal.localeCompare(latestAlloc) >= 0
+                    ? latestNormal
+                    : latestAlloc;
+            const latestStatus =
+                (latestAt === latestNormal
+                    ? g.normal[0]?.electionStatus
+                    : g.alloc[0]?.electionStatus) ??
+                g.normal[0]?.electionStatus ??
+                g.alloc[0]?.electionStatus ??
+                "";
+
+            g.latestAt = latestAt;
+            g.latestStatus = latestStatus;
         }
 
-        return Array.from(map.values()).sort((a, b) => {
-            const at = a.items[0]?.castedAt ?? "";
-            const bt = b.items[0]?.castedAt ?? "";
-            return bt.localeCompare(at);
-        });
-    }, [items]);
+        return Array.from(map.values()).sort((a, b) =>
+            (b.latestAt ?? "").localeCompare(a.latestAt ?? ""),
+        );
+    }, [normalItems, allocItems]);
 
+    // ---- filter ----
     const filteredGroups = useMemo(() => {
         const keyword = q.trim().toLowerCase();
-        if (!keyword) return groups;
+        const wantNormal = mode === "ALL" || mode === "NORMAL";
+        const wantAlloc = mode === "ALL" || mode === "ALLOC";
 
         return groups
             .map((g) => {
@@ -268,26 +476,65 @@ export function VoteHistoryPage() {
                     .toLowerCase()
                     .includes(keyword);
 
-                const hitItems = g.items.filter((v) => {
-                    const label =
-                        v.candidateName ??
-                        (v.type === "NONE_SUPPORT"
-                            ? "誰も支持しない"
-                            : "（不明な候補者）");
-                    return label.toLowerCase().includes(keyword);
-                });
+                const normalFiltered = !wantNormal
+                    ? []
+                    : !keyword
+                      ? g.normal
+                      : g.normal.filter((v) => {
+                            const label =
+                                v.candidateName ??
+                                (v.type === "NONE_SUPPORT"
+                                    ? "誰も支持しない"
+                                    : "（不明な候補者）");
+                            return label.toLowerCase().includes(keyword);
+                        });
 
-                if (hitElection) return g;
-                if (hitItems.length === 0) return null;
-                return { ...g, items: hitItems };
+                const allocFiltered = !wantAlloc
+                    ? []
+                    : !keyword
+                      ? g.alloc
+                      : g.alloc.filter((v) =>
+                            v.items.some((it) =>
+                                (it.label ?? "")
+                                    .toLowerCase()
+                                    .includes(keyword),
+                            ),
+                        );
+
+                if (!keyword) {
+                    // keyword 無しなら、モードによって単純に表示切替
+                    const hasAny =
+                        normalFiltered.length > 0 || allocFiltered.length > 0;
+                    return hasAny
+                        ? { ...g, normal: normalFiltered, alloc: allocFiltered }
+                        : null;
+                }
+
+                // keyword 有りなら：選挙名にヒットしたら丸ごと（ただしモードで落とす）
+                if (hitElection) {
+                    const keepNormal = wantNormal ? g.normal : [];
+                    const keepAlloc = wantAlloc ? g.alloc : [];
+                    const hasAny =
+                        keepNormal.length > 0 || keepAlloc.length > 0;
+                    return hasAny
+                        ? { ...g, normal: keepNormal, alloc: keepAlloc }
+                        : null;
+                }
+
+                // 投票先にヒットしたものだけ
+                if (normalFiltered.length === 0 && allocFiltered.length === 0)
+                    return null;
+                return { ...g, normal: normalFiltered, alloc: allocFiltered };
             })
-            .filter((x): x is Group => x !== null);
-    }, [groups, q]);
+            .filter((x): x is UnifiedGroup => x !== null);
+    }, [groups, q, mode]);
 
-    const totalVotes = items?.length ?? 0;
+    const totalNormal = normalItems?.length ?? 0;
+    const totalAlloc = allocItems?.length ?? 0;
+    const totalVotes = totalNormal + totalAlloc;
     const totalGroups = groups.length;
 
-    const isDev = import.meta.env?.DEV;
+    const ready = normalItems !== null && allocItems !== null;
 
     return (
         <Page
@@ -414,10 +661,58 @@ export function VoteHistoryPage() {
                 </Card>
             )}
 
+            {/* モード切替（同一ページのまま） */}
+            <Card>
+                <div
+                    style={{
+                        display: "flex",
+                        gap: 8,
+                        flexWrap: "wrap",
+                        alignItems: "center",
+                    }}
+                >
+                    <span style={{ fontSize: 12, opacity: 0.75 }}>表示:</span>
+                    <button
+                        type="button"
+                        onClick={() => setMode("ALL")}
+                        disabled={isLoading}
+                        style={{ fontWeight: mode === "ALL" ? 800 : 400 }}
+                    >
+                        すべて
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setMode("NORMAL")}
+                        disabled={isLoading}
+                        style={{ fontWeight: mode === "NORMAL" ? 800 : 400 }}
+                    >
+                        通常
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setMode("ALLOC")}
+                        disabled={isLoading}
+                        style={{ fontWeight: mode === "ALLOC" ? 800 : 400 }}
+                    >
+                        配分
+                    </button>
+
+                    <span
+                        style={{
+                            marginLeft: "auto",
+                            fontSize: 12,
+                            opacity: 0.75,
+                        }}
+                    >
+                        通常 <b>{totalNormal}</b> / 配分 <b>{totalAlloc}</b>
+                    </span>
+                </div>
+            </Card>
+
             <FilterBar
                 value={q}
                 onChange={setQ}
-                placeholder="検索（選挙名 / 投票先）"
+                placeholder="検索（選挙名 / 投票先 / 配分項目）"
                 disabled={isLoading}
                 right={
                     <span>
@@ -447,9 +742,9 @@ export function VoteHistoryPage() {
                 </Card>
             )}
 
-            {items === null ? (
+            {!ready ? (
                 <Card>読み込み中…</Card>
-            ) : items.length === 0 ? (
+            ) : totalVotes === 0 ? (
                 <Card>
                     <p style={{ margin: 0 }}>投票履歴はありません</p>
                     {me !== null && !isLinked && (
@@ -471,8 +766,17 @@ export function VoteHistoryPage() {
                 </Card>
             ) : (
                 <div style={{ display: "grid", gap: 12 }}>
-                    {filteredGroups.map((g) => {
-                        const latest = g.items[0];
+                    {filteredGroups.map((g, gi) => {
+                        const latestAt = g.latestAt ?? "";
+                        const latestStatus = g.latestStatus ?? "";
+
+                        const latestIsOngoing = latestStatus === "ONGOING";
+
+                        // 「投票を変更する」リンクは、どっちの方式でも選べるように両方出す
+                        const showNormalChange =
+                            latestIsOngoing && g.normal.length > 0;
+                        const showAllocChange =
+                            latestIsOngoing && g.alloc.length > 0;
 
                         return (
                             <Card key={g.electionId}>
@@ -501,26 +805,81 @@ export function VoteHistoryPage() {
                                                 opacity: 0.75,
                                             }}
                                         >
-                                            回数: {g.items.length}
+                                            通常: {g.normal.length} / 配分:{" "}
+                                            {g.alloc.length}
                                         </span>
                                     </div>
 
                                     <div
                                         style={{ fontSize: 12, opacity: 0.75 }}
                                     >
-                                        最新:{" "}
-                                        {formatJST(latest?.castedAt ?? null)}
+                                        最新: {formatJST(latestAt)}
+                                        {latestStatus ? (
+                                            <span
+                                                style={{
+                                                    marginLeft: 10,
+                                                    opacity: 0.75,
+                                                }}
+                                            >
+                                                status: {latestStatus}
+                                            </span>
+                                        ) : null}
                                     </div>
 
-                                    <div style={{ display: "grid", gap: 10 }}>
-                                        {g.items.map((v) => (
-                                            <VoteRow
-                                                key={v.voteId}
-                                                v={v}
-                                                from={from}
-                                            />
-                                        ))}
-                                    </div>
+                                    {/* 通常投票 */}
+                                    {g.normal.length > 0 && (
+                                        <div
+                                            style={{ display: "grid", gap: 10 }}
+                                        >
+                                            <div
+                                                style={{
+                                                    fontWeight: 900,
+                                                    fontSize: 13,
+                                                }}
+                                            >
+                                                通常投票
+                                            </div>
+                                            {g.normal.map((v) => (
+                                                <VoteRow
+                                                    key={v.voteId}
+                                                    v={v}
+                                                    from={from}
+                                                />
+                                            ))}
+                                        </div>
+                                    )}
+
+                                    {/* 配分投票 */}
+                                    {g.alloc.length > 0 && (
+                                        <div
+                                            style={{
+                                                display: "grid",
+                                                gap: 10,
+                                                marginTop: g.normal.length
+                                                    ? 6
+                                                    : 0,
+                                            }}
+                                        >
+                                            <div
+                                                style={{
+                                                    fontWeight: 900,
+                                                    fontSize: 13,
+                                                }}
+                                            >
+                                                配分投票
+                                            </div>
+                                            {g.alloc.map((v, vi) => (
+                                                <AllocRow
+                                                    key={v.castId}
+                                                    v={v}
+                                                    from={from}
+                                                    indexOffset={
+                                                        gi * 1000 + vi * 20
+                                                    }
+                                                />
+                                            ))}
+                                        </div>
+                                    )}
 
                                     <div
                                         style={{
@@ -544,15 +903,29 @@ export function VoteHistoryPage() {
                                             結果
                                         </Link>
 
-                                        <span style={{ marginLeft: "auto" }}>
-                                            {latest?.electionStatus ===
-                                            "ONGOING" ? (
-                                                <Link
-                                                    to={`/voting/entry?electionId=${g.electionId}`}
-                                                    state={{ from }}
-                                                >
-                                                    <b>投票を変更する →</b>
-                                                </Link>
+                                        <span
+                                            style={{
+                                                marginLeft: "auto",
+                                                display: "flex",
+                                                gap: 12,
+                                                flexWrap: "wrap",
+                                            }}
+                                        >
+                                            {latestIsOngoing ? (
+                                                <>
+                                                    <Link
+                                                        to={`/voting/entry?electionId=${g.electionId}`}
+                                                        state={{ from }}
+                                                    >
+                                                        <b>通常を変更 →</b>
+                                                    </Link>
+                                                    <Link
+                                                        to={`/alloc-voting/start?electionId=${encodeURIComponent(g.electionId)}`}
+                                                        state={{ from }}
+                                                    >
+                                                        <b>配分を変更 →</b>
+                                                    </Link>
+                                                </>
                                             ) : (
                                                 <span
                                                     style={{
@@ -584,13 +957,15 @@ export function VoteHistoryPage() {
                     value={{
                         me,
                         meError,
-                        itemsLen: items?.length ?? null,
+                        normalLen: normalItems?.length ?? null,
+                        allocLen: allocItems?.length ?? null,
                         error,
                         groupsLen: groups.length,
                         filteredGroupsLen: filteredGroups.length,
                         backTo,
                         from,
                         q,
+                        mode,
                         isLoading,
                     }}
                 />

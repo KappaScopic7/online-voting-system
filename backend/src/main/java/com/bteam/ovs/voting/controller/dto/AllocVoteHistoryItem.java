@@ -12,9 +12,10 @@ public record AllocVoteHistoryItem(
         int pointsTotal,
         Instant castedAt,
         List<AllocItem> items) {
+
     public record AllocItem(
-            String type,
-            UUID candidateId,
+            String type, // "CANDIDATE" | "PARTY" | "NONE_SUPPORT"
+            UUID targetId, // NONE_SUPPORT は null
             String label,
             int points) {
     }

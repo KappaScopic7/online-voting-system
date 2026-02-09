@@ -1,46 +1,27 @@
-// backend/src/main/java/com/bteam/ovs/master/service/MasterService.java
 package com.bteam.ovs.master.service;
 
 import com.bteam.ovs.master.controller.dto.CityItem;
 import com.bteam.ovs.master.controller.dto.PrefItem;
 import com.bteam.ovs.master.controller.dto.ZipAddressCandidate;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import org.springframework.core.io.ClassPathResource;
+import com.bteam.ovs.master.seed.MachidaMasterSeed;
 import org.springframework.stereotype.Service;
 
-import java.io.InputStream;
-import java.util.*;
-import java.util.stream.Collectors;
+import java.util.List;
+import java.util.Map;
 
 @Service
 public class MasterService {
 
-    private final ObjectMapper om;
-
-    // 起動時ロード（卒制ならこれで十分）
+    // 起動時にJava Seedで固定ロード
     private final List<PrefItem> prefs;
     private final Map<String, List<CityItem>> citiesByPref; // prefCode -> cities
     private final Map<String, List<ZipAddressCandidate>> zipMap; // zip -> candidates
 
-    public MasterService(ObjectMapper om) {
-        this.om = om;
-        this.prefs = load("prefs.json", new TypeReference<List<PrefItem>>() {
-        });
-        var allCities = load("cities.json", new TypeReference<List<CityRow>>() {
-        });
-        this.citiesByPref = allCities.stream()
-                .collect(Collectors.groupingBy(
-                        CityRow::prefCode,
-                        Collectors.mapping(r -> new CityItem(r.cityCode(), r.cityName()), Collectors.toList())));
-        var zipRows = load("zip.json", new TypeReference<List<ZipRow>>() {
-        });
-        this.zipMap = zipRows.stream()
-                .collect(Collectors.groupingBy(
-                        ZipRow::zip,
-                        Collectors.mapping(r -> new ZipAddressCandidate(
-                                r.prefCode(), r.prefName(), r.cityCode(), r.cityName(), r.town()),
-                                Collectors.toList())));
+    public MasterService() {
+        var seed = new MachidaMasterSeed();
+        this.prefs = seed.prefs();
+        this.citiesByPref = seed.citiesByPref();
+        this.zipMap = seed.zipMap();
     }
 
     public List<PrefItem> listPrefs() {
@@ -59,27 +40,16 @@ public class MasterService {
     }
 
     public List<ZipAddressCandidate> lookupByZip(String zip) {
-        return zipMap.getOrDefault(zip, List.of());
-    }
-
-    private <T> T load(String path, TypeReference<T> type) {
-        try (InputStream is = new ClassPathResource(path).getInputStream()) {
-            return om.readValue(is, type);
-        } catch (Exception e) {
-            throw new IllegalStateException("failed to load master data: " + path, e);
-        }
+        if (zip == null)
+            return List.of();
+        // ハイフン入力対策
+        var z = zip.replace("-", "").trim();
+        return zipMap.getOrDefault(z, List.of());
     }
 
     private static <T> List<T> limit(List<T> list, int max) {
         if (list.size() <= max)
             return list;
         return list.subList(0, max);
-    }
-
-    // JSON row shapes
-    private record CityRow(String prefCode, String cityCode, String cityName) {
-    }
-
-    private record ZipRow(String zip, String prefCode, String prefName, String cityCode, String cityName, String town) {
     }
 }

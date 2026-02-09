@@ -290,13 +290,20 @@ export function PublicHomePage() {
                     <div
                         style={{ fontSize: 13, opacity: 0.85, lineHeight: 1.8 }}
                     >
-                        ・このページは「公開入口」の仮実装です。
+                        ・本システムは<strong>町田市で行われる選挙</strong>
+                        を想定した、オンライン投票の卒業制作です。
                         <br />
+                        ・有権者は、開催中の選挙に対して
+                        <strong>オンラインで投票</strong>できます。
+                        <br />
+                        ・将来的には、運用・制度・セキュリティ整備を前提に、
+                        <strong>全国規模へ拡大</strong>
+                        できる仕組みを目指しています。
                     </div>
 
                     <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
                         <Link to="/elections" state={{ from }}>
-                            <b>選挙一覧を見る →</b>
+                            <b>町田市の選挙一覧を見る →</b>
                         </Link>
 
                         {!me && !authLoading && (
@@ -317,23 +324,57 @@ export function PublicHomePage() {
             <Card>
                 <div style={{ display: "grid", gap: 10 }}>
                     <div style={{ fontWeight: 900 }}>案内</div>
+
                     <div
-                        style={{ fontSize: 13, opacity: 0.85, lineHeight: 1.7 }}
+                        style={{ fontSize: 13, opacity: 0.85, lineHeight: 1.8 }}
                     >
-                        1. 「選挙一覧」で開催中の選挙を選びます
+                        本システムでは、<strong>町田市で行われる選挙</strong>
+                        を想定し、 以下の方法でオンライン投票が可能です。
                         <br />
-                        2. 投票するにはログインが必要です
                         <br />
-                        3. ログイン後、投票画面へ進めます
+                        <strong>■ ログインして投票する場合</strong>
+                        <br />
+                        1. アカウントでログインします
+                        <br />
+                        2. 「選挙一覧」から開催中の選挙を選択します
+                        <br />
+                        3. 投票画面へ進み、オンラインで投票します
+                        <br />
+                        <br />
+                        <strong>■ 未ログインで本人認証して投票する場合</strong>
+                        <br />
+                        1. 選挙一覧から対象の選挙を選択します
+                        <br />
+                        2. 本人認証（NFCカード / 専用アプリ）を行います
+                        <br />
+                        3. 認証完了後、そのまま投票できます
+                        <br />
+                        <br />※ 投票は
+                        <strong>期間内であれば何度でも変更可能</strong>で、
+                        最後に送信した内容が有効になります。
                     </div>
 
                     <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
                         <Link to="/elections" state={{ from }}>
-                            選挙一覧へ
+                            <b>選挙一覧を見る →</b>
                         </Link>
-                        <Link to="/login" state={{ from }}>
-                            ログイン
-                        </Link>
+
+                        {!me && !authLoading && (
+                            <>
+                                <Link to="/login" state={{ from }}>
+                                    ログインして投票 →
+                                </Link>
+                                <span style={{ fontSize: 12, opacity: 0.7 }}>
+                                    ※ 本人認証のみでも投票可能
+                                </span>
+                            </>
+                        )}
+
+                        {me && !authLoading && (
+                            <Link to="/me/elections" state={{ from }}>
+                                マイ選挙へ →
+                            </Link>
+                        )}
                     </div>
                 </div>
             </Card>

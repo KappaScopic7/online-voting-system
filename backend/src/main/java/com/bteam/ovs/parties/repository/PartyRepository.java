@@ -16,4 +16,6 @@ public interface PartyRepository extends JpaRepository<Party, UUID> {
     boolean existsByPartyKey(String partyKey);
 
     List<Party> findByPartyKeyIn(Collection<String> partyKeys);
+
+    long countByIdIn(Collection<UUID> ids); // ★追加
 }

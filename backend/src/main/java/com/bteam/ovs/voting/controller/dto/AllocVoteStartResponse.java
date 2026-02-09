@@ -8,9 +8,10 @@ public record AllocVoteStartResponse(
         String electionTitle,
         int pointsPerVoter,
         List<OptionItem> options) {
+
     public record OptionItem(
-            String type, // "CANDIDATE" | "NONE_SUPPORT"
-            UUID candidateId, // NONE_SUPPORT は null
+            String type, // "CANDIDATE" | "PARTY" | "NONE_SUPPORT"
+            UUID targetId, // NONE_SUPPORT は null
             String label) {
     }
 }

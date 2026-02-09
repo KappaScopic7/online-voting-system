@@ -1,5 +1,5 @@
 // frontend/src/identity/pages/IdentityLinkPage.tsx
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
     IdentityMethodTabs,
@@ -10,9 +10,10 @@ import { IdentityNfcScanner } from "../components/IdentityNfcScanner";
 import { IdentityNfcKeyboardReader } from "../components/IdentityNfcKeyboardReader";
 import { Card, Page, DevDebug } from "../../shared/ui/page";
 import { normalizeFrom } from "../../shared/normalizeFrom";
-import { demoPersonas } from "../../demo/personas";
-import { login } from "../../user/api/userAuthApi";
-import { useAuth } from "../../user/UserAuthContext";
+import {
+    fetchDemoPersonas,
+    type DemoPersonaDto,
+} from "../../demo/api/demoPersonas";
 
 type LocationState = { from?: string };
 
@@ -24,18 +25,25 @@ function isPinValid(pin: string) {
     return /^\d{4}$/.test(pin);
 }
 
+// function looksLikeUuid(v: string) {
+//     return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+//         String(v ?? "").trim(),
+//     );
+// }
+
 export function IdentityLinkPage() {
     const nav = useNavigate();
     const loc = useLocation();
     const state = (loc.state ?? {}) as LocationState;
 
-    const { setAccessToken } = useAuth();
-
     const [method, setMethod] = useState<IdentityMethod>("MANUAL");
     const [err, setErr] = useState<string | null>(null);
-    const [busy, setBusy] = useState(false);
+    const [
+        busy,
+        // setBusy
+    ] = useState(false);
 
-    // ✅ 追加：PIN
+    // ✅ PIN
     const [pin, setPin] = useState("");
     const pinOk = isPinValid(pin);
 
@@ -53,28 +61,50 @@ export function IdentityLinkPage() {
     const canWebNfc = hasWebNfc();
     const isDev = import.meta.env?.DEV;
 
-    // 既存の linkIdentity 完了時
+    // ✅ DEV: dynamic personas
+    const [devPersonas, setDevPersonas] = useState<DemoPersonaDto[]>([]);
+    const [devLoading, setDevLoading] = useState(false);
+    const [devErr, setDevErr] = useState<string | null>(null);
+
+    // ✅ DEV: 手入力フォームに流し込む citizenId
+    const [devCitizenId, setDevCitizenId] = useState("");
+
+    const reloadDevPersonas = async () => {
+        if (!isDev) return;
+        try {
+            setDevErr(null);
+            setDevLoading(true);
+            const list = await fetchDemoPersonas();
+            setDevPersonas(Array.isArray(list) ? list : []);
+        } catch (e: any) {
+            const m =
+                e?.response?.data?.message ??
+                e?.message ??
+                "DEV personas の取得に失敗しました";
+            setDevErr(m);
+            setDevPersonas([]);
+        } finally {
+            setDevLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        reloadDevPersonas();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isDev]);
+
+    // linkIdentity 完了時（ここでアカウント切替しない）
     const onLinkedUser = (_accessToken: string) => {
         nav(toUser, { replace: true });
     };
 
-    // DEV: スタブログイン
-    const loginAs = async (p: { email: string; password: string }) => {
-        setBusy(true);
+    // ✅ DEVボタン：フォームにセットするだけ（ログインしない）
+    const fillDev = (p: DemoPersonaDto) => {
         setErr(null);
-        try {
-            const token = await login(p.email, p.password);
-            await setAccessToken(token.accessToken);
-            nav(toUser, { replace: true });
-        } catch (e: any) {
-            setErr(
-                e?.response?.data?.message ??
-                    e?.message ??
-                    "ログインに失敗しました",
-            );
-        } finally {
-            setBusy(false);
-        }
+        setMethod("MANUAL"); // 手入力タブに寄せておくと便利
+        setDevCitizenId((p.citizenId ?? "").trim());
+        // PINも一緒に入れたいならここ（必要なければ消してOK）
+        // setPin("1234");
     };
 
     return (
@@ -151,7 +181,7 @@ export function IdentityLinkPage() {
                 </Card>
             )}
 
-            {/* ✅ 追加：PIN入力カード */}
+            {/* PIN入力 */}
             <Card>
                 <div style={{ display: "grid", gap: 10 }}>
                     <div style={{ fontWeight: 900 }}>PIN（4桁）を入力</div>
@@ -203,6 +233,8 @@ export function IdentityLinkPage() {
                             pinRequired
                             onLinked={onLinkedUser}
                             onError={setErr}
+                            // ✅ DEVで埋めた citizenId を ManualForm に渡す
+                            devCitizenId={devCitizenId}
                         />
                     ) : canWebNfc ? (
                         <IdentityNfcScanner
@@ -251,13 +283,18 @@ export function IdentityLinkPage() {
                                 toUser,
                                 from,
                                 state,
+                                devLoading,
+                                devErr,
+                                devPersonasCount: devPersonas.length,
+                                devCitizenId: devCitizenId ? "(present)" : null,
                             }}
                         />
 
                         <div style={{ marginTop: 12 }}>
                             <div style={{ fontWeight: 900, marginBottom: 6 }}>
-                                DEV: スタブログイン
+                                DEV: citizenId 自動セット（ログインしない）
                             </div>
+
                             <div
                                 style={{
                                     display: "flex",
@@ -265,11 +302,57 @@ export function IdentityLinkPage() {
                                     flexWrap: "wrap",
                                 }}
                             >
-                                {Object.values(demoPersonas.voter).map((p) => (
+                                <button
+                                    type="button"
+                                    onClick={reloadDevPersonas}
+                                    disabled={busy || devLoading}
+                                    style={{
+                                        fontSize: 12,
+                                        padding: "6px 10px",
+                                    }}
+                                >
+                                    {devLoading ? "読み込み中..." : "再読込"}
+                                </button>
+
+                                <button
+                                    type="button"
+                                    onClick={() => setDevCitizenId("")}
+                                    disabled={busy}
+                                    style={{
+                                        fontSize: 12,
+                                        padding: "6px 10px",
+                                    }}
+                                    title="手入力に戻したい時用"
+                                >
+                                    クリア
+                                </button>
+                            </div>
+
+                            {devErr && (
+                                <div
+                                    style={{
+                                        marginTop: 8,
+                                        color: "crimson",
+                                        lineHeight: 1.5,
+                                    }}
+                                >
+                                    {devErr}
+                                </div>
+                            )}
+
+                            <div
+                                style={{
+                                    display: "flex",
+                                    gap: 8,
+                                    flexWrap: "wrap",
+                                    marginTop: 8,
+                                }}
+                            >
+                                {devPersonas.map((p) => (
                                     <button
                                         key={p.key}
                                         type="button"
-                                        onClick={() => loginAs(p)}
+                                        onClick={() => fillDev(p)}
                                         style={{
                                             fontSize: 12,
                                             padding: "6px 10px",
@@ -281,6 +364,36 @@ export function IdentityLinkPage() {
                                     </button>
                                 ))}
                             </div>
+
+                            {!devLoading &&
+                                !devErr &&
+                                devPersonas.length === 0 && (
+                                    <div
+                                        style={{
+                                            marginTop: 8,
+                                            opacity: 0.8,
+                                            fontSize: 12,
+                                        }}
+                                    >
+                                        DEVユーザーが0件です（/api/demo/personas
+                                        を確認）
+                                    </div>
+                                )}
+
+                            {!devLoading &&
+                                !devErr &&
+                                devPersonas.length > 0 && (
+                                    <div
+                                        style={{
+                                            marginTop: 8,
+                                            opacity: 0.8,
+                                            fontSize: 12,
+                                        }}
+                                    >
+                                        ※ citizenId が
+                                        null/空のユーザーは押しても反映されません
+                                    </div>
+                                )}
                         </div>
                     </details>
                 </Card>

@@ -10,6 +10,7 @@ import com.bteam.ovs.elections.entity.BallotType;
 import com.bteam.ovs.elections.entity.Election;
 import com.bteam.ovs.elections.entity.ElectionStatus;
 import com.bteam.ovs.elections.repository.ElectionRepository;
+import com.bteam.ovs.parties.repository.PartyRepository;
 import com.bteam.ovs.shared.auth.AccountResolver;
 import com.bteam.ovs.shared.errors.ApiException;
 import com.bteam.ovs.voting.repository.VoteAllocItemRepository;
@@ -31,6 +32,7 @@ public class ElectionService {
     private final ElectionEligibilityService electionEligibilityService;
     private final CandidateService candidateService;
     private final VoteAllocItemRepository voteAllocItemRepo;
+    private final PartyRepository partyRepo;
 
     public ElectionService(
             ElectionRepository electionRepo,
@@ -38,13 +40,15 @@ public class ElectionService {
             AccountResolver accountResolver,
             ElectionEligibilityService electionEligibilityService,
             CandidateService candidateService,
-            VoteAllocItemRepository voteAllocItemRepo) {
+            VoteAllocItemRepository voteAllocItemRepo,
+            PartyRepository partyRepo) {
         this.electionRepo = electionRepo;
         this.voteCurrentRepo = voteCurrentRepo;
         this.accountResolver = accountResolver;
         this.electionEligibilityService = electionEligibilityService;
         this.candidateService = candidateService;
         this.voteAllocItemRepo = voteAllocItemRepo;
+        this.partyRepo = partyRepo;
     }
 
     public List<ElectionListItem> list(UUID accountIdOrNull) {
@@ -261,53 +265,6 @@ public class ElectionService {
         return status(Instant.now(), e.getStartsAt(), e.getEndsAt());
     }
 
-    public AllocElectionResultResponse allocResult(UUID electionId) {
-        var election = electionRepo.findById(electionId)
-                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "ELECTION_NOT_FOUND", "選挙が存在しません"));
-
-        // ★ 公開判定：PUBLISHED のみ
-        if (election.getStatus() != ElectionStatus.PUBLISHED) {
-            throw new ApiException(HttpStatus.FORBIDDEN, "RESULT_NOT_AVAILABLE", "結果は選挙管理委員会の公開後に閲覧できます");
-        }
-
-        var candidates = candidateService.summariesByElection(electionId);
-
-        Map<UUID, Long> pointMap = voteAllocItemRepo.sumPointsByElectionGroupByCandidate(electionId).stream()
-                .collect(Collectors.toMap(
-                        VoteAllocItemRepository.PointSum::getCandidateId,
-                        v -> v.getPts() != null ? v.getPts() : 0L));
-
-        long noneSupportPoints = voteAllocItemRepo.sumNoneSupportPointsByElection(electionId);
-        long totalPoints = pointMap.values().stream().mapToLong(Long::longValue).sum() + noneSupportPoints;
-
-        var results = candidates.stream()
-                .map(c -> {
-                    UUID candidateId = c.candidateId();
-                    String candidateKey = c.candidateKey();
-                    String name = c.name();
-                    long points = pointMap.getOrDefault(candidateId, 0L);
-
-                    return new AllocElectionResultResponse.CandidatePointResult(
-                            candidateId,
-                            candidateKey,
-                            name,
-                            points);
-                })
-                .sorted((a, b) -> Long.compare(b.points(), a.points()))
-                .toList();
-
-        Instant talliedAt = (election.getTalliedAt() != null) ? election.getTalliedAt() : Instant.now();
-
-        return new AllocElectionResultResponse(
-                election.getId(),
-                election.getTitle(),
-                "CURRENT",
-                totalPoints,
-                noneSupportPoints,
-                talliedAt,
-                results);
-    }
-
     public ElectionResultBundleResponse resultBundle(UUID electionId) {
         var election = electionRepo.findById(electionId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "ELECTION_NOT_FOUND", "選挙が存在しません"));
@@ -352,4 +309,98 @@ public class ElectionService {
                 false,
                 null);
     }
+
+    private boolean isPartyAllocationElection(Election election) {
+        String label = election.getDistrictLabel();
+        if (label == null)
+            return false;
+        return label.contains("比例") || label.contains("ブロック") || label.contains("PR");
+    }
+
+    public AllocElectionResultResponse allocResult(UUID electionId) {
+        var election = electionRepo.findById(electionId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "ELECTION_NOT_FOUND", "選挙が存在しません"));
+
+        // ★ 公開判定：PUBLISHED のみ
+        if (election.getStatus() != ElectionStatus.PUBLISHED) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "RESULT_NOT_AVAILABLE", "結果は選挙管理委員会の公開後に閲覧できます");
+        }
+
+        boolean partyAlloc = isPartyAllocationElection(election);
+
+        long noneSupportPoints = voteAllocItemRepo.sumNoneSupportPointsByElection(electionId);
+
+        Instant talliedAt = (election.getTalliedAt() != null) ? election.getTalliedAt() : Instant.now();
+
+        // =========================
+        // PARTY 配分（比例など）
+        // =========================
+        if (partyAlloc) {
+            var parties = partyRepo.findAll();
+
+            Map<UUID, Long> pointMap = voteAllocItemRepo.sumPointsByElectionGroupByParty(electionId).stream()
+                    .collect(Collectors.toMap(
+                            VoteAllocItemRepository.PartyPointSum::getPartyId,
+                            v -> v.getPts() != null ? v.getPts() : 0L));
+
+            long totalPoints = pointMap.values().stream().mapToLong(Long::longValue).sum() + noneSupportPoints;
+
+            // DTO を流用（candidateId枠にpartyIdを詰めるMVP）
+            var results = parties.stream()
+                    .map(p -> new AllocElectionResultResponse.CandidatePointResult(
+                            p.getId(),
+                            p.getPartyKey(), // candidateKey枠にpartyKey
+                            p.getName(), // candidateName枠にparty名
+                            pointMap.getOrDefault(p.getId(), 0L)))
+                    .sorted((a, b) -> Long.compare(b.points(), a.points()))
+                    .toList();
+
+            return new AllocElectionResultResponse(
+                    election.getId(),
+                    election.getTitle(),
+                    "CURRENT",
+                    totalPoints,
+                    noneSupportPoints,
+                    talliedAt,
+                    results);
+        }
+
+        // =========================
+        // CANDIDATE 配分（既存）
+        // =========================
+        var candidates = candidateService.summariesByElection(electionId);
+
+        Map<UUID, Long> pointMap = voteAllocItemRepo.sumPointsByElectionGroupByCandidate(electionId).stream()
+                .collect(Collectors.toMap(
+                        VoteAllocItemRepository.PointSum::getCandidateId,
+                        v -> v.getPts() != null ? v.getPts() : 0L));
+
+        long totalPoints = pointMap.values().stream().mapToLong(Long::longValue).sum() + noneSupportPoints;
+
+        var results = candidates.stream()
+                .map(c -> {
+                    UUID candidateId = c.candidateId();
+                    String candidateKey = c.candidateKey();
+                    String name = c.name();
+                    long points = pointMap.getOrDefault(candidateId, 0L);
+
+                    return new AllocElectionResultResponse.CandidatePointResult(
+                            candidateId,
+                            candidateKey,
+                            name,
+                            points);
+                })
+                .sorted((a, b) -> Long.compare(b.points(), a.points()))
+                .toList();
+
+        return new AllocElectionResultResponse(
+                election.getId(),
+                election.getTitle(),
+                "CURRENT",
+                totalPoints,
+                noneSupportPoints,
+                talliedAt,
+                results);
+    }
+
 }

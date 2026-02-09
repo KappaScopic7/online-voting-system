@@ -1,5 +1,5 @@
 // frontend/src/identity/components/IdentityManualForm.tsx
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { linkIdentity } from "../api/identity";
 import { useAuth } from "../../user/UserAuthContext";
 import { demoPersonas } from "../../demo/personas";
@@ -18,11 +18,20 @@ export function IdentityManualForm(props: {
     onLinked: (accessToken: string) => void;
     onError?: (msg: string) => void;
 
-    // ✅ 追加
+    // PIN
     pin?: string;
     pinRequired?: boolean;
+
+    // ✅ DEV: 親から流し込む用（あれば citizenId に自動反映）
+    devCitizenId?: string;
 }) {
-    const { onLinked, onError, pin = "", pinRequired = false } = props;
+    const {
+        onLinked,
+        onError,
+        pin = "",
+        pinRequired = false,
+        devCitizenId,
+    } = props;
     const { setAccessToken } = useAuth();
 
     const isDev = import.meta.env?.DEV;
@@ -31,6 +40,15 @@ export function IdentityManualForm(props: {
     const [msg, setMsg] = useState<string | null>(null);
     const [fieldErr, setFieldErr] = useState<{ citizenId?: string }>({});
     const [isSubmitting, setIsSubmitting] = useState(false);
+
+    // ✅ 親から渡された devCitizenId をフォームへ反映
+    useEffect(() => {
+        const v = (devCitizenId ?? "").trim();
+        if (!v) return;
+        setCitizenId(v);
+        setFieldErr({});
+        setMsg(null);
+    }, [devCitizenId]);
 
     const pinOk = !pinRequired || isPinValid(pin);
 

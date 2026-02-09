@@ -3,9 +3,12 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { login } from "../../user/api/userAuthApi";
 import { useAuth } from "../../user/UserAuthContext";
-import { demoPersonas } from "../../demo/personas";
 import { sanitizeReturnTo } from "../../auth/routes/returnTo";
 import { Card, Page, DevDebug } from "../../shared/ui/page";
+import {
+    fetchDemoPersonas,
+    type DemoPersonaDto,
+} from "../../demo/api/demoPersonas";
 
 type LocationState = {
     email?: string;
@@ -40,12 +43,49 @@ export function LoginPage() {
     }>({});
     const [isSubmitting, setIsSubmitting] = useState(false);
 
+    const isDev = import.meta.env?.DEV;
+
+    // ===== DEV: dynamic personas =====
+    const [devPersonas, setDevPersonas] = useState<DemoPersonaDto[]>([]);
+    const [devLoading, setDevLoading] = useState(false);
+    const [devErr, setDevErr] = useState<string | null>(null);
+
     useEffect(() => {
         if (state.verified) {
             setMsg("メール認証が完了しました。ログインしてください。");
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
+
+    useEffect(() => {
+        if (!isDev) return;
+
+        let cancelled = false;
+
+        (async () => {
+            try {
+                setDevErr(null);
+                setDevLoading(true);
+                const list = await fetchDemoPersonas();
+                if (cancelled) return;
+                setDevPersonas(Array.isArray(list) ? list : []);
+            } catch (e: any) {
+                if (cancelled) return;
+                const m =
+                    e?.response?.data?.message ??
+                    e?.message ??
+                    "DEV personas の取得に失敗しました";
+                setDevErr(m);
+                setDevPersonas([]);
+            } finally {
+                if (!cancelled) setDevLoading(false);
+            }
+        })();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [isDev]);
 
     const canSubmit = useMemo(() => {
         const em = email.trim();
@@ -107,8 +147,6 @@ export function LoginPage() {
 
         await doLogin(em, password);
     };
-
-    const isDev = import.meta.env?.DEV;
 
     return (
         <Page
@@ -222,8 +260,58 @@ export function LoginPage() {
                         <summary style={{ cursor: "pointer" }}>
                             DEV tools
                         </summary>
-                        <div style={{ display: "grid", gap: 6, marginTop: 10 }}>
-                            {Object.values(demoPersonas.voter).map((p) => (
+
+                        <div style={{ marginTop: 10, display: "grid", gap: 6 }}>
+                            <div
+                                style={{
+                                    display: "flex",
+                                    gap: 8,
+                                    flexWrap: "wrap",
+                                }}
+                            >
+                                <button
+                                    type="button"
+                                    onClick={async () => {
+                                        try {
+                                            setDevErr(null);
+                                            setDevLoading(true);
+                                            const list =
+                                                await fetchDemoPersonas();
+                                            setDevPersonas(
+                                                Array.isArray(list) ? list : [],
+                                            );
+                                        } catch (e: any) {
+                                            const m =
+                                                e?.response?.data?.message ??
+                                                e?.message ??
+                                                "DEV personas の取得に失敗しました";
+                                            setDevErr(m);
+                                        } finally {
+                                            setDevLoading(false);
+                                        }
+                                    }}
+                                    disabled={isSubmitting || devLoading}
+                                    style={{
+                                        fontSize: 12,
+                                        padding: "6px 10px",
+                                    }}
+                                >
+                                    {devLoading ? "読み込み中..." : "再読込"}
+                                </button>
+                            </div>
+
+                            {devErr && (
+                                <div
+                                    style={{
+                                        color: "crimson",
+                                        lineHeight: 1.5,
+                                    }}
+                                >
+                                    {devErr}
+                                </div>
+                            )}
+
+                            {devPersonas.map((p) => (
                                 <button
                                     key={p.key}
                                     type="button"
@@ -239,7 +327,17 @@ export function LoginPage() {
                                     {p.label}
                                 </button>
                             ))}
+
+                            {!devLoading &&
+                                !devErr &&
+                                devPersonas.length === 0 && (
+                                    <div style={{ opacity: 0.8, fontSize: 12 }}>
+                                        DEVユーザーが0件です（/api/demo/personas
+                                        を確認）
+                                    </div>
+                                )}
                         </div>
+
                         <DevDebug
                             value={{
                                 email,
@@ -247,6 +345,9 @@ export function LoginPage() {
                                 fieldErr,
                                 state,
                                 returnTo,
+                                devPersonas,
+                                devLoading,
+                                devErr,
                             }}
                         />
                     </details>

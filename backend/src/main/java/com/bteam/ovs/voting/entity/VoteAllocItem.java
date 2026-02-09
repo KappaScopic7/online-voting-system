@@ -10,7 +10,8 @@ import java.util.UUID;
 @Entity
 @Table(name = "vote_alloc_item", indexes = {
         @Index(name = "ix_vote_alloc_item_cast_id", columnList = "cast_id"),
-        @Index(name = "ix_vote_alloc_item_candidate_id", columnList = "candidate_id")
+        @Index(name = "ix_vote_alloc_item_candidate_id", columnList = "candidate_id"),
+        @Index(name = "ix_vote_alloc_item_party_id", columnList = "party_id")
 })
 @Getter
 @Setter
@@ -18,7 +19,7 @@ import java.util.UUID;
 public class VoteAllocItem {
 
     public enum TargetType {
-        CANDIDATE, NONE_SUPPORT
+        CANDIDATE, PARTY, NONE_SUPPORT
     }
 
     @Id
@@ -33,7 +34,10 @@ public class VoteAllocItem {
     private TargetType targetType;
 
     @Column(name = "candidate_id", columnDefinition = "uuid")
-    private UUID candidateId; // NONE_SUPPORT のとき null
+    private UUID candidateId; // CANDIDATE のときだけ
+
+    @Column(name = "party_id", columnDefinition = "uuid")
+    private UUID partyId; // PARTY のときだけ
 
     @Column(name = "points", nullable = false)
     private Integer points;
