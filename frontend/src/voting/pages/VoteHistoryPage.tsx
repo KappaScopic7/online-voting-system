@@ -39,14 +39,14 @@ function EmptyAvatar({ size }: { size: number }) {
 
 type LocationState = { from?: string } | null;
 
+type VoteMethod = "NORMAL" | "ALLOC" | "MIXED" | "NONE";
+
 type UnifiedGroup = {
     electionId: string;
     electionTitle: string;
-
     normal: VoteHistoryItem[];
     alloc: AllocVoteHistoryItem[];
-
-    // 表示の並び順用
+    method: VoteMethod;
     latestAt: string;
     latestStatus: string;
 };
@@ -413,11 +413,11 @@ export function VoteHistoryPage() {
                     electionTitle,
                     normal: [],
                     alloc: [],
+                    method: "NONE",
                     latestAt: "",
                     latestStatus: "",
                 });
             } else {
-                // title は空で上書きしない
                 const g = map.get(electionId)!;
                 if (!g.electionTitle && electionTitle)
                     g.electionTitle = electionTitle;
@@ -440,6 +440,19 @@ export function VoteHistoryPage() {
                 (b.castedAt ?? "").localeCompare(a.castedAt ?? ""),
             );
 
+            // --- method detect ---
+            const hasN = g.normal.length > 0;
+            const hasA = g.alloc.length > 0;
+            g.method =
+                hasN && hasA
+                    ? "MIXED"
+                    : hasA
+                      ? "ALLOC"
+                      : hasN
+                        ? "NORMAL"
+                        : "NONE";
+
+            // --- latest ---
             const latestNormal = g.normal[0]?.castedAt ?? "";
             const latestAlloc = g.alloc[0]?.castedAt ?? "";
 
@@ -447,6 +460,7 @@ export function VoteHistoryPage() {
                 latestNormal.localeCompare(latestAlloc) >= 0
                     ? latestNormal
                     : latestAlloc;
+
             const latestStatus =
                 (latestAt === latestNormal
                     ? g.normal[0]?.electionStatus
@@ -799,7 +813,7 @@ export function VoteHistoryPage() {
                                             </Link>
                                         </strong>
 
-                                        <span
+                                        {/* <span
                                             style={{
                                                 fontSize: 12,
                                                 opacity: 0.75,
@@ -807,7 +821,7 @@ export function VoteHistoryPage() {
                                         >
                                             通常: {g.normal.length} / 配分:{" "}
                                             {g.alloc.length}
-                                        </span>
+                                        </span> */}
                                     </div>
 
                                     <div
@@ -826,59 +840,103 @@ export function VoteHistoryPage() {
                                         ) : null}
                                     </div>
 
-                                    {/* 通常投票 */}
-                                    {g.normal.length > 0 && (
-                                        <div
-                                            style={{ display: "grid", gap: 10 }}
-                                        >
+                                    {/* 方式固定：NORMAL のときだけ通常を表示 */}
+                                    {g.method === "NORMAL" &&
+                                        g.normal.length > 0 && (
                                             <div
                                                 style={{
-                                                    fontWeight: 900,
-                                                    fontSize: 13,
+                                                    display: "grid",
+                                                    gap: 10,
                                                 }}
                                             >
-                                                通常投票
+                                                <div
+                                                    style={{
+                                                        fontWeight: 900,
+                                                        fontSize: 13,
+                                                    }}
+                                                >
+                                                    通常投票
+                                                </div>
+                                                {g.normal.map((v) => (
+                                                    <VoteRow
+                                                        key={v.voteId}
+                                                        v={v}
+                                                        from={from}
+                                                    />
+                                                ))}
                                             </div>
-                                            {g.normal.map((v) => (
-                                                <VoteRow
-                                                    key={v.voteId}
-                                                    v={v}
-                                                    from={from}
-                                                />
-                                            ))}
-                                        </div>
-                                    )}
+                                        )}
 
-                                    {/* 配分投票 */}
-                                    {g.alloc.length > 0 && (
-                                        <div
-                                            style={{
-                                                display: "grid",
-                                                gap: 10,
-                                                marginTop: g.normal.length
-                                                    ? 6
-                                                    : 0,
-                                            }}
-                                        >
+                                    {/* 方式固定：ALLOC のときだけ配分を表示 */}
+                                    {g.method === "ALLOC" &&
+                                        g.alloc.length > 0 && (
                                             <div
                                                 style={{
-                                                    fontWeight: 900,
-                                                    fontSize: 13,
+                                                    display: "grid",
+                                                    gap: 10,
                                                 }}
                                             >
-                                                配分投票
+                                                <div
+                                                    style={{
+                                                        fontWeight: 900,
+                                                        fontSize: 13,
+                                                    }}
+                                                >
+                                                    配分投票
+                                                </div>
+                                                {g.alloc.map((v, vi) => (
+                                                    <AllocRow
+                                                        key={v.castId}
+                                                        v={v}
+                                                        from={from}
+                                                        indexOffset={
+                                                            gi * 1000 + vi * 20
+                                                        }
+                                                    />
+                                                ))}
                                             </div>
-                                            {g.alloc.map((v, vi) => (
-                                                <AllocRow
-                                                    key={v.castId}
-                                                    v={v}
-                                                    from={from}
-                                                    indexOffset={
-                                                        gi * 1000 + vi * 20
-                                                    }
-                                                />
-                                            ))}
-                                        </div>
+                                        )}
+
+                                    {/* データ不整合：本来起きない */}
+                                    {g.method === "MIXED" && (
+                                        <Card role="alert">
+                                            <div
+                                                style={{
+                                                    display: "grid",
+                                                    gap: 6,
+                                                }}
+                                            >
+                                                <div
+                                                    style={{ fontWeight: 900 }}
+                                                >
+                                                    投票方式が不整合です
+                                                </div>
+                                                <div
+                                                    style={{
+                                                        fontSize: 12,
+                                                        opacity: 0.85,
+                                                        lineHeight: 1.6,
+                                                    }}
+                                                >
+                                                    この選挙は「通常」か「配分」のどちらか一方のみのはずですが、
+                                                    両方の履歴が存在します（データ整合性の問題）。
+                                                </div>
+
+                                                {/* デモ用の暫定：最新の方式だけ見せる（任意） */}
+                                                <div
+                                                    style={{
+                                                        fontSize: 12,
+                                                        opacity: 0.75,
+                                                    }}
+                                                >
+                                                    最新:{" "}
+                                                    {formatJST(g.latestAt)} /
+                                                    status: {g.latestStatus}
+                                                </div>
+
+                                                {/* ここでどっちを見せるかは方針次第。まずは表示しないでOK */}
+                                            </div>
+                                        </Card>
                                     )}
 
                                     <div
@@ -913,18 +971,32 @@ export function VoteHistoryPage() {
                                         >
                                             {latestIsOngoing ? (
                                                 <>
-                                                    <Link
-                                                        to={`/voting/entry?electionId=${g.electionId}`}
-                                                        state={{ from }}
-                                                    >
-                                                        <b>通常を変更 →</b>
-                                                    </Link>
-                                                    <Link
-                                                        to={`/alloc-voting/start?electionId=${encodeURIComponent(g.electionId)}`}
-                                                        state={{ from }}
-                                                    >
-                                                        <b>配分を変更 →</b>
-                                                    </Link>
+                                                    {g.method === "NORMAL" && (
+                                                        <Link
+                                                            to={`/voting/entry?electionId=${g.electionId}`}
+                                                            state={{ from }}
+                                                        >
+                                                            <b>投票を変更 →</b>
+                                                        </Link>
+                                                    )}
+                                                    {g.method === "ALLOC" && (
+                                                        <Link
+                                                            to={`/alloc-voting/start?electionId=${encodeURIComponent(g.electionId)}`}
+                                                            state={{ from }}
+                                                        >
+                                                            <b>投票を変更 →</b>
+                                                        </Link>
+                                                    )}
+                                                    {g.method === "MIXED" && (
+                                                        <span
+                                                            style={{
+                                                                fontSize: 12,
+                                                                opacity: 0.6,
+                                                            }}
+                                                        >
+                                                            投票方式が不整合（管理者に連絡）
+                                                        </span>
+                                                    )}
                                                 </>
                                             ) : (
                                                 <span

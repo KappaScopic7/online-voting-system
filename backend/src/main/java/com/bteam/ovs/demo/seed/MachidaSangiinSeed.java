@@ -20,8 +20,6 @@ import java.util.*;
  *
  * 未来（想像）:
  * - 2026 町田市長/市議（想像）
- * - 2028 都知事（想像）
- * - 2028 参院（東京選挙区/比例）（想像）
  *
  * NOTE:
  * - ElectionType は「プロジェクト内の enum 名」と一致必須。
@@ -60,10 +58,6 @@ public class MachidaSangiinSeed {
     public static final String EID_MACHIDA_MAYOR_2026 = "MACHIDA_MAYOR_2026";
     public static final String EID_MACHIDA_COUNCIL_2026 = "MACHIDA_COUNCIL_2026";
 
-    public static final String EID_TOKYO_GOV_2028 = "TOKYO_GOV_2028";
-    public static final String EID_SANGIIN_2028_TOKYO = "SANGIIN_2028_TOKYO_DISTRICT";
-    public static final String EID_SANGIIN_2028_PR = "SANGIIN_2028_PR_TOKYO";
-
     // ---------------------------
     // District codes
     // ---------------------------
@@ -91,9 +85,6 @@ public class MachidaSangiinSeed {
     // 未来（想像）
     private static final long FUT_2026_LOCAL_START = 3600L * 24L * 40L;
     private static final long FUT_2026_LOCAL_END = 3600L * 24L * 47L;
-
-    private static final long FUT_2028_START = 3600L * 24L * 900L;
-    private static final long FUT_2028_END = 3600L * 24L * 907L;
 
     // ---------------------------
     // Past demo volume (recommended)
@@ -153,10 +144,6 @@ public class MachidaSangiinSeed {
         // 未来（想像）
         all.addAll(machidaMayor2026Candidates()); // MY26_*
         all.addAll(machidaCouncil2026Candidates()); // MC26_*
-        all.addAll(tokyoGov2028Candidates()); // TG28_*
-        all.addAll(sangiin2028TokyoDistrictCandidates()); // S28TD_*
-        all.addAll(proportionalPartyProxyCandidates("S28PR_"));// S28PR_<partyKey>
-
         return all;
     }
 
@@ -258,32 +245,6 @@ public class MachidaSangiinSeed {
                 cand("MC26_05", person("渋谷 健司", "しぶや けんじ"), 47, null, "新人", "行政の透明化", List.of("透明性", "改革")));
     }
 
-    // ===== 未来：都知事 2028（想像）=====
-    private List<CandidateJson> tokyoGov2028Candidates() {
-        return List.of(
-                cand("TG28_01", person("都築 ひかり", "つづき ひかり"), 53, null, "新人", "住環境と物価対策", List.of("住環境", "物価")),
-                cand("TG28_02", person("久米 直樹", "くめ なおき"), 49, null, "新人", "産業振興と雇用", List.of("産業", "雇用")),
-                cand("TG28_03", person("青木 さや", "あおき さや"), 44, null, "新人", "子育てと教育の拡充", List.of("子育て", "教育")),
-                cand("TG28_04", person("斎藤 恒一", "さいとう こういち"), 61, null, "新人", "防災・危機管理", List.of("防災", "危機管理")));
-    }
-
-    // ===== 未来：参院 2028 東京選挙区（想像・12名）=====
-    private List<CandidateJson> sangiin2028TokyoDistrictCandidates() {
-        return List.of(
-                cand("S28TD_01", person("上野 恒一", "うえの こういち"), 55, "LDP", "新人", "経済成長と安定", List.of("経済", "安定")),
-                cand("S28TD_02", person("西田 みゆ", "にしだ みゆ"), 42, "CDP", "新人", "暮らしと権利の防衛", List.of("福祉", "権利")),
-                cand("S28TD_03", person("小泉 りく", "こいずみ りく"), 38, "KOMEI", "新人", "教育・福祉の強化", List.of("教育", "福祉")),
-                cand("S28TD_04", person("渋谷 直樹", "しぶや なおき"), 31, "Ishin", "新人", "行政効率化", List.of("改革", "行政")),
-                cand("S28TD_05", person("吉田 あや", "よしだ あや"), 47, "JCP", "新人", "格差是正", List.of("福祉", "平和")),
-                cand("S28TD_06", person("南  恒一", "みなみ こういち"), 50, "DPP", "新人", "成長と分配", List.of("成長", "賃上げ")),
-                cand("S28TD_07", person("相原 花", "あいはら はな"), 36, "Reiwa", "新人", "生活支援", List.of("生活", "福祉")),
-                cand("S28TD_08", person("高橋 健司", "たかはし けんじ"), 59, "Sansei", "新人", "参加型政治", List.of("参加", "教育")),
-                cand("S28TD_09", person("藤川 侑也", "ふじかわ ゆうや"), 29, "Team", "新人", "DXで改革", List.of("DX", "改革")),
-                cand("S28TD_10", person("奥村 恒一", "おくむら こういち"), 63, "Hoshuto", "新人", "安全保障", List.of("安全保障", "秩序")),
-                cand("S28TD_11", person("石丸 幸人", "いしまる ゆきと"), 46, "N党", "新人", "制度改革", List.of("改革")),
-                cand("S28TD_12", person("増田 昇", "ますだ のぼる"), 41, null, "新人", "地域課題の解決", List.of("地域")));
-    }
-
     private CandidateJson cand(String key, String name, Integer age, String partyKey, String title, String bio,
             List<String> policies) {
         return new CandidateJson(key, name, age, partyKey, title, bio, policies, null, null);
@@ -360,41 +321,7 @@ public class MachidaSangiinSeed {
                         "SINGLE_CHOICE",
                         FUT_2026_LOCAL_START,
                         FUT_2026_LOCAL_END,
-                        List.of("MC26_01", "MC26_02", "MC26_03", "MC26_04", "MC26_05")),
-
-                // ===== 未来：都知事 2028（想像）=====
-                new ElectionJson(
-                        EID_TOKYO_GOV_2028,
-                        "東京都知事選挙 2028（想像デモ）",
-                        "都知事を選ぶ選挙（想像）。",
-                        "DEMO",
-                        new ElectionJson.DistrictJson(PREF_TOKYO, CITY_ALL_TOKYO, "東京都"),
-                        "SINGLE_CHOICE",
-                        FUT_2028_START,
-                        FUT_2028_END,
-                        List.of("TG28_01", "TG28_02", "TG28_03", "TG28_04")),
-
-                // ===== 未来：参院 2028（東京選挙区/比例）（想像）=====
-                new ElectionJson(
-                        EID_SANGIIN_2028_TOKYO,
-                        "参議院議員通常選挙 2028（東京都選挙区）（想像デモ）",
-                        "東京都選挙区の候補から1名を選ぶ（想像）。",
-                        "DEMO",
-                        new ElectionJson.DistrictJson(PREF_TOKYO, CITY_ALL_TOKYO, "東京都"),
-                        "SINGLE_CHOICE",
-                        FUT_2028_START,
-                        FUT_2028_END,
-                        sangiin2028TokyoDistrictCandidateKeys()),
-                new ElectionJson(
-                        EID_SANGIIN_2028_PR,
-                        "参議院議員通常選挙 2028（比例代表・東京）（想像デモ）",
-                        "比例代表をポイント配分で表現（想像）。",
-                        "DEMO",
-                        new ElectionJson.DistrictJson(PREF_TOKYO, CITY_ALL_TOKYO, "比例（東京）"),
-                        "ALLOCATION",
-                        FUT_2028_START,
-                        FUT_2028_END,
-                        proportionalCandidateKeys("S28PR_")));
+                        List.of("MC26_01", "MC26_02", "MC26_03", "MC26_04", "MC26_05")));
     }
 
     // ---------------------------
@@ -421,13 +348,6 @@ public class MachidaSangiinSeed {
         return keys;
     }
 
-    private List<String> sangiin2028TokyoDistrictCandidateKeys() {
-        var keys = new ArrayList<String>();
-        for (int i = 1; i <= 12; i++)
-            keys.add(String.format("S28TD_%02d", i));
-        return keys;
-    }
-
     // ---------------------------
     // Rules
     // ---------------------------
@@ -443,12 +363,7 @@ public class MachidaSangiinSeed {
 
                 // 未来（町田市民のみ）
                 new RuleJson(EID_MACHIDA_MAYOR_2026, CITY_MACHIDA, 18),
-                new RuleJson(EID_MACHIDA_COUNCIL_2026, CITY_MACHIDA, 18),
-
-                // 未来（都全域）
-                new RuleJson(EID_TOKYO_GOV_2028, CITY_ALL_TOKYO, 18),
-                new RuleJson(EID_SANGIIN_2028_TOKYO, CITY_ALL_TOKYO, 18),
-                new RuleJson(EID_SANGIIN_2028_PR, CITY_ALL_TOKYO, 18));
+                new RuleJson(EID_MACHIDA_COUNCIL_2026, CITY_MACHIDA, 18));
     }
 
     // ---------------------------
