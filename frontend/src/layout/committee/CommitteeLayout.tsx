@@ -33,7 +33,8 @@ export function CommitteeLayout() {
     const navItems = useMemo<NavItem[]>(
         () => [
             { to: "/committee/elections", label: "選挙管理" },
-            { to: "/committee/voters", label: "有権者管理" }, // 無ければ後で消す/追加
+            { to: "/committee/voters", label: "有権者管理" },
+            { to: "/committee/announcement", label: "お知らせ" },
             { to: "/committee/me", label: "Me" },
         ],
         [],
@@ -45,6 +46,7 @@ export function CommitteeLayout() {
             { to: "/committee", label: "ホーム →" },
             { to: "/committee/elections", label: "選挙管理 →" },
             { to: "/committee/voters", label: "有権者管理 →" },
+            { to: "/committee/announcement", label: "お知らせ →" },
             { to: "/committee/me", label: "Me →" },
         ],
         [],

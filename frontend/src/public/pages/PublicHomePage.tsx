@@ -1,4 +1,3 @@
-// frontend/src/public/pages/PublicHomePage.tsx
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Card, DevDebug, Page } from "../../shared/ui/page";
@@ -20,33 +19,50 @@ export function PublicHomePage() {
     const loc = useLocation();
     const from = loc.pathname + loc.search;
 
-    const [notice, setNotice] = useState<SystemAnnouncement | null>(null);
-    const [notices, setNotices] = useState<PublicNotice[]>([]);
+    const [banner, setBanner] = useState<SystemAnnouncement | null>(null);
 
-    // 単発バナー（SystemAnnouncement）
+    const [notices, setNotices] = useState<PublicNotice[]>([]);
+    const [noticesLoading, setNoticesLoading] = useState(false);
+    const [noticesUpdatedAt, setNoticesUpdatedAt] = useState<string | null>(
+        null,
+    );
+
+    async function loadBanner() {
+        try {
+            const a = await fetchPublicAnnouncement();
+            setBanner(a && a.enabled ? a : null);
+        } catch {
+            setBanner(null);
+        }
+    }
+
+    async function loadNotices() {
+        setNoticesLoading(true);
+        try {
+            const items = await fetchPublicNotices(5);
+            setNotices(items ?? []);
+            setNoticesUpdatedAt(new Date().toISOString());
+        } catch {
+            setNotices([]);
+            setNoticesUpdatedAt(new Date().toISOString());
+        } finally {
+            setNoticesLoading(false);
+        }
+    }
+
+    // 単発バナー（初回）
     useEffect(() => {
-        (async () => {
-            try {
-                const a = await fetchPublicAnnouncement();
-                setNotice(a && a.enabled ? a : null);
-            } catch {
-                // 失敗したら黙って非表示（デモ中の事故を防ぐ）
-                setNotice(null);
-            }
-        })();
+        loadBanner();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    // 複数件お知らせ（PublicNotice）
+    // 複数件お知らせ（初回 + 自動更新）
     useEffect(() => {
-        (async () => {
-            try {
-                const items = await fetchPublicNotices(5);
-                setNotices(items ?? []);
-            } catch {
-                // 失敗したら黙って非表示
-                setNotices([]);
-            }
-        })();
+        loadNotices();
+        // ✅ 自動更新（30秒ごと）
+        const t = window.setInterval(loadNotices, 30000);
+        return () => window.clearInterval(t);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     return (
@@ -83,11 +99,11 @@ export function PublicHomePage() {
             maxWidth={820}
         >
             {/* 単発バナー */}
-            {notice && (
+            {banner && (
                 <Card>
                     <div style={{ display: "grid", gap: 6 }}>
                         <div style={{ fontWeight: 900 }}>
-                            [{actorLabel(notice.actor)}]
+                            [{actorLabel(banner.actor)}]
                         </div>
 
                         <div
@@ -98,21 +114,60 @@ export function PublicHomePage() {
                                 whiteSpace: "pre-wrap",
                             }}
                         >
-                            {notice.message}
+                            {banner.message}
                         </div>
 
-                        {notice.updatedAt && (
+                        {banner.updatedAt && (
                             <div style={{ fontSize: 12, opacity: 0.6 }}>
-                                更新: {notice.updatedAt}
+                                更新: {formatLocal(banner.updatedAt)}
                             </div>
                         )}
                     </div>
                 </Card>
             )}
 
+            {/* 複数件お知らせ */}
             <Card>
                 <div style={{ display: "grid", gap: 10 }}>
-                    <div style={{ fontWeight: 900 }}>お知らせ</div>
+                    <div
+                        style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                            gap: 12,
+                            flexWrap: "wrap",
+                        }}
+                    >
+                        <div style={{ fontWeight: 900 }}>お知らせ</div>
+
+                        <div
+                            style={{
+                                display: "flex",
+                                gap: 10,
+                                alignItems: "center",
+                                flexWrap: "wrap",
+                            }}
+                        >
+                            {noticesUpdatedAt && (
+                                <span style={{ fontSize: 12, opacity: 0.6 }}>
+                                    最終更新: {formatLocal(noticesUpdatedAt)}
+                                </span>
+                            )}
+
+                            <button
+                                style={{
+                                    fontSize: 12,
+                                    padding: "6px 10px",
+                                    borderRadius: 10,
+                                    border: "1px solid rgba(0,0,0,0.2)",
+                                }}
+                                onClick={loadNotices}
+                                disabled={noticesLoading}
+                            >
+                                {noticesLoading ? "更新中…" : "再読み込み"}
+                            </button>
+                        </div>
+                    </div>
 
                     {notices.length === 0 ? (
                         <div style={{ fontSize: 13, opacity: 0.6 }}>
@@ -170,6 +225,11 @@ export function PublicHomePage() {
 
                                     <div style={{ fontSize: 12, opacity: 0.6 }}>
                                         公開: {formatLocal(n.publishedAt)}
+                                        {n.expiresAt
+                                            ? ` / 期限: ${formatLocal(
+                                                  n.expiresAt,
+                                              )}`
+                                            : ""}
                                     </div>
                                 </div>
                             ))}
@@ -242,8 +302,9 @@ export function PublicHomePage() {
                     me: !!me,
                     authLoading,
                     from,
-                    notice,
+                    banner,
                     noticesCount: notices.length,
+                    noticesUpdatedAt,
                 }}
             />
         </Page>

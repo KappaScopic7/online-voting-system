@@ -21,7 +21,7 @@ export type PublicNoticeUpsertRequest = {
 export async function fetchCommitteeNotices(
     limit = 200,
 ): Promise<PublicNotice[]> {
-    const res = await httpStaff.get(`/committee/notices`, {
+    const res = await httpStaff.get("/committee/notices", {
         params: { limit },
     });
     return res.data;
@@ -30,7 +30,7 @@ export async function fetchCommitteeNotices(
 export async function createCommitteeNotice(
     req: PublicNoticeUpsertRequest,
 ): Promise<PublicNotice> {
-    const res = await httpStaff.post(`/committee/notices`, req);
+    const res = await httpStaff.post("/committee/notices", req);
     return res.data;
 }
 

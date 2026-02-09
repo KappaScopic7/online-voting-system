@@ -3,15 +3,15 @@ import { Card, DevDebug, Page } from "../../shared/ui/page";
 import { formatLocal } from "../../shared/datetime/formatLocal";
 import type { SystemAnnouncement } from "../../shared/model/announcement";
 import {
+    fetchCommitteeNotices,
+    createCommitteeNotice,
+    deleteCommitteeNotice,
+    type PublicNotice,
+} from "../api/notices";
+import {
     fetchCommitteeAnnouncement,
     updateCommitteeAnnouncement,
 } from "../api/announcement";
-import {
-    createCommitteeNotice,
-    deleteCommitteeNotice,
-    fetchCommitteeNotices,
-    type PublicNotice,
-} from "../api/notices";
 
 function actorLabel(a: SystemAnnouncement["actor"]) {
     return a === "SYSTEM_ADMIN" ? "システム管理者から" : "選挙管理委員会から";
@@ -33,6 +33,25 @@ function nowDatetimeLocal(): string {
     const hh = String(d.getHours()).padStart(2, "0");
     const mm = String(d.getMinutes()).padStart(2, "0");
     return `${y}-${m}-${day}T${hh}:${mm}`;
+}
+
+type NoticeStatus = "ACTIVE" | "FUTURE" | "EXPIRED";
+
+function noticeStatus(n: PublicNotice): NoticeStatus {
+    const now = Date.now();
+    const pub = new Date(n.publishedAt).getTime();
+    const exp = n.expiresAt ? new Date(n.expiresAt).getTime() : null;
+
+    if (!Number.isFinite(pub)) return "FUTURE";
+    if (pub > now) return "FUTURE";
+    if (exp != null && Number.isFinite(exp) && exp <= now) return "EXPIRED";
+    return "ACTIVE";
+}
+
+function statusLabel(s: NoticeStatus) {
+    if (s === "ACTIVE") return "公開中";
+    if (s === "FUTURE") return "未公開";
+    return "期限切れ";
 }
 
 export function CommitteeAnnouncementPage() {
@@ -138,7 +157,7 @@ export function CommitteeAnnouncementPage() {
                 return;
             }
 
-            await createCommitteeNotice({
+            const created = await createCommitteeNotice({
                 title,
                 body,
                 pinned: nPinned,
@@ -146,13 +165,17 @@ export function CommitteeAnnouncementPage() {
                 expiresAt: expiresIso,
             });
 
-            // フォーム初期化（最低限）
+            // ✅ 追加直後は “体感” のため先頭に差し込み（その後リロードでもOK）
+            setNotices((prev) => [created, ...prev]);
+
+            // フォーム初期化
             setNTitle("");
             setNBody("");
             setNPinned(false);
             setNPublishedAt(nowDatetimeLocal());
             setNExpiresAt("");
 
+            // ✅ サーバーの並び順/状態に合わせて同期したいなら最後にこれ
             await loadNotices();
         } catch (e: any) {
             setErr(String(e?.message ?? e));
@@ -181,6 +204,19 @@ export function CommitteeAnnouncementPage() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
+    const counts = useMemo(() => {
+        let active = 0,
+            future = 0,
+            expired = 0;
+        for (const n of notices) {
+            const s = noticeStatus(n);
+            if (s === "ACTIVE") active++;
+            else if (s === "FUTURE") future++;
+            else expired++;
+        }
+        return { active, future, expired, total: notices.length };
+    }, [notices]);
+
     return (
         <Page title="選管：お知らせ">
             {/* エラー表示（共通） */}
@@ -191,14 +227,26 @@ export function CommitteeAnnouncementPage() {
                         <div className="break-all whitespace-pre-wrap">
                             {err}
                         </div>
+                        <div className="mt-1 text-xs opacity-60">
+                            ※「Publicに出ない」時は、通知一覧のステータス（未公開/期限切れ）も確認してね
+                        </div>
                     </div>
                 </Card>
             )}
 
-            {/* 単発バナー（既存の SystemAnnouncement） */}
+            {/* 単発バナー（SystemAnnouncement） */}
             <Card>
                 <div className="flex flex-col gap-3">
-                    <div className="font-bold">公開ページ：単発バナー</div>
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                        <div className="font-bold">公開ページ：単発バナー</div>
+                        <button
+                            className="rounded-md border px-3 py-2"
+                            onClick={loadBanner}
+                            disabled={busy}
+                        >
+                            再読み込み
+                        </button>
+                    </div>
 
                     <label className="flex items-center gap-2 text-sm">
                         <input
@@ -256,13 +304,6 @@ export function CommitteeAnnouncementPage() {
                         >
                             保存
                         </button>
-                        <button
-                            className="rounded-md border px-3 py-2"
-                            onClick={loadBanner}
-                            disabled={busy}
-                        >
-                            再読み込み
-                        </button>
                     </div>
 
                     <div className="rounded-md border p-2 text-sm">
@@ -279,13 +320,21 @@ export function CommitteeAnnouncementPage() {
                         <div className="font-bold">
                             公開ページ：お知らせ一覧
                         </div>
-                        <button
-                            className="rounded-md border px-3 py-2"
-                            onClick={loadNotices}
-                            disabled={busy}
-                        >
-                            再読み込み
-                        </button>
+
+                        <div className="flex items-center gap-2 flex-wrap text-xs opacity-70">
+                            <span>公開中: {counts.active}</span>
+                            <span>未公開: {counts.future}</span>
+                            <span>期限切れ: {counts.expired}</span>
+                            <span>合計: {counts.total}</span>
+
+                            <button
+                                className="rounded-md border px-3 py-2 text-sm opacity-100"
+                                onClick={loadNotices}
+                                disabled={busy}
+                            >
+                                再読み込み
+                            </button>
+                        </div>
                     </div>
 
                     {/* 追加フォーム */}
@@ -374,6 +423,26 @@ export function CommitteeAnnouncementPage() {
                                 >
                                     追加
                                 </button>
+
+                                <button
+                                    className="rounded-md border px-3 py-2"
+                                    onClick={() => {
+                                        setNTitle("");
+                                        setNBody("");
+                                        setNPinned(false);
+                                        setNPublishedAt(nowDatetimeLocal());
+                                        setNExpiresAt("");
+                                    }}
+                                    disabled={busy}
+                                    type="button"
+                                >
+                                    フォームリセット
+                                </button>
+                            </div>
+
+                            <div className="text-xs opacity-60">
+                                ※ Publicに出ない場合：公開日時が未来（未公開）/
+                                期限切れ / Public側が未更新 のどれかが多い
                             </div>
                         </div>
                     </div>
@@ -385,51 +454,63 @@ export function CommitteeAnnouncementPage() {
                         </div>
                     ) : (
                         <div className="flex flex-col gap-2">
-                            {notices.map((n) => (
-                                <div
-                                    key={n.id}
-                                    className="rounded-md border p-3"
-                                >
-                                    <div className="flex items-center justify-between gap-2 flex-wrap">
-                                        <div className="flex items-center gap-2 flex-wrap">
-                                            {n.pinned && (
-                                                <span className="rounded-full border px-2 py-0.5 text-xs">
-                                                    固定
+                            {notices.map((n) => {
+                                const st = noticeStatus(n);
+                                return (
+                                    <div
+                                        key={n.id}
+                                        className="rounded-md border p-3"
+                                    >
+                                        <div className="flex items-center justify-between gap-2 flex-wrap">
+                                            <div className="flex items-center gap-2 flex-wrap">
+                                                {n.pinned && (
+                                                    <span className="rounded-full border px-2 py-0.5 text-xs">
+                                                        固定
+                                                    </span>
+                                                )}
+                                                <span
+                                                    className="rounded-full border px-2 py-0.5 text-xs"
+                                                    style={{
+                                                        opacity:
+                                                            st === "ACTIVE"
+                                                                ? 1
+                                                                : 0.65,
+                                                    }}
+                                                >
+                                                    {statusLabel(st)}
                                                 </span>
-                                            )}
-                                            <div className="font-bold">
-                                                {n.title}
+                                                <div className="font-bold">
+                                                    {n.title}
+                                                </div>
                                             </div>
+
+                                            <button
+                                                className="rounded-md border px-3 py-2 text-sm"
+                                                onClick={() =>
+                                                    removeNotice(n.id)
+                                                }
+                                                disabled={busy}
+                                            >
+                                                削除
+                                            </button>
                                         </div>
 
-                                        <button
-                                            className="rounded-md border px-3 py-2 text-sm"
-                                            onClick={() => removeNotice(n.id)}
-                                            disabled={busy}
-                                        >
-                                            削除
-                                        </button>
-                                    </div>
+                                        <div className="mt-2 whitespace-pre-wrap text-sm opacity-90">
+                                            {n.body}
+                                        </div>
 
-                                    <div className="mt-2 whitespace-pre-wrap text-sm opacity-90">
-                                        {n.body}
+                                        <div className="mt-2 text-xs opacity-60">
+                                            公開: {formatLocal(n.publishedAt)}
+                                            {n.expiresAt
+                                                ? ` / 期限: ${formatLocal(n.expiresAt)}`
+                                                : ""}
+                                            {n.updatedAt
+                                                ? ` / 更新: ${formatLocal(n.updatedAt)}`
+                                                : ""}
+                                        </div>
                                     </div>
-
-                                    <div className="mt-2 text-xs opacity-60">
-                                        公開: {formatLocal(n.publishedAt)}
-                                        {n.expiresAt
-                                            ? ` / 期限: ${formatLocal(
-                                                  n.expiresAt,
-                                              )}`
-                                            : ""}
-                                        {n.updatedAt
-                                            ? ` / 更新: ${formatLocal(
-                                                  n.updatedAt,
-                                              )}`
-                                            : ""}
-                                    </div>
-                                </div>
-                            ))}
+                                );
+                            })}
                         </div>
                     )}
                 </div>
@@ -439,6 +520,7 @@ export function CommitteeAnnouncementPage() {
                 value={{
                     banner: { enabled, actor, message },
                     noticesCount: notices.length,
+                    counts,
                 }}
             />
         </Page>
