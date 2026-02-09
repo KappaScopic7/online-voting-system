@@ -5,9 +5,6 @@ import com.bteam.ovs.auth.entity.Role;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
 
-/**
- * SpEL から @authz.* を呼べるようにするブリッジBean
- */
 @Component("authz")
 public class AuthzBean {
     public boolean isKind(Authentication auth, AccountKind kind) {

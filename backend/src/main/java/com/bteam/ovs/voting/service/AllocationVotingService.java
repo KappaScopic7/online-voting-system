@@ -1,6 +1,8 @@
 package com.bteam.ovs.voting.service;
 
 import com.bteam.ovs.candidates.repository.CandidateRepository;
+import com.bteam.ovs.elections.entity.Election;
+import com.bteam.ovs.elections.entity.ElectionStatus;
 import com.bteam.ovs.elections.repository.ElectionRepository;
 import com.bteam.ovs.elections.service.ElectionEligibilityService;
 import com.bteam.ovs.shared.errors.ApiException;
@@ -80,15 +82,16 @@ public class AllocationVotingService {
     public AllocVoteStartResponse startByCitizen(UUID citizenId, UUID electionId) {
         electionEligibilityService.requireEligibleCitizen(citizenId, electionId);
 
-        var election = electionRepo.findById(electionId)
-                .orElseThrow(() -> new ApiException(
-                        HttpStatus.NOT_FOUND, "ELECTION_NOT_FOUND", "選挙が存在しません"));
+        Election election = requireElection(electionId);
+
+        // ★追加：選管運用（OPEN + 期間内）でないと開始不可
+        requireOpenAndWithinPeriod(election, Instant.now());
 
         var options = new ArrayList<AllocVoteStartResponse.OptionItem>();
 
         // 候補
-        candidateRepo.findByElectionId(electionId).forEach(c -> options.add(new AllocVoteStartResponse.OptionItem(
-                TYPE_CANDIDATE, c.getId(), c.getName())));
+        candidateRepo.findByElectionId(electionId).forEach(
+                c -> options.add(new AllocVoteStartResponse.OptionItem(TYPE_CANDIDATE, c.getId(), c.getName())));
 
         // 特別枠：誰も支持しない
         options.add(new AllocVoteStartResponse.OptionItem(TYPE_NONE_SUPPORT, null, NONE_SUPPORT_LABEL));
@@ -100,15 +103,11 @@ public class AllocationVotingService {
     public AllocVoteHistoryItem confirmByCitizen(UUID citizenId, UUID electionId, AllocVoteConfirmRequest req) {
         electionEligibilityService.requireEligibleCitizen(citizenId, electionId);
 
-        var election = electionRepo.findById(electionId)
-                .orElseThrow(() -> new ApiException(
-                        HttpStatus.NOT_FOUND, "ELECTION_NOT_FOUND", "選挙が存在しません"));
+        Election election = requireElection(electionId);
 
-        var now = Instant.now();
-        boolean withinPeriod = !now.isBefore(election.getStartsAt()) && now.isBefore(election.getEndsAt());
-        if (!withinPeriod) {
-            throw new ApiException(HttpStatus.FORBIDDEN, "ELECTION_NOT_ONGOING", "投票可能期間外です");
-        }
+        Instant now = Instant.now();
+        // ★変更：選管運用（OPEN + 期間内）
+        requireOpenAndWithinPeriod(election, now);
 
         if (req.pointsTotal() != POINTS_TOTAL) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_POINTS_TOTAL", "合計ポイントは100である必要があります");
@@ -238,7 +237,7 @@ public class AllocationVotingService {
                 cast.getId(),
                 election.getId(),
                 election.getTitle(),
-                resolveElectionStatus(now, election.getStartsAt(), election.getEndsAt()),
+                resolveElectionStatus(election),
                 POINTS_TOTAL,
                 now,
                 respItems);
@@ -254,7 +253,7 @@ public class AllocationVotingService {
 
         var electionIds = casts.stream().map(VoteAllocCast::getElectionId).collect(Collectors.toSet());
         var elections = electionRepo.findAllById(electionIds).stream()
-                .collect(Collectors.toMap(e -> e.getId(), Function.identity()));
+                .collect(Collectors.toMap(Election::getId, Function.identity()));
 
         // items 一括取得（N+1回避）
         var castIds = casts.stream().map(VoteAllocCast::getId).collect(Collectors.toSet());
@@ -275,8 +274,6 @@ public class AllocationVotingService {
                 : candidateRepo.findAllById(allCandidateIds).stream()
                         .collect(Collectors.toMap(c -> c.getId(), c -> c.getName()));
 
-        Instant now = Instant.now();
-
         return casts.stream().map(cast -> {
             var e = elections.get(cast.getElectionId());
 
@@ -285,7 +282,7 @@ public class AllocationVotingService {
             String st = "UNKNOWN";
             String title = "(unknown election)";
             if (e != null) {
-                st = resolveElectionStatus(now, e.getStartsAt(), e.getEndsAt());
+                st = resolveElectionStatus(e);
                 title = e.getTitle();
             }
 
@@ -310,15 +307,38 @@ public class AllocationVotingService {
         }).toList();
     }
 
-    private String resolveElectionStatus(Instant now, Instant startsAt, Instant endsAt) {
-        if (now.isBefore(startsAt))
-            return "UPCOMING";
-        if (!now.isBefore(endsAt))
-            return "ENDED";
-        return "ONGOING";
-    }
-
+    // ★ committee の tally ボタンから呼ばれる。今は no-op でOK（結果は ElectionService が都度集計）
     @Transactional
     public void tally(UUID electionId) {
+        // no-op
+    }
+
+    // ===== helpers =====
+
+    private Election requireElection(UUID electionId) {
+        return electionRepo.findById(electionId)
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.NOT_FOUND, "ELECTION_NOT_FOUND", "選挙が存在しません"));
+    }
+
+    private void requireOpenAndWithinPeriod(Election election, Instant now) {
+        if (election.getStatus() != ElectionStatus.OPEN) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "ELECTION_NOT_OPEN", "現在この選挙は投票できません");
+        }
+        boolean withinPeriod = !now.isBefore(election.getStartsAt()) && now.isBefore(election.getEndsAt());
+        if (!withinPeriod) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "ELECTION_NOT_ONGOING", "投票可能期間外です");
+        }
+    }
+
+    private String resolveElectionStatus(Election election) {
+        ElectionStatus s = election.getStatus();
+        if (s == null)
+            return "UNKNOWN";
+        return switch (s) {
+            case DRAFT, READY -> "UPCOMING";
+            case OPEN -> "ONGOING";
+            case CLOSED, TALLIED, PUBLISHED, ARCHIVED -> "ENDED";
+        };
     }
 }
