@@ -257,17 +257,8 @@ public class ElectionService {
         return "ONGOING";
     }
 
-    // ★ 新：ElectionStatus から画面用3値へ
     public static String status(Election e) {
-        ElectionStatus s = e.getStatus();
-        if (s == null) {
-            return status(Instant.now(), e.getStartsAt(), e.getEndsAt());
-        }
-        return switch (s) {
-            case DRAFT, READY -> "UPCOMING";
-            case OPEN -> "ONGOING";
-            case CLOSED, TALLIED, PUBLISHED, ARCHIVED -> "ENDED";
-        };
+        return status(Instant.now(), e.getStartsAt(), e.getEndsAt());
     }
 
     public AllocElectionResultResponse allocResult(UUID electionId) {

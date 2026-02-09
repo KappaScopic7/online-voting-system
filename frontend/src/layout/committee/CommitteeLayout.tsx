@@ -29,7 +29,6 @@ export function CommitteeLayout() {
         nav("/committee/login", { replace: true });
     };
 
-    // Committee: 選挙管理 + User/Voter(最小)
     const navItems = useMemo<NavItem[]>(
         () => [
             { to: "/committee/elections", label: "選挙管理" },
@@ -40,7 +39,6 @@ export function CommitteeLayout() {
         [],
     );
 
-    // 右上メニュー（最小）
     const menuItems = useMemo<MenuItem[]>(
         () => [
             { to: "/committee", label: "ホーム →" },
@@ -52,7 +50,6 @@ export function CommitteeLayout() {
         [],
     );
 
-    // ---- header show/hide on scroll (stable) ----
     useEffect(() => {
         lastYRef.current = window.scrollY;
 
@@ -83,7 +80,6 @@ export function CommitteeLayout() {
         return () => window.removeEventListener("scroll", onScroll);
     }, []);
 
-    // ---- close menu on outside click / Esc ----
     useEffect(() => {
         if (!isMenuOpen) return;
 
@@ -157,7 +153,6 @@ export function CommitteeLayout() {
                                         }`}
                                         role="menu"
                                     >
-                                        {/* staff info */}
                                         <div className={styles.menuMeta}>
                                             {staff ? (
                                                 <>

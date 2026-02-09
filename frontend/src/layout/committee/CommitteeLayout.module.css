@@ -1,3 +1,11 @@
+/* frontend/src/layout/committee/CommitteeLayout.module.css */
+
+/* ===== page frame ===== */
+.page {
+    min-height: 100vh;
+    background: #fff;
+}
+
 /* アプリ全体のコンテンツ枠 */
 .main {
     max-width: 980px;
@@ -7,7 +15,7 @@
 }
 
 /* ===== sticky header wrapper ===== */
-.publicLayout {
+.committeeLayout {
     position: sticky;
     top: 0;
     z-index: 1000;
@@ -23,10 +31,15 @@
     transform: translateY(0);
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
 }
-
 .headerHidden {
     transform: translateY(-110%);
     box-shadow: none;
+}
+
+.barInner {
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 0 16px;
 }
 
 /* ===== header ===== */
@@ -37,6 +50,7 @@
     flex-wrap: wrap;
     height: 64px;
     border: 1px solid #ddd;
+    background: #fff;
 }
 
 .brand {
@@ -44,64 +58,21 @@
     gap: 10px;
     align-items: center;
     text-decoration: none;
+    color: #000;
+    font-weight: 800;
+    padding: 0 4px;
+    border-radius: 8px;
 }
-
-.logoImage {
-    width: 150px;
-    height: auto;
-    object-fit: contain;
-    display: block;
-    margin-left: 20px;
-}
-
-@media (pointer: coarse) {
-
-    .logoImage {
-        width: 80px;
-        height: auto;
-        object-fit: contain;
-        display: block;
-    }
+.brand:hover {
+    background-color: #f5f5f5;
 }
 
 .headerRight {
     margin-left: auto;
     display: flex;
-    gap: 5px;
+    gap: 6px;
     align-items: center;
     flex-wrap: wrap;
-}
-
-.headerMeta {
-    font-size: 12px;
-    opacity: 0.7;
-}
-
-.headerLink {
-    padding: 8px 10px;
-    text-decoration: none;
-    color: #000;
-    font-weight: 600;
-    border-radius: 8px;
-    font-size: 15px;
-    margin-right: 10px;
-}
-
-@media (pointer: coarse) {
-    .headerLink {
-        padding: 0px;
-        text-decoration: none;
-        color: #000;
-        font-weight: 600;
-        border-radius: 8px;
-        font-size: 10px;
-        margin-right: 15px;
-    }
-}
-
-
-.headerLink:hover {
-    background-color: #f5f5f5;
 }
 
 /* ===== global nav ===== */
@@ -110,6 +81,7 @@
     align-items: stretch;
     border: 1px solid #ccc;
     color: #000;
+    background: #fff;
 }
 
 .navLink {
@@ -118,27 +90,17 @@
     text-align: center;
     color: #000;
     text-decoration: none;
-    font-weight: 500;
+    font-weight: 600;
 
-    /* 崩れ防止 */
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
-
-/* separators */
-.navLink+.navLink {
+.navLink + .navLink {
     border-left: 1px solid #ccc;
 }
-
 .navLink:hover {
     background-color: #f5f5f5;
-}
-
-.barInner {
-    max-width: 980px;
-    margin: 0 auto;
-    padding: 0 16px;
 }
 
 /* ===== menu ===== */
@@ -156,18 +118,16 @@
     font-size: 16px;
     padding: 6px 10px;
     border-radius: 8px;
-    margin-right: 15px;
 }
 
 .menuOpen {
     position: absolute;
     top: calc(100% + 8px);
-    /* ★少し下に空ける */
     right: 0;
     background-color: #fff;
     padding: 10px;
     border: 1px solid #ddd;
-    min-width: 200px;
+    min-width: 220px;
     white-space: nowrap;
     display: flex;
     flex-direction: column;
@@ -177,6 +137,21 @@
 
 .withShadow {
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+}
+
+.menuMeta {
+    padding: 6px 8px 2px;
+}
+.menuMetaTitle {
+    font-weight: 800;
+    font-size: 13px;
+    line-height: 1.2;
+}
+.menuMetaSub {
+    margin-top: 2px;
+    font-size: 12px;
+    opacity: 0.7;
+    line-height: 1.2;
 }
 
 .divider {
@@ -193,8 +168,8 @@
     text-decoration: none;
     color: #000;
     border-radius: 8px;
+    font-weight: 600;
 }
-
 .menuLink:hover {
     background-color: #f5f5f5;
 }
@@ -206,8 +181,8 @@
     cursor: pointer;
     padding: 8px 10px;
     border-radius: 8px;
+    font-weight: 700;
 }
-
 .logoutButton:hover {
     background-color: #f5f5f5;
 }
@@ -225,17 +200,20 @@
     align-items: center;
     border-top: 1px solid #eee;
 }
-
 .footerText {
     opacity: 0.7;
 }
 
 /* ===== accessibility (focus) ===== */
-.headerLink:focus-visible,
+.brand:focus-visible,
 .navLink:focus-visible,
 .menuButton:focus-visible,
 .menuLink:focus-visible,
-.logoutButton:focus-visible {
+.logoutButton:focus-visible,
+.hamburgerButton:focus-visible,
+.drawerLink:focus-visible,
+.drawerLogout:focus-visible,
+.drawerClose:focus-visible {
     outline: 2px solid #999;
     outline-offset: 2px;
 }
@@ -250,17 +228,15 @@
     height: 36px;
     cursor: pointer;
     font-size: 18px;
-    margin-left: 15px;
+    margin-left: 10px;
 }
 
-/*  */
 @media (pointer: coarse) {
     .hamburgerButton {
         display: inline-flex;
         align-items: center;
         justify-content: center;
     }
-
     .nav {
         display: none;
     }
@@ -295,7 +271,6 @@
     left: 0;
     width: 100%;
     height: 66vh;
-    /* 2/3 */
     background: #fff;
 
     transform: translateY(-105%);
@@ -313,7 +288,6 @@
     transform: translateY(0);
 }
 
-
 .drawerHeader {
     display: flex;
     align-items: center;
@@ -321,11 +295,9 @@
     padding: 14px 12px;
     border-bottom: 1px solid #eee;
 }
-
 .drawerTitle {
-    font-weight: 600;
+    font-weight: 800;
 }
-
 .drawerClose {
     background: #fff;
     border: 1px solid #ccc;
@@ -346,7 +318,13 @@
     text-decoration: none;
     color: #000;
     border-bottom: 1px solid #f0f0f0;
-    font-weight: 600;
+    font-weight: 700;
+}
+
+.drawerDivider {
+    border: 0;
+    border-top: 1px solid #eee;
+    margin: 10px 14px;
 }
 
 .drawerLogout {
@@ -356,37 +334,5 @@
     border-radius: 10px;
     background: #fff;
     cursor: pointer;
-    font-weight: 700;
-}
-
-.adminlogo {
-    height: 60px;
-    display: flex;
-    align-items: center;
-    justify-content: left;
-    font-size: 24px;
-    text-align: center;
-    padding: 0px 12px;
-    color: #000000;
-    text-decoration: none;
-    font-weight: 700;
-    gap: 10px;
-    margin-left: 10px;
-}
-
-@media(pointer: coarse) {
-    .adminlogo {
-        height: 60px;
-        display: flex;
-        align-items: center;
-        justify-content: left;
-        font-size: 24px;
-        text-align: center;
-        padding: 0px 12px;
-        color: #000000;
-        text-decoration: none;
-        font-weight: 700;
-        gap: 10px;
-        text-align: center;
-    }
+    font-weight: 800;
 }

@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+// frontend/src/committee/pages/CommitteeAnnouncementPage.tsx
+import React, { useEffect, useMemo, useState } from "react";
 import { Card, DevDebug, Page } from "../../shared/ui/page";
 import { formatLocal } from "../../shared/datetime/formatLocal";
 import type { SystemAnnouncement } from "../../shared/model/announcement";
@@ -18,7 +19,6 @@ function actorLabel(a: SystemAnnouncement["actor"]) {
 }
 
 function toIsoFromDatetimeLocal(v: string): string | null {
-    // v: "YYYY-MM-DDTHH:mm"
     if (!v) return null;
     const d = new Date(v);
     if (Number.isNaN(d.getTime())) return null;
@@ -35,14 +35,14 @@ function nowDatetimeLocal(): string {
     return `${y}-${m}-${day}T${hh}:${mm}`;
 }
 
-type NoticeStatus = "ACTIVE" | "FUTURE" | "EXPIRED";
+type NoticeStatus = "ACTIVE" | "FUTURE" | "EXPIRED" | "UNKNOWN";
 
 function noticeStatus(n: PublicNotice): NoticeStatus {
     const now = Date.now();
     const pub = new Date(n.publishedAt).getTime();
     const exp = n.expiresAt ? new Date(n.expiresAt).getTime() : null;
 
-    if (!Number.isFinite(pub)) return "FUTURE";
+    if (!Number.isFinite(pub)) return "UNKNOWN";
     if (pub > now) return "FUTURE";
     if (exp != null && Number.isFinite(exp) && exp <= now) return "EXPIRED";
     return "ACTIVE";
@@ -51,35 +51,135 @@ function noticeStatus(n: PublicNotice): NoticeStatus {
 function statusLabel(s: NoticeStatus) {
     if (s === "ACTIVE") return "公開中";
     if (s === "FUTURE") return "未公開";
-    return "期限切れ";
+    if (s === "EXPIRED") return "期限切れ";
+    return "不明";
 }
 
-export function CommitteeAnnouncementPage() {
-    const [busy, setBusy] = useState(false);
-    const [err, setErr] = useState<string | null>(null);
+function statusStyle(s: NoticeStatus): React.CSSProperties {
+    if (s === "ACTIVE") return { opacity: 1 };
+    if (s === "FUTURE") return { opacity: 0.72 };
+    if (s === "EXPIRED")
+        return { opacity: 0.6, textDecoration: "line-through" };
+    return { opacity: 0.7 };
+}
 
-    // --- SystemAnnouncement（単発バナー） ---
+type TabKey = "BANNER" | "LIST";
+
+const ui = {
+    row: {
+        display: "flex",
+        gap: 12,
+        alignItems: "center",
+        flexWrap: "wrap",
+    } as const,
+    col: { display: "flex", flexDirection: "column", gap: 10 } as const,
+    box: {
+        border: "1px solid #ddd",
+        borderRadius: 10,
+        padding: 12,
+        background: "#fff",
+    } as const,
+    btn: {
+        border: "1px solid #ccc",
+        background: "#fff",
+        cursor: "pointer",
+        padding: "8px 10px",
+        borderRadius: 8,
+        fontWeight: 700,
+    } as const,
+    btnSm: {
+        border: "1px solid #ccc",
+        background: "#fff",
+        cursor: "pointer",
+        padding: "6px 10px",
+        borderRadius: 8,
+        fontWeight: 700,
+        fontSize: 13,
+    } as const,
+    input: {
+        border: "1px solid #ccc",
+        borderRadius: 8,
+        padding: 10,
+        fontSize: 14,
+        background: "#fff",
+    } as const,
+    label: { fontSize: 13, opacity: 0.75 } as const,
+    badge: {
+        border: "1px solid #ccc",
+        borderRadius: 999,
+        padding: "2px 8px",
+        fontSize: 12,
+        display: "inline-block",
+    } as const,
+};
+
+export function CommitteeAnnouncementPage() {
+    const [tab, setTab] = useState<TabKey>("LIST");
+    const [err, setErr] = useState<string | null>(null);
+    const [info, setInfo] = useState<string | null>(null);
+
+    const [bannerBusy, setBannerBusy] = useState(false);
     const [enabled, setEnabled] = useState(true);
     const [actor, setActor] =
         useState<SystemAnnouncement["actor"]>("COMMITTEE");
     const [message, setMessage] = useState("");
 
-    const preview = useMemo(() => {
-        if (!enabled) return "（非表示）";
-        const head = `[${actorLabel(actor)}]`;
-        return `${head} ${message}`.trim();
-    }, [enabled, actor, message]);
-
-    // --- PublicNotice（複数件通知） ---
+    const [listBusy, setListBusy] = useState(false);
     const [notices, setNotices] = useState<PublicNotice[]>([]);
     const [nTitle, setNTitle] = useState("");
     const [nBody, setNBody] = useState("");
     const [nPinned, setNPinned] = useState(false);
     const [nPublishedAt, setNPublishedAt] = useState(nowDatetimeLocal());
-    const [nExpiresAt, setNExpiresAt] = useState<string>(""); // 空ならnull
+    const [nExpiresAt, setNExpiresAt] = useState<string>("");
+
+    const preview = useMemo(() => {
+        if (!enabled) return "（非表示）";
+        const head = `[${actorLabel(actor)}]`;
+        return `${head}\n${message}`.trim();
+    }, [enabled, actor, message]);
+
+    const sortedNotices = useMemo(() => {
+        const cp = [...notices];
+        cp.sort((a, b) => {
+            const ap = a.pinned ? 1 : 0;
+            const bp = b.pinned ? 1 : 0;
+            if (ap !== bp) return bp - ap;
+            const at = new Date(a.publishedAt).getTime();
+            const bt = new Date(b.publishedAt).getTime();
+            return (
+                (Number.isFinite(bt) ? bt : 0) - (Number.isFinite(at) ? at : 0)
+            );
+        });
+        return cp;
+    }, [notices]);
+
+    const counts = useMemo(() => {
+        let active = 0,
+            future = 0,
+            expired = 0,
+            unknown = 0;
+        for (const n of notices) {
+            const s = noticeStatus(n);
+            if (s === "ACTIVE") active++;
+            else if (s === "FUTURE") future++;
+            else if (s === "EXPIRED") expired++;
+            else unknown++;
+        }
+        return { active, future, expired, unknown, total: notices.length };
+    }, [notices]);
+
+    function flashInfo(msg: string) {
+        setInfo(msg);
+        window.setTimeout(() => setInfo(null), 2000);
+    }
+
+    function clearMessages() {
+        setErr(null);
+        setInfo(null);
+    }
 
     async function loadBanner() {
-        setBusy(true);
+        setBannerBusy(true);
         setErr(null);
         try {
             const a = await fetchCommitteeAnnouncement();
@@ -89,34 +189,37 @@ export function CommitteeAnnouncementPage() {
         } catch (e: any) {
             setErr(String(e?.message ?? e));
         } finally {
-            setBusy(false);
+            setBannerBusy(false);
         }
     }
 
     async function saveBanner() {
-        setBusy(true);
+        setBannerBusy(true);
         setErr(null);
         try {
             const msg = message.trim();
-            if (!msg) {
-                setErr("本文が空です");
+            if (enabled && !msg) {
+                setErr("本文が空です（非表示にするならチェックを外してOK）");
                 return;
             }
+
             await updateCommitteeAnnouncement({
                 enabled,
                 actor,
                 message: msg,
             });
+
+            flashInfo("バナーを保存しました");
             await loadBanner();
         } catch (e: any) {
             setErr(String(e?.message ?? e));
         } finally {
-            setBusy(false);
+            setBannerBusy(false);
         }
     }
 
     async function loadNotices() {
-        setBusy(true);
+        setListBusy(true);
         setErr(null);
         try {
             const items = await fetchCommitteeNotices(200);
@@ -124,12 +227,12 @@ export function CommitteeAnnouncementPage() {
         } catch (e: any) {
             setErr(String(e?.message ?? e));
         } finally {
-            setBusy(false);
+            setListBusy(false);
         }
     }
 
     async function addNotice() {
-        setBusy(true);
+        setListBusy(true);
         setErr(null);
         try {
             const title = nTitle.trim();
@@ -157,7 +260,7 @@ export function CommitteeAnnouncementPage() {
                 return;
             }
 
-            const created = await createCommitteeNotice({
+            await createCommitteeNotice({
                 title,
                 body,
                 pinned: nPinned,
@@ -165,36 +268,34 @@ export function CommitteeAnnouncementPage() {
                 expiresAt: expiresIso,
             });
 
-            // ✅ 追加直後は “体感” のため先頭に差し込み（その後リロードでもOK）
-            setNotices((prev) => [created, ...prev]);
+            flashInfo("通知を追加しました");
 
-            // フォーム初期化
             setNTitle("");
             setNBody("");
             setNPinned(false);
             setNPublishedAt(nowDatetimeLocal());
             setNExpiresAt("");
 
-            // ✅ サーバーの並び順/状態に合わせて同期したいなら最後にこれ
             await loadNotices();
         } catch (e: any) {
             setErr(String(e?.message ?? e));
         } finally {
-            setBusy(false);
+            setListBusy(false);
         }
     }
 
     async function removeNotice(id: string) {
         if (!confirm("この通知を削除しますか？")) return;
-        setBusy(true);
+        setListBusy(true);
         setErr(null);
         try {
             await deleteCommitteeNotice(id);
+            flashInfo("通知を削除しました");
             await loadNotices();
         } catch (e: any) {
             setErr(String(e?.message ?? e));
         } finally {
-            setBusy(false);
+            setListBusy(false);
         }
     }
 
@@ -204,323 +305,434 @@ export function CommitteeAnnouncementPage() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    const counts = useMemo(() => {
-        let active = 0,
-            future = 0,
-            expired = 0;
-        for (const n of notices) {
-            const s = noticeStatus(n);
-            if (s === "ACTIVE") active++;
-            else if (s === "FUTURE") future++;
-            else expired++;
-        }
-        return { active, future, expired, total: notices.length };
-    }, [notices]);
+    const anyBusy = bannerBusy || listBusy;
 
     return (
         <Page title="選管：お知らせ">
-            {/* エラー表示（共通） */}
-            {err && (
+            {(err || info) && (
                 <Card>
-                    <div className="rounded-md border p-2 text-sm">
-                        <div className="font-bold">Error</div>
-                        <div className="break-all whitespace-pre-wrap">
-                            {err}
+                    <div style={ui.box}>
+                        {err ? (
+                            <>
+                                <div style={{ fontWeight: 900 }}>Error</div>
+                                <div
+                                    style={{
+                                        marginTop: 6,
+                                        whiteSpace: "pre-wrap",
+                                        wordBreak: "break-word",
+                                    }}
+                                >
+                                    {err}
+                                </div>
+
+                                {String(err).includes("404") && (
+                                    <div
+                                        style={{
+                                            marginTop: 10,
+                                            fontSize: 12,
+                                            opacity: 0.7,
+                                            lineHeight: 1.5,
+                                        }}
+                                    >
+                                        ヒント: Network で{" "}
+                                        <b>/api/committee/announcement</b> に
+                                        404 が出てるなら、Backend の Controller
+                                        のパスと Front の URL
+                                        がズレてる可能性が高い。
+                                    </div>
+                                )}
+                            </>
+                        ) : (
+                            <>
+                                <div style={{ fontWeight: 900 }}>OK</div>
+                                <div
+                                    style={{
+                                        marginTop: 6,
+                                        whiteSpace: "pre-wrap",
+                                        opacity: 0.85,
+                                    }}
+                                >
+                                    {info}
+                                </div>
+                            </>
+                        )}
+                    </div>
+                </Card>
+            )}
+
+            <Card>
+                <div style={ui.row}>
+                    <div style={{ fontWeight: 900 }}>操作</div>
+                    <div style={{ ...ui.row, marginLeft: "auto" }}>
+                        <button
+                            style={{
+                                ...ui.btnSm,
+                                fontWeight: tab === "LIST" ? 900 : 700,
+                            }}
+                            onClick={() => {
+                                clearMessages();
+                                setTab("LIST");
+                            }}
+                            disabled={anyBusy}
+                        >
+                            お知らせ一覧
+                        </button>
+                        <button
+                            style={{
+                                ...ui.btnSm,
+                                fontWeight: tab === "BANNER" ? 900 : 700,
+                            }}
+                            onClick={() => {
+                                clearMessages();
+                                setTab("BANNER");
+                            }}
+                            disabled={anyBusy}
+                        >
+                            単発バナー
+                        </button>
+                    </div>
+                </div>
+            </Card>
+
+            {tab === "BANNER" && (
+                <Card>
+                    <div style={ui.col}>
+                        <div style={ui.row}>
+                            <div style={{ fontWeight: 900 }}>
+                                公開ページ：単発バナー
+                            </div>
+                            <div style={{ ...ui.row, marginLeft: "auto" }}>
+                                <button
+                                    style={ui.btnSm}
+                                    onClick={loadBanner}
+                                    disabled={bannerBusy}
+                                >
+                                    再読み込み
+                                </button>
+                                <button
+                                    style={ui.btnSm}
+                                    onClick={saveBanner}
+                                    disabled={bannerBusy}
+                                >
+                                    保存
+                                </button>
+                            </div>
                         </div>
-                        <div className="mt-1 text-xs opacity-60">
-                            ※「Publicに出ない」時は、通知一覧のステータス（未公開/期限切れ）も確認してね
+
+                        <label style={{ ...ui.row, fontSize: 13 }}>
+                            <input
+                                type="checkbox"
+                                checked={enabled}
+                                onChange={(e) => setEnabled(e.target.checked)}
+                                disabled={bannerBusy}
+                            />
+                            公開ページに表示する
+                        </label>
+
+                        <div style={ui.col}>
+                            <div style={ui.label}>発信者</div>
+                            <select
+                                style={ui.input}
+                                value={actor}
+                                onChange={(e) =>
+                                    setActor(
+                                        e.target
+                                            .value as SystemAnnouncement["actor"],
+                                    )
+                                }
+                                disabled={bannerBusy}
+                            >
+                                <option value="SYSTEM_ADMIN">
+                                    [システム管理者から]
+                                </option>
+                                <option value="COMMITTEE">
+                                    [選挙管理委員会から]
+                                </option>
+                            </select>
+                        </div>
+
+                        <div style={ui.col}>
+                            <div style={ui.label}>本文（手動入力）</div>
+                            <textarea
+                                style={{ ...ui.input, resize: "vertical" }}
+                                rows={6}
+                                value={message}
+                                onChange={(e) => setMessage(e.target.value)}
+                                disabled={bannerBusy}
+                                placeholder={
+                                    enabled
+                                        ? "例）投票開始は 2/10 09:00 からです。\nご協力をお願いします。"
+                                        : "（非表示中）"
+                                }
+                            />
+                            <div style={{ fontSize: 12, opacity: 0.6 }}>
+                                ※改行OK（Public側は pre-wrap 推奨）
+                            </div>
+                        </div>
+
+                        <div style={ui.box}>
+                            <div style={{ fontWeight: 900 }}>プレビュー</div>
+                            <div
+                                style={{
+                                    marginTop: 6,
+                                    whiteSpace: "pre-wrap",
+                                }}
+                            >
+                                {preview}
+                            </div>
                         </div>
                     </div>
                 </Card>
             )}
 
-            {/* 単発バナー（SystemAnnouncement） */}
-            <Card>
-                <div className="flex flex-col gap-3">
-                    <div className="flex items-center justify-between gap-2 flex-wrap">
-                        <div className="font-bold">公開ページ：単発バナー</div>
-                        <button
-                            className="rounded-md border px-3 py-2"
-                            onClick={loadBanner}
-                            disabled={busy}
-                        >
-                            再読み込み
-                        </button>
-                    </div>
-
-                    <label className="flex items-center gap-2 text-sm">
-                        <input
-                            type="checkbox"
-                            checked={enabled}
-                            onChange={(e) => setEnabled(e.target.checked)}
-                            disabled={busy}
-                        />
-                        公開ページに表示する
-                    </label>
-
-                    <div className="flex flex-col gap-1">
-                        <div className="text-sm opacity-70">発信者</div>
-                        <select
-                            className="rounded-md border p-2"
-                            value={actor}
-                            onChange={(e) =>
-                                setActor(
-                                    e.target
-                                        .value as SystemAnnouncement["actor"],
-                                )
-                            }
-                            disabled={busy}
-                        >
-                            <option value="SYSTEM_ADMIN">
-                                [システム管理者から]
-                            </option>
-                            <option value="COMMITTEE">
-                                [選挙管理委員会から]
-                            </option>
-                        </select>
-                    </div>
-
-                    <div className="flex flex-col gap-1">
-                        <div className="text-sm opacity-70">
-                            本文（手動入力）
-                        </div>
-                        <textarea
-                            className="rounded-md border p-2"
-                            rows={5}
-                            value={message}
-                            onChange={(e) => setMessage(e.target.value)}
-                            disabled={busy}
-                        />
-                        <div className="text-xs opacity-60">
-                            ※改行OK（Public側は pre-wrap 推奨）
-                        </div>
-                    </div>
-
-                    <div className="flex gap-2 flex-wrap">
-                        <button
-                            className="rounded-md border px-3 py-2"
-                            onClick={saveBanner}
-                            disabled={busy}
-                        >
-                            保存
-                        </button>
-                    </div>
-
-                    <div className="rounded-md border p-2 text-sm">
-                        <div className="font-bold">プレビュー</div>
-                        <div className="whitespace-pre-wrap">{preview}</div>
-                    </div>
-                </div>
-            </Card>
-
-            {/* 複数件通知（PublicNotice） */}
-            <Card>
-                <div className="flex flex-col gap-3">
-                    <div className="flex items-center justify-between gap-2 flex-wrap">
-                        <div className="font-bold">
-                            公開ページ：お知らせ一覧
-                        </div>
-
-                        <div className="flex items-center gap-2 flex-wrap text-xs opacity-70">
-                            <span>公開中: {counts.active}</span>
-                            <span>未公開: {counts.future}</span>
-                            <span>期限切れ: {counts.expired}</span>
-                            <span>合計: {counts.total}</span>
-
-                            <button
-                                className="rounded-md border px-3 py-2 text-sm opacity-100"
-                                onClick={loadNotices}
-                                disabled={busy}
-                            >
-                                再読み込み
-                            </button>
-                        </div>
-                    </div>
-
-                    {/* 追加フォーム */}
-                    <div className="rounded-md border p-3">
-                        <div className="font-bold text-sm">新規追加</div>
-
-                        <div className="mt-2 flex flex-col gap-2">
-                            <label className="flex flex-col gap-1">
-                                <span className="text-sm opacity-70">
-                                    タイトル
-                                </span>
-                                <input
-                                    className="rounded-md border p-2"
-                                    value={nTitle}
-                                    onChange={(e) => setNTitle(e.target.value)}
-                                    disabled={busy}
-                                />
-                            </label>
-
-                            <label className="flex flex-col gap-1">
-                                <span className="text-sm opacity-70">本文</span>
-                                <textarea
-                                    className="rounded-md border p-2"
-                                    rows={4}
-                                    value={nBody}
-                                    onChange={(e) => setNBody(e.target.value)}
-                                    disabled={busy}
-                                />
-                            </label>
-
-                            <div className="flex gap-3 flex-wrap items-center">
-                                <label className="flex items-center gap-2 text-sm">
-                                    <input
-                                        type="checkbox"
-                                        checked={nPinned}
-                                        onChange={(e) =>
-                                            setNPinned(e.target.checked)
-                                        }
-                                        disabled={busy}
-                                    />
-                                    固定（上に表示）
-                                </label>
-
-                                <label className="flex items-center gap-2 text-sm">
-                                    <span className="opacity-70">公開日時</span>
-                                    <input
-                                        type="datetime-local"
-                                        className="rounded-md border p-2"
-                                        value={nPublishedAt}
-                                        onChange={(e) =>
-                                            setNPublishedAt(e.target.value)
-                                        }
-                                        disabled={busy}
-                                    />
-                                </label>
-
-                                <label className="flex items-center gap-2 text-sm">
-                                    <span className="opacity-70">
-                                        期限（任意）
-                                    </span>
-                                    <input
-                                        type="datetime-local"
-                                        className="rounded-md border p-2"
-                                        value={nExpiresAt}
-                                        onChange={(e) =>
-                                            setNExpiresAt(e.target.value)
-                                        }
-                                        disabled={busy}
-                                    />
-                                    <button
-                                        className="rounded-md border px-2 py-2 text-sm"
-                                        onClick={() => setNExpiresAt("")}
-                                        disabled={busy}
-                                        type="button"
-                                    >
-                                        クリア
-                                    </button>
-                                </label>
+            {tab === "LIST" && (
+                <Card>
+                    <div style={ui.col}>
+                        <div style={ui.row}>
+                            <div style={{ fontWeight: 900 }}>
+                                公開ページ：お知らせ一覧
                             </div>
 
-                            <div className="flex gap-2 flex-wrap">
-                                <button
-                                    className="rounded-md border px-3 py-2"
-                                    onClick={addNotice}
-                                    disabled={busy}
-                                >
-                                    追加
-                                </button>
+                            <div style={{ ...ui.row, marginLeft: "auto" }}>
+                                <span style={{ fontSize: 12, opacity: 0.75 }}>
+                                    公開中: {counts.active} / 未公開:{" "}
+                                    {counts.future} / 期限切れ: {counts.expired}
+                                    {counts.unknown > 0
+                                        ? ` / 不明: ${counts.unknown}`
+                                        : ""}
+                                    {" / "}合計: {counts.total}
+                                </span>
 
                                 <button
-                                    className="rounded-md border px-3 py-2"
+                                    style={ui.btnSm}
+                                    onClick={loadNotices}
+                                    disabled={listBusy}
+                                >
+                                    再読み込み
+                                </button>
+                            </div>
+                        </div>
+
+                        <div style={ui.box}>
+                            <div style={ui.row}>
+                                <div style={{ fontWeight: 900, fontSize: 13 }}>
+                                    新規追加
+                                </div>
+
+                                <button
+                                    style={{ ...ui.btnSm, marginLeft: "auto" }}
                                     onClick={() => {
                                         setNTitle("");
                                         setNBody("");
                                         setNPinned(false);
                                         setNPublishedAt(nowDatetimeLocal());
                                         setNExpiresAt("");
+                                        flashInfo("フォームをリセットしました");
                                     }}
-                                    disabled={busy}
+                                    disabled={listBusy}
                                     type="button"
                                 >
                                     フォームリセット
                                 </button>
                             </div>
 
-                            <div className="text-xs opacity-60">
-                                ※ Publicに出ない場合：公開日時が未来（未公開）/
-                                期限切れ / Public側が未更新 のどれかが多い
+                            <div style={{ marginTop: 10, ...ui.col }}>
+                                <label style={ui.col}>
+                                    <span style={ui.label}>タイトル</span>
+                                    <input
+                                        style={ui.input}
+                                        value={nTitle}
+                                        onChange={(e) =>
+                                            setNTitle(e.target.value)
+                                        }
+                                        disabled={listBusy}
+                                        placeholder="例）投票期間のお知らせ"
+                                    />
+                                </label>
+
+                                <label style={ui.col}>
+                                    <span style={ui.label}>本文</span>
+                                    <textarea
+                                        style={{
+                                            ...ui.input,
+                                            resize: "vertical",
+                                        }}
+                                        rows={5}
+                                        value={nBody}
+                                        onChange={(e) =>
+                                            setNBody(e.target.value)
+                                        }
+                                        disabled={listBusy}
+                                        placeholder={
+                                            "例）\n投票期間は 2/10 09:00〜2/12 18:00 です。\n時間に余裕をもって投票してください。"
+                                        }
+                                    />
+                                </label>
+
+                                <div style={ui.row}>
+                                    <label style={{ ...ui.row, fontSize: 13 }}>
+                                        <input
+                                            type="checkbox"
+                                            checked={nPinned}
+                                            onChange={(e) =>
+                                                setNPinned(e.target.checked)
+                                            }
+                                            disabled={listBusy}
+                                        />
+                                        固定（上に表示）
+                                    </label>
+
+                                    <label style={{ ...ui.row, fontSize: 13 }}>
+                                        <span style={ui.label}>公開日時</span>
+                                        <input
+                                            type="datetime-local"
+                                            style={ui.input}
+                                            value={nPublishedAt}
+                                            onChange={(e) =>
+                                                setNPublishedAt(e.target.value)
+                                            }
+                                            disabled={listBusy}
+                                        />
+                                    </label>
+
+                                    <label style={{ ...ui.row, fontSize: 13 }}>
+                                        <span style={ui.label}>
+                                            期限（任意）
+                                        </span>
+                                        <input
+                                            type="datetime-local"
+                                            style={ui.input}
+                                            value={nExpiresAt}
+                                            onChange={(e) =>
+                                                setNExpiresAt(e.target.value)
+                                            }
+                                            disabled={listBusy}
+                                        />
+                                        <button
+                                            style={ui.btnSm}
+                                            onClick={() => setNExpiresAt("")}
+                                            disabled={listBusy}
+                                            type="button"
+                                        >
+                                            クリア
+                                        </button>
+                                    </label>
+                                </div>
+
+                                <div style={ui.row}>
+                                    <button
+                                        style={ui.btn}
+                                        onClick={addNotice}
+                                        disabled={listBusy}
+                                    >
+                                        追加
+                                    </button>
+                                </div>
+
+                                <div style={{ fontSize: 12, opacity: 0.6 }}>
+                                    ※
+                                    Publicに出ない場合：公開日時が未来（未公開）/
+                                    期限切れ / Public側が未更新 のどれかが多い
+                                </div>
                             </div>
                         </div>
-                    </div>
 
-                    {/* 一覧 */}
-                    {notices.length === 0 ? (
-                        <div className="text-sm opacity-60">
-                            現在、お知らせはありません。
-                        </div>
-                    ) : (
-                        <div className="flex flex-col gap-2">
-                            {notices.map((n) => {
-                                const st = noticeStatus(n);
-                                return (
-                                    <div
-                                        key={n.id}
-                                        className="rounded-md border p-3"
-                                    >
-                                        <div className="flex items-center justify-between gap-2 flex-wrap">
-                                            <div className="flex items-center gap-2 flex-wrap">
-                                                {n.pinned && (
-                                                    <span className="rounded-full border px-2 py-0.5 text-xs">
-                                                        固定
+                        {sortedNotices.length === 0 ? (
+                            <div style={{ fontSize: 13, opacity: 0.7 }}>
+                                現在、お知らせはありません。
+                            </div>
+                        ) : (
+                            <div style={{ display: "grid", gap: 10 }}>
+                                {sortedNotices.map((n) => {
+                                    const st = noticeStatus(n);
+                                    return (
+                                        <div
+                                            key={n.id}
+                                            style={{
+                                                ...ui.box,
+                                                ...statusStyle(st),
+                                            }}
+                                        >
+                                            <div style={ui.row}>
+                                                <div style={ui.row}>
+                                                    {n.pinned && (
+                                                        <span style={ui.badge}>
+                                                            固定
+                                                        </span>
+                                                    )}
+                                                    <span style={ui.badge}>
+                                                        {statusLabel(st)}
                                                     </span>
-                                                )}
-                                                <span
-                                                    className="rounded-full border px-2 py-0.5 text-xs"
-                                                    style={{
-                                                        opacity:
-                                                            st === "ACTIVE"
-                                                                ? 1
-                                                                : 0.65,
-                                                    }}
-                                                >
-                                                    {statusLabel(st)}
-                                                </span>
-                                                <div className="font-bold">
-                                                    {n.title}
+                                                    <div
+                                                        style={{
+                                                            fontWeight: 900,
+                                                        }}
+                                                    >
+                                                        {n.title}
+                                                    </div>
                                                 </div>
+
+                                                <button
+                                                    style={{
+                                                        ...ui.btnSm,
+                                                        marginLeft: "auto",
+                                                    }}
+                                                    onClick={() =>
+                                                        removeNotice(n.id)
+                                                    }
+                                                    disabled={listBusy}
+                                                >
+                                                    削除
+                                                </button>
                                             </div>
 
-                                            <button
-                                                className="rounded-md border px-3 py-2 text-sm"
-                                                onClick={() =>
-                                                    removeNotice(n.id)
-                                                }
-                                                disabled={busy}
+                                            <div
+                                                style={{
+                                                    marginTop: 8,
+                                                    whiteSpace: "pre-wrap",
+                                                    fontSize: 13,
+                                                    opacity: 0.9,
+                                                }}
                                             >
-                                                削除
-                                            </button>
-                                        </div>
+                                                {n.body}
+                                            </div>
 
-                                        <div className="mt-2 whitespace-pre-wrap text-sm opacity-90">
-                                            {n.body}
+                                            <div
+                                                style={{
+                                                    marginTop: 8,
+                                                    fontSize: 12,
+                                                    opacity: 0.65,
+                                                }}
+                                            >
+                                                公開:{" "}
+                                                {formatLocal(n.publishedAt)}
+                                                {n.expiresAt
+                                                    ? ` / 期限: ${formatLocal(
+                                                          n.expiresAt,
+                                                      )}`
+                                                    : ""}
+                                                {n.updatedAt
+                                                    ? ` / 更新: ${formatLocal(
+                                                          n.updatedAt,
+                                                      )}`
+                                                    : ""}
+                                            </div>
                                         </div>
-
-                                        <div className="mt-2 text-xs opacity-60">
-                                            公開: {formatLocal(n.publishedAt)}
-                                            {n.expiresAt
-                                                ? ` / 期限: ${formatLocal(n.expiresAt)}`
-                                                : ""}
-                                            {n.updatedAt
-                                                ? ` / 更新: ${formatLocal(n.updatedAt)}`
-                                                : ""}
-                                        </div>
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    )}
-                </div>
-            </Card>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </div>
+                </Card>
+            )}
 
             <DevDebug
                 value={{
+                    tab,
                     banner: { enabled, actor, message },
                     noticesCount: notices.length,
                     counts,
+                    busy: { bannerBusy, listBusy },
                 }}
             />
         </Page>
