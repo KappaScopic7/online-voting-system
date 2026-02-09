@@ -8,27 +8,29 @@ import java.util.UUID;
 @Table(name = "system_announcement")
 public class SystemAnnouncement {
 
+    public enum Actor {
+        SYSTEM_ADMIN,
+        COMMITTEE
+    }
+
     @Id
+    @Column(nullable = false)
     private UUID id;
 
     @Column(nullable = false)
     private boolean enabled;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 30)
+    @Column(nullable = false, length = 32)
     private Actor actor;
 
     @Column(nullable = false, length = 4000)
     private String message;
 
-    @Column(name = "updated_at", nullable = false)
+    @Column(nullable = false)
     private Instant updatedAt;
 
-    public enum Actor {
-        SYSTEM_ADMIN,
-        COMMITTEE
-    }
-
+    // --- getters/setters ---
     public UUID getId() {
         return id;
     }

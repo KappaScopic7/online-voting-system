@@ -15,7 +15,6 @@ import java.util.UUID;
 @Service
 public class SystemAnnouncementService {
 
-    // “1件だけ”運用の固定ID（UUIDなら衝突しない）
     private static final UUID SINGLETON_ID = UUID.fromString("00000000-0000-0000-0000-000000000001");
 
     private final SystemAnnouncementRepository repo;
@@ -63,7 +62,6 @@ public class SystemAnnouncementService {
         return SystemAnnouncementResponse.from(a);
     }
 
-    // ない場合は初期レコードを自動作成
     @Transactional
     protected SystemAnnouncement ensureExists() {
         return repo.findById(SINGLETON_ID).orElseGet(() -> {
