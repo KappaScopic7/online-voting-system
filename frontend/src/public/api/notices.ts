@@ -10,7 +10,9 @@ export type PublicNotice = {
     updatedAt: string;
 };
 
-export async function fetchPublicNotices(limit = 5): Promise<PublicNotice[]> {
-    const res = await httpPublic.get(`/notices`, { params: { limit } });
-    return res.data;
+export async function fetchPublicNotices(limit = 5) {
+    const r = await httpPublic.get(`/public/notices`, {
+        params: { limit },
+    });
+    return r.data;
 }
