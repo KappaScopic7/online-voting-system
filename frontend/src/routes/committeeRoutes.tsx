@@ -9,6 +9,7 @@ import { CommitteeElectionsPage } from "../committee/pages/CommitteeElectionsPag
 import { CommitteeStaffPage } from "../committee/pages/CommitteeStaffPage";
 import { CommitteeMePage } from "../committee/pages/CommitteeMePage";
 import { CommitteeElectionCreatePage } from "../committee/pages/CommitteeElectionCreatePage";
+import { CommitteeElectionOpsPage } from "../committee/pages/CommitteeElectionOpsPage";
 
 export function CommitteeRoutes() {
     return (
@@ -16,6 +17,7 @@ export function CommitteeRoutes() {
             <Route element={<CommitteeLayout />}>
                 <Route path="login" element={<CommitteeLoginPage />} />
             </Route>
+
             <Route
                 element={
                     <RequireStaff
@@ -33,6 +35,12 @@ export function CommitteeRoutes() {
                     <Route
                         path="elections/new"
                         element={<CommitteeElectionCreatePage />}
+                    />
+
+                    {/* ★ここ：相対パスにする */}
+                    <Route
+                        path="elections/:electionId/ops"
+                        element={<CommitteeElectionOpsPage />}
                     />
 
                     <Route path="staff" element={<CommitteeStaffPage />} />
