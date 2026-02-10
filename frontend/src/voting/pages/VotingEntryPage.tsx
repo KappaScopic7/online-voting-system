@@ -104,12 +104,14 @@ export function VotingEntryPage() {
             const e = list.find((x: any) => x.electionId === electionId);
             const kind = detectKind(e);
 
+            const eid = encodeURIComponent(electionId);
+
             const to =
                 kind === "ALLOC"
-                    ? `/alloc-voting/start?electionId=...${sessionQS}`
+                    ? `/alloc-voting/start?electionId=${eid}${sessionQS}`
                     : kind === "JUDGE_REVIEW"
-                      ? `/judge-review/start?electionId=...${sessionQS}`
-                      : `/voting/start?electionId=...${sessionQS}`;
+                      ? `/judge-review/start?electionId=${eid}${sessionQS}`
+                      : `/voting/start?electionId=${eid}${sessionQS}`;
 
             nav(to, { replace: true, state: { from: backTo } });
         })().catch(() => {

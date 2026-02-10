@@ -1,8 +1,7 @@
-// frontend/src/voting/api/votes.ts
 import { httpUser } from "../../shared/httpUser";
 
 /* ===== types ===== */
-export type VoteType = "CANDIDATE" | "NONE_SUPPORT";
+export type VoteType = "CANDIDATE" | "NONE_SUPPORT" | "JUDGE_REVIEW";
 
 export type VoteHistoryItem = {
     voteId: string;
@@ -11,12 +10,16 @@ export type VoteHistoryItem = {
 
     electionStatus: "ONGOING" | "ENDED" | "UPCOMING" | string;
 
-    // ★ type を追加（超大事）
+    // 統合DTO
     type: VoteType;
 
-    // ★ NONE_SUPPORT で null を許容
-    candidateId: string | null;
-    candidateName: string;
+    // 旧candidateId/candidateNameをやめる
+    targetId: string | null; // CANDIDATE/JUDGE_REVIEW のID、NONE_SUPPORT は null
+    label: string; // 候補者名/裁判官名/"誰も支持しない"
+
+    // JUDGE_REVIEW のみ: OK=true / NO=false
+    approve: boolean | null;
+
     castedAt: string;
 };
 
@@ -40,7 +43,7 @@ export async function startVoting(
     return res.data;
 }
 
-// ★ これ1本で candidate / noneSupport 両対応
+// candidate / noneSupport のみ（judge review は別API）
 export async function confirmVote(
     req: VoteConfirmRequest,
 ): Promise<VoteHistoryItem> {
@@ -48,7 +51,6 @@ export async function confirmVote(
     return res.data;
 }
 
-// ★ パスは backend に合わせて /voting/history
 export async function fetchVoteHistory(): Promise<VoteHistoryItem[]> {
     const res = await httpUser.get<VoteHistoryItem[]>("/voting/history");
     return res.data;

@@ -55,15 +55,21 @@ function VoteRow({ v, from }: { v: VoteHistoryItem; from: string }) {
     const [hover, setHover] = useState(false);
     const isDev = import.meta.env?.DEV;
 
-    const isCandidate = v.type === "CANDIDATE" && !!v.candidateId;
+    const isCandidate = v.type === "CANDIDATE" && !!v.targetId;
+    const isNoneSupport = v.type === "NONE_SUPPORT";
+    const isJudgeReview = v.type === "JUDGE_REVIEW" && !!v.targetId;
 
     const label =
-        v.candidateName ??
-        (isCandidate ? "（不明な候補者）" : "誰も支持しない");
+        v.label ??
+        (isCandidate
+            ? "（不明な候補者）"
+            : isJudgeReview
+              ? "（不明な裁判官）"
+              : "誰も支持しない");
 
     const labelNode = isCandidate ? (
         <Link
-            to={`/elections/${v.electionId}/candidates/${v.candidateId}`}
+            to={`/elections/${v.electionId}/candidates/${v.targetId}`}
             state={{ from }}
             style={{ color: "inherit", textDecoration: "none" }}
             title="候補者詳細へ"
@@ -73,6 +79,13 @@ function VoteRow({ v, from }: { v: VoteHistoryItem; from: string }) {
     ) : (
         <span>{label}</span>
     );
+
+    const judgeMark =
+        v.approve === true
+            ? "○（信任）"
+            : v.approve === false
+              ? "×（不信任）"
+              : "-";
 
     return (
         <div
@@ -126,10 +139,17 @@ function VoteRow({ v, from }: { v: VoteHistoryItem; from: string }) {
                     <EmptyAvatar size={30} />
                 )}
 
-                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <div
+                    style={{
+                        display: "flex",
+                        gap: 8,
+                        flexWrap: "wrap",
+                        alignItems: "baseline",
+                    }}
+                >
                     <span>
                         投票先: <strong>{labelNode}</strong>
-                        {!isCandidate && (
+                        {isNoneSupport && (
                             <span
                                 style={{
                                     marginLeft: 8,
@@ -138,6 +158,18 @@ function VoteRow({ v, from }: { v: VoteHistoryItem; from: string }) {
                                 }}
                             >
                                 （候補者を選ばない）
+                            </span>
+                        )}
+                        {isJudgeReview && (
+                            <span
+                                style={{
+                                    marginLeft: 10,
+                                    fontSize: 12,
+                                    fontWeight: 800,
+                                    opacity: 0.9,
+                                }}
+                            >
+                                {judgeMark}
                             </span>
                         )}
                     </span>
@@ -155,7 +187,10 @@ function VoteRow({ v, from }: { v: VoteHistoryItem; from: string }) {
                         {" / "}
                         type: {v.type}
                         {" / "}
-                        candidateId: {v.candidateId ?? "null"}
+                        targetId: {v.targetId ?? "null"}
+                        {" / "}
+                        approve:{" "}
+                        {v.approve === null ? "null" : String(v.approve)}
                     </span>
                 )}
             </div>
@@ -496,10 +531,12 @@ export function VoteHistoryPage() {
                       ? g.normal
                       : g.normal.filter((v) => {
                             const label =
-                                v.candidateName ??
+                                v.label ??
                                 (v.type === "NONE_SUPPORT"
                                     ? "誰も支持しない"
-                                    : "（不明な候補者）");
+                                    : v.type === "JUDGE_REVIEW"
+                                      ? "（不明な裁判官）"
+                                      : "（不明な候補者）");
                             return label.toLowerCase().includes(keyword);
                         });
 
@@ -516,7 +553,6 @@ export function VoteHistoryPage() {
                         );
 
                 if (!keyword) {
-                    // keyword 無しなら、モードによって単純に表示切替
                     const hasAny =
                         normalFiltered.length > 0 || allocFiltered.length > 0;
                     return hasAny
@@ -524,7 +560,6 @@ export function VoteHistoryPage() {
                         : null;
                 }
 
-                // keyword 有りなら：選挙名にヒットしたら丸ごと（ただしモードで落とす）
                 if (hitElection) {
                     const keepNormal = wantNormal ? g.normal : [];
                     const keepAlloc = wantAlloc ? g.alloc : [];
@@ -535,7 +570,6 @@ export function VoteHistoryPage() {
                         : null;
                 }
 
-                // 投票先にヒットしたものだけ
                 if (normalFiltered.length === 0 && allocFiltered.length === 0)
                     return null;
                 return { ...g, normal: normalFiltered, alloc: allocFiltered };
@@ -787,10 +821,10 @@ export function VoteHistoryPage() {
                         const latestIsOngoing = latestStatus === "ONGOING";
 
                         // 「投票を変更する」リンクは、どっちの方式でも選べるように両方出す
-                        const showNormalChange =
-                            latestIsOngoing && g.normal.length > 0;
-                        const showAllocChange =
-                            latestIsOngoing && g.alloc.length > 0;
+                        // const showNormalChange =
+                        //     latestIsOngoing && g.normal.length > 0;
+                        // const showAllocChange =
+                        //     latestIsOngoing && g.alloc.length > 0;
 
                         return (
                             <Card key={g.electionId}>

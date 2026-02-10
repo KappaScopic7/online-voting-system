@@ -147,64 +147,125 @@ public class VotingService {
                 election.getId(),
                 election.getTitle(),
                 resolveElectionStatus(election),
-                candidateId,
-                candidateName,
+                type,
+                candidateId, // targetId
+                candidateName, // label
+                null, // approve
                 now);
+
     }
 
     public List<VoteHistoryItem> history(UUID accountId) {
         UUID citizenId = citizenIdResolver.requireCitizenId(accountId);
 
         var votes = voteCastRepo.findByCitizenIdOrderByCastedAtDesc(citizenId);
-        if (votes.isEmpty())
+        var jrCasts = judgeReviewCastRepo.findByCitizenIdOrderByCastedAtDesc(citizenId);
+
+        if (votes.isEmpty() && jrCasts.isEmpty())
             return List.of();
 
-        var electionIds = votes.stream().map(VoteCast::getElectionId).collect(Collectors.toSet());
-        var candidateIds = votes.stream()
-                .map(VoteCast::getCandidateId)
-                .filter(Objects::nonNull)
-                .collect(Collectors.toSet());
+        // --- election ids ---
+        Set<UUID> electionIds = new HashSet<>();
+        for (var v : votes)
+            electionIds.add(v.getElectionId());
+        for (var c : jrCasts)
+            electionIds.add(c.getElectionId());
 
         var elections = electionRepo.findAllById(electionIds).stream()
                 .collect(Collectors.toMap(Election::getId, Function.identity()));
 
+        // --- candidate ids (normal candidates + judge candidates) ---
+        Set<UUID> candidateIds = new HashSet<>();
+        for (var v : votes) {
+            if (v.getCandidateId() != null)
+                candidateIds.add(v.getCandidateId());
+        }
+
+        // judge review items bulk load
+        Map<UUID, List<JudgeReviewItem>> jrItemsByCastId = Map.of();
+        if (!jrCasts.isEmpty()) {
+            var castIds = jrCasts.stream().map(JudgeReviewCast::getId).collect(Collectors.toSet());
+            var items = judgeReviewItemRepo.findByCastIdIn(castIds);
+            jrItemsByCastId = items.stream().collect(Collectors.groupingBy(JudgeReviewItem::getCastId));
+
+            for (var it : items) {
+                if (it.getJudgeCandidateId() != null)
+                    candidateIds.add(it.getJudgeCandidateId());
+            }
+        }
+
         var candidates = candidateRepo.findAllById(candidateIds).stream()
                 .collect(Collectors.toMap(c -> c.getId(), Function.identity()));
 
-        return votes.stream()
-                .map(v -> {
-                    var e = elections.get(v.getElectionId());
+        List<VoteHistoryItem> out = new ArrayList<>();
 
-                    String status = "UNKNOWN";
-                    String title = "(unknown election)";
-                    if (e != null) {
-                        status = resolveElectionStatus(e);
-                        title = e.getTitle();
-                    }
+        // --- normal votes -> VoteHistoryItem ---
+        for (var v : votes) {
+            var e = elections.get(v.getElectionId());
+            String status = e != null ? resolveElectionStatus(e) : "UNKNOWN";
+            String title = e != null ? e.getTitle() : "(unknown election)";
 
-                    UUID cid = v.getCandidateId();
-                    if (cid == null) {
-                        return new VoteHistoryItem(
-                                v.getId(),
-                                v.getElectionId(),
-                                title,
-                                status,
-                                null,
-                                "誰も支持しない",
-                                v.getCastedAt());
-                    }
+            if (v.getCandidateId() == null) {
+                out.add(new VoteHistoryItem(
+                        v.getId(),
+                        v.getElectionId(),
+                        title,
+                        status,
+                        "NONE_SUPPORT",
+                        null,
+                        "誰も支持しない",
+                        null,
+                        v.getCastedAt()));
+            } else {
+                var c = candidates.get(v.getCandidateId());
+                out.add(new VoteHistoryItem(
+                        v.getId(),
+                        v.getElectionId(),
+                        title,
+                        status,
+                        "CANDIDATE",
+                        v.getCandidateId(),
+                        c != null ? c.getName() : "(unknown candidate)",
+                        null,
+                        v.getCastedAt()));
+            }
+        }
 
-                    var c = candidates.get(cid);
-                    return new VoteHistoryItem(
-                            v.getId(),
-                            v.getElectionId(),
-                            title,
-                            status,
-                            cid,
-                            c != null ? c.getName() : "(unknown candidate)",
-                            v.getCastedAt());
-                })
-                .toList();
+        // --- judge review votes -> VoteHistoryItem (1 judge = 1 row) ---
+        for (var cast : jrCasts) {
+            var e = elections.get(cast.getElectionId());
+            String status = e != null ? resolveElectionStatus(e) : "UNKNOWN";
+            String title = e != null ? e.getTitle() : "(unknown election)";
+
+            var items = jrItemsByCastId.getOrDefault(cast.getId(), List.of());
+            for (var it : items) {
+                var judge = candidates.get(it.getJudgeCandidateId());
+                String judgeName = judge != null ? judge.getName() : "(unknown judge)";
+
+                // OK/NO -> boolean
+                Boolean approve = null;
+                if (it.getChoice() != null) {
+                    approve = (it.getChoice() == JudgeReviewItem.Choice.OK);
+                }
+
+                out.add(new VoteHistoryItem(
+                        cast.getId(), // voteId的には castId を入れてOK（ユニークである必要だけ満たす）
+                        cast.getElectionId(),
+                        title,
+                        status,
+                        "JUDGE_REVIEW",
+                        it.getJudgeCandidateId(),
+                        judgeName,
+                        approve,
+                        cast.getCastedAt()));
+            }
+        }
+
+        // castedAt desc
+        out.sort((a, b) -> (b.castedAt() == null ? "" : b.castedAt().toString())
+                .compareTo(a.castedAt() == null ? "" : a.castedAt().toString()));
+
+        return out;
     }
 
     // ===== public vote token entry points =====
@@ -257,8 +318,10 @@ public class VotingService {
                 election.getId(),
                 election.getTitle(),
                 resolveElectionStatus(election),
-                candidate.getId(),
-                candidate.getName(),
+                "CANDIDATE",
+                candidate.getId(), // targetId
+                candidate.getName(), // label
+                null, // approve
                 now);
     }
 
@@ -289,13 +352,14 @@ public class VotingService {
                 election.getId(),
                 election.getTitle(),
                 resolveElectionStatus(election),
-                null,
-                "誰も支持しない",
+                "NONE_SUPPORT",
+                null, // targetId
+                "誰も支持しない", // label
+                null, // approve
                 now);
     }
 
     // ===== allocation confirm by citizen (このサービスに元々あったので維持) =====
-
     @Transactional
     public void confirmAllocByCitizen(UUID citizenId, UUID electionId, List<VoteAllocConfirmRequest.Item> items) {
         electionEligibilityService.requireEligibleCitizen(citizenId, electionId);
