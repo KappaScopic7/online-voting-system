@@ -114,7 +114,15 @@ export function ElectionCandidatesPage() {
                     </p>
                 </Card>
             ) : (
-                <div style={{ display: "grid", gap: 10 }}>
+                <div
+                    style={{
+                        display: "grid",
+                        gap: 10,
+                        gridTemplateColumns:
+                            "repeat(auto-fit, minmax(240px, 1fr))",
+                        alignItems: "stretch",
+                    }}
+                >
                     {items.map((c, idx) => (
                         <CandidateCard
                             key={c.id}
@@ -123,7 +131,7 @@ export function ElectionCandidatesPage() {
                             detailUrl={`/elections/${electionId}/candidates/${c.id}`}
                             showId={isDev}
                             showSortOrder={false}
-                            indexOverride={idx} // 一覧の見た目用（必要なければ消してOK）
+                            indexOverride={idx}
                         />
                     ))}
                 </div>

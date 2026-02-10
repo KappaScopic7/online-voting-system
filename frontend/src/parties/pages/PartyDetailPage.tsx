@@ -35,100 +35,149 @@ type PartyCandidatePerson = {
 function PartyCandidateCard(props: { p: PartyCandidatePerson; from: string }) {
     const { p, from } = props;
 
-    // 優先: APIのimageUrl -> assets(candidateKey)
     const avatarUrl =
         (p.imageUrl && (p.imageUrl as any)) ??
         resolveCandidateImageUrl(p.candidateKey);
 
     return (
         <Link
-            to={`/elections/${p.representativeElectionId}/candidates/${p.representativeCandidateId}`}
+            to={`/elections/${encodeURIComponent(
+                p.representativeElectionId,
+            )}/candidates/${encodeURIComponent(p.representativeCandidateId)}`}
             state={{ from }}
-            style={{ textDecoration: "none", color: "inherit" }}
+            style={{
+                textDecoration: "none",
+                color: "inherit",
+                display: "block",
+                height: "100%",
+            }}
         >
             <div
                 style={{
+                    height: "100%",
                     border: "1px solid #eee",
                     borderRadius: 12,
                     padding: 12,
                     display: "grid",
-                    gap: 8,
+                    gap: 10,
                     background: "#fff",
+                    transition: "background 120ms ease, transform 120ms ease",
+                }}
+                onMouseEnter={(ev) => {
+                    (ev.currentTarget as HTMLDivElement).style.background =
+                        "#fafafa";
+                    (ev.currentTarget as HTMLDivElement).style.transform =
+                        "translateY(-1px)";
+                }}
+                onMouseLeave={(ev) => {
+                    (ev.currentTarget as HTMLDivElement).style.background =
+                        "#fff";
+                    (ev.currentTarget as HTMLDivElement).style.transform =
+                        "translateY(0)";
                 }}
             >
+                {/* 上段：タグ類（右寄せ） */}
                 <div
                     style={{
                         display: "flex",
-                        gap: 12,
-                        alignItems: "center",
+                        gap: 8,
+                        justifyContent: "flex-end",
                         flexWrap: "wrap",
                     }}
                 >
+                    <span
+                        style={{
+                            fontSize: 12,
+                            opacity: 0.7,
+                            padding: "2px 8px",
+                            border: "1px solid #eee",
+                            borderRadius: 999,
+                            background: "#fafafa",
+                        }}
+                        title="candidateKey"
+                    >
+                        {p.candidateKey}
+                    </span>
+
+                    <span
+                        style={{
+                            fontSize: 12,
+                            opacity: 0.7,
+                            padding: "2px 8px",
+                            border: "1px solid #eee",
+                            borderRadius: 999,
+                            background: "#fafafa",
+                        }}
+                        title="elections count"
+                    >
+                        出馬 {p.electionsCount} 件
+                    </span>
+
+                    {p.age !== null ? (
+                        <span style={{ fontSize: 12, opacity: 0.7 }}>
+                            {p.age}歳
+                        </span>
+                    ) : null}
+                </div>
+
+                {/* アバター */}
+                <div style={{ display: "flex", justifyContent: "center" }}>
                     <CandidateAvatar
                         name={p.name}
                         imageUrl={avatarUrl}
                         index={p.index}
-                        size={44}
+                        size={64}
                     />
+                </div>
 
-                    <div style={{ display: "grid", gap: 4, flex: 1 }}>
-                        <div
-                            style={{
-                                display: "flex",
-                                gap: 10,
-                                alignItems: "baseline",
-                                flexWrap: "wrap",
-                            }}
-                        >
-                            <strong style={{ fontSize: 16 }}>{p.name}</strong>
-
-                            <span
-                                style={{
-                                    fontSize: 12,
-                                    opacity: 0.7,
-                                    padding: "2px 8px",
-                                    border: "1px solid #eee",
-                                    borderRadius: 999,
-                                    background: "#fafafa",
-                                }}
-                                title="candidateKey"
-                            >
-                                {p.candidateKey}
-                            </span>
-
-                            <span
-                                style={{
-                                    fontSize: 12,
-                                    opacity: 0.7,
-                                    padding: "2px 8px",
-                                    border: "1px solid #eee",
-                                    borderRadius: 999,
-                                    background: "#fafafa",
-                                }}
-                                title="elections count"
-                            >
-                                出馬 {p.electionsCount} 件
-                            </span>
-
-                            <span
-                                style={{
-                                    marginLeft: "auto",
-                                    fontSize: 12,
-                                    opacity: 0.7,
-                                }}
-                            >
-                                {p.age !== null ? `${p.age}歳` : ""}
-                            </span>
-                        </div>
-
-                        <div style={{ fontSize: 13, opacity: 0.85 }}>
-                            {p.title ?? ""}
-                        </div>
-
-                        <div style={{ fontSize: 13, opacity: 0.85 }}>
-                            候補者の詳細を見る →
-                        </div>
+                {/* 名前 */}
+                <div style={{ textAlign: "center" }}>
+                    <div
+                        style={{
+                            fontSize: 16,
+                            fontWeight: 800,
+                            lineHeight: 1.3,
+                            wordBreak: "break-word",
+                        }}
+                    >
+                        {p.name}
                     </div>
+                </div>
+
+                {/* 肩書き */}
+                {p.title ? (
+                    <div
+                        style={{
+                            fontSize: 13,
+                            opacity: 0.85,
+                            lineHeight: 1.5,
+                            textAlign: "center",
+                        }}
+                    >
+                        {p.title}
+                    </div>
+                ) : (
+                    <div
+                        style={{
+                            fontSize: 13,
+                            opacity: 0.6,
+                            textAlign: "center",
+                        }}
+                    >
+                        （肩書きなし）
+                    </div>
+                )}
+
+                {/* CTA */}
+                <div
+                    style={{
+                        marginTop: "auto",
+                        fontSize: 13,
+                        opacity: 0.85,
+                        textAlign: "center",
+                    }}
+                >
+                    候補者の詳細を見る →
                 </div>
             </div>
         </Link>
@@ -360,7 +409,16 @@ export function PartyDetailPage() {
                     </div>
                 </div>
 
-                <div style={{ marginTop: 12, display: "grid", gap: 10 }}>
+                <div
+                    style={{
+                        marginTop: 12,
+                        display: "grid",
+                        gap: 10,
+                        gridTemplateColumns:
+                            "repeat(auto-fit, minmax(260px, 1fr))",
+                        alignItems: "stretch",
+                    }}
+                >
                     {people === null ? (
                         <div style={{ opacity: 0.8 }}>読み込み中…</div>
                     ) : people.length === 0 ? (

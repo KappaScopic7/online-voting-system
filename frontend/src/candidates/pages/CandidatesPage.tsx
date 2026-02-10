@@ -26,11 +26,12 @@ import {
 export function CandidatesPage() {
     const { self: from, backTo } = useFromBackTo("/");
 
+    // candidates
     const [items, setItems] = useState<CandidateItem[] | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
 
-    // meta
+    // meta (elections)
     const [electionMetaById, setElectionMetaById] = useState<
         Record<string, ElectionMeta>
     >({});
@@ -47,63 +48,23 @@ export function CandidatesPage() {
     const [partyKey, setPartyKey] = useState("");
     const [q, setQ] = useState("");
 
-    useEffect(() => {
-        let cancelled = false;
-        setMetaLoading(true);
-
-        fetchElections()
-            .then((list: ElectionListItem[]) => {
-                if (cancelled) return;
-                setElections(list);
-
-                const map: Record<string, ElectionMeta> = {};
-                list.forEach((e) => {
-                    map[e.electionId] = {
-                        title: e.title,
-                        startsAt: e.startsAt,
-                        endsAt: e.endsAt,
-                        status: e.status,
-                    };
-                });
-                setElectionMetaById(map);
-            })
-            .catch(() => {})
-            .finally(() => {
-                if (!cancelled) setMetaLoading(false);
-            });
-
-        return () => {
-            cancelled = true;
-        };
-    }, []);
-
-    useEffect(() => {
-        let cancelled = false;
-        setPartiesLoading(true);
-
-        fetchParties()
-            .then((list: PartyListItem[]) => {
-                if (cancelled) return;
-                setParties(list);
-            })
-            .catch(() => {})
-            .finally(() => {
-                if (!cancelled) setPartiesLoading(false);
-            });
-
-        return () => {
-            cancelled = true;
-        };
-    }, []);
-
-    const loadCandidates = async () => {
+    // ----------------------------
+    // Loaders
+    // ----------------------------
+    const loadCandidates = async (opts?: {
+        electionId?: string;
+        partyKey?: string;
+    }) => {
         setError(null);
         setIsLoading(true);
 
+        const eid = (opts?.electionId ?? electionId).trim();
+        const pk = (opts?.partyKey ?? partyKey).trim();
+
         try {
             const cands = await fetchCandidates({
-                electionId: electionId.trim() || undefined,
-                partyKey: partyKey.trim() || undefined,
+                electionId: eid || undefined,
+                partyKey: pk || undefined,
             });
             setItems(cands);
         } catch (err: any) {
@@ -116,11 +77,111 @@ export function CandidatesPage() {
         }
     };
 
+    const resetFilters = () => {
+        // UI state
+        setElectionId("");
+        setPartyKey("");
+        setQ("");
+
+        // ★確実に「空条件」で取り直す（setTimeout不要）
+        loadCandidates({ electionId: "", partyKey: "" });
+    };
+
+    // ----------------------------
+    // Initial loads
+    // ----------------------------
     useEffect(() => {
-        loadCandidates();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+        // 初回 candidates
+        let cancelled = false;
+
+        (async () => {
+            setError(null);
+            setIsLoading(true);
+            try {
+                const cands = await fetchCandidates({});
+                if (!cancelled) setItems(cands);
+            } catch (err: any) {
+                if (!cancelled) {
+                    setError(
+                        err?.response?.data?.message ??
+                            "Failed to load candidates",
+                    );
+                    setItems([]);
+                }
+            } finally {
+                if (!cancelled) setIsLoading(false);
+            }
+        })();
+
+        return () => {
+            cancelled = true;
+        };
     }, []);
 
+    useEffect(() => {
+        // elections meta
+        let cancelled = false;
+
+        (async () => {
+            setMetaLoading(true);
+            try {
+                const list = await fetchElections();
+                if (cancelled) return;
+
+                setElections(list);
+
+                const map: Record<string, ElectionMeta> = {};
+                for (const e of list) {
+                    map[e.electionId] = {
+                        title: e.title,
+                        startsAt: e.startsAt,
+                        endsAt: e.endsAt,
+                        status: e.status,
+                    };
+                }
+                setElectionMetaById(map);
+            } catch (err: any) {
+                // ★握り潰さない（候補者は見れるがメタが壊れてる等を検知しやすく）
+                if (!cancelled) {
+                    setError((prev) => prev ?? "選挙情報の取得に失敗しました");
+                }
+            } finally {
+                if (!cancelled) setMetaLoading(false);
+            }
+        })();
+
+        return () => {
+            cancelled = true;
+        };
+    }, []);
+
+    useEffect(() => {
+        // parties
+        let cancelled = false;
+
+        (async () => {
+            setPartiesLoading(true);
+            try {
+                const list = await fetchParties();
+                if (cancelled) return;
+                setParties(list);
+            } catch (err: any) {
+                if (!cancelled) {
+                    setError((prev) => prev ?? "政党情報の取得に失敗しました");
+                }
+            } finally {
+                if (!cancelled) setPartiesLoading(false);
+            }
+        })();
+
+        return () => {
+            cancelled = true;
+        };
+    }, []);
+
+    // ----------------------------
+    // View models
+    // ----------------------------
     const filtered = useMemo(() => filterCandidates(items, q), [items, q]);
     const people = useMemo(() => toPeople(filtered), [filtered]);
     const groups = useMemo(
@@ -130,13 +191,6 @@ export function CandidatesPage() {
 
     const totalCount = filtered?.length ?? 0;
     const personCount = people?.length ?? 0;
-
-    const resetFilters = () => {
-        setElectionId("");
-        setPartyKey("");
-        setQ("");
-        setTimeout(loadCandidates, 0);
-    };
 
     return (
         <Page
@@ -152,7 +206,7 @@ export function CandidatesPage() {
                 >
                     <Link to={backTo}>← 戻る</Link>
                     <button
-                        onClick={loadCandidates}
+                        onClick={() => loadCandidates()}
                         disabled={isLoading}
                         style={{ marginLeft: 8 }}
                     >
@@ -176,14 +230,16 @@ export function CandidatesPage() {
                 q={q}
                 setQ={setQ}
                 isLoading={isLoading}
-                onApply={loadCandidates}
+                onApply={() => loadCandidates()}
                 onReset={resetFilters}
             />
 
             {error && (
                 <ErrorCard
                     message={error}
-                    actions={<button onClick={loadCandidates}>再試行</button>}
+                    actions={
+                        <button onClick={() => loadCandidates()}>再試行</button>
+                    }
                 />
             )}
 
@@ -237,6 +293,8 @@ export function CandidatesPage() {
                     groupsLen: groups?.length ?? null,
                     electionsLoaded: elections.length,
                     partiesLoaded: parties.length,
+                    metaLoading,
+                    partiesLoading,
                 }}
             />
         </Page>

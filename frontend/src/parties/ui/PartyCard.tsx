@@ -1,15 +1,30 @@
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import type { PartyListItem } from "../model/partyTypes";
 import { Card } from "../../shared/ui/page";
 import { PartyPill } from "./PartyPill";
 
 export function PartyCard(props: { p: PartyListItem; from: string }) {
     const { p, from } = props;
+    const nav = useNavigate();
+
     const color = (p.color ?? "").trim() || null;
+    const key = encodeURIComponent(p.partyKey);
+    const detailLink = `/parties/${key}`;
+
+    const goDetail = () => nav(detailLink, { state: { from } });
 
     return (
         <Card>
             <div
+                role="link"
+                tabIndex={0}
+                onClick={goDetail}
+                onKeyDown={(ev) => {
+                    if (ev.key === "Enter" || ev.key === " ") {
+                        ev.preventDefault();
+                        goDetail();
+                    }
+                }}
                 style={{
                     padding: 12,
                     display: "grid",
@@ -18,6 +33,7 @@ export function PartyCard(props: { p: PartyListItem; from: string }) {
                     borderRadius: 12,
                     boxShadow: color ? `inset 4px 0 0 0 ${color}` : undefined,
                     transition: "background 120ms ease",
+                    cursor: "pointer",
                 }}
                 onMouseEnter={(ev) => {
                     (ev.currentTarget as HTMLDivElement).style.background =
@@ -37,18 +53,7 @@ export function PartyCard(props: { p: PartyListItem; from: string }) {
                         flexWrap: "wrap",
                     }}
                 >
-                    <strong style={{ fontSize: 16 }}>
-                        <Link
-                            to={`/parties/${p.partyKey}`}
-                            state={{ from }}
-                            style={{
-                                textDecoration: "none",
-                                color: "inherit",
-                            }}
-                        >
-                            {p.name}
-                        </Link>
-                    </strong>
+                    <strong style={{ fontSize: 16 }}>{p.name}</strong>
 
                     <PartyPill
                         shortName={p.shortName}
@@ -59,7 +64,15 @@ export function PartyCard(props: { p: PartyListItem; from: string }) {
 
                 {p.description ? (
                     <div
-                        style={{ fontSize: 13, opacity: 0.85, lineHeight: 1.6 }}
+                        style={{
+                            fontSize: 13,
+                            opacity: 0.85,
+                            lineHeight: 1.6,
+                            display: "-webkit-box",
+                            WebkitLineClamp: 3,
+                            WebkitBoxOrient: "vertical",
+                            overflow: "hidden",
+                        }}
                     >
                         {p.description}
                     </div>

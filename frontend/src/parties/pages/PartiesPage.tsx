@@ -108,7 +108,15 @@ export function PartiesPage() {
                     </p>
                 </Card>
             ) : (
-                <div style={{ display: "grid", gap: 12 }}>
+                <div
+                    style={{
+                        display: "grid",
+                        gap: 12,
+                        gridTemplateColumns:
+                            "repeat(auto-fit, minmax(240px, 1fr))",
+                        alignItems: "stretch",
+                    }}
+                >
                     {filtered.map((p) => (
                         <PartyCard key={p.partyKey} p={p} from={self} />
                     ))}

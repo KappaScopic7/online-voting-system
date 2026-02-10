@@ -3,7 +3,7 @@ import type { CandidateItem } from "../model/candidateTypes";
 import { CandidateAvatar } from "../../shared/ui/CandidateAvatar";
 import { PartyPill } from "../../parties/ui/PartyPill";
 import { CandidateCardFrame } from "./CandidateCardFrame";
-import { resolveCandidateImageUrl } from "../../elections/ui/candidateImages"; // ★追加
+import { resolveCandidateImageUrl } from "../../elections/ui/candidateImages";
 
 function readCandidateKey(c: CandidateItem): string | null {
     const k = (c as any)?.candidateKey;
@@ -42,7 +42,6 @@ export function CandidateCard(props: {
     const avatarIndex =
         indexOverride ?? toZeroBasedIndexFromSortOrder(c.sortOrder);
 
-    // ★ assets優先で解決（詳細と同じ思想）
     const imgSrc =
         resolveCandidateImageUrl(candidateKey ?? undefined) ??
         (c as any).imageUrl ??
@@ -52,75 +51,133 @@ export function CandidateCard(props: {
         <Link
             to={url}
             state={{ from }}
-            style={{ textDecoration: "none", color: "inherit" }}
+            style={{
+                textDecoration: "none",
+                color: "inherit",
+                display: "block",
+                height: "100%",
+            }}
         >
             <CandidateCardFrame partyColor={partyColor}>
                 <div
                     style={{
-                        display: "flex",
+                        height: "100%",
+                        display: "grid",
                         gap: 10,
-                        alignItems: "center",
-                        flexWrap: "wrap",
-                        minWidth: 0,
+                        alignContent: "start",
                     }}
                 >
-                    <CandidateAvatar
-                        name={c.name}
-                        imageUrl={imgSrc} // ★追加
-                        candidateKey={candidateKey ?? undefined}
-                        index={avatarIndex}
-                        size={44}
-                    />
+                    {/* 上段：バッジ類（右寄せ） */}
+                    {(showSortOrder || showId) && (
+                        <div
+                            style={{
+                                display: "flex",
+                                gap: 8,
+                                justifyContent: "flex-end",
+                                flexWrap: "wrap",
+                            }}
+                        >
+                            {showSortOrder && (
+                                <span
+                                    style={{
+                                        fontSize: 12,
+                                        opacity: 0.7,
+                                    }}
+                                    title="表示順"
+                                >
+                                    #{c.sortOrder}
+                                </span>
+                            )}
+                            {showId && (
+                                <span
+                                    style={{
+                                        fontSize: 12,
+                                        opacity: 0.6,
+                                    }}
+                                    title="candidateId"
+                                >
+                                    {c.id}
+                                </span>
+                            )}
+                        </div>
+                    )}
 
-                    <strong style={{ fontSize: 16, minWidth: 0 }}>
-                        {c.name}
-                    </strong>
-
-                    {c.party ? (
-                        <PartyPill
-                            shortName={c.party.shortName}
-                            name={c.party.name}
-                            color={c.party.color}
+                    {/* 中央：アバター */}
+                    <div style={{ display: "flex", justifyContent: "center" }}>
+                        <CandidateAvatar
+                            name={c.name}
+                            imageUrl={imgSrc}
+                            candidateKey={candidateKey ?? undefined}
+                            index={avatarIndex}
+                            size={64}
                         />
-                    ) : (
-                        <span style={{ fontSize: 12, opacity: 0.6 }}>
-                            無所属
-                        </span>
-                    )}
+                    </div>
 
-                    {showSortOrder && (
-                        <span
+                    {/* 名前 */}
+                    <div style={{ textAlign: "center", minWidth: 0 }}>
+                        <div
                             style={{
-                                marginLeft: "auto",
-                                fontSize: 12,
-                                opacity: 0.7,
-                                flexShrink: 0,
+                                fontSize: 16,
+                                fontWeight: 800,
+                                lineHeight: 1.3,
+                                wordBreak: "break-word",
                             }}
-                            title="表示順"
                         >
-                            #{c.sortOrder}
-                        </span>
-                    )}
+                            {c.name}
+                        </div>
 
-                    {showId && (
-                        <span
+                        {c.party ? (
+                            <div
+                                style={{
+                                    marginTop: 6,
+                                    display: "flex",
+                                    justifyContent: "center",
+                                }}
+                            >
+                                <PartyPill
+                                    shortName={c.party.shortName}
+                                    name={c.party.name}
+                                    color={c.party.color}
+                                />
+                            </div>
+                        ) : (
+                            <div
+                                style={{
+                                    marginTop: 6,
+                                    fontSize: 12,
+                                    opacity: 0.6,
+                                }}
+                            >
+                                無所属
+                            </div>
+                        )}
+                    </div>
+
+                    {/* 役職/肩書き */}
+                    {c.title ? (
+                        <div
                             style={{
-                                fontSize: 12,
-                                opacity: 0.6,
-                                flexShrink: 0,
+                                fontSize: 13,
+                                opacity: 0.85,
+                                lineHeight: 1.5,
+                                textAlign: "center",
                             }}
-                            title="candidateId"
                         >
-                            {c.id}
-                        </span>
-                    )}
-                </div>
+                            {c.title}
+                        </div>
+                    ) : null}
 
-                <div style={{ fontSize: 13, opacity: 0.85 }}>
-                    {c.title ?? ""}
-                </div>
-                <div style={{ fontSize: 13, opacity: 0.85 }}>
-                    候補者の詳細を見る →
+                    {/* CTA */}
+                    <div
+                        style={{
+                            marginTop: "auto",
+                            fontSize: 13,
+                            opacity: 0.85,
+                            textAlign: "center",
+                        }}
+                    >
+                        候補者の詳細を見る →
+                    </div>
                 </div>
             </CandidateCardFrame>
         </Link>

@@ -46,6 +46,8 @@ function ElectionItemAction(props: {
         }
 
         if (e.canCast) {
+            const voted = !!(e as any).currentVote;
+
             return (
                 <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
                     <Link
@@ -53,7 +55,7 @@ function ElectionItemAction(props: {
                         state={{ from }}
                         style={{ textDecoration: "none" }}
                     >
-                        <b>投票する →</b>
+                        <b>{voted ? "投票を変更する →" : "投票する →"}</b>
                     </Link>
                 </div>
             );
@@ -152,10 +154,36 @@ export function ElectionsPage() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    const filtered = useMemo(
-        () => filterSortElections(items, controls),
-        [items, controls],
-    );
+    const filtered = useMemo(() => {
+        const list = filterSortElections(items, controls);
+        if (list === null) return null;
+
+        const ongoing: ElectionListItem[] = [];
+        const upcoming: ElectionListItem[] = [];
+        const ended: ElectionListItem[] = [];
+
+        for (const e of list) {
+            if (e.status === "ONGOING") ongoing.push(e);
+            else if (e.status === "ENDED") ended.push(e);
+            else upcoming.push(e); // "UPCOMING"/"SCHEDULED" などは全部ここ
+        }
+
+        const splitByVoted = (xs: ElectionListItem[]) => {
+            const notVoted: ElectionListItem[] = [];
+            const voted: ElectionListItem[] = [];
+            for (const e of xs) {
+                const hasCurrentVote = !!(e as any).currentVote;
+                (hasCurrentVote ? voted : notVoted).push(e);
+            }
+            return [...notVoted, ...voted];
+        };
+
+        return [
+            ...splitByVoted(ongoing), // ★開催中の中だけ未投票優先
+            ...upcoming, // ★開始前はそのまま
+            ...ended, // ★終了もそのまま
+        ];
+    }, [items, controls]);
 
     return (
         <Page
