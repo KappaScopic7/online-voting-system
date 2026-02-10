@@ -93,26 +93,58 @@ public class MachidaSangiinSeed {
     private static final int PAST_TG2024_TOTAL_VOTES = 300; // 票数（グラフが“それっぽい”）
 
     // ---------------------------
-    // Parties（比例・党）
+    // Image URLs（最終形）
+    // ---------------------------
+    private static final String CANDIDATE_IMG_BASE = "/assets/candidates/";
+    private static final String CANDIDATE_IMG_EXT = ".png";
+
+    private String imageUrlFor(String candidateKey) {
+        if (candidateKey == null || candidateKey.isBlank())
+            return null;
+        return CANDIDATE_IMG_BASE + candidateKey + CANDIDATE_IMG_EXT;
+    }
+
+    // ---------------------------
+    // Parties（党マスタ：全て）
     // ---------------------------
     public List<PartyJson> parties() {
+        var list = new ArrayList<PartyJson>();
+
+        // ===== 比例 16党（本物データ順）=====
+        list.addAll(proportionalParties());
+
+        // ===== 東京都選挙区に出る小党（比例には出さない）=====
+        list.add(party("Minna", name("みんなでつくる党", "みんなでつくる党"), "みつ", "#78909C", "小規模政党（デモ）", List.of("小党")));
+        list.add(party("SekaiHeiwa", name("世界平和党", "世界平和党"), "平和", "#AED581", "小規模政党（デモ）", List.of("小党")));
+        list.add(party("Kakuyugo", name("核融合党", "核融合党"), "核融", "#FFB300", "小規模政党（デモ）", List.of("小党")));
+        list.add(party("Yamato", name("新党やまと", "新党やまと"), "やま", "#8D6E63", "小規模政党（デモ）", List.of("小党")));
+        list.add(party("Saigo", name("西郷党", "西郷党"), "西郷", "#90A4AE", "小規模政党（デモ）", List.of("小党")));
+
+        return list;
+    }
+
+    /** 比例16党（あなたの比例データ順・candidateIndex順） */
+    private List<PartyJson> proportionalParties() {
         return List.of(
-                party("LDP", name("自由民主党", "自由みんしゅ党"), "自民", "#D81B60", "経済と安定を掲げる大きな政党", List.of("保守", "現実路線")),
-                party("CDP", name("立憲民主党", "立憲くらし党"), "立憲", "#1976D2", "生活と権利を重視する政党", List.of("リベラル", "福祉")),
-                party("KOMEI", name("公明党", "公明の輪"), "公明", "#FFA000", "福祉・教育を重視する政党", List.of("中道", "福祉")),
-                party("Ishin", name("日本維新の会", "維新フロンティア"), "維新", "#009688", "改革と行政効率を掲げる政党", List.of("改革", "小さな政府")),
                 party("JCP", name("日本共産党", "共産くらぶ"), "共産", "#E53935", "格差是正と平和を掲げる政党", List.of("左派", "平和")),
-                party("DPP", name("国民民主党", "国民バランス党"), "国民", "#43A047", "現実的な改革と成長を掲げる政党", List.of("中道", "改革")),
-                party("Reiwa", name("れいわ新選組", "れいわ新風"), "れいわ", "#8E24AA", "積極財政と生活支援を掲げる", List.of("積極財政", "福祉")),
-                party("Sansei", name("参政党", "参画党"), "参政", "#6D4C41", "参加型の政治を掲げる政党", List.of("保守", "参加")),
-                party("N党", name("ＮＨＫ党", "N☆HK党"), "N党", "#546E7A", "既存制度改革を掲げる", List.of("改革")),
-                party("Team", name("チームみらい", "チームみらいLAB"), "みらい", "#00ACC1", "未来技術と改革を掲げる", List.of("テック", "改革")),
-                party("Shamin", name("社会民主党", "社民レインボー"), "社民", "#7CB342", "人権・福祉を重視する", List.of("人権", "福祉")),
-                party("Hoshuto", name("日本保守党", "保守の杜"), "保守", "#5D4037", "伝統と安全保障を重視する", List.of("保守")),
+                party("Ishin", name("日本維新の会", "維新フロンティア"), "維新", "#009688", "改革と行政効率を掲げる政党", List.of("改革")),
                 party("Rengou", name("無所属連合", "むしょぞく連盟"), "無連", "#90A4AE", "特定政党に属さない連合", List.of("無所属")),
+                party("Hoshuto", name("日本保守党", "保守の杜"), "保守", "#5D4037", "伝統と安全保障を重視する", List.of("保守")),
+
+                party("CDP", name("立憲民主党", "立憲くらし党"), "立憲", "#1976D2", "生活と権利を重視する政党", List.of("リベラル")),
+                party("Sansei", name("参政党", "参画党"), "参政", "#6D4C41", "参加型の政治を掲げる政党", List.of("保守", "参加")),
+                party("DPP", name("国民民主党", "国民バランス党"), "国民", "#43A047", "現実的な改革と成長を掲げる", List.of("中道", "改革")),
+                party("Team", name("チームみらい", "チームみらいLAB"), "みらい", "#00ACC1", "未来技術と改革を掲げる", List.of("テック")),
+
+                party("Seishin", name("日本誠真会", "誠心会"), "誠真", "#00897B", "誠実さを掲げる小規模政党", List.of("中道")),
+                party("Shamin", name("社会民主党", "社民レインボー"), "社民", "#7CB342", "人権・福祉を重視する", List.of("人権", "福祉")),
+                party("Reiwa", name("れいわ新選組", "れいわ新風"), "れいわ", "#8E24AA", "積極財政と生活支援を掲げる", List.of("福祉")),
+                party("Kaikaku", name("日本改革党", "改革プラン党"), "改革", "#F4511E", "制度改革を掲げる小規模政党", List.of("改革")),
+
+                party("LDP", name("自由民主党", "自由みんしゅ党"), "自民", "#D81B60", "経済と安定を掲げる大きな政党", List.of("保守")),
                 party("Saisei", name("再生の道", "再生ロード"), "再生", "#3949AB", "再建と改革を掲げる", List.of("改革")),
-                party("Seishin", name("日本誠真会", "誠心会"), "誠心", "#00897B", "誠実さを掲げる小規模政党", List.of("中道")),
-                party("Kaikaku", name("日本改革党", "改革プラン党"), "改革", "#F4511E", "制度改革を掲げる小規模政党", List.of("改革")));
+                party("KOMEI", name("公明党", "公明の輪"), "公明", "#FFA000", "福祉・教育を重視する政党", List.of("中道", "福祉")),
+                party("N党", name("ＮＨＫ党", "N☆HK党"), "N党", "#546E7A", "既存制度改革を掲げる", List.of("改革")));
     }
 
     private PartyJson party(String key, String name, String shortName, String color, String desc, List<String> tags) {
@@ -136,7 +168,7 @@ public class MachidaSangiinSeed {
         // 現在（参院 + 比例 + 国民審査）
         all.addAll(tokyoDistrictCandidates32()); // TD01..TD32
         all.addAll(proportionalPartyProxyCandidates("PR_")); // PR_<partyKey>
-        all.addAll(judgeCandidates()); // JDG01, JDG02
+        all.addAll(judgeCandidates()); // J01, J02
 
         // 過去（都知事 2024）
         all.addAll(tokyoGov2024Candidates()); // TG24_*
@@ -147,66 +179,82 @@ public class MachidaSangiinSeed {
         return all;
     }
 
-    // ===== 現在：参院 東京選挙区（32）=====
+    // ===== 現在：参院 東京選挙区（本物データ32）=====
     private List<CandidateJson> tokyoDistrictCandidates32() {
         return List.of(
-                cand("TD01", person("吉良 よし子", "吉良 よしこ"), 51, "JCP", "現職", "地域の声を国政へ", List.of("福祉", "平和")),
-                cand("TD02", person("山本 ジョージ", "山元 ジョージ"), 60, "Reiwa", "元職", "生活再建を訴える", List.of("生活支援")),
-                cand("TD03", person("吉永 アイ", "吉長 アイ"), 35, null, "新人", "現場主義で挑む", List.of("現場")),
-                cand("TD04", person("土居 けんしん", "土井 けんしん"), 33, null, "新人", "若者の選択肢を広げる", List.of("若者", "教育")),
-                cand("TD05", person("藤川 ひろあき", "藤河 ひろあき"), 44, "Kaikaku", "新人", "制度を整える", List.of("改革")),
-                cand("TD06", person("西 みゆか", "西 みゆか"), 55, "Shamin", "元職", "人権と福祉を守る", List.of("人権", "福祉")),
-                cand("TD07", person("小坂 英二", "小坂 英司"), 50, "Hoshuto", "新人", "伝統と安全を重視", List.of("安全保障")),
-                cand("TD08", person("さや", "さやか"), null, "Sansei", "新人", "参加型政治を掲げる", List.of("参加", "教育")),
-                cand("TD09", person("みねしま 侑也", "みねしま 悠也"), 29, "Team", "新人", "テックで行政改革", List.of("DX", "改革")),
-                cand("TD10", person("たけみ 敬三", "たけみ 啓三"), 72, "LDP", "元職", "医療制度に詳しい", List.of("医療", "制度")),
-                cand("TD11", person("おくむら まさよし", "おくむら まさよし"), 43, "CDP", "新人", "暮らしを支える", List.of("福祉", "子育て")),
-                cand("TD12", person("牛田 まゆ", "牛田 まゆ"), 39, "DPP", "新人", "成長と分配の両立", List.of("成長", "賃上げ")),
-                cand("TD13", person("酒井 ともひろ", "坂井 ともひろ"), 48, "Saisei", "新人", "政治の信頼回復", List.of("透明性")),
-                cand("TD14", person("福村 康廣", "福村 恒一"), 67, "KOMEI", "新人", "安心の福祉政策", List.of("福祉")),
-                cand("TD15", person("桑島 康文", "桑島 恒一"), 58, "Kaikaku", "新人", "技術と産業の強化", List.of("産業")),
-                cand("TD16", person("渋谷 りく", "渋谷 りく"), 26, "Ishin", "新人", "都市の効率化", List.of("改革", "行政")),
-                cand("TD17", person("奥村 よしひろ", "奥村 よしひろ"), 47, "DPP", "新人", "実務重視の政治", List.of("実務")),
-                cand("TD18", person("吉田 あや", "吉田 あや"), 36, "Saisei", "新人", "再建と改革", List.of("改革")),
-                cand("TD19", person("鈴木 大地", "鈴木 大地"), 58, "LDP", "新人", "スポーツと健康", List.of("健康", "教育")),
-                cand("TD20", person("塩村 あやか", "汐村 あやか"), 45, "CDP", "現職", "女性と子育て支援", List.of("子育て", "ジェンダー")),
-                cand("TD21", person("よしざわ 恵理", "よしざわ 絵里"), 40, null, "新人", "地域密着", List.of("地域")),
-                cand("TD22", person("市川 たけしま", "市川 たけしま"), 46, "Kaikaku", "新人", "税制と制度", List.of("税制")),
-                cand("TD23", person("川村 ゆうだい", "河村 ゆうだい"), 39, "KOMEI", "新人", "子育てと教育", List.of("教育", "福祉")),
-                cand("TD24", person("おときた 駿", "おときた 駿"), 41, "Ishin", "新人", "改革断行", List.of("改革")),
-                cand("TD25", person("平野 雨龍", "平野 雨竜"), 30, null, "新人", "多様性と文化", List.of("文化", "多様性")),
-                cand("TD26", person("山尾 しおり", "山尾 しおり"), 50, null, "新人", "制度の見直し", List.of("改革")),
-                cand("TD27", person("ちば ひとし", "ちば ひとし"), 52, "Seishin", "新人", "誠実な政治", List.of("誠実")),
-                cand("TD28", person("増田 昇", "増田 のぼる"), 64, null, "新人", "地域の課題解決", List.of("地域")),
-                cand("TD29", person("つじ 健太郎", "つじ 健太郎"), 49, "Rengou", "新人", "無所属の連携", List.of("連携")),
-                cand("TD30", person("早川 幹夫", "早川 幹夫"), 61, "Hoshuto", "新人", "安全と秩序", List.of("治安")),
-                cand("TD31", person("石丸 幸人", "石丸 幸斗"), 42, "N党", "新人", "制度改革", List.of("改革")),
-                cand("TD32", person("高橋 健司", "高橋 健司"), 57, null, "新人", "地域と経済", List.of("経済")));
+                cand("TD01", person("吉良 よし子", "吉良 よしこ"), 51, "JCP", "候補者", "東京都選挙区 候補者（デモ）。", List.of("東京都選挙区")),
+                cand("TD02", person("山本 ジョージ", "山元 ジョージ"), 60, "Reiwa", "候補者", "東京都選挙区 候補者（デモ）。", List.of("東京都選挙区")),
+                cand("TD03", person("吉永 アイ", "吉長 アイ"), 35, null, "候補者", "東京都選挙区 候補者（デモ）。", List.of("東京都選挙区")),
+                cand("TD04", person("土居 けんしん", "土井 けんしん"), 33, null, "候補者", "東京都選挙区 候補者（デモ）。", List.of("東京都選挙区")),
+                cand("TD05", person("藤川 ひろあき", "藤河 ひろあき"), 44, "Kaikaku", "候補者", "東京都選挙区 候補者（デモ）。", List.of("東京都選挙区")),
+                cand("TD06", person("西 みゆか", "西 みゆか"), 55, "Shamin", "候補者", "東京都選挙区 候補者（デモ）。", List.of("東京都選挙区")),
+                cand("TD07", person("小坂 英二", "小坂 英司"), 50, "Hoshuto", "候補者", "東京都選挙区 候補者（デモ）。", List.of("東京都選挙区")),
+                cand("TD08", person("さや", "さやか"), 34, "Sansei", "候補者", "東京都選挙区 候補者（デモ）。", List.of("東京都選挙区")),
+                cand("TD09", person("みねしま 侑也", "みねしま 悠也"), 29, "Team", "候補者", "東京都選挙区 候補者（デモ）。", List.of("東京都選挙区")),
+                cand("TD10", person("たけみ 敬三", "たけみ 啓三"), 72, "LDP", "候補者", "東京都選挙区 候補者（デモ）。", List.of("東京都選挙区")),
+                cand("TD11", person("おくむら まさよし", "おくむら まさよし"), 43, "CDP", "候補者", "東京都選挙区 候補者（デモ）。", List.of("東京都選挙区")),
+                cand("TD12", person("牛田 まゆ", "牛田 まゆ"), 39, "DPP", "候補者", "東京都選挙区 候補者（デモ）。", List.of("東京都選挙区")),
+                cand("TD13", person("酒井 ともひろ", "坂井 ともひろ"), 48, "Minna", "候補者", "東京都選挙区 候補者（デモ）。", List.of("東京都選挙区")),
+                cand("TD14", person("福村 康廣", "福村 恒一"), 67, "SekaiHeiwa", "候補者", "東京都選挙区 候補者（デモ）。", List.of("東京都選挙区")),
+                cand("TD15", person("桑島 康文", "桑島 恒一"), 58, "Kakuyugo", "候補者", "東京都選挙区 候補者（デモ）。", List.of("東京都選挙区")),
+                cand("TD16", person("渋谷 りく", "渋谷 りく"), 26, "Yamato", "候補者", "東京都選挙区 候補者（デモ）。", List.of("東京都選挙区")),
+                cand("TD17", person("奥村 よしひろ", "奥村 よしひろ"), 47, "DPP", "候補者", "東京都選挙区 候補者（デモ）。", List.of("東京都選挙区")),
+                cand("TD18", person("吉田 あや", "吉田 あや"), 36, "Saisei", "候補者", "東京都選挙区 候補者（デモ）。", List.of("東京都選挙区")),
+                cand("TD19", person("鈴木 大地", "鈴木 大地"), 58, "LDP", "候補者", "東京都選挙区 候補者（デモ）。", List.of("東京都選挙区")),
+                cand("TD20", person("塩村 あやか", "汐村 あやか"), 45, "CDP", "候補者", "東京都選挙区 候補者（デモ）。", List.of("東京都選挙区")),
+                cand("TD21", person("よしざわ 恵理", "よしざわ 絵里"), 40, null, "候補者", "東京都選挙区 候補者（デモ）。", List.of("東京都選挙区")),
+                cand("TD22", person("市川 たけしま", "市川 たけしま"), 46, "Kaikaku", "候補者", "東京都選挙区 候補者（デモ）。", List.of("東京都選挙区")),
+                cand("TD23", person("川村 ゆうだい", "河村 ゆうだい"), 39, "KOMEI", "候補者", "東京都選挙区 候補者（デモ）。", List.of("東京都選挙区")),
+                cand("TD24", person("おときた 駿", "おときた 駿"), 41, "Ishin", "候補者", "東京都選挙区 候補者（デモ）。", List.of("東京都選挙区")),
+                cand("TD25", person("平野 雨龍", "平野 雨竜"), 30, null, "候補者", "東京都選挙区 候補者（デモ）。", List.of("東京都選挙区")),
+                cand("TD26", person("山尾 しおり", "山尾 しおり"), 50, null, "候補者", "東京都選挙区 候補者（デモ）。", List.of("東京都選挙区")),
+                cand("TD27", person("ちば ひとし", "ちば ひとし"), 52, "Seishin", "候補者", "東京都選挙区 候補者（デモ）。", List.of("東京都選挙区")),
+                cand("TD28", person("増田 昇", "増田 のぼる"), 64, null, "候補者", "東京都選挙区 候補者（デモ）。", List.of("東京都選挙区")),
+                cand("TD29", person("つじ 健太郎", "つじ 健太郎"), 49, "Rengou", "候補者", "東京都選挙区 候補者（デモ）。", List.of("東京都選挙区")),
+                cand("TD30", person("早川 幹夫", "早川 幹夫"), 61, "Saigo", "候補者", "東京都選挙区 候補者（デモ）。", List.of("東京都選挙区")),
+                cand("TD31", person("石丸 幸人", "石丸 幸斗"), 42, "N党", "候補者", "東京都選挙区 候補者（デモ）。", List.of("東京都選挙区")),
+                cand("TD32", person("高橋 健司", "高橋 健司"), 57, null, "候補者", "東京都選挙区 候補者（デモ）。", List.of("東京都選挙区")));
     }
 
-    // ===== 現在/未来：比例（政党＝候補）=====
+    // ===== 比例（政党＝候補）=====
+    // ※ parties() じゃなく proportionalParties() を使う！
     private List<CandidateJson> proportionalPartyProxyCandidates(String prefix) {
         var out = new ArrayList<CandidateJson>();
-        for (var p : parties()) {
+        int i = 0;
+
+        for (var p : proportionalParties()) {
+            String key = prefix + p.partyKey();
+            int age = 40 + (i % 25); // 40..64（固定的に埋める）
             out.add(new CandidateJson(
-                    prefix + p.partyKey(),
+                    key,
                     "【比例】" + p.name(),
-                    null,
+                    age,
                     p.partyKey(),
                     "比例代表（党）",
                     "比例の投票先（党）を表すダミー候補です。",
                     List.of("比例", "党"),
                     null,
-                    null));
+                    imageUrlFor(key)));
+            i++;
         }
         return out;
     }
 
-    // ===== 現在：国民審査（裁判官2名）=====
+    // candidateKey一覧も比例16党に固定
+    private List<String> proportionalCandidateKeys(String prefix) {
+        var keys = new ArrayList<String>();
+        for (var p : proportionalParties())
+            keys.add(prefix + p.partyKey());
+        return keys;
+    }
+
+    // ===== 国民審査（裁判官2名：本物データ）=====
     private List<CandidateJson> judgeCandidates() {
         return List.of(
-                cand("JDG01", person("最高裁裁判官 山田 太郎", "裁判官A"), 58, null, "最高裁裁判官", "審査対象の裁判官です。", List.of("国民審査")),
-                cand("JDG02", person("最高裁裁判官 佐藤 花子", "裁判官B"), 61, null, "最高裁裁判官", "審査対象の裁判官です。", List.of("国民審査")));
+                cand("J01", person("高須 順一", "裁判官A"), 58, null,
+                        "最高裁裁判官", "審査対象の裁判官です。", List.of("国民審査")),
+                cand("J02", person("沖野 眞已", "裁判官B"), 61, null,
+                        "最高裁裁判官", "審査対象の裁判官です。", List.of("国民審査")));
     }
 
     // ===== 過去：都知事 2024（代表 + 抜粋 + ダミー）=====
@@ -245,9 +293,16 @@ public class MachidaSangiinSeed {
                 cand("MC26_05", person("渋谷 健司", "しぶや けんじ"), 47, null, "新人", "行政の透明化", List.of("透明性", "改革")));
     }
 
-    private CandidateJson cand(String key, String name, Integer age, String partyKey, String title, String bio,
-            List<String> policies) {
-        return new CandidateJson(key, name, age, partyKey, title, bio, policies, null, null);
+    private static final int DEFAULT_AGE = 50;
+
+    private CandidateJson cand(
+            String key, String name, Integer age, String partyKey,
+            String title, String bio, List<String> policies) {
+
+        String imageUrl = imageUrlFor(key);
+        int safeAge = (age == null) ? DEFAULT_AGE : age;
+
+        return new CandidateJson(key, name, safeAge, partyKey, title, bio, policies, null, imageUrl);
     }
 
     // ---------------------------
@@ -297,7 +352,7 @@ public class MachidaSangiinSeed {
                         "JUDGE_REVIEW",
                         CUR_START,
                         CUR_END,
-                        List.of("JDG01", "JDG02")),
+                        List.of("J01", "J02")),
 
                 // ===== 未来：町田 市長 2026（想像）=====
                 new ElectionJson(
@@ -331,13 +386,6 @@ public class MachidaSangiinSeed {
         var keys = new ArrayList<String>();
         for (int i = 1; i <= 32; i++)
             keys.add(String.format("TD%02d", i));
-        return keys;
-    }
-
-    private List<String> proportionalCandidateKeys(String prefix) {
-        var keys = new ArrayList<String>();
-        for (var p : parties())
-            keys.add(prefix + p.partyKey());
         return keys;
     }
 

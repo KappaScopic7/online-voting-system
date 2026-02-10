@@ -245,12 +245,9 @@ export function VoteHistoryPage() {
                                                         g.normal,
                                                     )}
                                                 </div>
-                                                {g.normal.map((v) => (
+                                                {g.normal.map((v, i) => (
                                                     <VoteRow
-                                                        key={
-                                                            v.voteId ||
-                                                            v.castedAt
-                                                        }
+                                                        key={`${v.voteId ?? "noid"}:${v.castedAt ?? "noat"}:${i}`}
                                                         v={v}
                                                         from={vm.from}
                                                     />

@@ -55,6 +55,21 @@ public class DemoDataValidator {
             mustNonBlank(c.title(), "candidates.json: title blank candidateKey=" + c.candidateKey());
             mustNonBlank(c.bio(), "candidates.json: bio blank candidateKey=" + c.candidateKey());
         }
+        // 画像URL重複チェック（別人に同一画像が付いてないか検出）
+        var byUrl = new java.util.HashMap<String, java.util.List<String>>();
+        for (var c : candidateMap.values()) {
+            String url = c.imageUrl();
+            if (url == null || url.isBlank())
+                continue;
+            byUrl.computeIfAbsent(url, k -> new java.util.ArrayList<>()).add(c.candidateKey());
+        }
+        for (var e : byUrl.entrySet()) {
+            if (e.getValue().size() > 1) {
+                throw new IllegalStateException(
+                        "candidates.json: duplicate imageUrl=" + e.getKey() + " candidateKeys=" + e.getValue());
+            }
+        }
+
     }
 
     // -------------------------------------------------
