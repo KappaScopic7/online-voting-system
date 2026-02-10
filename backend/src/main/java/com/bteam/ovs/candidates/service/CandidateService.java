@@ -3,6 +3,7 @@ package com.bteam.ovs.candidates.service;
 
 import com.bteam.ovs.candidates.controller.dto.CandidateDetailResponse;
 import com.bteam.ovs.candidates.controller.dto.CandidateItem;
+import com.bteam.ovs.candidates.entity.Candidate;
 import com.bteam.ovs.candidates.repository.CandidateRepository;
 import com.bteam.ovs.elections.repository.ElectionRepository;
 import com.bteam.ovs.parties.service.PartyLookupService;
@@ -39,17 +40,25 @@ public class CandidateService {
 
         Map<UUID, String> candidateNameById = candidateEntities.stream()
                 .collect(Collectors.toMap(
-                        c -> c.getId(),
-                        c -> c.getName(),
+                        Candidate::getId,
+                        Candidate::getName,
                         (a, b) -> a));
 
-        var partyMap = partyLookupService.mapByCandidatePartyKeys(
-                candidateEntities.stream().map(c -> c.getPartyKey()).toList());
+        // ✅ null/blank partyKey を除外して lookup
+        var partyKeys = candidateEntities.stream()
+                .map(c -> partyLookupService.blankToNull(c.getPartyKey()))
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+
+        var partyMap = partyLookupService.mapByCandidatePartyKeys(partyKeys);
 
         var items = candidateEntities.stream()
-                .map(c -> toCandidateItem(
-                        c,
-                        partyMap.get(partyLookupService.blankToNull(c.getPartyKey()))))
+                .map(c -> {
+                    String partyKey = partyLookupService.blankToNull(c.getPartyKey());
+                    var party = (partyKey == null) ? null : partyMap.get(partyKey); // ✅ get(null)しない
+                    return toCandidateItem(c, party);
+                })
                 .toList();
 
         return new ElectionCandidatesBundle(items, candidateNameById);
