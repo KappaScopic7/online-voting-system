@@ -133,7 +133,7 @@ export function AllocVotingDonePage() {
                             >
                                 <Link to="/elections">選挙一覧へ</Link>
                                 {!isPublic && (
-                                    <Link to="/me/alloc-votes">履歴へ</Link>
+                                    <Link to="/me/votes">履歴へ</Link>
                                 )}
                                 {!isPublic && <Link to={backTo}>My選挙へ</Link>}
                                 {isPublic && <Link to={backTo}>戻る</Link>}

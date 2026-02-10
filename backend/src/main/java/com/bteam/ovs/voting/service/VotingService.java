@@ -8,12 +8,18 @@ import com.bteam.ovs.elections.service.ElectionEligibilityService;
 import com.bteam.ovs.shared.errors.ApiException;
 import com.bteam.ovs.shared.identity.CitizenIdResolver;
 import com.bteam.ovs.shared.validation.UuidParsers;
+import com.bteam.ovs.voting.controller.dto.JudgeReviewConfirmRequest;
+import com.bteam.ovs.voting.controller.dto.JudgeReviewStartResponse;
 import com.bteam.ovs.voting.controller.dto.VoteAllocConfirmRequest;
 import com.bteam.ovs.voting.controller.dto.VoteHistoryItem;
 import com.bteam.ovs.voting.controller.dto.VoteStartResponse;
+import com.bteam.ovs.voting.entity.JudgeReviewCast;
+import com.bteam.ovs.voting.entity.JudgeReviewItem;
 import com.bteam.ovs.voting.entity.VoteAllocCast;
 import com.bteam.ovs.voting.entity.VoteAllocItem;
 import com.bteam.ovs.voting.entity.VoteCast;
+import com.bteam.ovs.voting.repository.JudgeReviewCastRepository;
+import com.bteam.ovs.voting.repository.JudgeReviewItemRepository;
 import com.bteam.ovs.voting.repository.VoteAllocCastRepository;
 import com.bteam.ovs.voting.repository.VoteAllocItemRepository;
 import com.bteam.ovs.voting.repository.VoteCastRepository;
@@ -21,6 +27,7 @@ import com.bteam.ovs.voting.repository.VoteCurrentRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.bteam.ovs.elections.entity.BallotType;
 
 import java.time.Instant;
 import java.util.*;
@@ -37,9 +44,11 @@ public class VotingService {
     private final VoteCastRepository voteCastRepo;
     private final VoteCurrentRepository voteCurrentRepo;
 
-    // alloc系（このクラスに同居してる実装があるのでそのまま維持）
     private final VoteAllocCastRepository voteAllocCastRepo;
     private final VoteAllocItemRepository voteAllocItemRepo;
+
+    private final JudgeReviewCastRepository judgeReviewCastRepo;
+    private final JudgeReviewItemRepository judgeReviewItemRepo;
 
     public VotingService(
             CitizenIdResolver citizenIdResolver,
@@ -49,7 +58,9 @@ public class VotingService {
             VoteCastRepository voteCastRepo,
             VoteCurrentRepository voteCurrentRepo,
             VoteAllocCastRepository voteAllocCastRepo,
-            VoteAllocItemRepository voteAllocItemRepo) {
+            VoteAllocItemRepository voteAllocItemRepo,
+            JudgeReviewCastRepository judgeReviewCastRepo,
+            JudgeReviewItemRepository judgeReviewItemRepo) {
         this.citizenIdResolver = citizenIdResolver;
         this.electionEligibilityService = electionEligibilityService;
         this.electionRepo = electionRepo;
@@ -58,6 +69,8 @@ public class VotingService {
         this.voteCurrentRepo = voteCurrentRepo;
         this.voteAllocCastRepo = voteAllocCastRepo;
         this.voteAllocItemRepo = voteAllocItemRepo;
+        this.judgeReviewCastRepo = judgeReviewCastRepo;
+        this.judgeReviewItemRepo = judgeReviewItemRepo;
     }
 
     public VoteStartResponse start(UUID accountId, UUID electionId) {
@@ -413,4 +426,135 @@ public class VotingService {
             case CLOSED, TALLIED, PUBLISHED, ARCHIVED -> "ENDED";
         };
     }
+
+    public JudgeReviewStartResponse startJudgeReviewByCitizen(UUID citizenId, UUID electionId) {
+        electionEligibilityService.requireEligibleCitizen(citizenId, electionId);
+
+        Election election = requireElection(electionId);
+        requireOpenAndWithinPeriod(election, Instant.now());
+
+        if (election.getBallotType() != BallotType.JUDGE_REVIEW) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_BALLOT_TYPE", "この選挙は国民審査ではありません");
+        }
+
+        var judgeEntities = candidateRepo.findByElectionId(electionId).stream()
+                .sorted(Comparator.comparingInt(c -> c.getSortOrder()))
+                .toList();
+
+        if (judgeEntities.isEmpty()) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "NO_JUDGES", "裁判官が登録されていません");
+        }
+
+        var judges = judgeEntities.stream()
+                .map(c -> new JudgeReviewStartResponse.JudgeItem(c.getId(), c.getName(), c.getTitle()))
+                .toList();
+
+        Map<UUID, String> current = null;
+        var castOpt = judgeReviewCastRepo.findByElectionIdAndCitizenId(electionId, citizenId);
+        if (castOpt.isPresent()) {
+            var items = judgeReviewItemRepo.findByCastId(castOpt.get().getId());
+            current = items.stream().collect(Collectors.toMap(
+                    JudgeReviewItem::getJudgeCandidateId,
+                    it -> it.getChoice().name(),
+                    (a, b) -> a));
+        }
+
+        return new JudgeReviewStartResponse(election.getId(), election.getTitle(), judges, current);
+    }
+
+    @Transactional
+    public void confirmJudgeReviewByCitizen(
+            UUID citizenId,
+            UUID electionId,
+            List<JudgeReviewConfirmRequest.Item> choices) {
+        electionEligibilityService.requireEligibleCitizen(citizenId, electionId);
+
+        Election election = requireElection(electionId);
+        Instant now = Instant.now();
+        requireOpenAndWithinPeriod(election, now);
+
+        if (election.getBallotType() != BallotType.JUDGE_REVIEW) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_BALLOT_TYPE", "この選挙は国民審査ではありません");
+        }
+
+        if (choices == null || choices.isEmpty()) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_CHOICES", "choicesが空です");
+        }
+
+        var judgeCandidates = candidateRepo.findByElectionId(electionId);
+        var judgeIdSet = judgeCandidates.stream().map(c -> c.getId()).collect(Collectors.toSet());
+
+        if (judgeIdSet.isEmpty()) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "NO_JUDGES", "裁判官が登録されていません");
+        }
+
+        // request を judgeCandidateId -> choice に正規化（重複排除、バリデーション）
+        Map<UUID, JudgeReviewItem.Choice> map = new HashMap<>();
+
+        for (var it : choices) {
+            if (it == null)
+                continue;
+
+            UUID judgeId = UuidParsers.parseOr400(it.judgeCandidateId(), "INVALID_JUDGE_ID", "judgeCandidateIdが不正です");
+            if (!judgeIdSet.contains(judgeId)) {
+                throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_JUDGE", "対象外の裁判官が含まれています");
+            }
+
+            String ch = (it.choice() == null ? "" : it.choice().trim()).toUpperCase();
+            JudgeReviewItem.Choice choiceEnum;
+            try {
+                choiceEnum = JudgeReviewItem.Choice.valueOf(ch);
+            } catch (Exception e) {
+                throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_CHOICE", "choiceが不正です（OK/NO）");
+            }
+
+            map.put(judgeId, choiceEnum); // 後勝ちでもOK、厳密に弾きたいなら重複チェックに変えてOK
+        }
+
+        // 全裁判官分が揃ってることを必須にする（B-1の要件に合う）
+        if (map.size() != judgeIdSet.size()) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "CHOICES_NOT_COMPLETE", "全裁判官分の選択が必要です");
+        }
+
+        // Cast を 1人1選挙で維持（差し替え方式）
+        var cast = judgeReviewCastRepo.findByElectionIdAndCitizenId(electionId, citizenId)
+                .orElseGet(() -> {
+                    var c = new JudgeReviewCast();
+                    c.setElectionId(electionId);
+                    c.setCitizenId(citizenId);
+                    return c;
+                });
+
+        cast.setCastedAt(now);
+        cast = judgeReviewCastRepo.save(cast);
+
+        // items差し替え
+        judgeReviewItemRepo.deleteByCastId(cast.getId());
+
+        for (var e : map.entrySet()) {
+            var item = new JudgeReviewItem();
+            item.setCastId(cast.getId());
+            item.setJudgeCandidateId(e.getKey());
+            item.setChoice(e.getValue());
+            judgeReviewItemRepo.save(item);
+        }
+    }
+
+    public JudgeReviewStartResponse startJudgeReview(UUID accountId, UUID electionId) {
+        electionEligibilityService.requireEligible(accountId, electionId);
+        UUID citizenId = citizenIdResolver.requireCitizenId(accountId);
+        return startJudgeReviewByCitizen(citizenId, electionId);
+    }
+
+    @Transactional
+    public void confirmJudgeReview(
+            UUID accountId,
+            UUID electionId,
+            List<JudgeReviewConfirmRequest.Item> choices) {
+
+        electionEligibilityService.requireEligible(accountId, electionId);
+        UUID citizenId = citizenIdResolver.requireCitizenId(accountId);
+        confirmJudgeReviewByCitizen(citizenId, electionId, choices);
+    }
+
 }

@@ -136,7 +136,7 @@ public class MachidaSangiinSeed {
         // 現在（参院 + 比例 + 国民審査）
         all.addAll(tokyoDistrictCandidates32()); // TD01..TD32
         all.addAll(proportionalPartyProxyCandidates("PR_")); // PR_<partyKey>
-        all.addAll(judgeReviewTwoChoiceCandidates()); // JR_OK / JR_NO
+        all.addAll(judgeCandidates()); // JDG01, JDG02
 
         // 過去（都知事 2024）
         all.addAll(tokyoGov2024Candidates()); // TG24_*
@@ -202,11 +202,11 @@ public class MachidaSangiinSeed {
         return out;
     }
 
-    // ===== 現在：国民審査（2択）=====
-    private List<CandidateJson> judgeReviewTwoChoiceCandidates() {
+    // ===== 現在：国民審査（裁判官2名）=====
+    private List<CandidateJson> judgeCandidates() {
         return List.of(
-                new CandidateJson("JR_OK", "信任（〇）", null, null, "国民審査", "裁判官を信任します。", List.of("審査"), null, null),
-                new CandidateJson("JR_NO", "罷免（×）", null, null, "国民審査", "裁判官を罷免します。", List.of("審査"), null, null));
+                cand("JDG01", person("最高裁裁判官 山田 太郎", "裁判官A"), 58, null, "最高裁裁判官", "審査対象の裁判官です。", List.of("国民審査")),
+                cand("JDG02", person("最高裁裁判官 佐藤 花子", "裁判官B"), 61, null, "最高裁裁判官", "審査対象の裁判官です。", List.of("国民審査")));
     }
 
     // ===== 過去：都知事 2024（代表 + 抜粋 + ダミー）=====
@@ -291,13 +291,13 @@ public class MachidaSangiinSeed {
                 new ElectionJson(
                         EID_JUDGE_REVIEW,
                         "最高裁裁判官 国民審査 2026（デモ） - 町田モデル",
-                        "2択（信任/罷免）で国民審査を表現するデモ。",
+                        "裁判官ごとに2択（信任/罷免）で国民審査を表現するデモ。",
                         "DEMO",
                         new ElectionJson.DistrictJson(PREF_TOKYO, CITY_MACHIDA, "国民審査（町田）"),
-                        "TWO_CHOICES",
+                        "JUDGE_REVIEW",
                         CUR_START,
                         CUR_END,
-                        List.of("JR_OK", "JR_NO")),
+                        List.of("JDG01", "JDG02")),
 
                 // ===== 未来：町田 市長 2026（想像）=====
                 new ElectionJson(

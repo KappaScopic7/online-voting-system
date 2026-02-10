@@ -7,15 +7,19 @@ import { Card, DevDebug, Page } from "../../shared/ui/page";
 import { publicToken } from "../../shared/tokenStorage";
 
 // TODO: shared に移して elections/result でも使うと良い
-function detectKind(e: any): "NORMAL" | "ALLOC" {
+function detectKind(e: any): "NORMAL" | "ALLOC" | "JUDGE_REVIEW" {
     const bt = (e?.ballotType ?? e?.ballot ?? e?.mode ?? "")
         .toString()
         .toUpperCase();
+
     if (bt === "ALLOCATION" || bt === "ALLOC" || bt === "POINTS")
         return "ALLOC";
+    if (bt === "JUDGE_REVIEW" || bt === "JUDGE" || bt === "REVIEW")
+        return "JUDGE_REVIEW";
 
     const key = (e?.electionKey ?? "").toString().toLowerCase();
     if (key.includes("alloc")) return "ALLOC";
+    if (key.includes("judge") || key.includes("review")) return "JUDGE_REVIEW";
 
     return "NORMAL";
 }
@@ -102,12 +106,10 @@ export function VotingEntryPage() {
 
             const to =
                 kind === "ALLOC"
-                    ? `/alloc-voting/start?electionId=${encodeURIComponent(
-                          electionId,
-                      )}${sessionQS}`
-                    : `/voting/start?electionId=${encodeURIComponent(
-                          electionId,
-                      )}${sessionQS}`;
+                    ? `/alloc-voting/start?electionId=...${sessionQS}`
+                    : kind === "JUDGE_REVIEW"
+                      ? `/judge-review/start?electionId=...${sessionQS}`
+                      : `/voting/start?electionId=...${sessionQS}`;
 
             nav(to, { replace: true, state: { from: backTo } });
         })().catch(() => {

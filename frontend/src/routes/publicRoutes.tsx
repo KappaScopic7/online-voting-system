@@ -26,6 +26,8 @@ import { AllocVotingStartPage } from "../voting/pages/AllocVotingStartPage";
 import { AllocVotingDonePage } from "../voting/pages/AllocVotingDonePage";
 import { IdentityLinkPage } from "../identity/pages/IdentityLinkPage";
 import { IdentityVotePage } from "../identity/pages/IdentityVotePage";
+import { JudgeReviewStartPage } from "../voting/pages/JudgeReviewStartPage";
+import { JudgeReviewDonePage } from "../voting/pages/JudgeReviewDonePage";
 
 export function PublicRoutes() {
     return (
@@ -75,8 +77,17 @@ export function PublicRoutes() {
                 element={<AllocVotingStartPage />}
             />
             <Route
+                path="/judge-review/start"
+                element={<JudgeReviewStartPage />}
+            />
+
+            <Route
                 path="/alloc-voting/done"
                 element={<AllocVotingDonePage />}
+            />
+            <Route
+                path="/judge-review/done"
+                element={<JudgeReviewDonePage />}
             />
             {/* 本人認証（ログイン不要でも使う） */}
             <Route path="/identity/link" element={<IdentityLinkPage />} />
