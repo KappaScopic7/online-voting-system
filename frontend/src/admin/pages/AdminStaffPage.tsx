@@ -13,6 +13,7 @@ export function AdminStaffPage() {
         try {
             setIsLoading(true);
             const data = await fetchStaffList();
+            //            console.log("staff list", data);
             setItems(data);
         } catch (err: any) {
             setMsg(err?.message ?? "アカウント一覧の取得に失敗しました");
@@ -30,7 +31,6 @@ export function AdminStaffPage() {
     const hasItems = useMemo(() => {
         return items !== null && items.length > 0;
     }, [items]);
-
     return (
         <div style={{ padding: 16, display: "grid", gap: 12 }}>
             {/* Header */}
@@ -41,10 +41,10 @@ export function AdminStaffPage() {
                     gap: 12,
                 }}
             >
-                <h3 style={{ margin: 0 }}>管理者アカウント一覧</h3>
+                <h3 style={{ margin: 0 }}>アカウント一覧</h3>
 
                 <button onClick={load} disabled={isLoading}>
-                    {isLoading ? "Loading..." : "Reload"}
+                    {isLoading ? "Loading..." : "再読み込み"}
                 </button>
             </div>
 
