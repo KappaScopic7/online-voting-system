@@ -30,8 +30,11 @@ public class VoteTokenAuthenticationFilter extends OncePerRequestFilter {
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
-        // public voting のみ適用
-        return !request.getRequestURI().startsWith("/api/public/voting/");
+        // public 投票系エンドポイントに適用
+        String path = request.getRequestURI();
+        return !(path.startsWith("/api/public/voting/") ||
+                path.startsWith("/api/public/alloc-voting/") ||
+                path.startsWith("/api/public/judge-review/"));
     }
 
     @Override
@@ -65,39 +68,38 @@ public class VoteTokenAuthenticationFilter extends OncePerRequestFilter {
                     .getBody();
 
             String kind = String.valueOf(claims.get(JwtClaims.KIND));
-            if (!"VOTE".equals(kind)) {
+            UUID citizenId = UUID.fromString(claims.getSubject());
+            UUID tokenElectionId = null;
+
+            if ("VOTE".equals(kind)) {
+                String eidStr = String.valueOf(claims.get("eid"));
+                tokenElectionId = UUID.fromString(eidStr);
+
+                // （VOTE のときだけ）electionId一致チェック
+                String reqElectionId = request.getParameter("electionId");
+                if (reqElectionId != null && !reqElectionId.isBlank()) {
+                    UUID reqEid = UUID.fromString(reqElectionId);
+                    if (!tokenElectionId.equals(reqEid)) {
+                        SecurityContextHolder.clearContext();
+                        chain.doFilter(request, response);
+                        return;
+                    }
+                }
+            } else if ("PUBLIC".equals(kind)) {
+                // election縛り無し
+                tokenElectionId = null;
+            } else {
                 chain.doFilter(request, response);
                 return;
             }
 
-            // electionId (token固定)
-            String eidStr = String.valueOf(claims.get("eid"));
-            UUID tokenElectionId = UUID.fromString(eidStr);
-
-            // start は query で electionId が来るので一致チェック（来てる時だけ）
-            String reqElectionId = request.getParameter("electionId");
-            if (reqElectionId != null && !reqElectionId.isBlank()) {
-                UUID reqEid = UUID.fromString(reqElectionId);
-                if (!tokenElectionId.equals(reqEid)) {
-                    SecurityContextHolder.clearContext();
-                    chain.doFilter(request, response);
-                    return;
-                }
+            if (tokenElectionId != null) {
+                request.setAttribute(ATTR_VOTE_TOKEN_ELECTION_ID, tokenElectionId);
             }
 
-            request.setAttribute(ATTR_VOTE_TOKEN_ELECTION_ID, tokenElectionId);
-
-            UUID citizenId = UUID.fromString(claims.getSubject());
-
-            // ✅ ここが本命：PrincipalExtractor が VotePrincipal を要求している
             VotePrincipal vp = new VotePrincipal(citizenId, tokenElectionId);
-
             var authentication = new UsernamePasswordAuthenticationToken(
-                    vp,
-                    null,
-                    List.of() // authenticated() 判定は通る
-            );
-
+                    vp, null, List.of());
             SecurityContextHolder.getContext().setAuthentication(authentication);
 
         } catch (JwtException | IllegalArgumentException e) {

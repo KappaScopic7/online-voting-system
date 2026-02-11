@@ -46,9 +46,15 @@ function readJwtPayload(token: string): any | null {
     }
 }
 
-function readEid(token: string): string | null {
+function readJwtEid(token: string): string | null {
     const pl = readJwtPayload(token);
     return typeof pl?.eid === "string" ? pl.eid : null;
+}
+
+function readJwtKind(token: string): string | null {
+    const pl = readJwtPayload(token);
+    const k = pl?.kind ?? pl?.KIND;
+    return typeof k === "string" ? k : null;
 }
 
 type Row = {
@@ -102,10 +108,14 @@ export function AllocVotingStartPage() {
 
     // ✅ public モード判定：session=public / public=1 のみ
     const session = (sp.get("session") ?? "").toLowerCase();
-    const publicMode = session === "public" || isTruthy(sp.get("public"));
+    const publicByQuery = session === "public" || isTruthy(sp.get("public"));
 
-    // ✅ token は publicMode のときだけ使う（混線防止）
-    const tokenFromQuery = publicMode ? sp.get("token") : null;
+    // ✅ URL に public が無くても、publicToken が生きてたら public 扱い
+    const hasStoredPublicToken = !!publicToken.get();
+    const publicMode = publicByQuery || hasStoredPublicToken;
+
+    // token は「URLで public 明示のときだけ」拾う
+    const tokenFromQuery = publicByQuery ? sp.get("token") : null;
     const effectiveToken = publicMode
         ? tokenFromQuery?.trim() || publicToken.get()
         : null;
@@ -118,13 +128,16 @@ export function AllocVotingStartPage() {
         const t = effectiveToken?.trim();
         if (!t) return;
 
-        const eid = readEid(t);
-        if (eid && electionId && eid !== electionId) {
-            // ✅ 選挙が違う token は事故るので捨てる
-            publicToken.clear();
-            return;
+        const kind = readJwtKind(t);
+        if (kind === "VOTE") {
+            const eid = readJwtEid(t);
+            if (eid && electionId && eid !== electionId) {
+                // ✅ 選挙が違う VOTE token は事故るので捨てる
+                publicToken.clear();
+                return;
+            }
         }
-        publicToken.set(t);
+        publicToken.set(t); // kind === "PUBLIC" は選挙縛りなし
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [publicMode, effectiveToken, electionId]);
 
@@ -286,6 +299,8 @@ export function AllocVotingStartPage() {
                         "投票を開始できません（本人認証未完了 / 期間外 など）",
                 );
             } else if (status === 401) {
+                if (publicMode) publicToken.clear();
+
                 setErr(
                     msg ??
                         (publicMode
@@ -313,7 +328,8 @@ export function AllocVotingStartPage() {
             return;
         }
         load();
-    }, [electionId, publicMode, load]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [electionId, publicByQuery, hasStoredPublicToken]);
 
     const commitNoneAll = () => {
         if (!data || busy) return;
@@ -512,6 +528,7 @@ export function AllocVotingStartPage() {
             if (status === 403) {
                 setErr(msg ?? "投票できません（期間外/権限なし）");
             } else if (status === 401) {
+                if (publicMode) publicToken.clear();
                 setErr(
                     msg ??
                         (publicMode
@@ -720,14 +737,15 @@ export function AllocVotingStartPage() {
 
                         {publicMode && (
                             <Link
-                                to={`/identity/vote?electionId=${encodeURIComponent(
-                                    electionId,
-                                )}&session=public&returnTo=${encodeURIComponent(
-                                    self,
-                                )}`}
+                                to={`/identity/vote?electionId=${encodeURIComponent(electionId)}&session=public&returnTo=${encodeURIComponent(self)}`}
                                 state={{ from: backTo }}
                             >
-                                本人認証（PIN+NFC）へ →
+                                {(() => {
+                                    const hasPublic = !!publicToken.get();
+                                    return hasPublic
+                                        ? "投票する（本人認証済み） →"
+                                        : "本人認証で投票 →";
+                                })()}
                             </Link>
                         )}
 

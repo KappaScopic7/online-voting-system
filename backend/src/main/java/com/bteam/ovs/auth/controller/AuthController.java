@@ -25,59 +25,40 @@ public class AuthController {
         this.jwtService = jwtService;
     }
 
-    private record TicketData(UUID citizenId, UUID electionId, Instant expiresAt) {
+    // ★ electionId をやめる
+    private record TicketData(UUID citizenId, Instant expiresAt) {
     }
 
-    // Key: ticket, Value: citizenId + electionId + expires
     private static final Map<String, TicketData> ticketStore = new ConcurrentHashMap<>();
 
     public static class NfcLoginRequest {
-        public String payload; // NFC NDEF文字列（UUID単体でもOK）
-        public String pin; // 4桁
-        public String electionId; // どの投票へ進むか（UUID）
+        public String payload;
+        public String pin;
+        // public String electionId; // ★不要（残すなら optional 扱いに）
     }
 
     public static class ExchangeRequest {
         public String ticket;
     }
 
-    /**
-     * Android → ticket発行
-     * POST /api/auth/nfc-login
-     */
     @PostMapping("/nfc-login")
     public Map<String, String> nfcLogin(@RequestBody NfcLoginRequest request) {
 
         if (request == null) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "BAD_REQUEST", "request is null");
         }
-        if (request.electionId == null || request.electionId.isBlank()) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_ELECTION_ID", "electionId is required");
-        }
-
-        final UUID electionId;
-        try {
-            electionId = UUID.fromString(request.electionId.trim());
-        } catch (Exception e) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_ELECTION_ID", "electionId is invalid UUID");
-        }
 
         // ✅ ここが整合の本体（payload→citizenId + PIN照合）
         UUID citizenId = nfcResolveService.resolveCitizenId(request.payload, request.pin);
 
-        // ticket発行（短命）
         String ticket = UUID.randomUUID().toString();
         Instant expiresAt = Instant.now().plusSeconds(60);
 
-        ticketStore.put(ticket, new TicketData(citizenId, electionId, expiresAt));
+        ticketStore.put(ticket, new TicketData(citizenId, expiresAt));
 
         return Map.of("ticket", ticket, "expiresInSec", "60");
     }
 
-    /**
-     * Web → ticketを voteToken に交換
-     * POST /api/auth/nfc/exchange
-     */
     @PostMapping("/nfc/exchange")
     public TokenResponse exchange(@RequestBody ExchangeRequest req) {
         if (req == null || req.ticket == null || req.ticket.isBlank()) {
@@ -88,17 +69,19 @@ public class AuthController {
         if (data == null) {
             throw new ApiException(HttpStatus.UNAUTHORIZED, "INVALID_TICKET", "ticket is invalid");
         }
+
         if (data.expiresAt().isBefore(Instant.now())) {
             throw new ApiException(HttpStatus.UNAUTHORIZED, "TICKET_EXPIRED", "ticket expired");
         }
 
-        // ✅ 既存のVOTEトークンを発行（public votingに使える）
-        String voteToken = jwtService.issueVoteToken(data.citizenId(), data.electionId());
+        // ✅ PUBLIC セッショントークン（選挙縛り無し）
+        String publicToken = jwtService.issuePublicSessionToken(data.citizenId());
 
         return new TokenResponse(
-                voteToken,
+                publicToken,
                 "Bearer",
-                30 * 60, // voteToken TTLは JwtService側が5分なので合わせる（厳密にしたいなら JwtServiceから取る）
+                30 * 60, // ← JwtService の TTL と合わせるのが理想（後述）
                 null);
     }
+
 }

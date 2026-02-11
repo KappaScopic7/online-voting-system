@@ -14,8 +14,10 @@ import java.nio.charset.StandardCharsets;
 import java.security.Key;
 import java.time.Instant;
 import java.util.Date;
+// import java.util.HashMap;
 import java.util.UUID;
 import java.time.Duration;
+// import java.util.Map;
 
 @Component
 public class JwtService {
@@ -131,6 +133,58 @@ public class JwtService {
     // 既存互換
     public String issueVoteToken(UUID citizenId, UUID electionId) {
         return issueVoteToken(citizenId, electionId, Duration.ofMinutes(30));
+    }
+
+    // private String issueJwt(String subject, Map<String, Object> claims, Duration
+    // ttl) {
+    // Instant now = Instant.now();
+    // long sec = Math.max(30, ttl == null ? 300 : ttl.toSeconds());
+    // Instant exp = now.plusSeconds(sec);
+
+    // var b = Jwts.builder()
+    // .setSubject(subject)
+    // .setIssuedAt(Date.from(now))
+    // .setExpiration(Date.from(exp));
+
+    // if (claims != null) {
+    // for (var e : claims.entrySet()) {
+    // b.claim(e.getKey(), e.getValue());
+    // }
+    // }
+
+    // return b.signWith(key, SignatureAlgorithm.HS256).compact();
+    // }
+
+    // public String issuePublicSessionToken(UUID citizenId) {
+    // Instant now = Instant.now();
+
+    // System.out.println("[JWT] issuePublicSessionToken: citizenId=" + citizenId
+    // + " ttlMin=30"
+    // + " iat=" + now);
+
+    // Map<String, Object> claims = new HashMap<>();
+    // claims.put(JwtClaims.KIND, "PUBLIC");
+
+    // // exp は “本人認証の有効期限” として 30分（好きに調整OK）
+    // return issueJwt(citizenId.toString(), claims, Duration.ofMinutes(30));
+    // }
+
+    public String issuePublicSessionToken(UUID citizenId, Duration ttl) {
+        Instant now = Instant.now();
+        long sec = Math.max(30, ttl == null ? 1800 : ttl.toSeconds());
+        Instant exp = now.plusSeconds(sec);
+
+        return Jwts.builder()
+                .setSubject(citizenId.toString()) // ✅ Filter が読む場所
+                .claim(JwtClaims.KIND, "PUBLIC") // ✅ Filter が読む場所
+                .setIssuedAt(Date.from(now))
+                .setExpiration(Date.from(exp))
+                .signWith(key, SignatureAlgorithm.HS256)
+                .compact();
+    }
+
+    public String issuePublicSessionToken(UUID citizenId) {
+        return issuePublicSessionToken(citizenId, Duration.ofMinutes(30));
     }
 
 }

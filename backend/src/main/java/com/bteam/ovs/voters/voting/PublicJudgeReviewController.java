@@ -28,7 +28,7 @@ public class PublicJudgeReviewController {
             @RequestParam("electionId") String electionId,
             Authentication auth) {
         UUID citizenId = PrincipalExtractor.requireVoteCitizenId(auth);
-        UUID tokenElectionId = PrincipalExtractor.requireVoteElectionId(auth);
+        UUID tokenElectionId = PrincipalExtractor.getVoteElectionId(auth);
 
         UUID eid = UuidParsers.parseOr400(
                 electionId, "INVALID_ELECTION_ID", "electionIdが不正です");
@@ -48,7 +48,7 @@ public class PublicJudgeReviewController {
             @Valid @RequestBody JudgeReviewConfirmRequest req,
             Authentication auth) {
         UUID citizenId = PrincipalExtractor.requireVoteCitizenId(auth);
-        UUID tokenElectionId = PrincipalExtractor.requireVoteElectionId(auth);
+        UUID tokenElectionId = PrincipalExtractor.getVoteElectionId(auth);
 
         UUID electionId = UuidParsers.parseOr400(
                 req.electionId(), "INVALID_ELECTION_ID", "electionIdが不正です");

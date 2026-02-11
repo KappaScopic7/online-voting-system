@@ -45,9 +45,15 @@ function readJwtPayload(token: string): any | null {
     }
 }
 
-function readEid(token: string): string | null {
+function readJwtEid(token: string): string | null {
     const pl = readJwtPayload(token);
     return typeof pl?.eid === "string" ? pl.eid : null;
+}
+
+function readJwtKind(token: string): string | null {
+    const pl = readJwtPayload(token);
+    const k = pl?.kind ?? pl?.KIND; // 念のため
+    return typeof k === "string" ? k : null;
 }
 
 type Step = "EDIT" | "CONFIRM";
@@ -60,10 +66,16 @@ export function JudgeReviewStartPage() {
     const [sp] = useSearchParams();
     const electionId = sp.get("electionId") ?? "";
 
+    // ✅ public モード判定：session=public / public=1 のみ
     const session = (sp.get("session") ?? "").toLowerCase();
-    const publicMode = session === "public" || isTruthy(sp.get("public"));
+    const publicByQuery = session === "public" || isTruthy(sp.get("public"));
 
-    const tokenFromQuery = publicMode ? sp.get("token") : null;
+    // ✅ URL に public が無くても、publicToken が生きてたら public 扱い
+    const hasStoredPublicToken = !!publicToken.get();
+    const publicMode = publicByQuery || hasStoredPublicToken;
+
+    // token は「URLで public 明示のときだけ」拾う
+    const tokenFromQuery = publicByQuery ? sp.get("token") : null;
     const effectiveToken = publicMode
         ? tokenFromQuery?.trim() || publicToken.get()
         : null;
@@ -76,14 +88,22 @@ export function JudgeReviewStartPage() {
         const t = effectiveToken?.trim();
         if (!t) return;
 
-        const eid = readEid(t);
-        if (eid && electionId && eid !== electionId) {
-            // ✅ 別選挙の token 混入は 403 になるので捨てる
-            publicToken.clear();
+        const kind = readJwtKind(t);
+        if (kind === "VOTE") {
+            const eid = readJwtEid(t);
+            if (eid && electionId && eid !== electionId) {
+                publicToken.clear(); // VOTE の混線だけ捨てる
+                return;
+            }
+        } else if (kind === "PUBLIC") {
+            // election 縛りなしでOK
+        } else {
+            // 期待しない token は保存しない（任意）
             return;
         }
 
         publicToken.set(t);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [publicMode, effectiveToken, electionId]);
 
     // ✅ URL から token を消す（戻る/リロードで混入しないように）
@@ -169,6 +189,8 @@ export function JudgeReviewStartPage() {
                         "投票を開始できません（本人認証未完了 / 期間外 など）",
                 );
             } else if (status === 401) {
+                if (publicMode) publicToken.clear();
+
                 setErr(
                     msg ??
                         (publicMode
@@ -251,6 +273,8 @@ export function JudgeReviewStartPage() {
             if (status === 403)
                 setErr(msg ?? "投票できません（期間外/権限なし）");
             else if (status === 401) {
+                if (publicMode) publicToken.clear();
+
                 setErr(
                     msg ??
                         (publicMode

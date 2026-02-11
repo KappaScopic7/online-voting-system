@@ -85,6 +85,12 @@ function readEid(token: string): string | null {
     return typeof pl?.eid === "string" ? pl.eid : null;
 }
 
+function readJwtKind(token: string): string | null {
+    const pl = readJwtPayload(token);
+    const k = pl?.kind ?? pl?.KIND; // 念のため
+    return typeof k === "string" ? k : null;
+}
+
 export function VotingStartPage() {
     const nav = useNavigate();
     const loc = useLocation();
@@ -95,10 +101,14 @@ export function VotingStartPage() {
 
     // ✅ public モード判定：session=public か public=1 のみ
     const session = (sp.get("session") ?? "").toLowerCase();
-    const publicMode = session === "public" || isTruthy(sp.get("public"));
+    const publicByQuery = session === "public" || isTruthy(sp.get("public"));
+
+    // ✅ URL に public が無くても、publicToken が生きてたら public 扱い
+    const hasStoredPublicToken = !!publicToken.get();
+    const publicMode = publicByQuery || hasStoredPublicToken;
 
     // ✅ token は publicMode のときだけ使う（混線防止）
-    const tokenFromQuery = publicMode ? sp.get("token") : null;
+    const tokenFromQuery = publicByQuery ? sp.get("token") : null;
     const effectiveToken = publicMode
         ? tokenFromQuery?.trim() || publicToken.get()
         : null;
@@ -110,19 +120,26 @@ export function VotingStartPage() {
         const t = effectiveToken?.trim();
         if (!t) return;
 
-        const eid = readEid(t);
-        if (eid && electionId && eid !== electionId) {
-            // ✅ 選挙が違う token は事故るので捨てる
-            publicToken.clear();
+        const kind = readJwtKind(t);
+        if (kind === "VOTE") {
+            const eid = readEid(t);
+            if (eid && electionId && eid !== electionId) {
+                publicToken.clear(); // VOTE 混線だけ捨てる
+                return;
+            }
+        } else if (kind === "PUBLIC") {
+            // election 縛りなしでOK
+        } else {
+            // 期待しない token は保存しない（任意）
             return;
         }
+
         publicToken.set(t);
     }, [publicMode, effectiveToken, electionId]);
 
     // ✅ URL から token を消去（リロード対策・クリーンアップ）
     useEffect(() => {
-        if (!publicMode) return;
-        if (!tokenFromQuery) return;
+        if (!publicMode || !tokenFromQuery) return;
         const sp2 = new URLSearchParams(loc.search);
         sp2.delete("token");
         nav(`${loc.pathname}?${sp2.toString()}`, { replace: true });
@@ -222,6 +239,8 @@ export function VotingStartPage() {
                         "投票を開始できません（本人認証未完了 / 期間外 など）",
                 );
             } else if (status === 401) {
+                if (publicMode) publicToken.clear();
+
                 setError(
                     msg ??
                         (publicMode
@@ -245,7 +264,7 @@ export function VotingStartPage() {
         if (!electionId) return;
         load();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [electionId, publicMode]);
+    }, [electionId, publicByQuery, hasStoredPublicToken]);
 
     const selected = useMemo<Option | null>(() => {
         const p = parseSelectedKey(selectedKey);
@@ -322,6 +341,8 @@ export function VotingStartPage() {
             if (status === 403) {
                 setError(msg ?? "投票できません（期間外/権限なし）");
             } else if (status === 401) {
+                if (publicMode) publicToken.clear();
+
                 setError(
                     msg ??
                         (publicMode

@@ -60,15 +60,20 @@ export function VotingEntryPage() {
     const q = useMemo(() => new URLSearchParams(loc.search), [loc.search]);
     const electionId = q.get("electionId")?.trim() || "";
 
-    // ✅ public は明示（session=public / public=1）のみ
     const session = (q.get("session") ?? "").toLowerCase();
-    const publicMode = session === "public" || isTruthy(q.get("public"));
+    const publicByQuery = session === "public" || isTruthy(q.get("public"));
 
-    // token は拾ってもいいが、URLへ再放流しない
-    const tokenFromQuery = publicMode ? q.get("token") : null;
+    // ✅ URL に public が無くても、publicToken が生きてたら public 扱い
+    const publicMode = publicByQuery || !!publicToken.get();
+
+    const tokenFromQuery = publicByQuery ? q.get("token") : null;
+
     const effectiveToken = publicMode
         ? tokenFromQuery?.trim() || publicToken.get()
         : null;
+
+    // ✅ StartPage へ引き回すクエリ（tokenは付けない）
+    const sessionQS = publicMode ? `&session=public` : "";
 
     // ✅ token を含むURLは事故るので、入場したら即消す
     useEffect(() => {
@@ -90,9 +95,6 @@ export function VotingEntryPage() {
         const qs = sp2.toString();
         return `${loc.pathname}${qs ? `?${qs}` : ""}`;
     }, [loc.pathname, loc.search]);
-
-    // ✅ StartPage へ引き回すクエリ（tokenは付けない）
-    const sessionQS = publicMode ? `&session=public` : "";
 
     useEffect(() => {
         if (!electionId) {
