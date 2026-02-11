@@ -30,6 +30,27 @@ function normalize(v: string | null): string | null {
     return t;
 }
 
+function base64UrlDecodeToJson(b64url: string): any | null {
+    try {
+        const b64 = b64url.replace(/-/g, "+").replace(/_/g, "/");
+        const pad = b64.length % 4 ? "=".repeat(4 - (b64.length % 4)) : "";
+        const s = atob(b64 + pad);
+        return JSON.parse(s);
+    } catch {
+        return null;
+    }
+}
+
+function isJwtExpired(token: string, skewSec = 5): boolean {
+    const parts = token.split(".");
+    if (parts.length < 2) return false; // JWTじゃないなら判断しない
+    const payload = base64UrlDecodeToJson(parts[1]);
+    const exp = payload?.exp;
+    if (typeof exp !== "number") return false;
+    const nowSec = Math.floor(Date.now() / 1000);
+    return exp <= nowSec + skewSec;
+}
+
 window.addEventListener("storage", (e) => {
     if (e.key === PUBLIC_KEY) emitPublic();
     if (e.key === USER_KEY) emitUser();
@@ -84,7 +105,15 @@ export const staffToken = {
 
 export const publicToken = {
     get(): string | null {
-        return normalize(localStorage.getItem(PUBLIC_KEY));
+        const t = normalize(localStorage.getItem(PUBLIC_KEY));
+        if (!t) return null;
+
+        if (isJwtExpired(t)) {
+            localStorage.removeItem(PUBLIC_KEY);
+            emitPublic();
+            return null;
+        }
+        return t;
     },
     set(token: string): void {
         const t = normalize(token);

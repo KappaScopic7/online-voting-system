@@ -561,13 +561,6 @@ export function IdentityVotePage() {
                                                 );
                                                 return;
                                             }
-                                            if (!pinOk) {
-                                                setErr(
-                                                    "先にPIN（4桁）を入力してください",
-                                                );
-                                                return;
-                                            }
-                                            // ✅ Androidへ：electionId + returnTo を渡す
                                             openAndroidApp(
                                                 electionId,
                                                 returnTo,

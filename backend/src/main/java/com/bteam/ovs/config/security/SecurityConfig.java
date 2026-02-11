@@ -88,9 +88,14 @@ public class SecurityConfig {
                         .requestMatchers("/api/public/alloc-voting/**").authenticated()
 
                         // ---- public / user auth ----
-                        .requestMatchers("/api/auth/register", "/api/auth/login", "/api/auth/verify",
-                                "/api/auth/nfc-login", // ←古いの残すなら
-                                "/api/auth/nfc/login", "/api/auth/nfc/exchange")
+                        .requestMatchers(
+                                "/api/auth/register",
+                                "/api/auth/login",
+                                "/api/auth/verify",
+                                "/api/auth/nfc/login",
+                                "/api/auth/nfc/exchange",
+                                "/api/auth/nfc/link/login",
+                                "/api/auth/nfc/link/exchange")
                         .permitAll()
 
                         .requestMatchers(HttpMethod.GET, "/api/auth/me", "/api/auth/me/detail")

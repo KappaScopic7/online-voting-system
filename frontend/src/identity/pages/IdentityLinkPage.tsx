@@ -341,12 +341,6 @@ export function IdentityLinkPage() {
                                     <button
                                         type="button"
                                         onClick={() => {
-                                            if (!pinOk) {
-                                                setErr(
-                                                    "先にPIN（4桁）を入力してください",
-                                                );
-                                                return;
-                                            }
                                             // ✅ このページに戻ってくればOK（state.from 維持したいなら from でもOK）
                                             openAndroidLinkApp(from);
                                         }}

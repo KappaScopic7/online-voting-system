@@ -26,8 +26,13 @@ public class NfcBridgeServer {
             "(?i)\\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\\b");
 
     public static void main(String[] args) throws Exception {
-        int port = 39123;
+        String enable = System.getenv("OVS_NFC_BRIDGE");
+        if (!"1".equals(enable)) {
+            System.out.println("[bridge] disabled (set OVS_NFC_BRIDGE=1 to enable)");
+            return;
+        }
 
+        int port = 39123;
         HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", port), 0);
 
         server.createContext("/health", ex -> json(ex, 200, "{\"ok\":true}"));
@@ -77,6 +82,18 @@ public class NfcBridgeServer {
     }
 
     private static void readLoop() {
+        try {
+            TerminalFactory factory = TerminalFactory.getDefault();
+            List<CardTerminal> terminals = factory.terminals().list();
+            if (terminals.isEmpty()) {
+                System.out.println("[nfc] no card terminals found -> stop");
+                return; // ← ループしない
+            }
+        } catch (Exception e) {
+            System.out.println("[nfc] init failed -> stop: " + e.getMessage());
+            return;
+        }
+
         while (true) {
             try {
                 TerminalFactory factory = TerminalFactory.getDefault();

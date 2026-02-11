@@ -130,6 +130,7 @@ public class JwtService {
 
     // 既存互換
     public String issueVoteToken(UUID citizenId, UUID electionId) {
-        return issueVoteToken(citizenId, electionId, Duration.ofMinutes(5));
+        return issueVoteToken(citizenId, electionId, Duration.ofMinutes(30));
     }
+
 }

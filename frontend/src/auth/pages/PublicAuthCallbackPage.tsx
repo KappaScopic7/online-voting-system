@@ -50,14 +50,10 @@ export function PublicAuthCallbackPage() {
 
             publicToken.set(t);
 
-            // ✅ URLに token を載せず、VotingEntryPage に任せる
-            // returnTo があれば優先（ないなら voting/entry へ）
             const to =
-                returnToRaw && returnToRaw.startsWith("/")
-                    ? returnToRaw
-                    : `/voting/entry?electionId=${encodeURIComponent(
-                          electionId,
-                      )}&session=public`;
+                returnTo && returnTo.startsWith("/")
+                    ? returnTo
+                    : `/voting/entry?electionId=${encodeURIComponent(electionId)}&session=public`;
 
             nav(to, { replace: true });
         })().catch((e) => {
@@ -72,7 +68,7 @@ export function PublicAuthCallbackPage() {
                 { replace: true },
             );
         });
-    }, [ticket, electionId, nav, returnToRaw, returnTo]);
+    }, [ticket, electionId, nav, returnTo]);
 
     return (
         <Page

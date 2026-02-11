@@ -1,9 +1,7 @@
+// backend/src/main/java/com/bteam/ovs/auth/controller/NfcAuthController.java
 package com.bteam.ovs.auth.controller;
 
-import com.bteam.ovs.auth.controller.dto.TokenResponse;
-import com.bteam.ovs.auth.controller.dto.NfcLoginRequest;
-import com.bteam.ovs.auth.controller.dto.NfcLoginResponse;
-import com.bteam.ovs.auth.controller.dto.NfcExchangeRequest;
+import com.bteam.ovs.auth.controller.dto.*;
 import com.bteam.ovs.auth.service.NfcAuthService;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
@@ -18,21 +16,27 @@ public class NfcAuthController {
         this.service = service;
     }
 
-    /**
-     * Android → payload+pin+electionId を照合して ticket を発行
-     * POST /api/auth/nfc/login
-     */
+    // ===== public voting (existing) =====
+
     @PostMapping(value = "/login", produces = "application/json; charset=UTF-8")
     public NfcLoginResponse login(@RequestBody @Valid NfcLoginRequest req) {
         return service.login(req);
     }
 
-    /**
-     * Web → ticket を voteToken に交換（publicTokenとして保存）
-     * POST /api/auth/nfc/exchange
-     */
     @PostMapping(value = "/exchange", produces = "application/json; charset=UTF-8")
     public TokenResponse exchange(@RequestBody @Valid NfcExchangeRequest req) {
         return service.exchange(req);
+    }
+
+    // ===== identity link (NEW) =====
+
+    @PostMapping(value = "/link/login", produces = "application/json; charset=UTF-8")
+    public NfcLinkLoginResponse linkLogin(@RequestBody @Valid NfcLinkLoginRequest req) {
+        return service.linkLogin(req);
+    }
+
+    @PostMapping(value = "/link/exchange", produces = "application/json; charset=UTF-8")
+    public NfcLinkExchangeResponse linkExchange(@RequestBody @Valid NfcLinkExchangeRequest req) {
+        return service.linkExchange(req);
     }
 }

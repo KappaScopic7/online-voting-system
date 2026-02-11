@@ -8,7 +8,7 @@ import { userToken } from "../../shared/tokenStorage";
 import { normalizeFrom } from "../../shared/normalizeFrom";
 
 type ExchangeRes = { citizenId: string };
-type LinkRes = { accessToken: string };
+type LinkRes = { accessToken?: string };
 
 export function UserLinkCallbackPage() {
     const nav = useNavigate();
@@ -20,27 +20,30 @@ export function UserLinkCallbackPage() {
     const returnToRaw = (q.get("returnTo") ?? "").trim();
     const returnTo = normalizeFrom(returnToRaw || "/me/identity");
 
+    const self = loc.pathname + loc.search;
+
     const [msg, setMsg] = useState("認証結果を確認しています…");
 
     useEffect(() => {
         if (didRunRef.current) return;
         didRunRef.current = true;
 
-        // ログインしてないなら先にログインへ（最低限）
-        if (!userToken.get()) {
-            nav("/login", { replace: true, state: { from: "/me/identity" } });
+        // ticket必須
+        if (!ticket) {
+            nav("/me/identity", { replace: true });
             return;
         }
 
-        if (!ticket) {
-            nav("/me/identity", { replace: true });
+        // ログイン必須（ここは「callbackに戻す」）
+        if (!userToken.get()) {
+            nav("/login", { replace: true, state: { from: self } });
             return;
         }
 
         (async () => {
             setMsg("NFC認証結果を取得中…");
 
-            // ticket -> citizenId
+            // ticket -> citizenId（permitAll）
             const ex = await httpAnon.post<ExchangeRes>(
                 "/auth/nfc/link/exchange",
                 { ticket },
@@ -50,21 +53,22 @@ export function UserLinkCallbackPage() {
 
             setMsg("紐付けを確定中…");
 
-            // ✅ ここがログイン後Linkの本体（USER JWT必須）
+            // ✅ ログイン後IdentityLinkの本体（USER JWT必須）
             const linked = await httpUser.post<LinkRes>("/identity/link", {
                 citizenId,
             });
-            const newToken = (linked.data?.accessToken ?? "").trim();
 
-            // サーバが新トークン返す設計なら更新（返さないならこの行は消してOK）
+            // サーバが新トークン返す設計なら更新（返さないなら無視でOK）
+            const newToken = (linked.data?.accessToken ?? "").trim();
             if (newToken) userToken.set(newToken);
 
             nav(returnTo, { replace: true });
-        })().catch(() => {
+        })().catch((e) => {
+            console.error(e);
             setMsg("紐付けに失敗しました。やり直してください。");
-            nav("/me/identity", { replace: true });
+            nav(returnTo, { replace: true });
         });
-    }, [ticket, returnTo, nav]);
+    }, [ticket, returnTo, nav, self]);
 
     return (
         <Page

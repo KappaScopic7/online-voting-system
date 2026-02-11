@@ -98,7 +98,7 @@ public class AuthController {
         return new TokenResponse(
                 voteToken,
                 "Bearer",
-                5 * 60, // voteToken TTLは JwtService側が5分なので合わせる（厳密にしたいなら JwtServiceから取る）
+                30 * 60, // voteToken TTLは JwtService側が5分なので合わせる（厳密にしたいなら JwtServiceから取る）
                 null);
     }
 }
