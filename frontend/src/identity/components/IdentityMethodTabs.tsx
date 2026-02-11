@@ -6,19 +6,30 @@ export type IdentityMethod = "MANUAL" | "NFC";
 export function IdentityMethodTabs(props: {
     value: IdentityMethod;
     onChange: (v: IdentityMethod) => void;
+
+    nfcDisabled?: boolean;
+    manualDisabled?: boolean;
 }) {
-    const { value, onChange } = props;
+    const {
+        value,
+        onChange,
+        nfcDisabled = false,
+        manualDisabled = false,
+    } = props;
 
     const isDev = import.meta.env?.DEV;
 
-    const tabStyle = (active: boolean): React.CSSProperties => ({
+    const tabStyle = (
+        active: boolean,
+        disabled: boolean,
+    ): React.CSSProperties => ({
         padding: "8px 12px",
         border: "1px solid #ddd",
         borderRadius: 8,
         background: active ? "#f5f5f5" : "transparent",
-        cursor: "pointer",
+        cursor: disabled ? "not-allowed" : "pointer",
         userSelect: "none",
-        opacity: active ? 1 : 0.85,
+        opacity: disabled ? 0.45 : active ? 1 : 0.85,
     });
 
     return (
@@ -26,7 +37,8 @@ export function IdentityMethodTabs(props: {
             <button
                 type="button"
                 onClick={() => onChange("MANUAL")}
-                style={tabStyle(value === "MANUAL")}
+                disabled={manualDisabled}
+                style={tabStyle(value === "MANUAL", manualDisabled)}
             >
                 {isDev ? "手入力（デモ）" : "手入力"}
             </button>
@@ -34,7 +46,8 @@ export function IdentityMethodTabs(props: {
             <button
                 type="button"
                 onClick={() => onChange("NFC")}
-                style={tabStyle(value === "NFC")}
+                disabled={nfcDisabled}
+                style={tabStyle(value === "NFC", nfcDisabled)}
             >
                 NFC
             </button>

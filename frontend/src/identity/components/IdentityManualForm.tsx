@@ -2,6 +2,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { linkIdentity } from "../api/identity";
 import { useAuth } from "../../user/UserAuthContext";
+import { issueVoteToken } from "../../public/api/voteToken";
+import { publicToken } from "../../shared/tokenStorage";
 
 function isUuidLike(v: string) {
     return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
@@ -28,23 +30,40 @@ function formatUuidInput(raw: string): string {
     return parts.join("-");
 }
 
+export type IdentityManualMode = "IDENTITY_LINK" | "VOTE_TOKEN_ISSUE";
+
 export function IdentityManualForm(props: {
-    onLinked: (accessToken: string) => void;
+    mode?: IdentityManualMode;
+
+    // LINK
+    onLinked?: (accessToken: string) => void;
+
+    // VOTE
+    electionId?: string;
+    onIssued?: (voteToken: string) => void;
+
     onError?: (msg: string) => void;
 
     // PIN
     pin?: string;
     pinRequired?: boolean;
 
-    // ✅ DEV: 親から流し込む用（あれば citizenId に自動反映）
+    // DEV: 親から流し込む用
     devCitizenId?: string;
+
+    // 表示文言カスタムしたいなら
+    submitLabel?: string;
 }) {
     const {
+        mode = "IDENTITY_LINK",
         onLinked,
+        electionId,
+        onIssued,
         onError,
         pin = "",
         pinRequired = false,
         devCitizenId,
+        submitLabel,
     } = props;
 
     const { setAccessToken } = useAuth();
@@ -54,7 +73,6 @@ export function IdentityManualForm(props: {
     const [fieldErr, setFieldErr] = useState<{ citizenId?: string }>({});
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    // ✅ 親から渡された devCitizenId をフォームへ反映（正規化して入れる）
     useEffect(() => {
         const v = (devCitizenId ?? "").trim();
         if (!v) return;
@@ -70,8 +88,10 @@ export function IdentityManualForm(props: {
         if (!v) return false;
         if (!isUuidLike(v)) return false;
         if (!pinOk) return false;
+        if (mode === "VOTE_TOKEN_ISSUE" && !String(electionId ?? "").trim())
+            return false;
         return !isSubmitting;
-    }, [citizenId, isSubmitting, pinOk]);
+    }, [citizenId, isSubmitting, pinOk, mode, electionId]);
 
     const onSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -94,17 +114,40 @@ export function IdentityManualForm(props: {
             onError?.(m);
             return;
         }
+        if (mode === "VOTE_TOKEN_ISSUE" && !String(electionId ?? "").trim()) {
+            const m = "electionId がありません（投票入口から開いてください）";
+            setMsg(m);
+            onError?.(m);
+            return;
+        }
 
         try {
             setIsSubmitting(true);
-            const token = await linkIdentity({
-                citizenId: v,
-                pin: pinRequired ? pin : undefined,
+
+            if (mode === "IDENTITY_LINK") {
+                const token = await linkIdentity({
+                    citizenId: v,
+                    pin: pinRequired ? pin : undefined,
+                });
+                await setAccessToken(token.accessToken);
+                onLinked?.(token.accessToken);
+                return;
+            }
+
+            // mode === "VOTE_TOKEN_ISSUE"
+            const res = await issueVoteToken({
+                electionId: String(electionId),
+                payload: v,
+                pin,
             });
-            await setAccessToken(token.accessToken);
-            onLinked(token.accessToken);
+            publicToken.set(res.voteToken);
+            onIssued?.(res.voteToken);
         } catch (err: any) {
-            const m = err?.response?.data?.message ?? "本人認証に失敗しました";
+            const m =
+                err?.response?.data?.message ??
+                (mode === "IDENTITY_LINK"
+                    ? "本人認証に失敗しました"
+                    : "本人認証（投票）に失敗しました");
             setMsg(m);
             onError?.(m);
         } finally {
@@ -114,6 +157,9 @@ export function IdentityManualForm(props: {
 
     const uuidIncompleteButHasInput =
         !!citizenId.trim() && !isUuidLike(citizenId.trim());
+
+    const defaultSubmitLabel =
+        mode === "IDENTITY_LINK" ? "本人認証を登録" : "本人認証して投票へ進む";
 
     return (
         <div style={{ display: "grid", gap: 12 }}>
@@ -144,18 +190,14 @@ export function IdentityManualForm(props: {
                     <input
                         value={citizenId}
                         onChange={(e) => {
-                            // ✅ 入力をUUID形式に寄せる（禁止文字は入らない）
                             const next = formatUuidInput(e.target.value);
                             setCitizenId(next);
-
-                            // 入力中はエラー表示を過剰に出さない
                             setFieldErr({});
                             setMsg(null);
                         }}
                         onBlur={() => {
-                            // ✅ フォーカス外れで「不完全なら」だけ優しく出す
-                            const v = citizenId.trim();
-                            if (v && !isUuidLike(v)) {
+                            const vv = citizenId.trim();
+                            if (vv && !isUuidLike(vv)) {
                                 setFieldErr({
                                     citizenId:
                                         "UUID形式（8-4-4-4-12）で入力してください",
@@ -194,7 +236,11 @@ export function IdentityManualForm(props: {
                     disabled={!canSubmit}
                     style={{ alignSelf: "flex-start" }}
                 >
-                    {isSubmitting ? "登録中..." : "本人認証を登録"}
+                    {isSubmitting
+                        ? mode === "IDENTITY_LINK"
+                            ? "登録中..."
+                            : "送信中..."
+                        : (submitLabel ?? defaultSubmitLabel)}
                 </button>
 
                 {!pinOk && (
