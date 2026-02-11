@@ -98,7 +98,8 @@ public class VoterElectionsService {
                             candidateCount,
                             canCast,
                             currentVote,
-                            e.getBallotType().name());
+                            e.getBallotType().name(),
+                            currentVote != null);
                 })
                 .sorted((a, b) -> {
                     int ra = statusRank(a.status());

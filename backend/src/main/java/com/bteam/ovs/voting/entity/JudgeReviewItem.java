@@ -1,12 +1,17 @@
 package com.bteam.ovs.voting.entity;
 
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.Setter;
+
 import java.util.UUID;
 
 @Entity
 @Table(name = "judge_review_item", uniqueConstraints = {
         @UniqueConstraint(name = "uq_jr_item_cast_judge", columnNames = { "cast_id", "judge_candidate_id" })
 })
+@Getter
+@Setter
 public class JudgeReviewItem {
 
     public enum Choice {
@@ -28,31 +33,4 @@ public class JudgeReviewItem {
     @Column(name = "choice", nullable = false)
     private Choice choice;
 
-    public UUID getId() {
-        return id;
-    }
-
-    public UUID getCastId() {
-        return castId;
-    }
-
-    public void setCastId(UUID castId) {
-        this.castId = castId;
-    }
-
-    public UUID getJudgeCandidateId() {
-        return judgeCandidateId;
-    }
-
-    public void setJudgeCandidateId(UUID judgeCandidateId) {
-        this.judgeCandidateId = judgeCandidateId;
-    }
-
-    public Choice getChoice() {
-        return choice;
-    }
-
-    public void setChoice(Choice choice) {
-        this.choice = choice;
-    }
 }

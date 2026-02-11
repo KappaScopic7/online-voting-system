@@ -531,6 +531,7 @@ public class VotingService {
             UUID citizenId,
             UUID electionId,
             List<JudgeReviewConfirmRequest.Item> choices) {
+
         electionEligibilityService.requireEligibleCitizen(citizenId, electionId);
 
         Election election = requireElection(electionId);
@@ -540,21 +541,18 @@ public class VotingService {
         if (election.getBallotType() != BallotType.JUDGE_REVIEW) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_BALLOT_TYPE", "この選挙は国民審査ではありません");
         }
-
         if (choices == null || choices.isEmpty()) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_CHOICES", "choicesが空です");
         }
 
         var judgeCandidates = candidateRepo.findByElectionId(electionId);
         var judgeIdSet = judgeCandidates.stream().map(c -> c.getId()).collect(Collectors.toSet());
-
         if (judgeIdSet.isEmpty()) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "NO_JUDGES", "裁判官が登録されていません");
         }
 
-        // request を judgeCandidateId -> choice に正規化（重複排除、バリデーション）
+        // request 正規化（judgeCandidateId -> choice）
         Map<UUID, JudgeReviewItem.Choice> map = new HashMap<>();
-
         for (var it : choices) {
             if (it == null)
                 continue;
@@ -572,15 +570,14 @@ public class VotingService {
                 throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_CHOICE", "choiceが不正です（OK/NO）");
             }
 
-            map.put(judgeId, choiceEnum); // 後勝ちでもOK、厳密に弾きたいなら重複チェックに変えてOK
+            map.put(judgeId, choiceEnum);
         }
 
-        // 全裁判官分が揃ってることを必須にする（B-1の要件に合う）
         if (map.size() != judgeIdSet.size()) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "CHOICES_NOT_COMPLETE", "全裁判官分の選択が必要です");
         }
 
-        // Cast を 1人1選挙で維持（差し替え方式）
+        // Cast は 1人1選挙
         var cast = judgeReviewCastRepo.findByElectionIdAndCitizenId(electionId, citizenId)
                 .orElseGet(() -> {
                     var c = new JudgeReviewCast();
@@ -592,8 +589,9 @@ public class VotingService {
         cast.setCastedAt(now);
         cast = judgeReviewCastRepo.save(cast);
 
-        // items差し替え
+        // ★ items差し替え（bulk delete + 即時反映）
         judgeReviewItemRepo.deleteByCastId(cast.getId());
+        judgeReviewItemRepo.flush(); // ★保険。上の flushAutomatically が効かない環境でも確実にする
 
         for (var e : map.entrySet()) {
             var item = new JudgeReviewItem();

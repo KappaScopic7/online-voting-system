@@ -11,6 +11,29 @@ import { ElectionCardFrame } from "../ui/ElectionCardFrame";
 import { useElectionListControls } from "../hooks/useElectionListControls";
 import { filterSortElections } from "../model/electionListView";
 
+function hasAnyCurrentVote(e: ElectionListItem): boolean {
+    const x: any = e as any;
+    // NORMAL（候補者/誰も支持しない）
+    if (x.currentVote) return true;
+
+    // ALLOCATION（配分投票）: よくある候補キー
+    if (x.currentAllocVote) return true;
+    if (x.currentAlloc) return true;
+    if (x.allocCurrent) return true;
+    if (
+        x.currentAllocItems &&
+        Array.isArray(x.currentAllocItems) &&
+        x.currentAllocItems.length > 0
+    )
+        return true;
+
+    // JUDGE_REVIEW（国民審査）
+    if (x.currentJudgeReview) return true;
+    if (x.judgeReviewCurrent) return true;
+
+    return false;
+}
+
 function ElectionItemAction(props: {
     e: ElectionListItem;
     from: string;
@@ -46,7 +69,7 @@ function ElectionItemAction(props: {
         }
 
         if (e.canCast) {
-            const voted = !!(e as any).currentVote;
+            const voted = hasAnyCurrentVote(e);
 
             return (
                 <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
@@ -110,26 +133,9 @@ function ElectionItemAction(props: {
 }
 
 function ElectionItemMeta({ e }: { e: ElectionListItem }) {
-    const voted = !!(e as any).currentVote;
-
     return (
         <>
             <span>候補者数: {e.candidateCount}</span>
-
-            {voted ? (
-                <span>
-                    現在の投票:{" "}
-                    {(() => {
-                        const cv = (e as any).currentVote;
-                        if (!cv) return "なし";
-                        if (cv.candidateName) return cv.candidateName;
-                        if (!cv.candidateId) return "誰も支持しない";
-                        return "投票済み";
-                    })()}
-                </span>
-            ) : (
-                <span style={{ opacity: 0.6 }}>現在の投票: なし</span>
-            )}
         </>
     );
 }
@@ -172,7 +178,8 @@ export function ElectionsPage() {
             const notVoted: ElectionListItem[] = [];
             const voted: ElectionListItem[] = [];
             for (const e of xs) {
-                const hasCurrentVote = !!(e as any).currentVote;
+                const hasCurrentVote = hasAnyCurrentVote(e);
+
                 (hasCurrentVote ? voted : notVoted).push(e);
             }
             return [...notVoted, ...voted];

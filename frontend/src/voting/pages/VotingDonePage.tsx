@@ -39,6 +39,13 @@ type DoneState = {
     electionId?: string;
     electionTitle?: string;
 
+    // ★ VotingStartPage から渡す（Done表示の安定用）
+    selected?: {
+        type: "CANDIDATE" | "NONE_SUPPORT";
+        candidateId: string | null;
+        name: string;
+    } | null;
+
     // ✅ public の token を Done -> Entry へ引き回すため
     token?: string | null;
 } | null;
@@ -47,6 +54,14 @@ function isTruthy(s: string | null | undefined) {
     if (!s) return false;
     const v = s.toLowerCase();
     return v === "1" || v === "true" || v === "yes" || v === "on";
+}
+
+function toType(v: any): "CANDIDATE" | "NONE_SUPPORT" | "JUDGE_REVIEW" | null {
+    const s = String(v ?? "").toUpperCase();
+    if (s === "CANDIDATE") return "CANDIDATE";
+    if (s === "NONE_SUPPORT") return "NONE_SUPPORT";
+    if (s === "JUDGE_REVIEW") return "JUDGE_REVIEW";
+    return null;
 }
 
 export function VotingDonePage() {
@@ -58,11 +73,16 @@ export function VotingDonePage() {
     const isPublic = session === "public" || isTruthy(q.get("public"));
 
     const result = state?.result ?? null;
+    const selected = state?.selected ?? null;
 
+    // electionId / title（result があればそれ優先）
     const electionId =
-        result?.electionId ?? state?.electionId ?? q.get("electionId") ?? "";
+        (result?.electionId as any) ??
+        state?.electionId ??
+        q.get("electionId") ??
+        "";
     const electionTitle =
-        result?.electionTitle ??
+        (result?.electionTitle as any) ??
         state?.electionTitle ??
         (isPublic ? "投票（本人認証）" : "投票");
 
@@ -92,6 +112,9 @@ export function VotingDonePage() {
 
     const isDev = import.meta.env?.DEV;
 
+    // --------------------------
+    // result が無い：表示だけ（ページ更新/直リンク等）
+    // --------------------------
     if (!result) {
         return (
             <Page
@@ -193,10 +216,37 @@ export function VotingDonePage() {
         );
     }
 
-    const isCandidate = !!result.candidateId;
-    const displayName =
-        result.candidateName ?? (isCandidate ? "（不明）" : "誰も支持しない");
-    const rid = encodeURIComponent(result.electionId);
+    // --------------------------
+    // result がある：投票内容を表示
+    // DTOは backend の VoteHistoryItem に合わせて
+    // type / targetId / label / approve を使う
+    // --------------------------
+    const t = toType((result as any)?.type) ?? "NONE_SUPPORT";
+
+    // ★ Done直後は selected を最優先（result が薄いケースに耐える）
+    const effectiveType =
+        selected?.type ?? (t === "JUDGE_REVIEW" ? "JUDGE_REVIEW" : t);
+
+    const effectiveLabel =
+        selected?.name ?? (result as any)?.label ?? "（不明）";
+
+    const effectiveTargetId =
+        selected?.type === "CANDIDATE"
+            ? selected.candidateId
+            : (result as any)?.targetId
+              ? String((result as any).targetId)
+              : null;
+
+    const isCandidate = effectiveType === "CANDIDATE" && !!effectiveTargetId;
+
+    const rid = encodeURIComponent(String((result as any).electionId));
+
+    const candidateDetailLink =
+        isCandidate && effectiveTargetId
+            ? `/elections/${(result as any).electionId}/candidates/${encodeURIComponent(
+                  effectiveTargetId,
+              )}`
+            : null;
 
     return (
         <Page
@@ -240,10 +290,10 @@ export function VotingDonePage() {
                         }}
                     >
                         <strong style={{ fontSize: 16 }}>
-                            {result.electionTitle}
+                            {(result as any).electionTitle}
                         </strong>
                         <span style={{ opacity: 0.8 }}>
-                            {formatJST(result.castedAt)}
+                            {formatJST((result as any).castedAt)}
                         </span>
                     </div>
 
@@ -263,7 +313,7 @@ export function VotingDonePage() {
                     >
                         {isCandidate ? (
                             <CandidateAvatar
-                                name={displayName}
+                                name={effectiveLabel}
                                 imageUrl={null}
                                 index={0}
                                 size={34}
@@ -274,9 +324,9 @@ export function VotingDonePage() {
 
                         <div>
                             投票先:{" "}
-                            {isCandidate ? (
+                            {candidateDetailLink ? (
                                 <Link
-                                    to={`/elections/${result.electionId}/candidates/${result.candidateId}`}
+                                    to={candidateDetailLink}
                                     state={{ from: self }}
                                     style={{
                                         color: "inherit",
@@ -285,12 +335,16 @@ export function VotingDonePage() {
                                     }}
                                     title="候補者詳細へ"
                                 >
-                                    {displayName}
+                                    {effectiveLabel}
                                 </Link>
                             ) : (
-                                <strong>{displayName}</strong>
+                                <strong>
+                                    {effectiveType === "NONE_SUPPORT"
+                                        ? "誰も支持しない"
+                                        : effectiveLabel}
+                                </strong>
                             )}
-                            {!isCandidate && (
+                            {effectiveType === "NONE_SUPPORT" && (
                                 <span
                                     style={{
                                         marginLeft: 8,
@@ -301,8 +355,32 @@ export function VotingDonePage() {
                                     （候補者を選ばない）
                                 </span>
                             )}
+                            {effectiveType === "JUDGE_REVIEW" && (
+                                <span
+                                    style={{
+                                        marginLeft: 8,
+                                        fontSize: 12,
+                                        opacity: 0.7,
+                                    }}
+                                >
+                                    （国民審査）
+                                </span>
+                            )}
                         </div>
                     </div>
+
+                    {effectiveType === "JUDGE_REVIEW" && (
+                        <div style={{ fontSize: 13, opacity: 0.9 }}>
+                            判定:{" "}
+                            <strong>
+                                {(result as any).approve === true
+                                    ? "OK（信任）"
+                                    : (result as any).approve === false
+                                      ? "NO（不信任）"
+                                      : "（不明）"}
+                            </strong>
+                        </div>
+                    )}
 
                     <div style={{ fontSize: 12, opacity: 0.75 }}>
                         ※
@@ -327,7 +405,7 @@ export function VotingDonePage() {
                     )}
 
                     <Link
-                        to={`/elections/${result.electionId}/candidates`}
+                        to={`/elections/${(result as any).electionId}/candidates`}
                         state={{ from: self }}
                     >
                         候補者（公開）
@@ -361,7 +439,10 @@ export function VotingDonePage() {
                         state,
                         backTo,
                         self,
-                        isCandidate,
+                        selected,
+                        effectiveType,
+                        effectiveTargetId,
+                        candidateDetailLink,
                         entryLink,
                         tokenFromState: tokenFromState ? "(present)" : null,
                     }}

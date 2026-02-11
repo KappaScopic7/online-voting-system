@@ -1,9 +1,11 @@
-import { useEffect, useMemo, useState } from "react";
+// frontend/src/voting/pages/JudgeReviewStartPage.tsx
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
     Link,
     useLocation,
     useNavigate,
     useSearchParams,
+    useOutletContext,
 } from "react-router-dom";
 import { Card, DevDebug, Page } from "../../shared/ui/page";
 import { normalizeFrom } from "../../shared/normalizeFrom";
@@ -18,6 +20,11 @@ import {
     publicStartJudgeReview,
     publicConfirmJudgeReview,
 } from "../api/publicJudgeReview";
+
+import type {
+    PublicLayoutOutletContext,
+    FooterAction,
+} from "../../layout/public/PublicLayout";
 
 type LocationState = { from?: string } | null;
 
@@ -43,10 +50,13 @@ export function JudgeReviewStartPage() {
         ? tokenFromQuery?.trim() || publicToken.get()
         : null;
 
+    const { setFooterActions } = useOutletContext<PublicLayoutOutletContext>();
+
     useEffect(() => {
         if (!publicMode) return;
-        if (effectiveToken && effectiveToken.trim())
+        if (effectiveToken && effectiveToken.trim()) {
             publicToken.set(effectiveToken.trim());
+        }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [publicMode, effectiveToken]);
 
@@ -54,8 +64,6 @@ export function JudgeReviewStartPage() {
     const backTo = normalizeFrom(
         state?.from ?? (publicMode ? "/elections" : "/me/elections"),
     );
-
-    // const doneQS = publicMode ? "?session=public" : "";
 
     const [data, setData] = useState<JudgeReviewStartResponse | null>(null);
     const [err, setErr] = useState<string | null>(null);
@@ -74,7 +82,7 @@ export function JudgeReviewStartPage() {
         return judges.every((j) => !!choices[j.candidateId]);
     }, [data, judges, choices]);
 
-    const load = async () => {
+    const load = useCallback(async () => {
         if (!electionId) return;
 
         setErr(null);
@@ -88,7 +96,7 @@ export function JudgeReviewStartPage() {
             setData(res);
 
             const base: Record<string, JudgeReviewChoice> = {};
-            const cur = res.current ?? null;
+            const cur = (res as any)?.current ?? null;
             if (cur) {
                 for (const [k, v] of Object.entries(cur)) {
                     if (v === "OK" || v === "NO") base[k] = v;
@@ -120,19 +128,18 @@ export function JudgeReviewStartPage() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [electionId, publicMode]);
 
     useEffect(() => {
         if (!electionId) return;
         load();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [electionId, publicMode]);
+    }, [electionId, publicMode, load]);
 
     const setChoice = (judgeCandidateId: string, v: JudgeReviewChoice) => {
         setChoices((prev) => ({ ...prev, [judgeCandidateId]: v }));
     };
 
-    const onSubmit = async () => {
+    const onSubmit = useCallback(async () => {
         if (!data || busy) return;
         if (!completed) {
             setErr("全裁判官分の選択が必要です（〇/×）");
@@ -184,7 +191,55 @@ export function JudgeReviewStartPage() {
         } finally {
             setBusy(false);
         }
-    };
+    }, [
+        data,
+        busy,
+        completed,
+        judges,
+        choices,
+        publicMode,
+        nav,
+        backTo,
+        effectiveToken,
+    ]);
+
+    // ✅ footer actions（下部バーに移す）
+    useEffect(() => {
+        const actions: FooterAction[] = [];
+
+        // 左：戻る
+        actions.push({ kind: "LINK", to: backTo, label: "戻る" });
+
+        // 右：再試行 or 送信
+        if (err) {
+            actions.push({
+                kind: "BUTTON",
+                label: loading ? "読み込み中..." : "再試行",
+                disabled: loading || busy || !electionId,
+                onClick: load,
+            });
+        } else {
+            actions.push({
+                kind: "BUTTON",
+                label: busy ? "送信中..." : "この内容で投票する",
+                disabled: busy || !completed,
+                onClick: onSubmit,
+            });
+        }
+
+        setFooterActions(actions);
+        return () => setFooterActions(null);
+    }, [
+        setFooterActions,
+        backTo,
+        err,
+        loading,
+        busy,
+        electionId,
+        load,
+        completed,
+        onSubmit,
+    ]);
 
     const isDev = import.meta.env?.DEV;
 
@@ -245,7 +300,9 @@ export function JudgeReviewStartPage() {
                             <Link
                                 to={`/identity/vote?electionId=${encodeURIComponent(
                                     electionId,
-                                )}&session=public&returnTo=${encodeURIComponent(self)}`}
+                                )}&session=public&returnTo=${encodeURIComponent(
+                                    self,
+                                )}`}
                                 state={{ from: backTo }}
                             >
                                 本人認証（PIN+NFC）へ →
@@ -416,7 +473,6 @@ export function JudgeReviewStartPage() {
                                                     罷免（×）
                                                 </label>
 
-                                                {/* 候補詳細へ（任意） */}
                                                 <Link
                                                     to={`/elections/${data.electionId}/candidates/${j.candidateId}`}
                                                     state={{ from: self }}
@@ -433,32 +489,13 @@ export function JudgeReviewStartPage() {
                                 })}
                             </div>
 
-                            <div
-                                style={{
-                                    display: "flex",
-                                    gap: 12,
-                                    flexWrap: "wrap",
-                                    alignItems: "center",
-                                }}
-                            >
-                                <Link to={backTo}>戻る</Link>
-
-                                <button
-                                    onClick={onSubmit}
-                                    disabled={busy || !completed}
-                                    style={{ marginLeft: "auto" }}
-                                >
-                                    {busy ? "送信中..." : "この内容で投票する"}
-                                </button>
-
-                                {!completed && (
-                                    <span
-                                        style={{ fontSize: 12, opacity: 0.75 }}
-                                    >
-                                        ※ 全裁判官分の選択が必要です
-                                    </span>
-                                )}
-                            </div>
+                            {/* 下部の「戻る/送信」は footer bar に移した */}
+                            {!completed && (
+                                <div style={{ fontSize: 12, opacity: 0.75 }}>
+                                    ※
+                                    全裁判官分の選択が必要です（送信は下部バー）
+                                </div>
+                            )}
                         </div>
                     </Card>
                 </div>

@@ -7,6 +7,21 @@ import logo from "../../assets/logo/ovs-logo.png";
 type NavItem = { to: string; label: string };
 type MenuItem = { to: string; label: string };
 
+// ★追加：フッターバーの型
+export type FooterAction =
+    | { kind: "BACK"; label?: string }
+    | { kind: "LINK"; to: string; label: string }
+    | {
+          kind: "BUTTON";
+          label: string;
+          onClick: () => void;
+          disabled?: boolean;
+      };
+
+export type PublicLayoutOutletContext = {
+    setFooterActions: (actions: FooterAction[] | null) => void;
+};
+
 export function PublicLayout() {
     const nav = useNavigate();
     const { me: user, logout: userLogout } = useAuth();
@@ -35,7 +50,6 @@ export function PublicLayout() {
             { to: "/elections", label: "選挙一覧" },
             { to: "/parties", label: "政党一覧" },
             { to: "/candidates", label: "候補者一覧" },
-            // { to: "/help", label: "問い合わせ" },
         ];
 
         if (!user) return common;
@@ -78,7 +92,6 @@ export function PublicLayout() {
                     setShowTopBar(diff < 0);
                 }
 
-                // ★重要：毎回更新してズレを防ぐ
                 lastYRef.current = y;
                 tickingRef.current = false;
             });
@@ -114,6 +127,16 @@ export function PublicLayout() {
         };
     }, [isMenuOpen]);
 
+    // ★追加：フッターアクション管理（デフォルト BACK）
+    const [footerActions, setFooterActions] = useState<FooterAction[] | null>(
+        null,
+    );
+
+    const effectiveFooterActions: FooterAction[] =
+        footerActions && footerActions.length > 0
+            ? footerActions
+            : [{ kind: "BACK", label: "戻る" }];
+
     return (
         <div className={styles.page}>
             <div
@@ -148,10 +171,6 @@ export function PublicLayout() {
                         <div className={styles.headerRight}>
                             {!user ? (
                                 <>
-                                    {/*<span className={styles.headerMeta}>
-                                        未ログイン
-                                    </span>*/}
-
                                     <Link
                                         className={styles.headerLink}
                                         to="/login"
@@ -183,7 +202,6 @@ export function PublicLayout() {
                                     >
                                         <span aria-hidden>👤</span>
                                     </button>
-                                    {/* ----------------------------------------- MenuOpne ----------------------------------------- */}
 
                                     {isMenuOpen && (
                                         <div
@@ -244,6 +262,7 @@ export function PublicLayout() {
                             </Link>
                         ))}
                     </nav>
+
                     <div
                         className={`${styles.drawerOverlay} ${isMobileNavOpen ? styles.drawerOverlayOpen : ""}`}
                         onClick={() => setIsMobileNavOpen(false)}
@@ -290,9 +309,59 @@ export function PublicLayout() {
             </div>
 
             <main className={styles.main}>
-                <Outlet />
+                <Outlet
+                    context={
+                        {
+                            setFooterActions,
+                        } satisfies PublicLayoutOutletContext
+                    }
+                />
             </main>
 
+            <div
+                className={styles.footerBar}
+                role="navigation"
+                aria-label="ページ操作"
+            >
+                <div className={styles.footerBarInner}>
+                    {effectiveFooterActions.map((a, i) => {
+                        if (a.kind === "BACK") {
+                            return (
+                                <button
+                                    key={`back:${i}`}
+                                    type="button"
+                                    className={styles.footerPrimaryButton}
+                                    onClick={() => nav(-1)}
+                                >
+                                    {a.label ?? "戻る"}
+                                </button>
+                            );
+                        }
+                        if (a.kind === "LINK") {
+                            return (
+                                <Link
+                                    key={`link:${a.to}:${i}`}
+                                    to={a.to}
+                                    className={styles.footerPrimaryButton}
+                                >
+                                    {a.label}
+                                </Link>
+                            );
+                        }
+                        return (
+                            <button
+                                key={`btn:${a.label}:${i}`}
+                                type="button"
+                                className={styles.footerPrimaryButton}
+                                onClick={a.onClick}
+                                disabled={a.disabled}
+                            >
+                                {a.label}
+                            </button>
+                        );
+                    })}
+                </div>
+            </div>
             <footer className={styles.footer}>
                 <span className={styles.footerText}>© OVS / B-team</span>
             </footer>

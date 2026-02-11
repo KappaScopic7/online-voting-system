@@ -13,8 +13,8 @@ public record ElectionListItem(
         int candidateCount,
         boolean canCast,
         CurrentVote currentVote,
-        String ballotType
-
+        String ballotType,
+        boolean hasCurrent // ★追加（どの投票方式でも「現時点で投票済み」）
 ) {
     public record CurrentVote(
             UUID candidateId,

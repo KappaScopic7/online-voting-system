@@ -44,9 +44,34 @@ export function CandidatesFilterPanel(props: {
         onReset,
     } = props;
 
+    // 入力系は「スマホで収まる」ことを最優先（width:100% + maxWidth）
+    const inputStyle = {
+        padding: 8,
+        width: "100%",
+        maxWidth: 420,
+        minWidth: 0,
+        boxSizing: "border-box",
+    } as const;
+
+    const selectStyleWide = {
+        padding: 8,
+        width: "100%",
+        maxWidth: 420,
+        minWidth: 0,
+        boxSizing: "border-box",
+    } as const;
+
+    const selectStyleMid = {
+        padding: 8,
+        width: "100%",
+        maxWidth: 320,
+        minWidth: 0,
+        boxSizing: "border-box",
+    } as const;
+
     return (
         <Card>
-            <div style={{ display: "grid", gap: 10 }}>
+            <div style={{ display: "grid", gap: 10, minWidth: 0 }}>
                 {/* mode */}
                 <div
                     style={{
@@ -54,6 +79,7 @@ export function CandidatesFilterPanel(props: {
                         gap: 10,
                         flexWrap: "wrap",
                         alignItems: "center",
+                        minWidth: 0,
                     }}
                 >
                     <span style={{ fontSize: 12, opacity: 0.7 }}>
@@ -65,6 +91,7 @@ export function CandidatesFilterPanel(props: {
                             display: "flex",
                             gap: 6,
                             alignItems: "center",
+                            minWidth: 0,
                         }}
                     >
                         <input
@@ -80,6 +107,7 @@ export function CandidatesFilterPanel(props: {
                             display: "flex",
                             gap: 6,
                             alignItems: "center",
+                            minWidth: 0,
                         }}
                     >
                         <input
@@ -95,6 +123,7 @@ export function CandidatesFilterPanel(props: {
                             marginLeft: "auto",
                             fontSize: 12,
                             opacity: 0.7,
+                            minWidth: 0,
                         }}
                     >
                         {metaLoading ? "選挙情報読み込み中…" : " "}
@@ -105,20 +134,24 @@ export function CandidatesFilterPanel(props: {
                 {/* server filters */}
                 <div
                     style={{
-                        display: "flex",
+                        display: "grid",
                         gap: 10,
-                        flexWrap: "wrap",
+                        // 2カラムまでを自然に作りつつ、スマホは1カラムに落ちる
+                        gridTemplateColumns:
+                            "repeat(auto-fit, minmax(240px, 1fr))",
                         alignItems: "end",
+                        minWidth: 0,
+                        maxWidth: "100%",
                     }}
                 >
-                    <label style={{ display: "grid", gap: 4 }}>
+                    <label style={{ display: "grid", gap: 4, minWidth: 0 }}>
                         <span style={{ fontSize: 12, opacity: 0.7 }}>
                             選挙（任意）
                         </span>
                         <select
                             value={electionId}
                             onChange={(e) => setElectionId(e.target.value)}
-                            style={{ padding: 8, minWidth: 380 }}
+                            style={selectStyleWide}
                         >
                             <option value="">（指定なし）</option>
                             {elections.map((e) => (
@@ -134,18 +167,18 @@ export function CandidatesFilterPanel(props: {
                             value={electionId}
                             onChange={(e) => setElectionId(e.target.value)}
                             placeholder="electionId(UUID) 直入力"
-                            style={{ padding: 8 }}
+                            style={inputStyle}
                         />
                     </label>
 
-                    <label style={{ display: "grid", gap: 4 }}>
+                    <label style={{ display: "grid", gap: 4, minWidth: 0 }}>
                         <span style={{ fontSize: 12, opacity: 0.7 }}>
                             政党（任意）
                         </span>
                         <select
                             value={partyKey}
                             onChange={(e) => setPartyKey(e.target.value)}
-                            style={{ padding: 8, minWidth: 260 }}
+                            style={selectStyleMid}
                         >
                             <option value="">（指定なし）</option>
                             {parties.map((p) => (
@@ -161,7 +194,7 @@ export function CandidatesFilterPanel(props: {
                             value={partyKey}
                             onChange={(e) => setPartyKey(e.target.value)}
                             placeholder="partyKey 直入力（tokyo_reform など）"
-                            style={{ padding: 8 }}
+                            style={inputStyle}
                         />
                     </label>
 
@@ -170,6 +203,8 @@ export function CandidatesFilterPanel(props: {
                             display: "flex",
                             gap: 8,
                             alignItems: "center",
+                            flexWrap: "wrap",
+                            minWidth: 0,
                         }}
                     >
                         <button onClick={onApply} disabled={isLoading}>
@@ -182,7 +217,7 @@ export function CandidatesFilterPanel(props: {
                 </div>
 
                 {/* local search */}
-                <label style={{ display: "grid", gap: 4 }}>
+                <label style={{ display: "grid", gap: 4, minWidth: 0 }}>
                     <span style={{ fontSize: 12, opacity: 0.7 }}>
                         検索（ローカル：名前/肩書き）
                     </span>
@@ -190,7 +225,7 @@ export function CandidatesFilterPanel(props: {
                         value={q}
                         onChange={(e) => setQ(e.target.value)}
                         placeholder="例：DX / 子育て / 鈴木"
-                        style={{ padding: 8 }}
+                        style={inputStyle}
                     />
                 </label>
             </div>

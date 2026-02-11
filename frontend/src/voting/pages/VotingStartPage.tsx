@@ -1,10 +1,11 @@
 // frontend/src/voting/pages/VotingStartPage.tsx
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
     Link,
     useLocation,
     useNavigate,
     useSearchParams,
+    useOutletContext,
 } from "react-router-dom";
 import { confirmVote, startVoting } from "../api/votes";
 import type { VoteConfirmRequest, VoteStartResponse } from "../api/votes";
@@ -14,7 +15,27 @@ import { normalizeFrom } from "../../shared/normalizeFrom";
 import { CandidateAvatar } from "../../shared/ui/CandidateAvatar";
 import { publicToken } from "../../shared/tokenStorage";
 
+import { CandidateCardFrame } from "../../candidates/ui/CandidateCardFrame";
+import { PartyPill } from "../../parties/ui/PartyPill";
+import { resolveCandidateImageUrl } from "../../elections/ui/candidateImages";
+
+import { fetchElectionCandidates } from "../../candidates/api/candidates";
+import type {
+    PublicLayoutOutletContext,
+    FooterAction,
+} from "../../layout/public/PublicLayout";
+
 type LocationState = { from?: string } | null;
+
+type CandidateMeta = {
+    candidateId: string;
+    candidateKey?: string | null;
+    partyColor?: string | null;
+    partyShortName?: string | null;
+    partyName?: string | null;
+    imageUrl?: string | null;
+    title?: string | null;
+};
 
 type Option = {
     type: "CANDIDATE" | "NONE_SUPPORT";
@@ -55,7 +76,7 @@ export function VotingStartPage() {
     const [sp] = useSearchParams();
     const electionId = sp.get("electionId") ?? "";
 
-    // ✅ public モード判定：session=public か public=1 のみ（token有無では決めない）
+    // ✅ public モード判定：session=public か public=1 のみ
     const session = (sp.get("session") ?? "").toLowerCase();
     const publicMode = session === "public" || isTruthy(sp.get("public"));
 
@@ -64,6 +85,7 @@ export function VotingStartPage() {
     const effectiveToken = publicMode
         ? tokenFromQuery?.trim() || publicToken.get()
         : null;
+    const { setFooterActions } = useOutletContext<PublicLayoutOutletContext>();
 
     // ✅ publicMode で token を確定したら storage に保存
     useEffect(() => {
@@ -85,6 +107,7 @@ export function VotingStartPage() {
     const doneQS = publicMode ? "?session=public" : "";
 
     const [data, setData] = useState<VoteStartResponse | null>(null);
+    const [metaById, setMetaById] = useState<Record<string, CandidateMeta>>({});
 
     const options = useMemo<Option[]>(() => {
         const base: Option[] =
@@ -114,12 +137,39 @@ export function VotingStartPage() {
         setIsLoading(true);
 
         try {
-            // ✅ publicMode のときは public API（token必須）
+            // 1) 投票開始データ
             const res = publicMode
                 ? await publicStartVoting(electionId)
                 : await startVoting(electionId);
 
             setData(res);
+
+            // 2) ★候補者の詳細を取りに行って「政党カラー/画像」を埋める
+            //    ※失敗しても投票自体は続けられる
+            try {
+                const list: any[] = await fetchElectionCandidates(electionId);
+                const map: Record<string, CandidateMeta> = {};
+                for (const c of list ?? []) {
+                    const cid = String(
+                        (c as any)?.id ?? (c as any)?.candidateId,
+                    );
+                    if (!cid) continue;
+
+                    const party = (c as any)?.party ?? null;
+                    map[cid] = {
+                        candidateId: cid,
+                        candidateKey: (c as any)?.candidateKey ?? null,
+                        partyColor: party?.color ?? null,
+                        partyShortName: party?.shortName ?? null,
+                        partyName: party?.name ?? null,
+                        imageUrl: (c as any)?.imageUrl ?? null,
+                        title: (c as any)?.title ?? null,
+                    };
+                }
+                setMetaById(map);
+            } catch {
+                setMetaById({});
+            }
 
             const firstCandidateId = res.candidates?.[0]?.candidateId ?? null;
             setSelectedKey(
@@ -149,6 +199,7 @@ export function VotingStartPage() {
             }
 
             setData(null);
+            setMetaById({});
             setSelectedKey("");
             setStep("SELECT");
         } finally {
@@ -184,18 +235,18 @@ export function VotingStartPage() {
     const canGoConfirm = !!selectedKey && !!data && !busy;
     const canSubmit = step === "CONFIRM" && !!selected && !busy;
 
-    const onGoConfirm = () => {
+    const onGoConfirm = useCallback(() => {
         if (!canGoConfirm) return;
         setError(null);
         setStep("CONFIRM");
-    };
+    }, [canGoConfirm]);
 
-    const onBackToSelect = () => {
+    const onBackToSelect = useCallback(() => {
         setError(null);
         setStep("SELECT");
-    };
+    }, []);
 
-    const onSubmit = async () => {
+    const onSubmit = useCallback(async () => {
         if (!electionId || !selected || busy) return;
 
         setBusy(true);
@@ -220,6 +271,14 @@ export function VotingStartPage() {
                     result,
                     from: backTo,
                     token: publicMode ? effectiveToken?.trim() || null : null,
+
+                    selected: selected
+                        ? {
+                              type: selected.type,
+                              candidateId: selected.candidateId,
+                              name: selected.name,
+                          }
+                        : null,
                 },
             });
         } catch (err: any) {
@@ -241,7 +300,68 @@ export function VotingStartPage() {
         } finally {
             setBusy(false);
         }
-    };
+    }, [
+        electionId,
+        selected,
+        busy,
+        publicMode,
+        doneQS,
+        nav,
+        backTo,
+        effectiveToken,
+    ]);
+
+    useEffect(() => {
+        const actions: FooterAction[] = [];
+
+        // 左：戻る（SELECTなら backTo、CONFIRMなら選択へ戻す）
+        if (step === "CONFIRM") {
+            actions.push({
+                kind: "BUTTON",
+                label: "戻る",
+                disabled: busy,
+                onClick: onBackToSelect,
+            });
+        } else {
+            actions.push({
+                kind: "LINK",
+                to: backTo,
+                label: "戻る",
+            });
+        }
+
+        // 右：メイン操作
+        if (step === "SELECT") {
+            actions.push({
+                kind: "BUTTON",
+                label: "次へ（内容確認）",
+                disabled: !canGoConfirm,
+                onClick: onGoConfirm,
+            });
+        } else {
+            actions.push({
+                kind: "BUTTON",
+                label: busy ? "送信中..." : "この内容で投票する",
+                disabled: !canSubmit,
+                onClick: onSubmit,
+            });
+        }
+
+        setFooterActions(actions);
+
+        // 離脱時にデフォルトへ戻す
+        return () => setFooterActions(null);
+    }, [
+        setFooterActions,
+        step,
+        busy,
+        canGoConfirm,
+        canSubmit,
+        backTo,
+        onGoConfirm,
+        onBackToSelect,
+        onSubmit,
+    ]);
 
     const isDev = import.meta.env?.DEV;
 
@@ -298,7 +418,11 @@ export function VotingStartPage() {
 
                         {publicMode && (
                             <Link
-                                to={`/identity/vote?electionId=${encodeURIComponent(electionId)}&session=public&returnTo=${encodeURIComponent(self)}`}
+                                to={`/identity/vote?electionId=${encodeURIComponent(
+                                    electionId,
+                                )}&session=public&returnTo=${encodeURIComponent(
+                                    self,
+                                )}`}
                                 state={{ from: backTo }}
                             >
                                 本人認証（PIN+NFC）へ →
@@ -354,111 +478,336 @@ export function VotingStartPage() {
                                         投票先を選択
                                     </div>
 
-                                    <div style={{ display: "grid", gap: 10 }}>
+                                    {/* ★ タイル（他ページと統一） */}
+                                    <div
+                                        style={{
+                                            display: "grid",
+                                            gap: 10,
+                                            gridTemplateColumns:
+                                                "repeat(auto-fit, minmax(220px, 1fr))",
+                                            alignItems: "stretch",
+                                        }}
+                                    >
                                         {options.map((o, idx) => {
                                             const key = keyOf(o);
                                             const selectedNow =
                                                 selectedKey === key;
-                                            const isCandidate =
+
+                                            const meta =
                                                 o.type === "CANDIDATE" &&
-                                                !!o.candidateId;
+                                                o.candidateId
+                                                    ? (metaById[
+                                                          o.candidateId
+                                                      ] ?? null)
+                                                    : null;
+
+                                            const partyColor =
+                                                meta?.partyColor ?? null;
+
+                                            const candidateKey =
+                                                meta?.candidateKey ?? null;
+
+                                            const imgSrc =
+                                                o.type === "CANDIDATE"
+                                                    ? (resolveCandidateImageUrl(
+                                                          candidateKey ??
+                                                              undefined,
+                                                      ) ??
+                                                      meta?.imageUrl ??
+                                                      null)
+                                                    : null;
+
+                                            const detailHref =
+                                                o.type === "CANDIDATE" &&
+                                                o.candidateId
+                                                    ? `/elections/${encodeURIComponent(
+                                                          electionId,
+                                                      )}/candidates/${encodeURIComponent(
+                                                          o.candidateId,
+                                                      )}`
+                                                    : null;
 
                                             return (
-                                                <label
+                                                <div
                                                     key={key}
                                                     style={{
-                                                        border: "1px solid #eee",
-                                                        borderRadius: 12,
-                                                        padding: 12,
-                                                        display: "flex",
-                                                        alignItems: "center",
-                                                        gap: 12,
-                                                        background: selectedNow
-                                                            ? "#f5f5f5"
-                                                            : "#fff",
-                                                        cursor: busy
-                                                            ? "not-allowed"
-                                                            : "pointer",
-                                                        transition:
-                                                            "transform 120ms ease, box-shadow 120ms ease, background 120ms ease",
-                                                        boxShadow:
-                                                            "0 0 0 rgba(0,0,0,0)",
-                                                        flexWrap: "wrap",
+                                                        height: "100%",
                                                     }}
                                                 >
-                                                    <input
-                                                        type="radio"
-                                                        name="voteTarget"
-                                                        value={key}
-                                                        checked={selectedNow}
-                                                        onChange={() =>
-                                                            setSelectedKey(key)
-                                                        }
-                                                        disabled={busy}
-                                                    />
-
-                                                    {o.type === "CANDIDATE" ? (
-                                                        <CandidateAvatar
-                                                            name={o.name}
-                                                            imageUrl={null}
-                                                            index={idx}
-                                                            size={32}
-                                                        />
-                                                    ) : (
-                                                        <div
-                                                            aria-hidden
-                                                            style={{
-                                                                width: 32,
-                                                                height: 32,
-                                                                borderRadius: 999,
-                                                                border: "1px solid #eee",
-                                                                background:
-                                                                    "#fafafa",
-                                                            }}
-                                                        />
-                                                    )}
-
-                                                    <span
-                                                        style={{
-                                                            fontWeight:
-                                                                selectedNow
-                                                                    ? 800
-                                                                    : 600,
-                                                        }}
+                                                    <CandidateCardFrame
+                                                        partyColor={partyColor}
                                                     >
-                                                        {o.name}
-                                                    </span>
+                                                        <div
+                                                            role="button"
+                                                            tabIndex={0}
+                                                            onClick={() => {
+                                                                if (busy)
+                                                                    return;
+                                                                setSelectedKey(
+                                                                    key,
+                                                                );
+                                                            }}
+                                                            onKeyDown={(ev) => {
+                                                                if (busy)
+                                                                    return;
+                                                                if (
+                                                                    ev.key ===
+                                                                        "Enter" ||
+                                                                    ev.key ===
+                                                                        " "
+                                                                ) {
+                                                                    ev.preventDefault();
+                                                                    setSelectedKey(
+                                                                        key,
+                                                                    );
+                                                                }
+                                                            }}
+                                                            style={{
+                                                                height: "100%",
+                                                                display: "grid",
+                                                                gap: 10,
+                                                                alignContent:
+                                                                    "start",
+                                                                cursor: busy
+                                                                    ? "not-allowed"
+                                                                    : "pointer",
+                                                                userSelect:
+                                                                    "none",
+                                                            }}
+                                                        >
+                                                            {/* 上段：左=選択 / 右=詳細（※詳細は選択しない） */}
+                                                            <div
+                                                                style={{
+                                                                    display:
+                                                                        "flex",
+                                                                    gap: 10,
+                                                                    alignItems:
+                                                                        "center",
+                                                                    justifyContent:
+                                                                        "space-between",
+                                                                }}
+                                                            >
+                                                                <div
+                                                                    style={{
+                                                                        display:
+                                                                            "flex",
+                                                                        gap: 8,
+                                                                        alignItems:
+                                                                            "center",
+                                                                        fontSize: 12,
+                                                                        opacity: 0.85,
+                                                                    }}
+                                                                >
+                                                                    <input
+                                                                        type="radio"
+                                                                        name="voteTarget"
+                                                                        checked={
+                                                                            selectedNow
+                                                                        }
+                                                                        onChange={() =>
+                                                                            setSelectedKey(
+                                                                                key,
+                                                                            )
+                                                                        }
+                                                                        disabled={
+                                                                            busy
+                                                                        }
+                                                                        onClick={(
+                                                                            ev,
+                                                                        ) =>
+                                                                            ev.stopPropagation()
+                                                                        }
+                                                                    />
+                                                                    <span
+                                                                        style={{
+                                                                            opacity:
+                                                                                selectedNow
+                                                                                    ? 1
+                                                                                    : 0.7,
+                                                                        }}
+                                                                    >
+                                                                        {selectedNow
+                                                                            ? "選択中"
+                                                                            : "未選択"}
+                                                                    </span>
+                                                                </div>
 
-                                                    {isCandidate ? (
-                                                        <Link
-                                                            to={`/elections/${electionId}/candidates/${o.candidateId}`}
-                                                            state={{
-                                                                from: self,
-                                                            }}
-                                                            onClick={(ev) =>
-                                                                ev.stopPropagation()
-                                                            }
-                                                            style={{
-                                                                fontSize: 13,
-                                                                marginLeft:
-                                                                    "auto",
-                                                            }}
-                                                        >
-                                                            詳細 →
-                                                        </Link>
-                                                    ) : (
-                                                        <span
-                                                            style={{
-                                                                fontSize: 12,
-                                                                opacity: 0.75,
-                                                                marginLeft:
-                                                                    "auto",
-                                                            }}
-                                                        >
-                                                            （候補者を選ばない）
-                                                        </span>
-                                                    )}
-                                                </label>
+                                                                {detailHref ? (
+                                                                    <Link
+                                                                        to={
+                                                                            detailHref
+                                                                        }
+                                                                        state={{
+                                                                            from: self,
+                                                                        }}
+                                                                        onClick={(
+                                                                            ev,
+                                                                        ) =>
+                                                                            ev.stopPropagation()
+                                                                        }
+                                                                        onMouseDown={(
+                                                                            ev,
+                                                                        ) =>
+                                                                            ev.stopPropagation()
+                                                                        }
+                                                                        style={{
+                                                                            fontSize: 13,
+                                                                        }}
+                                                                    >
+                                                                        詳細 →
+                                                                    </Link>
+                                                                ) : (
+                                                                    <span
+                                                                        style={{
+                                                                            fontSize: 12,
+                                                                            opacity: 0.6,
+                                                                        }}
+                                                                    >
+                                                                        （候補者を選ばない）
+                                                                    </span>
+                                                                )}
+                                                            </div>
+
+                                                            {/* 中央：アバター */}
+                                                            <div
+                                                                style={{
+                                                                    display:
+                                                                        "flex",
+                                                                    justifyContent:
+                                                                        "center",
+                                                                }}
+                                                            >
+                                                                {o.type ===
+                                                                "CANDIDATE" ? (
+                                                                    <CandidateAvatar
+                                                                        name={
+                                                                            o.name
+                                                                        }
+                                                                        imageUrl={
+                                                                            imgSrc
+                                                                        }
+                                                                        candidateKey={
+                                                                            candidateKey ??
+                                                                            undefined
+                                                                        }
+                                                                        index={
+                                                                            idx
+                                                                        }
+                                                                        size={
+                                                                            64
+                                                                        }
+                                                                    />
+                                                                ) : (
+                                                                    <div
+                                                                        aria-hidden
+                                                                        style={{
+                                                                            width: 64,
+                                                                            height: 64,
+                                                                            borderRadius: 999,
+                                                                            border: "1px solid #eee",
+                                                                            background:
+                                                                                "#fafafa",
+                                                                        }}
+                                                                    />
+                                                                )}
+                                                            </div>
+
+                                                            {/* 名前 */}
+                                                            <div
+                                                                style={{
+                                                                    textAlign:
+                                                                        "center",
+                                                                    minWidth: 0,
+                                                                }}
+                                                            >
+                                                                <div
+                                                                    style={{
+                                                                        fontSize: 16,
+                                                                        fontWeight: 800,
+                                                                        lineHeight: 1.3,
+                                                                        wordBreak:
+                                                                            "break-word",
+                                                                    }}
+                                                                >
+                                                                    {o.name}
+                                                                </div>
+
+                                                                {/* 政党 */}
+                                                                {meta?.partyShortName ||
+                                                                meta?.partyName ? (
+                                                                    <div
+                                                                        style={{
+                                                                            marginTop: 6,
+                                                                            display:
+                                                                                "flex",
+                                                                            justifyContent:
+                                                                                "center",
+                                                                        }}
+                                                                    >
+                                                                        <PartyPill
+                                                                            shortName={
+                                                                                meta.partyShortName ??
+                                                                                ""
+                                                                            }
+                                                                            name={
+                                                                                meta.partyName ??
+                                                                                meta.partyShortName ??
+                                                                                ""
+                                                                            }
+                                                                            color={
+                                                                                meta.partyColor ??
+                                                                                ""
+                                                                            }
+                                                                        />
+                                                                    </div>
+                                                                ) : o.type ===
+                                                                  "CANDIDATE" ? (
+                                                                    <div
+                                                                        style={{
+                                                                            marginTop: 6,
+                                                                            fontSize: 12,
+                                                                            opacity: 0.6,
+                                                                        }}
+                                                                    >
+                                                                        {/* party 情報が取れない時のフォールバック */}
+                                                                        （政党情報なし）
+                                                                    </div>
+                                                                ) : null}
+                                                            </div>
+
+                                                            {/* 肩書き */}
+                                                            {meta?.title ? (
+                                                                <div
+                                                                    style={{
+                                                                        fontSize: 13,
+                                                                        opacity: 0.85,
+                                                                        lineHeight: 1.5,
+                                                                        textAlign:
+                                                                            "center",
+                                                                    }}
+                                                                >
+                                                                    {meta.title}
+                                                                </div>
+                                                            ) : null}
+
+                                                            {/* CTA */}
+                                                            <div
+                                                                style={{
+                                                                    marginTop:
+                                                                        "auto",
+                                                                    fontSize: 13,
+                                                                    opacity: 0.85,
+                                                                    textAlign:
+                                                                        "center",
+                                                                }}
+                                                            >
+                                                                {selectedNow
+                                                                    ? "この候補で投票する"
+                                                                    : "クリックで選択"}
+                                                            </div>
+                                                        </div>
+                                                    </CandidateCardFrame>
+                                                </div>
                                             );
                                         })}
                                     </div>
@@ -610,6 +959,7 @@ export function VotingStartPage() {
                     value={{
                         electionId,
                         data,
+                        metaByIdSize: Object.keys(metaById).length,
                         optionsLen: options.length,
                         error,
                         selectedKey,

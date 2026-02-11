@@ -1,31 +1,13 @@
 // frontend/src/elections/ui/ElectionCandidatesListCard.tsx
-import { Link } from "react-router-dom";
 import type { ElectionDetailResponse } from "../model/electionTypes";
 import { Card } from "../../shared/ui/page";
-import { CandidateAvatar } from "../../shared/ui/CandidateAvatar";
-import { resolveCandidateImageUrl } from "./candidateImages";
-
-function readCandidateKey(c: any): string | null {
-    const raw = c?.candidateKey;
-    if (typeof raw !== "string") return null;
-    const v = raw.trim();
-    return v ? v : null;
-}
-
-function readApiImageUrl(c: any): string | null {
-    const raw = c?.imageUrl;
-    if (typeof raw !== "string") return null;
-    const v = raw.trim();
-    return v ? v : null;
-}
+import { CandidateCard } from "../../candidates/ui/CandidateCard";
 
 export function ElectionCandidatesListCard(props: {
     data: ElectionDetailResponse;
     from: string;
 }) {
     const { data, from } = props;
-
-    const eid = encodeURIComponent(data.electionId);
 
     return (
         <Card>
@@ -49,118 +31,36 @@ export function ElectionCandidatesListCard(props: {
                 style={{
                     display: "grid",
                     gap: 10,
-                    gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                    gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
                     alignItems: "stretch",
                 }}
             >
-                {data.candidates.map((c: any, idx: number) => {
-                    const candidateKey = readCandidateKey(c);
-                    const apiImageUrl = readApiImageUrl(c);
+                {data.candidates.map((c: any, idx: number) => (
+                    <CandidateCard
+                        key={c.id}
+                        c={
+                            {
+                                id: c.id,
+                                electionId: data.electionId,
+                                name: c.name,
+                                title: c.title ?? null,
+                                sortOrder: c.sortOrder ?? idx + 1,
 
-                    const imageUrl = candidateKey
-                        ? (resolveCandidateImageUrl(candidateKey) ??
-                          apiImageUrl)
-                        : apiImageUrl;
+                                party: c.party ?? null,
 
-                    const cid = encodeURIComponent(String(c.id));
-
-                    return (
-                        <Link
-                            key={c.id}
-                            to={`/elections/${eid}/candidates/${cid}`}
-                            state={{ from }}
-                            style={{
-                                textDecoration: "none",
-                                color: "inherit",
-                                display: "block",
-                                height: "100%",
-                            }}
-                        >
-                            <div
-                                style={{
-                                    height: "100%",
-                                    border: "1px solid #eee",
-                                    borderRadius: 12,
-                                    padding: 12,
-                                    display: "grid",
-                                    gap: 10,
-                                    background: "#fff",
-                                    transition:
-                                        "background 120ms ease, transform 120ms ease",
-                                }}
-                                onMouseEnter={(ev) => {
-                                    (
-                                        ev.currentTarget as HTMLDivElement
-                                    ).style.background = "#fafafa";
-                                    (
-                                        ev.currentTarget as HTMLDivElement
-                                    ).style.transform = "translateY(-1px)";
-                                }}
-                                onMouseLeave={(ev) => {
-                                    (
-                                        ev.currentTarget as HTMLDivElement
-                                    ).style.background = "#fff";
-                                    (
-                                        ev.currentTarget as HTMLDivElement
-                                    ).style.transform = "translateY(0)";
-                                }}
-                            >
-                                <div
-                                    style={{
-                                        display: "flex",
-                                        justifyContent: "center",
-                                    }}
-                                >
-                                    <CandidateAvatar
-                                        name={c.name}
-                                        imageUrl={imageUrl}
-                                        candidateKey={candidateKey ?? undefined}
-                                        index={idx}
-                                        size={64}
-                                    />
-                                </div>
-
-                                <div
-                                    style={{ textAlign: "center", minWidth: 0 }}
-                                >
-                                    <div
-                                        style={{
-                                            fontWeight: 750,
-                                            fontSize: 15,
-                                            lineHeight: 1.3,
-                                            wordBreak: "break-word",
-                                        }}
-                                    >
-                                        {c.name}
-                                    </div>
-
-                                    {candidateKey ? (
-                                        <div
-                                            style={{
-                                                fontSize: 12,
-                                                opacity: 0.65,
-                                                marginTop: 4,
-                                            }}
-                                        >
-                                            {candidateKey}
-                                        </div>
-                                    ) : null}
-                                </div>
-
-                                <div
-                                    style={{
-                                        marginTop: "auto",
-                                        textAlign: "center",
-                                        fontSize: 13,
-                                        opacity: 0.85,
-                                    }}
-                                >
-                                    詳細を見る →
-                                </div>
-                            </div>
-                        </Link>
-                    );
-                })}
+                                candidateKey: c.candidateKey ?? null,
+                                imageUrl: c.imageUrl ?? null,
+                            } as any
+                        }
+                        from={from}
+                        detailUrl={`/elections/${encodeURIComponent(
+                            data.electionId,
+                        )}/candidates/${encodeURIComponent(String(c.id))}`}
+                        showSortOrder={false}
+                        showId={false}
+                        indexOverride={idx}
+                    />
+                ))}
             </div>
         </Card>
     );

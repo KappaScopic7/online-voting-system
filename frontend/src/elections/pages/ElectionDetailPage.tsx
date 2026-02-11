@@ -23,6 +23,7 @@ export function ElectionDetailPage() {
     const [data, setData] = useState<ElectionDetailResponse | null>(null);
     const [err, setErr] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
+    const eid = electionId ? encodeURIComponent(electionId) : "";
 
     useEffect(() => {
         if (!electionId) {
@@ -72,13 +73,13 @@ export function ElectionDetailPage() {
                     {electionId ? (
                         <>
                             <Link
-                                to={`/elections/${electionId}/candidates`}
+                                to={`/elections/${eid}/candidates`}
                                 state={{ from: self }}
                             >
                                 候補者へ
                             </Link>
                             <Link
-                                to={`/elections/${electionId}/result`}
+                                to={`/elections/${eid}/result`}
                                 state={{ from: self }}
                             >
                                 結果へ

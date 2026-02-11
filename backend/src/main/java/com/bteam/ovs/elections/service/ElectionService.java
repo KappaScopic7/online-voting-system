@@ -130,7 +130,8 @@ public class ElectionService {
                             candidateCount,
                             canCast,
                             currentVote,
-                            e.getBallotType().name());
+                            e.getBallotType().name(),
+                            currentVote != null);
                 })
                 .toList();
     }

@@ -11,10 +11,9 @@ import { ErrorCard } from "../../shared/ui/ErrorCard";
 import { useAsyncLoad } from "../../shared/hooks/useAsyncLoad";
 import { useFromBackTo } from "../../shared/routes/useFromBackTo";
 
-import { CandidateAvatar } from "../../shared/ui/CandidateAvatar";
-import { resolveCandidateImageUrl } from "../../elections/ui/candidateImages";
 import { PartyPill } from "../ui/PartyPill";
 import { FavoriteButton } from "../../me/ui/FavoriteButton";
+import { CandidateCard } from "../../candidates/ui/CandidateCard";
 
 type PartyCandidatePerson = {
     candidateKey: string;
@@ -31,158 +30,6 @@ type PartyCandidatePerson = {
     // 画像fallback安定化（表示順）
     index: number;
 };
-
-function PartyCandidateCard(props: { p: PartyCandidatePerson; from: string }) {
-    const { p, from } = props;
-
-    const avatarUrl =
-        (p.imageUrl && (p.imageUrl as any)) ??
-        resolveCandidateImageUrl(p.candidateKey);
-
-    return (
-        <Link
-            to={`/elections/${encodeURIComponent(
-                p.representativeElectionId,
-            )}/candidates/${encodeURIComponent(p.representativeCandidateId)}`}
-            state={{ from }}
-            style={{
-                textDecoration: "none",
-                color: "inherit",
-                display: "block",
-                height: "100%",
-            }}
-        >
-            <div
-                style={{
-                    height: "100%",
-                    border: "1px solid #eee",
-                    borderRadius: 12,
-                    padding: 12,
-                    display: "grid",
-                    gap: 10,
-                    background: "#fff",
-                    transition: "background 120ms ease, transform 120ms ease",
-                }}
-                onMouseEnter={(ev) => {
-                    (ev.currentTarget as HTMLDivElement).style.background =
-                        "#fafafa";
-                    (ev.currentTarget as HTMLDivElement).style.transform =
-                        "translateY(-1px)";
-                }}
-                onMouseLeave={(ev) => {
-                    (ev.currentTarget as HTMLDivElement).style.background =
-                        "#fff";
-                    (ev.currentTarget as HTMLDivElement).style.transform =
-                        "translateY(0)";
-                }}
-            >
-                {/* 上段：タグ類（右寄せ） */}
-                <div
-                    style={{
-                        display: "flex",
-                        gap: 8,
-                        justifyContent: "flex-end",
-                        flexWrap: "wrap",
-                    }}
-                >
-                    <span
-                        style={{
-                            fontSize: 12,
-                            opacity: 0.7,
-                            padding: "2px 8px",
-                            border: "1px solid #eee",
-                            borderRadius: 999,
-                            background: "#fafafa",
-                        }}
-                        title="candidateKey"
-                    >
-                        {p.candidateKey}
-                    </span>
-
-                    <span
-                        style={{
-                            fontSize: 12,
-                            opacity: 0.7,
-                            padding: "2px 8px",
-                            border: "1px solid #eee",
-                            borderRadius: 999,
-                            background: "#fafafa",
-                        }}
-                        title="elections count"
-                    >
-                        出馬 {p.electionsCount} 件
-                    </span>
-
-                    {p.age !== null ? (
-                        <span style={{ fontSize: 12, opacity: 0.7 }}>
-                            {p.age}歳
-                        </span>
-                    ) : null}
-                </div>
-
-                {/* アバター */}
-                <div style={{ display: "flex", justifyContent: "center" }}>
-                    <CandidateAvatar
-                        name={p.name}
-                        imageUrl={avatarUrl}
-                        index={p.index}
-                        size={64}
-                    />
-                </div>
-
-                {/* 名前 */}
-                <div style={{ textAlign: "center" }}>
-                    <div
-                        style={{
-                            fontSize: 16,
-                            fontWeight: 800,
-                            lineHeight: 1.3,
-                            wordBreak: "break-word",
-                        }}
-                    >
-                        {p.name}
-                    </div>
-                </div>
-
-                {/* 肩書き */}
-                {p.title ? (
-                    <div
-                        style={{
-                            fontSize: 13,
-                            opacity: 0.85,
-                            lineHeight: 1.5,
-                            textAlign: "center",
-                        }}
-                    >
-                        {p.title}
-                    </div>
-                ) : (
-                    <div
-                        style={{
-                            fontSize: 13,
-                            opacity: 0.6,
-                            textAlign: "center",
-                        }}
-                    >
-                        （肩書きなし）
-                    </div>
-                )}
-
-                {/* CTA */}
-                <div
-                    style={{
-                        marginTop: "auto",
-                        fontSize: 13,
-                        opacity: 0.85,
-                        textAlign: "center",
-                    }}
-                >
-                    候補者の詳細を見る →
-                </div>
-            </div>
-        </Link>
-    );
-}
 
 export function PartyDetailPage() {
     const { partyKey } = useParams<{ partyKey: string }>();
@@ -433,11 +280,36 @@ export function PartyDetailPage() {
                             候補者がいません
                         </div>
                     ) : (
-                        people.map((p) => (
-                            <PartyCandidateCard
-                                key={p.candidateKey}
-                                p={p}
+                        people.map((p, idx) => (
+                            <CandidateCard
+                                key={`${p.representativeElectionId}:${p.representativeCandidateId}`}
+                                c={
+                                    {
+                                        // CandidateItem に寄せて最低限埋める（CandidateCard が参照するもの）
+                                        id: p.representativeCandidateId,
+                                        electionId: p.representativeElectionId,
+                                        name: p.name,
+                                        title: p.title,
+                                        sortOrder: idx + 1,
+                                        party: {
+                                            // この画面は「政党内の候補者」なので party 情報は画面上の党で固定
+                                            name: party?.name ?? "",
+                                            shortName: party?.shortName ?? "",
+                                            color: party?.color ?? null,
+                                        },
+                                        // CandidateCard が candidateKey を読むので載せる
+                                        candidateKey: p.candidateKey,
+                                        // もし API imageUrl を使わせたいなら載せる
+                                        imageUrl: p.imageUrl ?? null,
+                                    } as any
+                                }
                                 from={self}
+                                detailUrl={`/elections/${encodeURIComponent(
+                                    p.representativeElectionId,
+                                )}/candidates/${encodeURIComponent(p.representativeCandidateId)}`}
+                                showSortOrder={false}
+                                showId={false}
+                                indexOverride={idx}
                             />
                         ))
                     )}

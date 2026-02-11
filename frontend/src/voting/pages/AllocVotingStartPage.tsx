@@ -1,10 +1,11 @@
 // frontend/src/voting/pages/AllocVotingStartPage.tsx
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
     Link,
     useLocation,
     useNavigate,
     useSearchParams,
+    useOutletContext,
 } from "react-router-dom";
 import { allocConfirm, allocStart } from "../api/allocVoting";
 import { publicAllocConfirm, publicAllocStart } from "../api/publicAllocVoting";
@@ -16,6 +17,20 @@ import { normalizeFrom } from "../../shared/normalizeFrom";
 import { Card, DevDebug, Page } from "../../shared/ui/page";
 import { CandidateAvatar } from "../../shared/ui/CandidateAvatar";
 import { publicToken } from "../../shared/tokenStorage";
+
+import { CandidateCardFrame } from "../../candidates/ui/CandidateCardFrame";
+import { PartyPill } from "../../parties/ui/PartyPill";
+import { resolveCandidateImageUrl } from "../../elections/ui/candidateImages";
+
+// ★プロジェクトに合わせて import を調整
+import { fetchElectionCandidates } from "../../candidates/api/candidates";
+import { fetchParties } from "../../parties/api/parties";
+import type { PartyListItem } from "../../parties/model/partyTypes";
+
+import type {
+    PublicLayoutOutletContext,
+    FooterAction,
+} from "../../layout/public/PublicLayout";
 
 type LocationState = { from?: string } | null;
 
@@ -35,11 +50,28 @@ function isNone(r: Row) {
 function isCandidate(r: Row) {
     return r.type === "CANDIDATE";
 }
+function isParty(r: Row) {
+    return r.type === "PARTY";
+}
 function isTruthy(s: string | null | undefined) {
     if (!s) return false;
     const v = s.toLowerCase();
     return v === "1" || v === "true" || v === "yes" || v === "on";
 }
+
+type CandidateMeta = {
+    candidateId: string;
+    candidateKey?: string | null;
+    imageUrl?: string | null;
+    title?: string | null;
+    party?: {
+        id?: string | null;
+        partyKey?: string | null;
+        shortName?: string | null;
+        name?: string | null;
+        color?: string | null;
+    } | null;
+};
 
 export function AllocVotingStartPage() {
     const nav = useNavigate();
@@ -58,6 +90,9 @@ export function AllocVotingStartPage() {
     const effectiveToken = publicMode
         ? tokenFromQuery?.trim() || publicToken.get()
         : null;
+
+    // ✅ footer bar
+    const { setFooterActions } = useOutletContext<PublicLayoutOutletContext>();
 
     useEffect(() => {
         if (!publicMode) return;
@@ -81,6 +116,14 @@ export function AllocVotingStartPage() {
     const [data, setData] = useState<AllocVoteStartResponse | null>(null);
     const [rows, setRows] = useState<Row[]>([]);
 
+    // ★メタ（政党色/画像）
+    const [candMetaById, setCandMetaById] = useState<
+        Record<string, CandidateMeta>
+    >({});
+    const [partyByAnyKey, setPartyByAnyKey] = useState<
+        Record<string, PartyListItem>
+    >({});
+
     const total = data?.pointsPerVoter ?? 0;
 
     const sum = useMemo(
@@ -100,9 +143,10 @@ export function AllocVotingStartPage() {
         sum === total &&
         rows.some((r) => (r.points ?? 0) > 0) &&
         !busy;
+
     const clampInt = (v: number) => Math.max(0, Math.floor(Number(v) || 0));
 
-    const load = async () => {
+    const load = useCallback(async () => {
         if (!electionId) return;
 
         setErr(null);
@@ -126,6 +170,52 @@ export function AllocVotingStartPage() {
             const main = normalized.filter((r) => r.type !== "NONE_SUPPORT");
             const none = normalized.filter((r) => r.type === "NONE_SUPPORT");
             setRows([...main, ...none]);
+
+            // ★追加ロード：候補者 / 政党 メタ（失敗しても投票は続行）
+            try {
+                const [candsRaw, parties] = await Promise.all([
+                    fetchElectionCandidates(electionId),
+                    fetchParties(),
+                ]);
+
+                // party lookup（id / partyKey どちらでも引けるように）
+                const pMap: Record<string, PartyListItem> = {};
+                for (const p of parties ?? []) {
+                    if ((p as any)?.id) pMap[String((p as any).id)] = p;
+                    if ((p as any)?.partyKey)
+                        pMap[String((p as any).partyKey)] = p;
+                }
+                setPartyByAnyKey(pMap);
+
+                const cMap: Record<string, CandidateMeta> = {};
+                for (const c of (candsRaw as any[]) ?? []) {
+                    const cid = String(
+                        (c as any)?.id ?? (c as any)?.candidateId,
+                    );
+                    if (!cid) continue;
+                    const party = (c as any)?.party ?? null;
+
+                    cMap[cid] = {
+                        candidateId: cid,
+                        candidateKey: (c as any)?.candidateKey ?? null,
+                        imageUrl: (c as any)?.imageUrl ?? null,
+                        title: (c as any)?.title ?? null,
+                        party: party
+                            ? {
+                                  id: party?.id ?? null,
+                                  partyKey: party?.partyKey ?? null,
+                                  shortName: party?.shortName ?? null,
+                                  name: party?.name ?? null,
+                                  color: party?.color ?? null,
+                              }
+                            : null,
+                    };
+                }
+                setCandMetaById(cMap);
+            } catch {
+                setPartyByAnyKey({});
+                setCandMetaById({});
+            }
         } catch (e: any) {
             const status = e?.response?.status;
             const msg = e?.response?.data?.message;
@@ -148,10 +238,12 @@ export function AllocVotingStartPage() {
 
             setData(null);
             setRows([]);
+            setPartyByAnyKey({});
+            setCandMetaById({});
         } finally {
             setLoading(false);
         }
-    };
+    }, [electionId, publicMode]);
 
     useEffect(() => {
         if (!electionId) {
@@ -160,8 +252,7 @@ export function AllocVotingStartPage() {
             return;
         }
         load();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [electionId, publicMode]);
+    }, [electionId, publicMode, load]);
 
     const commitNoneAll = () => {
         if (!data || busy) return;
@@ -239,7 +330,7 @@ export function AllocVotingStartPage() {
         setRows((prev) => prev.map((r) => ({ ...r, points: 0 })));
     };
 
-    const onSubmit = async () => {
+    const onSubmit = useCallback(async () => {
         if (!data || busy) return;
 
         setBusy(true);
@@ -288,13 +379,83 @@ export function AllocVotingStartPage() {
         } finally {
             setBusy(false);
         }
-    };
+    }, [
+        data,
+        busy,
+        total,
+        rows,
+        publicMode,
+        doneQS,
+        nav,
+        backTo,
+        effectiveToken,
+    ]);
+
+    // ✅ footer actions（下部バーに移す）
+    useEffect(() => {
+        const actions: FooterAction[] = [];
+
+        // 左：戻る
+        actions.push({ kind: "LINK", to: backTo, label: "戻る" });
+
+        // 右：再試行 or 送信
+        if (err) {
+            actions.push({
+                kind: "BUTTON",
+                label: loading ? "読み込み中..." : "再試行",
+                disabled: loading || busy || !electionId,
+                onClick: load,
+            });
+        } else {
+            actions.push({
+                kind: "BUTTON",
+                label: busy ? "送信中..." : "この内容で投票する",
+                disabled: !canSubmit,
+                onClick: onSubmit,
+            });
+        }
+
+        setFooterActions(actions);
+        return () => setFooterActions(null);
+    }, [
+        setFooterActions,
+        backTo,
+        err,
+        loading,
+        busy,
+        electionId,
+        load,
+        canSubmit,
+        onSubmit,
+    ]);
 
     const title = data?.electionTitle
         ? `配分投票 / ${data.electionTitle}`
         : "配分投票";
 
     const hasCandidate = rows.some((r) => r.type === "CANDIDATE");
+
+    const resolveRowParty = (r: Row) => {
+        if (isCandidate(r) && r.targetId) {
+            const m = candMetaById[r.targetId] ?? null;
+            return m?.party ?? null;
+        }
+        if (isParty(r) && r.targetId) {
+            const p = partyByAnyKey[r.targetId] ?? null;
+            return p
+                ? {
+                      id: (p as any).id,
+                      partyKey: (p as any).partyKey,
+                      shortName: (p as any).shortName,
+                      name: (p as any).name,
+                      color: (p as any).color,
+                  }
+                : null;
+        }
+        return null;
+    };
+
+    const isDev = import.meta.env?.DEV;
 
     return (
         <Page
@@ -468,224 +629,356 @@ export function AllocVotingStartPage() {
                                 const cand = isCandidate(r) && !!r.targetId;
                                 const none = isNone(r);
 
+                                const party = resolveRowParty(r);
+                                const partyColor =
+                                    (party?.color ?? "").trim() || null;
+
+                                const candMeta =
+                                    cand && r.targetId
+                                        ? (candMetaById[r.targetId] ?? null)
+                                        : null;
+
+                                const candidateKey =
+                                    (candMeta?.candidateKey ?? "").trim() ||
+                                    null;
+
+                                const imgSrc =
+                                    cand && r.targetId
+                                        ? (resolveCandidateImageUrl(
+                                              candidateKey ?? undefined,
+                                          ) ??
+                                          candMeta?.imageUrl ??
+                                          null)
+                                        : null;
+
+                                const detailHref =
+                                    cand && r.targetId
+                                        ? `/elections/${encodeURIComponent(
+                                              data.electionId,
+                                          )}/candidates/${encodeURIComponent(
+                                              r.targetId,
+                                          )}`
+                                        : null;
+
                                 if (none) {
                                     return (
-                                        <div
-                                            key={rowKey(r)}
-                                            style={{
-                                                border: "1px dashed #eee",
-                                                borderRadius: 12,
-                                                padding: 12,
-                                                background: "#fafafa",
-                                                display: "grid",
-                                                gap: 10,
-                                                marginTop: 8,
-                                            }}
-                                        >
-                                            <div
-                                                style={{
-                                                    display: "flex",
-                                                    gap: 10,
-                                                    alignItems: "center",
-                                                    flexWrap: "wrap",
-                                                }}
+                                        <div key={rowKey(r)}>
+                                            <CandidateCardFrame
+                                                partyColor={null}
                                             >
                                                 <div
-                                                    aria-hidden
                                                     style={{
-                                                        width: 40,
-                                                        height: 40,
-                                                        borderRadius: 999,
-                                                        border: "1px solid #eee",
-                                                        background: "#f7f7f7",
-                                                    }}
-                                                />
-
-                                                <div
-                                                    style={{
+                                                        border: "1px dashed #eee",
+                                                        borderRadius: 10,
+                                                        padding: 12,
+                                                        background: "#fafafa",
                                                         display: "grid",
-                                                        gap: 2,
-                                                        flex: 1,
+                                                        gap: 10,
                                                     }}
                                                 >
                                                     <div
                                                         style={{
-                                                            fontWeight: 700,
+                                                            display: "flex",
+                                                            gap: 10,
+                                                            alignItems:
+                                                                "center",
+                                                            flexWrap: "wrap",
                                                         }}
                                                     >
-                                                        {r.label}
+                                                        <div
+                                                            aria-hidden
+                                                            style={{
+                                                                width: 44,
+                                                                height: 44,
+                                                                borderRadius: 999,
+                                                                border: "1px solid #eee",
+                                                                background:
+                                                                    "#f7f7f7",
+                                                            }}
+                                                        />
+
+                                                        <div
+                                                            style={{
+                                                                display: "grid",
+                                                                gap: 2,
+                                                                flex: 1,
+                                                            }}
+                                                        >
+                                                            <div
+                                                                style={{
+                                                                    fontWeight: 800,
+                                                                }}
+                                                            >
+                                                                {r.label}
+                                                            </div>
+                                                            <div
+                                                                style={{
+                                                                    fontSize: 12,
+                                                                    opacity: 0.75,
+                                                                    lineHeight: 1.5,
+                                                                }}
+                                                            >
+                                                                ※
+                                                                できるだけ候補者へ配分してください。
+                                                                <br />※
+                                                                選択すると{" "}
+                                                                {total}pt
+                                                                を一括で消費します。
+                                                            </div>
+                                                        </div>
+
+                                                        {noneSelected ? (
+                                                            <button
+                                                                type="button"
+                                                                onClick={
+                                                                    clearNone
+                                                                }
+                                                                disabled={busy}
+                                                            >
+                                                                解除
+                                                            </button>
+                                                        ) : (
+                                                            <button
+                                                                type="button"
+                                                                onClick={
+                                                                    commitNoneAll
+                                                                }
+                                                                disabled={busy}
+                                                            >
+                                                                この選択をする…
+                                                            </button>
+                                                        )}
                                                     </div>
+
                                                     <div
                                                         style={{
-                                                            fontSize: 12,
-                                                            opacity: 0.75,
-                                                            lineHeight: 1.5,
+                                                            display: "flex",
+                                                            gap: 8,
+                                                            alignItems:
+                                                                "baseline",
+                                                            flexWrap: "wrap",
                                                         }}
                                                     >
-                                                        ※
-                                                        できるだけ候補者へ配分してください。
-                                                        <br />※ 選択すると{" "}
-                                                        {total}pt
-                                                        を一括で消費します。
+                                                        <div
+                                                            style={{
+                                                                fontSize: 12,
+                                                                opacity: 0.75,
+                                                            }}
+                                                        >
+                                                            現在:
+                                                        </div>
+                                                        <div
+                                                            style={{
+                                                                fontWeight: 900,
+                                                            }}
+                                                        >
+                                                            {r.points}pt
+                                                        </div>
                                                     </div>
                                                 </div>
-
-                                                {noneSelected ? (
-                                                    <button
-                                                        type="button"
-                                                        onClick={clearNone}
-                                                        disabled={busy}
-                                                    >
-                                                        解除
-                                                    </button>
-                                                ) : (
-                                                    <button
-                                                        type="button"
-                                                        onClick={commitNoneAll}
-                                                        disabled={busy}
-                                                    >
-                                                        この選択をする…
-                                                    </button>
-                                                )}
-                                            </div>
-
-                                            <div
-                                                style={{
-                                                    display: "flex",
-                                                    gap: 8,
-                                                    alignItems: "baseline",
-                                                    flexWrap: "wrap",
-                                                }}
-                                            >
-                                                <div
-                                                    style={{
-                                                        fontSize: 12,
-                                                        opacity: 0.75,
-                                                    }}
-                                                >
-                                                    現在:
-                                                </div>
-                                                <div
-                                                    style={{ fontWeight: 800 }}
-                                                >
-                                                    {r.points}pt
-                                                </div>
-                                            </div>
+                                            </CandidateCardFrame>
                                         </div>
                                     );
                                 }
 
                                 return (
-                                    <div
-                                        key={rowKey(r)}
-                                        style={{
-                                            border: "1px solid #eee",
-                                            borderRadius: 12,
-                                            padding: 12,
-                                            background: "#fff",
-                                            display: "grid",
-                                            gap: 10,
-                                        }}
-                                    >
-                                        <div
-                                            style={{
-                                                display: "flex",
-                                                gap: 10,
-                                                alignItems: "center",
-                                                flexWrap: "wrap",
-                                            }}
+                                    <div key={rowKey(r)}>
+                                        <CandidateCardFrame
+                                            partyColor={partyColor}
                                         >
-                                            <CandidateAvatar
-                                                name={r.label}
-                                                imageUrl={null}
-                                                index={idx}
-                                                size={40}
-                                            />
-
                                             <div
                                                 style={{
                                                     display: "grid",
-                                                    gap: 2,
-                                                    flex: 1,
+                                                    gap: 10,
+                                                    background: "#fff",
+                                                    borderRadius: 12,
+                                                    transition:
+                                                        "background 120ms ease",
+                                                }}
+                                                onMouseEnter={(ev) => {
+                                                    (
+                                                        ev.currentTarget as HTMLDivElement
+                                                    ).style.background =
+                                                        "#fafafa";
+                                                }}
+                                                onMouseLeave={(ev) => {
+                                                    (
+                                                        ev.currentTarget as HTMLDivElement
+                                                    ).style.background = "#fff";
                                                 }}
                                             >
-                                                <div
-                                                    style={{ fontWeight: 700 }}
-                                                >
-                                                    {r.label}
-                                                </div>
                                                 <div
                                                     style={{
-                                                        fontSize: 12,
-                                                        opacity: 0.7,
+                                                        display: "flex",
+                                                        gap: 10,
+                                                        alignItems: "center",
+                                                        flexWrap: "wrap",
                                                     }}
                                                 >
-                                                    {isCandidate(r)
-                                                        ? "候補者"
-                                                        : "政党"}
+                                                    <CandidateAvatar
+                                                        name={r.label}
+                                                        imageUrl={imgSrc}
+                                                        candidateKey={
+                                                            candidateKey ??
+                                                            undefined
+                                                        }
+                                                        index={idx}
+                                                        size={44}
+                                                    />
+
+                                                    <div
+                                                        style={{
+                                                            display: "grid",
+                                                            gap: 4,
+                                                            flex: 1,
+                                                            minWidth: 0,
+                                                        }}
+                                                    >
+                                                        <div
+                                                            style={{
+                                                                display: "flex",
+                                                                gap: 10,
+                                                                alignItems:
+                                                                    "baseline",
+                                                                flexWrap:
+                                                                    "wrap",
+                                                            }}
+                                                        >
+                                                            <div
+                                                                style={{
+                                                                    fontWeight: 800,
+                                                                    overflow:
+                                                                        "hidden",
+                                                                    textOverflow:
+                                                                        "ellipsis",
+                                                                    whiteSpace:
+                                                                        "nowrap",
+                                                                }}
+                                                            >
+                                                                {r.label}
+                                                            </div>
+
+                                                            {party?.shortName ||
+                                                            party?.name ? (
+                                                                <PartyPill
+                                                                    shortName={
+                                                                        party?.shortName ??
+                                                                        ""
+                                                                    }
+                                                                    name={
+                                                                        party?.name ??
+                                                                        party?.shortName ??
+                                                                        ""
+                                                                    }
+                                                                    color={
+                                                                        partyColor ??
+                                                                        ""
+                                                                    }
+                                                                />
+                                                            ) : null}
+
+                                                            <span
+                                                                style={{
+                                                                    marginLeft:
+                                                                        "auto",
+                                                                    fontSize: 12,
+                                                                    opacity: 0.7,
+                                                                }}
+                                                            >
+                                                                {cand
+                                                                    ? "候補者"
+                                                                    : "政党"}
+                                                            </span>
+                                                        </div>
+
+                                                        {candMeta?.title ? (
+                                                            <div
+                                                                style={{
+                                                                    fontSize: 13,
+                                                                    opacity: 0.85,
+                                                                    lineHeight: 1.5,
+                                                                }}
+                                                            >
+                                                                {candMeta.title}
+                                                            </div>
+                                                        ) : null}
+                                                    </div>
+
+                                                    {detailHref ? (
+                                                        <Link
+                                                            to={detailHref}
+                                                            state={{
+                                                                from: self,
+                                                            }}
+                                                            style={{
+                                                                fontSize: 13,
+                                                            }}
+                                                        >
+                                                            詳細 →
+                                                        </Link>
+                                                    ) : null}
+                                                </div>
+
+                                                <div
+                                                    style={{
+                                                        display: "flex",
+                                                        gap: 8,
+                                                        alignItems: "center",
+                                                        flexWrap: "wrap",
+                                                    }}
+                                                >
+                                                    <input
+                                                        type="number"
+                                                        min={0}
+                                                        step={1}
+                                                        value={r.points}
+                                                        onChange={(e) =>
+                                                            setPoints(
+                                                                idx,
+                                                                Number(
+                                                                    e.target
+                                                                        .value,
+                                                                ),
+                                                            )
+                                                        }
+                                                        style={{ width: 140 }}
+                                                        disabled={busy}
+                                                    />
+                                                    <span>pt</span>
+
+                                                    <button
+                                                        type="button"
+                                                        onClick={() =>
+                                                            fillRestTo(idx)
+                                                        }
+                                                        disabled={
+                                                            busy || rest === 0
+                                                        }
+                                                        style={{ fontSize: 12 }}
+                                                        title="残りポイントをこの項目に追加します"
+                                                    >
+                                                        残りを入れる
+                                                    </button>
+
+                                                    <span
+                                                        style={{
+                                                            marginLeft: "auto",
+                                                            fontSize: 12,
+                                                            opacity: 0.7,
+                                                        }}
+                                                    >
+                                                        現在: <b>{r.points}</b>
+                                                        pt
+                                                    </span>
                                                 </div>
                                             </div>
-
-                                            {cand && (
-                                                <Link
-                                                    to={`/elections/${data.electionId}/candidates/${r.targetId}`}
-                                                    state={{ from: self }}
-                                                    style={{ fontSize: 13 }}
-                                                >
-                                                    詳細 →
-                                                </Link>
-                                            )}
-                                        </div>
-
-                                        <div
-                                            style={{
-                                                display: "flex",
-                                                gap: 8,
-                                                alignItems: "center",
-                                                flexWrap: "wrap",
-                                            }}
-                                        >
-                                            <input
-                                                type="number"
-                                                min={0}
-                                                step={1}
-                                                value={r.points}
-                                                onChange={(e) =>
-                                                    setPoints(
-                                                        idx,
-                                                        Number(e.target.value),
-                                                    )
-                                                }
-                                                style={{ width: 140 }}
-                                                disabled={busy}
-                                            />
-                                            <span>pt</span>
-
-                                            <button
-                                                type="button"
-                                                onClick={() => fillRestTo(idx)}
-                                                disabled={busy || rest === 0}
-                                                style={{ fontSize: 12 }}
-                                                title="残りポイントをこの項目に追加します"
-                                            >
-                                                残りを入れる
-                                            </button>
-
-                                            <span
-                                                style={{
-                                                    marginLeft: "auto",
-                                                    fontSize: 12,
-                                                    opacity: 0.7,
-                                                }}
-                                            >
-                                                現在: <b>{r.points}</b>pt
-                                            </span>
-                                        </div>
+                                        </CandidateCardFrame>
                                     </div>
                                 );
                             })}
                         </div>
 
+                        {/* 下部の「戻る/送信」は footer bar に移したので、ここはリンクだけ残す */}
                         <div
                             style={{
                                 marginTop: 12,
@@ -707,46 +1000,43 @@ export function AllocVotingStartPage() {
                             <span
                                 style={{
                                     marginLeft: "auto",
-                                    display: "inline-flex",
-                                    gap: 12,
-                                    flexWrap: "wrap",
+                                    fontSize: 12,
+                                    opacity: 0.75,
                                 }}
                             >
-                                <Link to={backTo}>戻る</Link>
-
-                                <button
-                                    disabled={!canSubmit}
-                                    onClick={onSubmit}
-                                >
-                                    {busy ? "送信中..." : "この内容で投票する"}
-                                </button>
+                                ※ 送信は下部バーから行います
                             </span>
                         </div>
                     </Card>
                 </div>
             )}
 
-            <DevDebug
-                value={{
-                    electionId,
-                    data,
-                    rows,
-                    sum,
-                    rest,
-                    noneSelected,
-                    err,
-                    loading,
-                    busy,
-                    backTo,
-                    self,
-                    state,
-                    publicMode,
-                    session,
-                    tokenFromQuery: tokenFromQuery ? "(present)" : null,
-                    effectiveToken: effectiveToken ? "(present)" : null,
-                    hasStoredPublicToken: !!publicToken.get(),
-                }}
-            />
+            {isDev && (
+                <DevDebug
+                    value={{
+                        electionId,
+                        data,
+                        rows,
+                        sum,
+                        rest,
+                        noneSelected,
+                        err,
+                        loading,
+                        busy,
+                        backTo,
+                        self,
+                        state,
+                        publicMode,
+                        session,
+                        tokenFromQuery: tokenFromQuery ? "(present)" : null,
+                        effectiveToken: effectiveToken ? "(present)" : null,
+                        hasStoredPublicToken: !!publicToken.get(),
+                        candMetaCount: Object.keys(candMetaById).length,
+                        partyMetaCount: Object.keys(partyByAnyKey).length,
+                        canSubmit,
+                    }}
+                />
+            )}
         </Page>
     );
 }
