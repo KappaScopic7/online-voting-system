@@ -32,71 +32,113 @@ function isTruthy(s: string | null | undefined) {
     return v === "1" || v === "true" || v === "yes" || v === "on";
 }
 
+// JWT の eid を読む（Startページと同じロジック）
+function readJwtPayload(token: string): any | null {
+    try {
+        const p = token.split(".")[1];
+        if (!p) return null;
+        const b64 = p.replace(/-/g, "+").replace(/_/g, "/");
+        const pad = b64.length % 4 ? "=".repeat(4 - (b64.length % 4)) : "";
+        return JSON.parse(atob(b64 + pad));
+    } catch {
+        return null;
+    }
+}
+function readEid(token: string): string | null {
+    const pl = readJwtPayload(token);
+    return typeof pl?.eid === "string" ? pl.eid : null;
+}
+
 export function VotingEntryPage() {
     const nav = useNavigate();
     const loc = useLocation();
     const state = (loc.state as LocationState) ?? null;
 
-    // ✅ StrictMode(DEV) の二重実行ガード
-    const didRunRef = useRef(false);
+    // ✅ StrictMode(DEV) の二重実行ガード（選挙IDごとに1回）
+    const ranForEidRef = useRef<string>("");
 
     const q = useMemo(() => new URLSearchParams(loc.search), [loc.search]);
-    const electionId = q.get("electionId");
+    const electionId = q.get("electionId")?.trim() || "";
 
-    // ✅ public モード（本人認証投票）
-    const session = (q.get("session") ?? "").toLowerCase(); // "public" | ""
-    const tokenFromQuery = q.get("token"); // Androidスタブ
+    // ✅ public は明示（session=public / public=1）のみ
+    const session = (q.get("session") ?? "").toLowerCase();
+    const publicMode = session === "public" || isTruthy(q.get("public"));
 
-    // ✅ クエリ > storage の優先で token を確定
-    const effectiveToken = tokenFromQuery?.trim() || publicToken.get();
+    // token は拾ってもいいが、URLへ再放流しない
+    const tokenFromQuery = publicMode ? q.get("token") : null;
+    const effectiveToken = publicMode
+        ? tokenFromQuery?.trim() || publicToken.get()
+        : null;
 
-    // ✅ publicMode 判定も effectiveToken を考慮
-    const publicMode =
-        session === "public" ||
-        isTruthy(q.get("public")) ||
-        !!(effectiveToken && effectiveToken.trim());
+    // ✅ token を含むURLは事故るので、入場したら即消す
+    useEffect(() => {
+        if (!publicMode) return;
+        if (!tokenFromQuery) return;
+        const sp2 = new URLSearchParams(loc.search);
+        sp2.delete("token");
+        nav(`${loc.pathname}?${sp2.toString()}`, { replace: true });
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [publicMode, tokenFromQuery]);
 
-    // ✅ public なら未ログインでも戻れるように /elections をデフォルトに
     const backTo = normalizeFrom(
         state?.from ?? (publicMode ? "/elections" : "/me/elections"),
     );
-    const self = loc.pathname + loc.search;
-    // ✅ StartPage へ引き回すクエリ（token を付けて引き継ぐ）
-    const sessionQS = publicMode
-        ? `&session=public${
-              effectiveToken
-                  ? `&token=${encodeURIComponent(effectiveToken)}`
-                  : ""
-          }`
-        : "";
+
+    const self = useMemo(() => {
+        const sp2 = new URLSearchParams(loc.search);
+        sp2.delete("token");
+        const qs = sp2.toString();
+        return `${loc.pathname}${qs ? `?${qs}` : ""}`;
+    }, [loc.pathname, loc.search]);
+
+    // ✅ StartPage へ引き回すクエリ（tokenは付けない）
+    const sessionQS = publicMode ? `&session=public` : "";
 
     useEffect(() => {
-        if (didRunRef.current) return;
-        didRunRef.current = true;
-
         if (!electionId) {
             nav("/elections", { replace: true });
             return;
         }
 
-        // ✅ public 投票は token 必須：無ければ vote用本人認証へ
-        if (publicMode && !(effectiveToken && effectiveToken.trim())) {
-            const returnTo = `/voting/entry?electionId=${encodeURIComponent(
-                electionId,
-            )}&session=public`;
+        if (ranForEidRef.current === electionId) return;
+        ranForEidRef.current = electionId;
 
-            nav(
-                `/identity/vote?electionId=${encodeURIComponent(
+        if (publicMode) {
+            // token 無ければ本人認証へ
+            if (!effectiveToken) {
+                const returnTo = `/voting/entry?electionId=${encodeURIComponent(
                     electionId,
-                )}&session=public&returnTo=${encodeURIComponent(returnTo)}`,
-                { replace: true, state: { from: backTo } },
-            );
-            return;
-        }
+                )}&session=public`;
 
-        // ✅ token を確定したら storage にも保存（以降の画面で使う）
-        if (effectiveToken && effectiveToken.trim()) {
-            publicToken.set(effectiveToken.trim());
+                nav(
+                    `/identity/vote?electionId=${encodeURIComponent(
+                        electionId,
+                    )}&session=public&returnTo=${encodeURIComponent(returnTo)}`,
+                    { replace: true, state: { from: backTo } },
+                );
+                return;
+            }
+
+            // ✅ eid 不一致は混線なので捨てて認証へ（安全）
+            const eid = readEid(effectiveToken);
+            if (eid && eid !== electionId) {
+                publicToken.clear();
+
+                const returnTo = `/voting/entry?electionId=${encodeURIComponent(
+                    electionId,
+                )}&session=public`;
+
+                nav(
+                    `/identity/vote?electionId=${encodeURIComponent(
+                        electionId,
+                    )}&session=public&returnTo=${encodeURIComponent(returnTo)}`,
+                    { replace: true, state: { from: backTo } },
+                );
+                return;
+            }
+
+            // ✅ 整合性OKなら保存（以降は storage だけで運用）
+            publicToken.set(effectiveToken);
         }
 
         (async () => {

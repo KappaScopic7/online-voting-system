@@ -15,22 +15,21 @@ function isPinValid(pin: string) {
     return /^\d{4}$/.test(pin);
 }
 
+function isManualDemoEnabled(): boolean {
+    const sp = new URLSearchParams(window.location.search);
+    return sp.get("demo") === "1" || sp.get("manual") === "1";
+}
+
 type BridgeState = "CHECKING" | "ONLINE" | "OFFLINE";
 
 export type IdentityKeyboardMode = "IDENTITY_LINK" | "VOTE_TOKEN_ISSUE";
 
 export function IdentityNfcKeyboardReader(props: {
     mode?: IdentityKeyboardMode;
-
-    // IDENTITY_LINK:
     onLinked?: (accessToken: string) => void;
-
-    // VOTE_TOKEN_ISSUE:
     electionId?: string;
     onIssued?: (voteToken: string) => void;
-
     onError?: (msg: string) => void;
-
     pin?: string;
     pinRequired?: boolean;
 }) {
@@ -54,6 +53,9 @@ export function IdentityNfcKeyboardReader(props: {
     const [bridgeState, setBridgeState] = useState<BridgeState>("CHECKING");
     const [bridgeNote, setBridgeNote] = useState<string | null>(null);
 
+    // ✅ 先に定義（useEffectで使うので）
+    const manualDemo = useMemo(() => isManualDemoEnabled(), []);
+
     const BRIDGE_BASE = "/nfc-bridge";
     const bridgeHealthUrl = useMemo(() => `${BRIDGE_BASE}/health`, []);
     const bridgeLastUrl = useMemo(() => `${BRIDGE_BASE}/last`, []);
@@ -65,31 +67,25 @@ export function IdentityNfcKeyboardReader(props: {
     };
 
     useEffect(() => {
+        // ✅ デモ時のみ bridge を触る
+        if (!manualDemo) {
+            setBridgeState("OFFLINE");
+            setBridgeNote(null);
+            return;
+        }
+
         let alive = true;
-
         let lastTimer: number | null = null;
-        let checkTimer: number | null = null;
-
-        let backoffMs = 800;
-        const maxBackoffMs = 10_000;
 
         const clearLast = () => {
             if (lastTimer) window.clearInterval(lastTimer);
             lastTimer = null;
         };
-        const clearCheck = () => {
-            if (checkTimer) window.clearTimeout(checkTimer);
-            checkTimer = null;
-        };
 
-        const scheduleRecheck = () => {
-            clearCheck();
-            const wait = backoffMs;
-            backoffMs = Math.min(Math.floor(backoffMs * 1.7), maxBackoffMs);
-            checkTimer = window.setTimeout(() => {
-                if (!alive) return;
-                checkHealth();
-            }, wait);
+        const stopOffline = (note: string) => {
+            clearLast();
+            setBridgeState("OFFLINE");
+            setBridgeNote(note);
         };
 
         const checkHealth = async () => {
@@ -103,11 +99,9 @@ export function IdentityNfcKeyboardReader(props: {
                     method: "GET",
                     cache: "no-store",
                 });
-
                 if (!alive) return;
 
                 if (res.ok) {
-                    backoffMs = 800;
                     setBridgeState("ONLINE");
                     setBridgeNote(null);
                     startPollingLast();
@@ -117,12 +111,9 @@ export function IdentityNfcKeyboardReader(props: {
                 // ignore
             }
 
-            clearLast();
-            setBridgeState("OFFLINE");
-            setBridgeNote(
+            stopOffline(
                 "NFC Bridge未接続（ローカルで runNfcBridge を起動すると自動入力が有効になります）",
             );
-            scheduleRecheck();
         };
 
         const tickLast = async () => {
@@ -151,12 +142,9 @@ export function IdentityNfcKeyboardReader(props: {
 
                 throw new Error(`bridge /last status=${res.status}`);
             } catch {
-                clearLast();
-                setBridgeState("OFFLINE");
-                setBridgeNote(
-                    "NFC Bridgeとの通信が切れました（再接続を試行中…）",
+                stopOffline(
+                    "NFC Bridgeとの通信が切れました（自動入力をOFFにしました）",
                 );
-                scheduleRecheck();
             }
         };
 
@@ -170,11 +158,9 @@ export function IdentityNfcKeyboardReader(props: {
         return () => {
             alive = false;
             clearLast();
-            clearCheck();
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [busy, value]);
-
+    }, [manualDemo, busy, value, bridgeHealthUrl, bridgeLastUrl]);
     const commit = async () => {
         const v = value.trim();
         if (!v) return;
@@ -238,19 +224,122 @@ export function IdentityNfcKeyboardReader(props: {
     const pinOk = !pinRequired || isPinValid(pin);
 
     return (
-        <div style={{ display: "grid", gap: 8 }}>
-            <p style={{ margin: 0, opacity: 0.85 }}>
-                PCのNFCリーダーでカードをかざしてください（入力欄に自動入力されます）。
-            </p>
+        <div style={{ display: "grid", gap: 10 }}>
+            <div
+                style={{
+                    padding: 12,
+                    border: "1px solid #ddd",
+                    borderRadius: 12,
+                    background: "#fff",
+                    display: "grid",
+                    gap: 8,
+                }}
+            >
+                <div style={{ fontWeight: 800 }}>
+                    本人認証（NFC）
+                    <span style={{ fontWeight: 400, opacity: 0.7 }}>
+                        {" "}
+                        {bridgeState === "ONLINE"
+                            ? "（スキャン待機中）"
+                            : bridgeState === "CHECKING"
+                              ? "（接続確認中…）"
+                              : "（未接続）"}
+                    </span>
+                </div>
+
+                <div style={{ margin: 0, opacity: 0.85, lineHeight: 1.5 }}>
+                    PCのNFCリーダーでカードをかざしてください。
+                </div>
+
+                {/* センサーっぽい表示（通常） */}
+                {!manualDemo && (
+                    <div
+                        style={{
+                            padding: 12,
+                            border: "1px dashed #bbb",
+                            borderRadius: 12,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            gap: 12,
+                            minHeight: 48,
+                        }}
+                    >
+                        <div style={{ opacity: value.trim() ? 1 : 0.65 }}>
+                            {value.trim()
+                                ? "認証データを検出しました"
+                                : "（読み取り待ち…）"}
+                        </div>
+
+                        {value.trim() && (
+                            <div
+                                style={{
+                                    fontFamily:
+                                        "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
+                                    fontSize: 12,
+                                    opacity: 0.75,
+                                }}
+                                title={value}
+                            >
+                                {value.slice(0, 8)}…
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {/* デモ時だけ入力欄を出す */}
+                {manualDemo && (
+                    <label style={{ display: "grid", gap: 4 }}>
+                        <span style={{ fontSize: 13, fontWeight: 700 }}>
+                            （デモ用）読み取り結果 citizenId (UUID)
+                            {bridgeState === "ONLINE" ? "（自動入力ON）" : ""}
+                            {bridgeState === "CHECKING"
+                                ? "（bridge確認中…）"
+                                : ""}
+                        </span>
+                        <input
+                            ref={inputRef}
+                            value={value}
+                            disabled={busy}
+                            onChange={(e) => {
+                                setValue(e.target.value);
+                                scheduleCommit();
+                            }}
+                            onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                    e.preventDefault();
+                                    commit();
+                                }
+                            }}
+                            placeholder="ここに自動入力されます（手入力もOK）"
+                            style={{ width: "100%", padding: 8 }}
+                        />
+                    </label>
+                )}
+            </div>
 
             {!pinOk && (
-                <div style={{ padding: 8, border: "1px solid #ccc" }}>
+                <div
+                    style={{
+                        padding: 10,
+                        border: "1px solid #eee",
+                        borderRadius: 12,
+                        background: "#fafafa",
+                    }}
+                >
                     先に PIN（4桁）を入力してください
                 </div>
             )}
 
             {bridgeNote && (
-                <div style={{ padding: 8, border: "1px solid #ccc" }}>
+                <div
+                    style={{
+                        padding: 10,
+                        border: "1px solid #eee",
+                        borderRadius: 12,
+                        background: "#fafafa",
+                    }}
+                >
                     {bridgeNote}
                 </div>
             )}
@@ -258,46 +347,41 @@ export function IdentityNfcKeyboardReader(props: {
             {msg && (
                 <div
                     role="alert"
-                    style={{ padding: 8, border: "1px solid #ccc" }}
+                    style={{
+                        padding: 10,
+                        border: "1px solid #eee",
+                        borderRadius: 12,
+                        background: "#fafafa",
+                    }}
                 >
                     {msg}
                 </div>
             )}
 
-            <label style={{ display: "grid", gap: 4 }}>
-                <span>
-                    読み取り結果 citizenId (UUID)
-                    {bridgeState === "ONLINE" ? "（自動入力ON）" : ""}
-                    {bridgeState === "CHECKING" ? "（bridge確認中…）" : ""}
-                </span>
-                <input
-                    ref={inputRef}
-                    value={value}
-                    disabled={busy}
-                    onChange={(e) => {
-                        setValue(e.target.value);
-                        scheduleCommit();
-                    }}
-                    onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                            e.preventDefault();
-                            commit();
-                        }
-                    }}
-                    placeholder="ここに自動入力されます（手入力もOK）"
-                    style={{ width: "100%", padding: 8 }}
-                />
-            </label>
-
-            <button onClick={commit} disabled={busy || !value.trim() || !pinOk}>
+            <button
+                onClick={commit}
+                disabled={busy || !value.trim() || !pinOk}
+                style={{
+                    padding: "10px 12px",
+                    borderRadius: 12,
+                    border: "1px solid #ddd",
+                }}
+            >
                 {busy
                     ? mode === "IDENTITY_LINK"
                         ? "登録中..."
                         : "発行中..."
                     : mode === "IDENTITY_LINK"
-                      ? "この読み取り結果で本人認証を登録"
-                      : "この読み取り結果で本人認証して投票へ進む"}
+                      ? "本人認証を登録"
+                      : "本人認証して投票へ進む"}
             </button>
+
+            {!manualDemo && (
+                <div style={{ fontSize: 12, opacity: 0.65, lineHeight: 1.5 }}>
+                    ※ デモ用の手入力フォームは通常非表示です （URLに{" "}
+                    <code>?demo=1</code> を付けると表示されます）
+                </div>
+            )}
         </div>
     );
 }

@@ -49,10 +49,6 @@ export function AllocVotingDonePage() {
     const entryLink = electionId
         ? `/voting/entry?electionId=${encodeURIComponent(electionId)}${
               isPublic ? "&session=public" : ""
-          }${
-              isPublic && tokenFromState
-                  ? `&token=${encodeURIComponent(tokenFromState)}`
-                  : ""
           }`
         : isPublic
           ? "/elections"

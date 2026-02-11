@@ -34,6 +34,23 @@ import type {
 
 type LocationState = { from?: string } | null;
 
+function readJwtPayload(token: string): any | null {
+    try {
+        const p = token.split(".")[1];
+        if (!p) return null;
+        const b64 = p.replace(/-/g, "+").replace(/_/g, "/");
+        const pad = b64.length % 4 ? "=".repeat(4 - (b64.length % 4)) : "";
+        return JSON.parse(atob(b64 + pad));
+    } catch {
+        return null;
+    }
+}
+
+function readEid(token: string): string | null {
+    const pl = readJwtPayload(token);
+    return typeof pl?.eid === "string" ? pl.eid : null;
+}
+
 type Row = {
     type: "CANDIDATE" | "PARTY" | "NONE_SUPPORT";
     targetId: string | null;
@@ -98,11 +115,28 @@ export function AllocVotingStartPage() {
 
     useEffect(() => {
         if (!publicMode) return;
-        if (effectiveToken && effectiveToken.trim()) {
-            publicToken.set(effectiveToken.trim());
+        const t = effectiveToken?.trim();
+        if (!t) return;
+
+        const eid = readEid(t);
+        if (eid && electionId && eid !== electionId) {
+            // ✅ 選挙が違う token は事故るので捨てる
+            publicToken.clear();
+            return;
         }
+        publicToken.set(t);
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [publicMode, effectiveToken]);
+    }, [publicMode, effectiveToken, electionId]);
+
+    // ✅ URL から token を消去（リロード対策・クリーンアップ）
+    useEffect(() => {
+        if (!publicMode) return;
+        if (!tokenFromQuery) return;
+        const sp2 = new URLSearchParams(loc.search);
+        sp2.delete("token");
+        nav(`${loc.pathname}?${sp2.toString()}`, { replace: true });
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [publicMode, tokenFromQuery]);
 
     const self = loc.pathname + loc.search;
 
@@ -641,12 +675,8 @@ export function AllocVotingStartPage() {
                     <Link to={backTo}>← 戻る</Link>
 
                     <Link
-                        to={`/voting/entry?electionId=${encodeURIComponent(
-                            electionId,
-                        )}${publicMode ? "&session=public" : ""}${
-                            effectiveToken
-                                ? `&token=${encodeURIComponent(effectiveToken)}`
-                                : ""
+                        to={`/voting/entry?electionId=${encodeURIComponent(electionId)}${
+                            publicMode ? "&session=public" : ""
                         }`}
                         state={{ from: backTo }}
                     >

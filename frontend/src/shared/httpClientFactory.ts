@@ -28,10 +28,7 @@ export function createHttpClient(
         (err) => {
             const status = err?.response?.status;
 
-            // ✅ public token は期限切れ/無効なら即クリアしてループを止める
-            if (clearOnAuthError && (status === 401 || status === 403)) {
-                tokenStore.clear();
-            }
+            if (clearOnAuthError && status === 401) tokenStore.clear();
 
             return Promise.reject(err);
         },

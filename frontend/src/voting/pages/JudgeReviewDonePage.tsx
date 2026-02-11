@@ -1,6 +1,8 @@
 import { Link, useLocation } from "react-router-dom";
 import { Card, DevDebug, Page } from "../../shared/ui/page";
 import { normalizeFrom } from "../../shared/normalizeFrom";
+import { publicToken } from "../../shared/tokenStorage";
+import { useNavigate } from "react-router-dom";
 
 type DoneState = {
     from?: string;
@@ -18,6 +20,7 @@ function isTruthy(s: string | null | undefined) {
 export function JudgeReviewDonePage() {
     const loc = useLocation();
     const state = (loc.state as DoneState) ?? null;
+    const nav = useNavigate();
 
     const q = new URLSearchParams(loc.search);
     const session = (q.get("session") ?? "").toLowerCase();
@@ -37,12 +40,8 @@ export function JudgeReviewDonePage() {
 
     // Done → Start（変更）へ戻すリンク
     const entryLink = electionId
-        ? `/voting/entry?electionId=${encodeURIComponent(electionId)}${
+        ? `/judge-review/start?electionId=${encodeURIComponent(electionId)}${
               isPublic ? "&session=public" : ""
-          }${
-              isPublic && tokenFromState
-                  ? `&token=${encodeURIComponent(tokenFromState)}`
-                  : ""
           }`
         : isPublic
           ? "/elections"
@@ -51,6 +50,11 @@ export function JudgeReviewDonePage() {
     const eid = encodeURIComponent(electionId);
     const electionDetailLink = electionId ? `/elections/${eid}` : "/elections";
     const resultLink = electionId ? `/elections/${eid}/result` : "/elections";
+
+    const onGoOther = () => {
+        publicToken.clear();
+        nav("/elections", { replace: true });
+    };
 
     const isDev = import.meta.env?.DEV;
 
@@ -118,7 +122,19 @@ export function JudgeReviewDonePage() {
                                 flexWrap: "wrap",
                             }}
                         >
-                            <Link to="/elections">選挙一覧へ</Link>
+                            <button
+                                onClick={onGoOther}
+                                style={{
+                                    background: "none",
+                                    border: "none",
+                                    padding: 0,
+                                    color: "var(--link-color, #007bff)",
+                                    cursor: "pointer",
+                                    textDecoration: "underline",
+                                }}
+                            >
+                                選挙一覧へ
+                            </button>
                             {!isPublic && <Link to="/me">マイページへ</Link>}
                             <Link to={backTo}>戻る</Link>
                         </span>
