@@ -20,32 +20,32 @@ type LocationState = { from?: string };
 function hasWebNfc() {
     return typeof (window as any).NDEFReader !== "undefined";
 }
-
 function isPinValid(pin: string) {
     return /^\d{4}$/.test(pin);
 }
 
-// function looksLikeUuid(v: string) {
-//     return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
-//         String(v ?? "").trim(),
-//     );
-// }
+type Step = "PIN" | "METHOD";
 
 export function IdentityLinkPage() {
     const nav = useNavigate();
     const loc = useLocation();
     const state = (loc.state ?? {}) as LocationState;
 
-    const [method, setMethod] = useState<IdentityMethod>("MANUAL");
-    const [err, setErr] = useState<string | null>(null);
-    const [
-        busy,
-        // setBusy
-    ] = useState(false);
+    const canWebNfc = hasWebNfc();
+    const isDev = import.meta.env?.DEV;
 
-    // ✅ PIN
+    const [step, setStep] = useState<Step>("PIN");
+
+    // PIN
     const [pin, setPin] = useState("");
     const pinOk = isPinValid(pin);
+
+    const [method, setMethod] = useState<IdentityMethod>(() =>
+        canWebNfc ? "NFC" : "MANUAL",
+    );
+
+    const [err, setErr] = useState<string | null>(null);
+    const [busy] = useState(false);
 
     const backTo = normalizeFrom(state.from ?? "/me");
     const from = loc.pathname + loc.search;
@@ -58,15 +58,17 @@ export function IdentityLinkPage() {
             : fallback;
     }, [state.from, loc.pathname]);
 
-    const canWebNfc = hasWebNfc();
-    const isDev = import.meta.env?.DEV;
+    // linkIdentity 完了時
+    const onLinkedUser = (_accessToken: string) => {
+        nav(toUser, { replace: true });
+    };
 
-    // ✅ DEV: dynamic personas
+    // ----------------------------
+    // DEV: dynamic personas
+    // ----------------------------
     const [devPersonas, setDevPersonas] = useState<DemoPersonaDto[]>([]);
     const [devLoading, setDevLoading] = useState(false);
     const [devErr, setDevErr] = useState<string | null>(null);
-
-    // ✅ DEV: 手入力フォームに流し込む citizenId
     const [devCitizenId, setDevCitizenId] = useState("");
 
     const reloadDevPersonas = async () => {
@@ -93,18 +95,24 @@ export function IdentityLinkPage() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isDev]);
 
-    // linkIdentity 完了時（ここでアカウント切替しない）
-    const onLinkedUser = (_accessToken: string) => {
-        nav(toUser, { replace: true });
-    };
-
-    // ✅ DEVボタン：フォームにセットするだけ（ログインしない）
     const fillDev = (p: DemoPersonaDto) => {
         setErr(null);
-        setMethod("MANUAL"); // 手入力タブに寄せておくと便利
         setDevCitizenId((p.citizenId ?? "").trim());
-        // PINも一緒に入れたいならここ（必要なければ消してOK）
-        // setPin("1234");
+        setMethod("MANUAL");
+        setStep("METHOD"); // それっぽく、入力まで進める
+    };
+
+    // ----------------------------
+    // Step controls
+    // ----------------------------
+    const goNext = () => {
+        if (!pinOk) return;
+        setErr(null);
+        setStep("METHOD");
+    };
+    const goBackToPin = () => {
+        setErr(null);
+        setStep("PIN");
     };
 
     return (
@@ -120,10 +128,34 @@ export function IdentityLinkPage() {
             }
             maxWidth={680}
         >
+            {/* エラー */}
+            {err && (
+                <Card role="alert">
+                    <div style={{ fontWeight: 800, marginBottom: 6 }}>
+                        エラー
+                    </div>
+                    <div style={{ marginBottom: 10 }}>{err}</div>
+
+                    <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+                        <button
+                            type="button"
+                            onClick={() => setErr(null)}
+                            disabled={busy}
+                        >
+                            閉じる
+                        </button>
+                        <Link to={backTo}>戻る</Link>
+                    </div>
+                </Card>
+            )}
+
+            {/* 共通ヘッダ（それっぽく段階表示） */}
             <Card>
                 <div style={{ display: "grid", gap: 10 }}>
                     <div style={{ fontWeight: 900 }}>
-                        認証方法を選択してください
+                        {step === "PIN"
+                            ? "STEP 1 / 2：PIN（4桁）を入力"
+                            : "STEP 2 / 2：認証方法を選択"}
                     </div>
 
                     <div
@@ -157,114 +189,165 @@ export function IdentityLinkPage() {
                             端末:{" "}
                             {canWebNfc ? "Web NFC 対応" : "Web NFC 非対応"}
                         </span>
+
+                        <span
+                            style={{
+                                fontSize: 12,
+                                opacity: 0.75,
+                                padding: "4px 10px",
+                                borderRadius: 999,
+                                border: "1px solid #eee",
+                                background: "#fafafa",
+                            }}
+                        >
+                            認証方法:{" "}
+                            {canWebNfc
+                                ? "NFC（かざす） / 手入力"
+                                : "NFC（リーダ） / 手入力"}
+                        </span>
                     </div>
                 </div>
             </Card>
 
-            {err && (
-                <Card role="alert">
-                    <div style={{ fontWeight: 800, marginBottom: 6 }}>
-                        エラー
-                    </div>
-                    <div style={{ marginBottom: 10 }}>{err}</div>
+            {/* STEP 1: PIN */}
+            {step === "PIN" && (
+                <Card>
+                    <div style={{ display: "grid", gap: 10 }}>
+                        <div style={{ fontWeight: 900 }}>
+                            PIN（4桁）を入力してください
+                        </div>
 
-                    <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-                        <button
-                            type="button"
-                            onClick={() => setErr(null)}
+                        <input
+                            inputMode="numeric"
+                            pattern="\d{4}"
+                            maxLength={4}
+                            placeholder="例: 1234"
+                            value={pin}
+                            onChange={(e) =>
+                                setPin(
+                                    e.target.value
+                                        .replace(/[^\d]/g, "")
+                                        .slice(0, 4),
+                                )
+                            }
+                            style={{ padding: 10, fontSize: 16, width: 180 }}
                             disabled={busy}
+                        />
+
+                        {!pinOk && pin.length > 0 && (
+                            <div style={{ fontSize: 12, color: "crimson" }}>
+                                PINは4桁の数字で入力してください
+                            </div>
+                        )}
+
+                        <div
+                            style={{
+                                display: "flex",
+                                gap: 12,
+                                flexWrap: "wrap",
+                                alignItems: "center",
+                                marginTop: 4,
+                            }}
                         >
-                            閉じる
-                        </button>
-                        <Link to={backTo}>戻る</Link>
+                            <button
+                                type="button"
+                                onClick={goNext}
+                                disabled={!pinOk || busy}
+                                style={{ fontWeight: 700 }}
+                            >
+                                次へ →
+                            </button>
+
+                            <span style={{ fontSize: 12, opacity: 0.75 }}>
+                                ※ PINはカード所持者確認のために必要です
+                            </span>
+                        </div>
                     </div>
                 </Card>
             )}
 
-            {/* PIN入力 */}
-            <Card>
-                <div style={{ display: "grid", gap: 10 }}>
-                    <div style={{ fontWeight: 900 }}>PIN（4桁）を入力</div>
+            {/* STEP 2: METHOD */}
+            {step === "METHOD" && (
+                <Card>
+                    <div style={{ display: "grid", gap: 10 }}>
+                        <div
+                            style={{
+                                display: "flex",
+                                gap: 12,
+                                flexWrap: "wrap",
+                                alignItems: "center",
+                            }}
+                        >
+                            <button type="button" onClick={goBackToPin}>
+                                ← PINを修正
+                            </button>
 
-                    <input
-                        inputMode="numeric"
-                        pattern="\d{4}"
-                        maxLength={4}
-                        placeholder="例: 1234"
-                        value={pin}
-                        onChange={(e) =>
-                            setPin(
-                                e.target.value
-                                    .replace(/[^\d]/g, "")
-                                    .slice(0, 4),
-                            )
-                        }
-                        style={{ padding: 10, fontSize: 16, width: 180 }}
-                        disabled={busy}
-                    />
+                            <span style={{ fontSize: 12, opacity: 0.75 }}>
+                                PIN: <b>••••</b>（入力済み）
+                            </span>
 
-                    <div style={{ fontSize: 12, opacity: 0.75 }}>
-                        ※ PINはカード所持者確認のために必要です
-                    </div>
-
-                    {!pinOk && pin.length > 0 && (
-                        <div style={{ fontSize: 12, color: "crimson" }}>
-                            PINは4桁の数字で入力してください
+                            <span style={{ marginLeft: "auto" }} />
                         </div>
-                    )}
-                </div>
-            </Card>
 
-            <Card>
-                <IdentityMethodTabs value={method} onChange={setMethod} />
+                        {!canWebNfc && (
+                            <div style={{ fontSize: 12, opacity: 0.75 }}>
+                                この端末は Web NFC
+                                非対応です。「NFC」を選ぶと、NFCリーダの入力で認証できます。
+                            </div>
+                        )}
 
-                <div
-                    style={{
-                        marginTop: 12,
-                        border: "1px solid #eee",
-                        borderRadius: 12,
-                        padding: 12,
-                        opacity: pinOk ? 1 : 0.75,
-                    }}
-                >
-                    {method === "MANUAL" ? (
-                        <IdentityManualForm
-                            pin={pin}
-                            pinRequired
-                            onLinked={onLinkedUser}
-                            onError={setErr}
-                            // ✅ DEVで埋めた citizenId を ManualForm に渡す
-                            devCitizenId={devCitizenId}
+                        {/* Tabs（NFC対応なら NFC/手入力、非対応なら KEYBOARD/手入力 に誘導）
+                            IdentityMethodTabs の中身が固定なら、
+                            “見た目だけ”合わせるために method を補正する運用でOK
+                        */}
+                        <IdentityMethodTabs
+                            value={method}
+                            onChange={setMethod}
                         />
-                    ) : canWebNfc ? (
-                        <IdentityNfcScanner
-                            pin={pin}
-                            pinRequired
-                            mode="IDENTITY_LINK"
-                            onLinked={onLinkedUser}
-                            onError={setErr}
-                        />
-                    ) : (
-                        <IdentityNfcKeyboardReader
-                            pin={pin}
-                            pinRequired
-                            onLinked={onLinkedUser}
-                            onError={setErr}
-                        />
-                    )}
-                </div>
 
-                <div style={{ fontSize: 12, opacity: 0.7, marginTop: 8 }}>
-                    ※ うまくいかない場合は「手入力」をお試しください
-                </div>
+                        <div
+                            style={{
+                                marginTop: 12,
+                                border: "1px solid #eee",
+                                borderRadius: 12,
+                                padding: 12,
+                            }}
+                        >
+                            {method === "MANUAL" ? (
+                                <IdentityManualForm
+                                    pin={pin}
+                                    pinRequired
+                                    onLinked={onLinkedUser}
+                                    onError={setErr}
+                                    devCitizenId={devCitizenId}
+                                />
+                            ) : // method === "NFC"
+                            canWebNfc ? (
+                                <IdentityNfcScanner
+                                    pin={pin}
+                                    pinRequired
+                                    mode="IDENTITY_LINK"
+                                    onLinked={onLinkedUser}
+                                    onError={setErr}
+                                />
+                            ) : (
+                                <IdentityNfcKeyboardReader
+                                    pin={pin}
+                                    pinRequired
+                                    onLinked={onLinkedUser}
+                                    onError={setErr}
+                                />
+                            )}
+                        </div>
 
-                {!pinOk && (
-                    <div style={{ fontSize: 12, opacity: 0.75, marginTop: 8 }}>
-                        ※ 先に PIN（4桁）を入力してください
+                        <div style={{ fontSize: 12, opacity: 0.7 }}>
+                            ※ うまくいかない場合は「手入力」をお試しください
+                        </div>
                     </div>
-                )}
-            </Card>
+                </Card>
+            )}
 
+            {/* DEV tools */}
             {isDev && (
                 <Card>
                     <details>
@@ -274,6 +357,7 @@ export function IdentityLinkPage() {
 
                         <DevDebug
                             value={{
+                                step,
                                 method,
                                 err,
                                 busy,
@@ -283,6 +367,7 @@ export function IdentityLinkPage() {
                                 toUser,
                                 from,
                                 state,
+                                canWebNfc,
                                 devLoading,
                                 devErr,
                                 devPersonasCount: devPersonas.length,
@@ -322,7 +407,6 @@ export function IdentityLinkPage() {
                                         fontSize: 12,
                                         padding: "6px 10px",
                                     }}
-                                    title="手入力に戻したい時用"
                                 >
                                     クリア
                                 </button>
@@ -364,36 +448,6 @@ export function IdentityLinkPage() {
                                     </button>
                                 ))}
                             </div>
-
-                            {!devLoading &&
-                                !devErr &&
-                                devPersonas.length === 0 && (
-                                    <div
-                                        style={{
-                                            marginTop: 8,
-                                            opacity: 0.8,
-                                            fontSize: 12,
-                                        }}
-                                    >
-                                        DEVユーザーが0件です（/api/demo/personas
-                                        を確認）
-                                    </div>
-                                )}
-
-                            {!devLoading &&
-                                !devErr &&
-                                devPersonas.length > 0 && (
-                                    <div
-                                        style={{
-                                            marginTop: 8,
-                                            opacity: 0.8,
-                                            fontSize: 12,
-                                        }}
-                                    >
-                                        ※ citizenId が
-                                        null/空のユーザーは押しても反映されません
-                                    </div>
-                                )}
                         </div>
                     </details>
                 </Card>
@@ -401,6 +455,7 @@ export function IdentityLinkPage() {
 
             <DevDebug
                 value={{
+                    step,
                     method,
                     err,
                     busy,

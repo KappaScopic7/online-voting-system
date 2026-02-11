@@ -17,6 +17,7 @@ import { useFromBackTo } from "../../shared/routes/useFromBackTo";
 import { MeHeaderActions } from "../ui/me/MeHeaderActions";
 import { QuickOverviewCard } from "../ui/me/QuickOverviewCard";
 import { IdentityCard } from "../ui/me/IdentityCard";
+import { Badge } from "../ui/me/Badge";
 
 import {
     fetchDemoPersonas,
@@ -89,12 +90,19 @@ export function MePage() {
     const isCitizenSource = profile?.source === "CITIZEN";
     const disableSelfEdit = isLinked || isCitizenSource;
 
-    // 「入力が揃ってる」判定（My選挙用の目安）
-    const profileFilled = useMemo(() => {
+    // ✅ 「入力が揃ってる」判定（要件ベース：生年月日 or 住所が揃ってればOK）
+    const profileOk = useMemo(() => {
         const birth = !!profile?.birthDate;
         const addr = !!profile?.prefCode && !!profile?.cityCode;
-        return birth && addr;
+        return birth || addr;
     }, [profile]);
+
+    // 便利表示用
+    const birthLabel = profile?.birthDate ?? "未入力";
+    const addrLabel =
+        profile?.prefCode && profile?.cityCode
+            ? `${profile.prefCode}-${profile.cityCode}`
+            : "未入力";
 
     const loginAs = async (p: { email: string; password: string }) => {
         meLoad.setError(null);
@@ -103,7 +111,6 @@ export function MePage() {
             const token = await login(p.email, p.password);
             await setAccessToken(token.accessToken);
 
-            // refreshMe があれば実施、なくても me/profile を取り直す
             try {
                 await refreshMe();
             } catch {
@@ -148,7 +155,7 @@ export function MePage() {
                     <QuickOverviewCard
                         me={me}
                         returnTo={backTo}
-                        profileFilled={profileFilled}
+                        profileFilled={profileOk} // ✅ 互換のため名前はそのままでも中身はOKに
                         disableSelfEdit={disableSelfEdit}
                         profileEditLinkFrom={self}
                     />
@@ -178,13 +185,37 @@ export function MePage() {
                                 </div>
                             </div>
 
-                            <Link
-                                to="/me/profile"
-                                state={{ from: self }}
-                                style={{ marginLeft: "auto" }}
+                            <div
+                                style={{
+                                    marginLeft: "auto",
+                                    display: "flex",
+                                    gap: 8,
+                                    alignItems: "center",
+                                    flexWrap: "wrap",
+                                }}
                             >
-                                編集へ →
-                            </Link>
+                                <Badge tone={profileOk ? "good" : "neutral"}>
+                                    {profileOk ? "判定OK" : "未入力あり"}
+                                </Badge>
+
+                                {profile?.source ? (
+                                    <Badge
+                                        tone={
+                                            profile.source === "CITIZEN"
+                                                ? "good"
+                                                : "neutral"
+                                        }
+                                    >
+                                        source: {profile.source}
+                                    </Badge>
+                                ) : (
+                                    <Badge tone="neutral">未登録</Badge>
+                                )}
+
+                                <Link to="/me/profile" state={{ from: self }}>
+                                    編集へ →
+                                </Link>
+                            </div>
                         </div>
 
                         <div
@@ -195,20 +226,22 @@ export function MePage() {
                                 lineHeight: 1.7,
                             }}
                         >
-                            生年月日: <b>{profile?.birthDate ?? "未入力"}</b> /
-                            住所:{" "}
-                            <b>
-                                {profile?.prefCode && profile?.cityCode
-                                    ? `${profile.prefCode}-${profile.cityCode}`
-                                    : "未入力"}
-                            </b>
-                            {profile?.source ? (
-                                <>
-                                    {" "}
-                                    / source: <b>{profile.source}</b>
-                                </>
-                            ) : null}
+                            生年月日: <b>{birthLabel}</b> / 住所:{" "}
+                            <b>{addrLabel}</b>
                         </div>
+
+                        {!profileOk && (
+                            <div
+                                style={{
+                                    marginTop: 8,
+                                    fontSize: 12,
+                                    opacity: 0.75,
+                                }}
+                            >
+                                ※ 生年月日 または
+                                住所（都道府県+市区町村）のどちらかが入ると判定が安定します
+                            </div>
+                        )}
                     </Card>
 
                     <IdentityCard
@@ -324,6 +357,7 @@ export function MePage() {
                                         demoLoading,
                                         demoErr,
                                         demoPersonasCount: demoPersonas.length,
+                                        profileOk,
                                     }}
                                 />
                             </div>

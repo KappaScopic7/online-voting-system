@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams, useOutletContext } from "react-router-dom";
 import { fetchElectionDetail } from "../api/elections";
 import type { ElectionDetailResponse } from "../model/electionTypes";
+import type { PublicLayoutOutletContext } from "../../layout/public/PublicLayout";
 import { useAuth } from "../../user/UserAuthContext";
 import { Card, DevDebug, Page } from "../../shared/ui/page";
 import { ErrorCard } from "../../shared/ui/ErrorCard";
@@ -17,6 +18,7 @@ export function ElectionDetailPage() {
     const { electionId } = useParams<{ electionId: string }>();
 
     const { me, isLoading: authLoading } = useAuth();
+    const { setFooterActions } = useOutletContext<PublicLayoutOutletContext>();
 
     const { self, backTo } = useFromBackTo("/elections");
 
@@ -52,6 +54,34 @@ export function ElectionDetailPage() {
             cancelled = true;
         };
     }, [electionId]);
+
+    useEffect(() => {
+        if (!data) {
+            setFooterActions(null);
+            return;
+        }
+
+        const isOngoing = data.status === "ONGOING";
+        const needIdentity = isOngoing && !!me && !data.canCast;
+
+        if (needIdentity) {
+            setFooterActions([
+                { kind: "BACK", label: "戻る" },
+                { kind: "LINK", to: "/identity/link", label: "本人認証へ →" },
+            ]);
+        } else {
+            setFooterActions([
+                { kind: "BACK", label: "戻る" },
+                {
+                    kind: "LINK",
+                    to: `/voting/entry?electionId=${eid}`,
+                    label: "投票する →",
+                },
+            ]);
+        }
+
+        return () => setFooterActions(null);
+    }, [data, me, setFooterActions]);
 
     return (
         <Page

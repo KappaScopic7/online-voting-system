@@ -72,7 +72,9 @@ export function ProfileCard(props: {
     onSaveProfile: () => void;
     onReloadProfile: () => void;
 
-    profileFilled: boolean;
+    // ✅ 追加
+    profileOk: boolean;
+    dirty: boolean;
 }) {
     const {
         profile,
@@ -91,8 +93,16 @@ export function ProfileCard(props: {
         cannotSaveReason,
         onSaveProfile,
         onReloadProfile,
-        profileFilled,
+        profileOk,
+        dirty,
     } = props;
+
+    // ✅ 編集欄での状況表示用
+    const hasBirth = !!birthDate;
+    const addrComplete = !!prefCode && !!cityCode;
+    const addrHalf = (!!prefCode && !cityCode) || (!prefCode && !!cityCode);
+
+    const saveLabel = profile ? "更新する" : "登録する";
 
     return (
         <Card>
@@ -125,6 +135,7 @@ export function ProfileCard(props: {
                             display: "flex",
                             gap: 10,
                             alignItems: "center",
+                            flexWrap: "wrap",
                         }}
                     >
                         {profile?.source ? (
@@ -140,6 +151,12 @@ export function ProfileCard(props: {
                         ) : (
                             <Badge tone="neutral">未登録</Badge>
                         )}
+
+                        <Badge tone={profileOk ? "good" : "neutral"}>
+                            {profileOk ? "判定OK" : "未入力あり"}
+                        </Badge>
+
+                        {dirty && <Badge tone="neutral">変更あり</Badge>}
 
                         {!disableSelfEdit && (
                             <button
@@ -204,6 +221,47 @@ export function ProfileCard(props: {
 
                 {showProfileEdit && !disableSelfEdit && (
                     <div style={{ display: "grid", gap: 10 }}>
+                        {/* ✅ 入力状況（迷い防止） */}
+                        <div
+                            style={{
+                                border: "1px solid #eee",
+                                borderRadius: 12,
+                                padding: 10,
+                                background: "#fafafa",
+                            }}
+                        >
+                            <div
+                                style={{
+                                    fontSize: 12,
+                                    opacity: 0.88,
+                                    lineHeight: 1.6,
+                                }}
+                            >
+                                {hasBirth || addrComplete ? "✅" : "⚠️"}{" "}
+                                生年月日 または
+                                住所（都道府県+市区町村）を入力してください
+                                {addrHalf && (
+                                    <div
+                                        style={{
+                                            marginTop: 6,
+                                            color: "crimson",
+                                            opacity: 0.95,
+                                        }}
+                                    >
+                                        ⚠️
+                                        住所は都道府県と市区町村を両方入力してください
+                                    </div>
+                                )}
+                                {!dirty && !saving && (
+                                    <div
+                                        style={{ marginTop: 6, opacity: 0.75 }}
+                                    >
+                                        変更はありません
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
                         <Field
                             label="生年月日"
                             value={birthDate}
@@ -248,8 +306,9 @@ export function ProfileCard(props: {
                                 onClick={onSaveProfile}
                                 disabled={!canSaveProfile}
                                 title={cannotSaveReason ?? undefined}
+                                style={{ fontWeight: 700 }}
                             >
-                                {saving ? "保存中..." : "保存"}
+                                {saving ? "保存中..." : saveLabel}
                             </button>
 
                             <button
@@ -266,7 +325,7 @@ export function ProfileCard(props: {
                                 </span>
                             )}
 
-                            {!profileFilled && !cannotSaveReason && (
+                            {!profileOk && !cannotSaveReason && (
                                 <span style={{ fontSize: 12, opacity: 0.7 }}>
                                     ※ 入力が揃うと My選挙の対象判定が安定します
                                 </span>

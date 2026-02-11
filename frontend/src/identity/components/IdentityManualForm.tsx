@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { linkIdentity } from "../api/identity";
 import { useAuth } from "../../user/UserAuthContext";
-import { demoPersonas } from "../../demo/personas";
+// import { demoPersonas } from "../../demo/personas";
 
 function isUuidLike(v: string) {
     return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
@@ -34,7 +34,7 @@ export function IdentityManualForm(props: {
     } = props;
     const { setAccessToken } = useAuth();
 
-    const isDev = import.meta.env?.DEV;
+    // const isDev = import.meta.env?.DEV;
 
     const [citizenId, setCitizenId] = useState("");
     const [msg, setMsg] = useState<string | null>(null);
@@ -60,11 +60,11 @@ export function IdentityManualForm(props: {
         return !isSubmitting;
     }, [citizenId, isSubmitting, pinOk]);
 
-    const fillDemoCitizenId = (id: string) => {
-        setCitizenId(id);
-        setFieldErr({});
-        setMsg(null);
-    };
+    // const fillDemoCitizenId = (id: string) => {
+    //     setCitizenId(id);
+    //     setFieldErr({});
+    //     setMsg(null);
+    // };
 
     const onSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -162,7 +162,7 @@ export function IdentityManualForm(props: {
                 )}
             </form>
 
-            {isDev && (
+            {/* {isDev && (
                 <details>
                     <summary style={{ cursor: "pointer", fontSize: 12 }}>
                         DEV tools
@@ -208,7 +208,7 @@ export function IdentityManualForm(props: {
                         </div>
                     </div>
                 </details>
-            )}
+            )} */}
         </div>
     );
 }

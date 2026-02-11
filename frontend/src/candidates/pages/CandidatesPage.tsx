@@ -10,6 +10,7 @@ import { fetchParties } from "../../parties/api/parties";
 import { Card, DevDebug, Page } from "../../shared/ui/page";
 import { useFromBackTo } from "../../shared/routes/useFromBackTo";
 import { ErrorCard } from "../../shared/ui/ErrorCard";
+import { CollapsibleFilter } from "../../shared/ui/CollapsibleFilter";
 
 import {
     CandidatesFilterPanel,
@@ -179,10 +180,21 @@ export function CandidatesPage() {
         };
     }, []);
 
-    // ----------------------------
+    function isPartyProxyCandidate(c: CandidateItem): boolean {
+        const k = (c as any)?.candidateKey;
+        return typeof k === "string" && k.startsWith("PR_");
+    }
+
     // View models
-    // ----------------------------
-    const filtered = useMemo(() => filterCandidates(items, q), [items, q]);
+    const visibleItems = useMemo(
+        () => (items ?? []).filter((c) => !isPartyProxyCandidate(c)),
+        [items],
+    );
+
+    const filtered = useMemo(
+        () => filterCandidates(visibleItems, q),
+        [visibleItems, q],
+    );
     const people = useMemo(() => toPeople(filtered), [filtered]);
     const groups = useMemo(
         () => groupByElection(filtered, electionMetaById),
@@ -216,23 +228,35 @@ export function CandidatesPage() {
             }
             maxWidth={980}
         >
-            <CandidatesFilterPanel
-                mode={mode}
-                setMode={setMode}
-                elections={elections}
-                parties={parties}
-                metaLoading={metaLoading}
-                partiesLoading={partiesLoading}
-                electionId={electionId}
-                setElectionId={setElectionId}
-                partyKey={partyKey}
-                setPartyKey={setPartyKey}
-                q={q}
-                setQ={setQ}
-                isLoading={isLoading}
-                onApply={() => loadCandidates()}
-                onReset={resetFilters}
-            />
+            <CollapsibleFilter
+                title="絞り込み"
+                defaultOpen={false}
+                right={
+                    <span style={{ whiteSpace: "nowrap" }}>
+                        {mode === "PERSON"
+                            ? `表示: ${personCount}（元: ${totalCount}）`
+                            : `表示: ${totalCount}（選挙: ${groups?.length ?? 0}）`}
+                    </span>
+                }
+            >
+                <CandidatesFilterPanel
+                    mode={mode}
+                    setMode={setMode}
+                    elections={elections}
+                    parties={parties}
+                    metaLoading={metaLoading}
+                    partiesLoading={partiesLoading}
+                    electionId={electionId}
+                    setElectionId={setElectionId}
+                    partyKey={partyKey}
+                    setPartyKey={setPartyKey}
+                    q={q}
+                    setQ={setQ}
+                    isLoading={isLoading}
+                    onApply={() => loadCandidates()}
+                    onReset={resetFilters}
+                />
+            </CollapsibleFilter>
 
             {error && (
                 <ErrorCard

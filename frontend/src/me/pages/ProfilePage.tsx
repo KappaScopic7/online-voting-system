@@ -73,35 +73,41 @@ export function ProfilePage() {
     const isCitizenSource = profile?.source === "CITIZEN";
     const disableSelfEdit = isCitizenSource;
 
-    const profileFilled = !!birthDate && !!prefCode && !!cityCode;
+    // ✅ 要件ベースの判定（生年月日 or 住所が揃っていればOK）
+    const hasBirth = !!birthDate;
+    const addrComplete = !!prefCode && !!cityCode;
+    const addrHalf = (!!prefCode && !cityCode) || (!prefCode && !!cityCode);
 
-    // 不足があるなら初回だけ編集を開く
+    const profileOk = hasBirth || addrComplete;
+
+    // ✅ 変更検知（変更がある時だけ保存ボタンを有効化）
+    const dirty =
+        (birthDate ?? "") !== (profile?.birthDate ?? "") ||
+        (prefCode ?? "") !== (profile?.prefCode ?? "") ||
+        (cityCode ?? "") !== (profile?.cityCode ?? "");
+
+    // 不足があるなら初回だけ編集を開く（要件ベース）
     useEffect(() => {
         if (autoOpenedRef.current) return;
         if (disableSelfEdit) return;
-        if (profileFilled) return;
+        if (profileOk) return;
         setShowProfileEdit(true);
         autoOpenedRef.current = true;
-    }, [disableSelfEdit, profileFilled]);
+    }, [disableSelfEdit, profileOk]);
 
     const cannotSaveReason = useMemo(() => {
         if (disableSelfEdit) return "市民情報由来のため編集できません";
         if (saving) return "保存中です";
 
-        const hasBirth = !!birthDate;
-        const addressComplete = !!prefCode && !!cityCode;
-        const addressHalf =
-            (!!prefCode && !cityCode) || (!prefCode && !!cityCode);
-
-        if (addressHalf)
-            return "住所は都道府県と市区町村を両方入力してください";
-        if (!hasBirth && !addressComplete)
+        if (addrHalf) return "住所は都道府県と市区町村を両方入力してください";
+        if (!hasBirth && !addrComplete)
             return "生年月日 もしくは 住所（都道府県+市区町村）を入力してください";
 
         return null;
-    }, [disableSelfEdit, saving, birthDate, prefCode, cityCode]);
+    }, [disableSelfEdit, saving, hasBirth, addrComplete, addrHalf]);
 
-    const canSaveProfile = cannotSaveReason === null;
+    // ✅ 保存可否：入力OK かつ 変更あり
+    const canSaveProfile = cannotSaveReason === null && dirty;
 
     const onReloadProfile = async () => {
         setProfileMsg(null);
@@ -113,15 +119,28 @@ export function ProfilePage() {
         setProfileMsg(null);
         setError(null);
 
-        const hasBirth = !!birthDate;
-        const addressComplete = !!prefCode && !!cityCode;
-
-        if (!hasBirth && !addressComplete) {
-            setProfileMsg("生年月日または住所を入力してください");
+        if (disableSelfEdit) {
+            setProfileMsg("市民情報由来のため編集できません");
             return;
         }
-        if ((prefCode && !cityCode) || (!prefCode && cityCode)) {
+        if (saving) return;
+
+        // 入力チェック
+        if (addrHalf) {
             setProfileMsg("住所は都道府県と市区町村を両方入力してください");
+            return;
+        }
+        if (!hasBirth && !addrComplete) {
+            setProfileMsg(
+                "生年月日または住所（都道府県+市区町村）を入力してください",
+            );
+            return;
+        }
+
+        // 変更なし
+        if (!dirty) {
+            setProfileMsg("変更はありません");
+            setShowProfileEdit(false);
             return;
         }
 
@@ -224,7 +243,8 @@ export function ProfilePage() {
                     cannotSaveReason={cannotSaveReason}
                     onSaveProfile={onSaveProfile}
                     onReloadProfile={onReloadProfile}
-                    profileFilled={profileFilled}
+                    profileOk={profileOk}
+                    dirty={dirty}
                 />
             ) : (
                 <Card>読み込み中…</Card>
@@ -243,6 +263,8 @@ export function ProfilePage() {
                         isLoading,
                         saving,
                         showProfileEdit,
+                        profileOk,
+                        dirty,
                     }}
                 />
             )}

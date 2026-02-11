@@ -6,6 +6,8 @@ import { normalizeFrom } from "../../shared/normalizeFrom";
 import { Card, DevDebug, Page } from "../../shared/ui/page";
 import { ErrorCard } from "../../shared/ui/ErrorCard";
 import { useAsyncLoad } from "../../shared/hooks/useAsyncLoad";
+import { CollapsibleFilter } from "../../shared/ui/CollapsibleFilter";
+import { FilterBar } from "../../shared/ui/FilterBar";
 
 import {
     clamp,
@@ -82,6 +84,27 @@ export function ResultPage() {
         if (v <= 0) return null;
         return v;
     }, [rows]);
+
+    const [q, setQ] = useState("");
+
+    const filteredRows = useMemo(() => {
+        const key = q.trim().toLowerCase();
+        if (!key) return rows;
+
+        return rows.filter((r) => {
+            const name = (
+                (r as any).name ??
+                (r as any).candidateName ??
+                (r as any).displayName ??
+                (r as any).title ??
+                ""
+            )
+                .toString()
+                .toLowerCase();
+
+            return name.includes(key);
+        });
+    }, [rows, q]);
 
     if (!electionId) {
         return (
@@ -168,6 +191,23 @@ export function ResultPage() {
                     }
                 />
             )}
+
+            <CollapsibleFilter
+                title="絞り込み"
+                defaultOpen={!!q.trim()}
+                right={
+                    <span style={{ whiteSpace: "nowrap" }}>
+                        表示 <b>{filteredRows.length}</b> 件
+                    </span>
+                }
+            >
+                <FilterBar
+                    value={q}
+                    onChange={setQ}
+                    placeholder="検索（候補者名）"
+                    disabled={isLoading || !!error}
+                />
+            </CollapsibleFilter>
 
             {!error && isLoading && <Card>読み込み中…</Card>}
 

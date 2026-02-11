@@ -10,6 +10,7 @@ import { ElectionListFilterBar } from "../ui/ElectionListFilterBar";
 import { ElectionCardFrame } from "../ui/ElectionCardFrame";
 import { useElectionListControls } from "../hooks/useElectionListControls";
 import { filterSortElections } from "../model/electionListView";
+import { CollapsibleFilter } from "../../shared/ui/CollapsibleFilter";
 
 function ElectionItemAction(props: {
     e: ElectionListItem;
@@ -71,22 +72,12 @@ function ElectionItemAction(props: {
                     alignItems: "center",
                 }}
             >
-                <span style={{ opacity: 0.75 }}>
-                    （ログイン投票は利用できません）
-                </span>
                 <Link
                     to="/identity/link"
                     state={{ from }}
                     style={{ textDecoration: "none" }}
                 >
                     本人認証へ →
-                </Link>
-                <Link
-                    to="/verify"
-                    state={{ from }}
-                    style={{ textDecoration: "none" }}
-                >
-                    メール認証へ →
                 </Link>
             </div>
         );
@@ -206,7 +197,9 @@ export function ElectionsPage() {
                 </div>
             }
         >
-            <ElectionListFilterBar {...bind} />
+            <CollapsibleFilter title="絞り込み" defaultOpen={false}>
+                <ElectionListFilterBar {...bind} />
+            </CollapsibleFilter>
 
             {error && (
                 <ErrorCard

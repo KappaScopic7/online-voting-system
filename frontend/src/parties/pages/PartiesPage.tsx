@@ -8,6 +8,7 @@ import { FilterBar } from "../../shared/ui/FilterBar";
 import { ErrorCard } from "../../shared/ui/ErrorCard";
 import { useAsyncLoad } from "../../shared/hooks/useAsyncLoad";
 import { useFromBackTo } from "../../shared/routes/useFromBackTo";
+import { CollapsibleFilter } from "../../shared/ui/CollapsibleFilter";
 
 import { PartyCard } from "../ui/PartyCard";
 
@@ -84,18 +85,23 @@ export function PartiesPage() {
                 />
             )}
 
-            <FilterBar
-                value={q}
-                onChange={setQ}
-                placeholder="検索（政党名 / 略称 / キー / 説明）"
-                disabled={isLoading}
+            <CollapsibleFilter
+                title="絞り込み"
+                defaultOpen={!!q.trim()}
                 right={
-                    <span>
+                    <span style={{ whiteSpace: "nowrap" }}>
                         表示 <b>{filteredCount}</b> 件（全 <b>{totalCount}</b>{" "}
                         件）
                     </span>
                 }
-            />
+            >
+                <FilterBar
+                    value={q}
+                    onChange={setQ}
+                    placeholder="検索（政党名 / 略称 / キー / 説明）"
+                    disabled={isLoading}
+                />
+            </CollapsibleFilter>
 
             {filtered === null ? (
                 <Card>読み込み中…</Card>

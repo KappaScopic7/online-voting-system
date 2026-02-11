@@ -1,59 +1,26 @@
-// frontend/src/elections/ui/candidateImages.ts
-
 const assetUrl = (path: string) =>
     `${import.meta.env.BASE_URL}${path.replace(/^\/+/, "")}`;
 
-function normalizeKey(raw?: string | null): string | null {
-    if (!raw) return null;
-    const s = raw.trim();
-    if (!s) return null;
-    return s.toLowerCase().replace(/-/g, "_");
-}
-
-function tryExtractNumber(key: string): number | null {
-    // 例: cand_001 / cand001 / candidate_12 / cand-12 etc...
-    const m = key.match(/(\d{1,4})$/);
-    if (!m) return null;
-    const n = Number(m[1]);
-    return Number.isFinite(n) && n > 0 ? n : null;
-}
-
 /**
- * candidateKey から assets の画像パスを返す
- * assets/candidates/candidate-001.png のような番号形式を想定
+ * candidateKey から public/assets/candidates/<KEY>.png を返す
+ *
+ * 例:
+ * - TD01 -> /assets/candidates/TD01.png
+ * - J01  -> /assets/candidates/J01.png
+ * - PR_LDP -> /assets/candidates/PR_LDP.png（置くなら）
+ *
+ * NOTE:
+ * - Linux(EC2)は大文字小文字を区別するので、ファイル名と key の大小を揃えること。
  */
 export function resolveCandidateImageUrl(
     candidateKey?: string | null,
 ): string | null {
-    const key = normalizeKey(candidateKey);
-    if (!key) return null;
+    const raw = (candidateKey ?? "").trim();
+    if (!raw) return null;
 
-    // 1) 末尾数字から推測（運用がラク）
-    const extracted = tryExtractNumber(key);
-    if (extracted) {
-        const padded = String(extracted).padStart(3, "0");
-        return assetUrl(`assets/candidates/candidate-${padded}.png`);
-    }
+    // ★ ここが重要：勝手に toLowerCase しない（EC2で死ぬ）
+    // もし「常に大文字ファイル名」で統一するなら raw.toUpperCase() にしてOK
+    const key = raw;
 
-    // 2) 固定マップ（例外対応用）
-    const map: Record<string, number> = {
-        cand_suzuki: 1,
-        cand_tanaka: 2,
-        cand_mori: 3,
-        cand_kato: 4,
-        cand_nakamura: 5,
-    };
-
-    const n = map[key];
-    if (!n) {
-        if (import.meta.env.DEV) {
-            console.warn(
-                `[candidateImages] no image mapping for key="${key}" raw="${candidateKey}"`,
-            );
-        }
-        return null;
-    }
-
-    const padded = String(n).padStart(3, "0");
-    return assetUrl(`assets/candidates/candidate-${padded}.png`);
+    return assetUrl(`assets/candidates/${key}.png`);
 }

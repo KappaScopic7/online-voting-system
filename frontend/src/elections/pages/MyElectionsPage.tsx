@@ -16,6 +16,7 @@ import { ElectionListFilterBar } from "../ui/ElectionListFilterBar";
 import { ElectionCardFrame } from "../ui/ElectionCardFrame";
 import { useElectionListControls } from "../hooks/useElectionListControls";
 import { filterSortElections } from "../model/electionListView";
+import { CollapsibleFilter } from "../../shared/ui/CollapsibleFilter";
 
 function EligibilityBadge({ elig }: { elig: MeEligibilityResponse | null }) {
     if (!elig) return null;
@@ -270,7 +271,17 @@ export function MyElectionsPage() {
                 />
             )}
 
-            <ElectionListFilterBar {...bind} />
+            <CollapsibleFilter
+                title="絞り込み"
+                defaultOpen={false}
+                right={
+                    <span style={{ whiteSpace: "nowrap" }}>
+                        表示 <b>{filtered?.length ?? 0}</b> 件
+                    </span>
+                }
+            >
+                <ElectionListFilterBar {...bind} />
+            </CollapsibleFilter>
 
             {filtered === null ? (
                 <Card>読み込み中…</Card>
