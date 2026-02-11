@@ -9,9 +9,7 @@ import { fetchPublicNotices, type PublicNotice } from "../api/notices";
 import { formatLocal } from "../../shared/datetime/formatLocal";
 
 function actorLabel(actor: SystemAnnouncement["actor"]) {
-    return actor === "SYSTEM_ADMIN"
-        ? "システム管理者から"
-        : "選挙管理委員会から";
+    return actor === "ADMIN" ? "システム管理者から" : "選挙管理委員会から";
 }
 
 export function PublicHomePage() {

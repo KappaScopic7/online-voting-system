@@ -15,7 +15,7 @@ import {
 } from "../api/announcement";
 
 function actorLabel(a: SystemAnnouncement["actor"]) {
-    return a === "SYSTEM_ADMIN" ? "システム管理者から" : "選挙管理委員会から";
+    return a === "ADMIN" ? "システム管理者から" : "選挙管理委員会から";
 }
 
 function toIsoFromDatetimeLocal(v: string): string | null {
@@ -442,7 +442,7 @@ export function CommitteeAnnouncementPage() {
                                 }
                                 disabled={bannerBusy}
                             >
-                                <option value="SYSTEM_ADMIN">
+                                <option value="ADMIN">
                                     [システム管理者から]
                                 </option>
                                 <option value="COMMITTEE">

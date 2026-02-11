@@ -132,6 +132,7 @@ public class SecurityConfig {
 
                         // /api/admin/** は「STAFF かつ ADMIN/COMMITTEE」
                         .requestMatchers("/api/admin/**")
+
                         .access((a, c) -> decide(
                                 isKind(a.get(), AccountKind.STAFF)
                                         && hasAnyRole(a.get(), Role.ADMIN,

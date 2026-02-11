@@ -555,7 +555,7 @@ public class MachidaSangiinSeed {
         return List.of(
                 new CommitteeJson("machida-committee", "Passw0rd!!", Role.COMMITTEE, PREF_TOKYO, CITY_MACHIDA, true,
                         false),
-                new CommitteeJson("demo-admin", "Passw0rd!!", Role.COMMITTEE, PREF_TOKYO, CITY_MACHIDA, true, false));
+                new CommitteeJson("admin", "Passw0rd!!", Role.COMMITTEE, PREF_TOKYO, CITY_MACHIDA, true, false));
     }
 
     // ---------------------------

@@ -5,7 +5,7 @@ import java.time.Instant;
 
 public record SystemAnnouncementResponse(
         boolean enabled,
-        String actor, // "SYSTEM_ADMIN" | "COMMITTEE"
+        String actor, // "ADMIN" | "COMMITTEE"
         String message,
         Instant updatedAt) {
     public static SystemAnnouncementResponse from(SystemAnnouncement a) {

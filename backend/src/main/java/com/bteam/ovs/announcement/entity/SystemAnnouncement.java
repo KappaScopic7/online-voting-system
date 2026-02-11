@@ -9,7 +9,7 @@ import java.util.UUID;
 public class SystemAnnouncement {
 
     public enum Actor {
-        SYSTEM_ADMIN,
+        ADMIN,
         COMMITTEE
     }
 

@@ -5,6 +5,6 @@ import jakarta.validation.constraints.NotNull;
 
 public record SystemAnnouncementUpdateRequest(
         @NotNull Boolean enabled,
-        @NotBlank String actor, // "SYSTEM_ADMIN" | "COMMITTEE"
+        @NotBlank String actor, // "ADMIN" | "COMMITTEE"
         @NotBlank String message) {
 }
