@@ -16,6 +16,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.filter.OncePerRequestFilter;
+import com.bteam.ovs.shared.security.PublicPrincipal;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -128,6 +129,40 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 SecurityContextHolder.getContext().setAuthentication(authentication);
 
                 System.out.println("[JWT] accepted(VOTE): citizenId=" + citizenId + " electionId=" + electionId);
+                chain.doFilter(request, response);
+                return;
+            }
+
+            // ===== PUBLIC token branch (未ログイン本人認証セッション) =====
+            if ("PUBLIC".equalsIgnoreCase(kindStr)) {
+                if (isBlank(sub)) {
+                    System.out.println("[JWT] reject(PUBLIC): subject missing");
+                    SecurityContextHolder.clearContext();
+                    chain.doFilter(request, response);
+                    return;
+                }
+
+                UUID citizenId;
+                try {
+                    citizenId = UUID.fromString(sub);
+                } catch (IllegalArgumentException e) {
+                    System.out.println("[JWT] reject(PUBLIC): citizenId not UUID. sub=" + safe(sub));
+                    SecurityContextHolder.clearContext();
+                    chain.doFilter(request, response);
+                    return;
+                }
+
+                var authorities = new ArrayList<SimpleGrantedAuthority>();
+                authorities.add(new SimpleGrantedAuthority("KIND_PUBLIC"));
+
+                var principal = new PublicPrincipal(citizenId);
+                var authentication = new UsernamePasswordAuthenticationToken(
+                        principal,
+                        null,
+                        authorities);
+                SecurityContextHolder.getContext().setAuthentication(authentication);
+
+                System.out.println("[JWT] accepted(PUBLIC): citizenId=" + citizenId);
                 chain.doFilter(request, response);
                 return;
             }

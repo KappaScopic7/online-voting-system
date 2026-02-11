@@ -29,28 +29,28 @@ function looksLikeUuid(v: string) {
     );
 }
 
-function readJwtPayload(token: string): any | null {
-    try {
-        const p = token.split(".")[1];
-        if (!p) return null;
-        const b64 = p.replace(/-/g, "+").replace(/_/g, "/");
-        const pad = b64.length % 4 ? "=".repeat(4 - (b64.length % 4)) : "";
-        return JSON.parse(atob(b64 + pad));
-    } catch {
-        return null;
-    }
-}
+// function readJwtPayload(token: string): any | null {
+//     try {
+//         const p = token.split(".")[1];
+//         if (!p) return null;
+//         const b64 = p.replace(/-/g, "+").replace(/_/g, "/");
+//         const pad = b64.length % 4 ? "=".repeat(4 - (b64.length % 4)) : "";
+//         return JSON.parse(atob(b64 + pad));
+//     } catch {
+//         return null;
+//     }
+// }
 
-function readJwtEid(token: string): string | null {
-    const pl = readJwtPayload(token);
-    return typeof pl?.eid === "string" ? pl.eid : null;
-}
+// function readJwtEid(token: string): string | null {
+//     const pl = readJwtPayload(token);
+//     return typeof pl?.eid === "string" ? pl.eid : null;
+// }
 
-function readJwtKind(token: string): string | null {
-    const pl = readJwtPayload(token);
-    const k = pl?.kind ?? pl?.KIND;
-    return typeof k === "string" ? k : null;
-}
+// function readJwtKind(token: string): string | null {
+//     const pl = readJwtPayload(token);
+//     const k = pl?.kind ?? pl?.KIND;
+//     return typeof k === "string" ? k : null;
+// }
 
 function extractUuidFromNdef(event: any): string | null {
     const msg = event?.message;
@@ -163,20 +163,6 @@ export function IdentityVotePage() {
         webNfc ? "NFC" : "MANUAL",
     );
 
-    useEffect(() => {
-        const t = publicToken.get();
-        if (!t) return;
-        if (!electionId) return;
-
-        const kind = readJwtKind(t);
-        if (kind !== "VOTE") return; // PUBLIC は縛らない想定
-
-        const eid = readJwtEid(t);
-        if (eid && eid !== electionId) {
-            publicToken.clear();
-        }
-    }, [electionId]);
-
     // ✅ WebNFC 無い端末なら NFC タブを強制 MANUAL に
     // ※ 今回は「NFC=キーボードリーダー」でも良いので、強制しない
     //    ただし初期値は webNfc ? NFC : MANUAL のまま。
@@ -227,13 +213,21 @@ export function IdentityVotePage() {
             setStatus("PROCESSING");
             setMsg("送信中...");
 
-            const res = await issueVoteToken({
-                electionId,
-                payload,
-                pin,
-            });
+            const res: any = await issueVoteToken({ electionId, payload, pin });
 
-            publicToken.set(res.voteToken);
+            // ✅ PUBLIC token のみ採用（A/B選挙で共通利用する前提）
+            const token =
+                typeof res?.publicToken === "string" && res.publicToken.trim()
+                    ? res.publicToken.trim()
+                    : null;
+
+            if (!token) {
+                throw new Error(
+                    "publicToken missing (server must return PUBLIC token)",
+                );
+            }
+
+            publicToken.set(token);
 
             setStatus("SUCCESS");
             setMsg("本人認証に成功しました。投票画面へ移動します…");

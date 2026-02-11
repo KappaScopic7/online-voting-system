@@ -11,6 +11,7 @@ import { ElectionCardFrame } from "../ui/ElectionCardFrame";
 import { useElectionListControls } from "../hooks/useElectionListControls";
 import { filterSortElections } from "../model/electionListView";
 import { CollapsibleFilter } from "../../shared/ui/CollapsibleFilter";
+import { publicToken } from "../../shared/tokenStorage";
 
 function ElectionItemAction(props: {
     e: ElectionListItem;
@@ -25,6 +26,8 @@ function ElectionItemAction(props: {
 
     if (e.status === "ONGOING") {
         if (!meExists) {
+            const authedByPublic = !!publicToken.get();
+
             return (
                 <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
                     <Link
@@ -32,16 +35,20 @@ function ElectionItemAction(props: {
                         state={{ from }}
                         style={{ textDecoration: "none" }}
                     >
-                        <b>本人認証で投票 →</b>
+                        <b>
+                            {authedByPublic ? "投票する →" : "本人認証で投票 →"}
+                        </b>
                     </Link>
 
-                    <Link
-                        to="/login"
-                        state={{ from }}
-                        style={{ textDecoration: "none" }}
-                    >
-                        ログインして投票 →
-                    </Link>
+                    {!authedByPublic && (
+                        <Link
+                            to="/login"
+                            state={{ from }}
+                            style={{ textDecoration: "none" }}
+                        >
+                            ログインして投票 →
+                        </Link>
+                    )}
                 </div>
             );
         }

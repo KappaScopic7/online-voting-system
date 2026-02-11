@@ -72,29 +72,59 @@ public final class PrincipalExtractor {
         return requireVotePrincipal(auth).electionId();
     }
 
-    public static UUID getVoteElectionId(Authentication auth) {
-        if (auth == null)
-            return null;
-        Object p = auth.getPrincipal();
-        if (!(p instanceof VotePrincipal vp))
-            return null;
-        return vp.electionId(); // VotePrincipal 側が nullable 対応ならそのまま
-    }
+    // public static UUID getVoteElectionId(Authentication auth) {
+    // if (auth == null)
+    // return null;
+    // Object p = auth.getPrincipal();
+    // if (!(p instanceof VotePrincipal vp))
+    // return null;
+    // return vp.electionId(); // VotePrincipal 側が nullable 対応ならそのまま
+    // }
+
+    // public static UUID requireVoteCitizenId(Authentication auth) {
+    // UUID cid = getVoteCitizenId(auth);
+    // if (cid == null)
+    // throw new ApiException(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "本人認証が必要です");
+    // return cid;
+    // }
+
+    // public static UUID getVoteCitizenId(Authentication auth) {
+    // if (auth == null)
+    // return null;
+    // Object p = auth.getPrincipal();
+    // if (!(p instanceof VotePrincipal vp))
+    // return null;
+    // return vp.citizenId();
+    // }
 
     public static UUID requireVoteCitizenId(Authentication auth) {
-        UUID cid = getVoteCitizenId(auth);
-        if (cid == null)
-            throw new ApiException(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "本人認証が必要です");
-        return cid;
+        if (auth == null || auth.getPrincipal() == null) {
+            throw new ApiException(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "認証が必要です");
+        }
+
+        Object p = auth.getPrincipal();
+
+        // 互換：従来のVOTEトークン
+        if (p instanceof VotePrincipal vp) {
+            return vp.citizenId();
+        }
+
+        // ★新方式：PUBLICセッション
+        if (p instanceof PublicPrincipal pp) {
+            return pp.citizenId();
+        }
+
+        throw new ApiException(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "認証が必要です");
     }
 
-    public static UUID getVoteCitizenId(Authentication auth) {
-        if (auth == null)
+    // 互換のため残す（PUBLICでは null を返す）
+    public static UUID getVoteElectionId(Authentication auth) {
+        if (auth == null || auth.getPrincipal() == null)
             return null;
         Object p = auth.getPrincipal();
-        if (!(p instanceof VotePrincipal vp))
-            return null;
-        return vp.citizenId();
+        if (p instanceof VotePrincipal vp)
+            return vp.electionId();
+        return null;
     }
 
 }

@@ -1,4 +1,4 @@
-// backend/src/main/java/com/bteam/ovs/publicapi/voting/service/VoteTokenService.java
+// backend/src/main/java/com/bteam/ovs/voters/voting/service/VoteTokenService.java
 package com.bteam.ovs.voters.voting.service;
 
 import com.bteam.ovs.config.security.JwtService;
@@ -22,7 +22,9 @@ public class VoteTokenService {
         if (citizenId == null || electionId == null) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_INPUT", "入力が不正です");
         }
-        // ✅ 10分
-        return jwtService.issueVoteToken(citizenId, electionId, Duration.ofMinutes(10));
+
+        // ✅ electionId は入力検証に使うだけ（「その選挙で認証してる」導線維持）
+        // ✅ 発行するのは PUBLIC（選挙を跨いで使える）
+        return jwtService.issuePublicSessionToken(citizenId, Duration.ofMinutes(10));
     }
 }

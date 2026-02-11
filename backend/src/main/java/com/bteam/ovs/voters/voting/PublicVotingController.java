@@ -28,17 +28,10 @@ public class PublicVotingController {
     public VoteStartResponse start(
             @RequestParam("electionId") String electionId,
             Authentication auth) {
-
         UUID citizenId = PrincipalExtractor.requireVoteCitizenId(auth);
-        UUID tokenElectionId = PrincipalExtractor.getVoteElectionId(auth);
-
         UUID eid = UuidParsers.parseOr400(electionId, "INVALID_ELECTION_ID", "electionIdが不正です");
 
-        // token は election 専用なので必ず一致させる
-        if (tokenElectionId != null && !tokenElectionId.equals(eid)) {
-            throw new ApiException(HttpStatus.FORBIDDEN, "ELECTION_MISMATCH", "投票用認証がこの選挙に対応していません");
-        }
-
+        // ★ PUBLICセッション方式：tokenは選挙に紐づかないので mismatch 判定は不要
         return votingService.startByCitizen(citizenId, eid);
     }
 
@@ -46,15 +39,10 @@ public class PublicVotingController {
     public VoteHistoryItem confirm(
             @Valid @RequestBody VoteConfirmRequest req,
             Authentication auth) {
-
         UUID citizenId = PrincipalExtractor.requireVoteCitizenId(auth);
-        UUID tokenElectionId = PrincipalExtractor.getVoteElectionId(auth);
-
         UUID electionId = UuidParsers.parseOr400(req.electionId(), "INVALID_ELECTION_ID", "electionIdが不正です");
 
-        if (tokenElectionId != null && !tokenElectionId.equals(electionId)) {
-            throw new ApiException(HttpStatus.FORBIDDEN, "ELECTION_MISMATCH", "投票用認証がこの選挙に対応していません");
-        }
+        // ★ PUBLICセッション方式：mismatch 判定は不要
 
         String type = req.type();
         if ("NONE_SUPPORT".equals(type)) {

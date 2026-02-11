@@ -18,7 +18,7 @@ public class NfcAuthService {
     private static final long TICKET_TTL_SEC = 60;
 
     // ===== public voting ticket =====
-    private record VoteTicketData(UUID citizenId, UUID electionId, Instant expiresAt) {
+    private record VoteTicketData(UUID citizenId, Instant expiresAt) {
     }
 
     private final Map<String, VoteTicketData> voteStore = new ConcurrentHashMap<>();
@@ -38,12 +38,12 @@ public class NfcAuthService {
     }
 
     // -----------------------------
-    // Public voting (existing)
+    // Public voting (updated: PUBLIC session)
     // -----------------------------
     public NfcLoginResponse login(NfcLoginRequest req) {
-        final UUID electionId;
+        // electionId のバリデーションは「導線上のチェック」として残してもOK（トークンには入れない）
         try {
-            electionId = UUID.fromString(req.electionId().trim());
+            UUID.fromString(req.electionId().trim());
         } catch (Exception e) {
             throw new ApiException(
                     HttpStatus.BAD_REQUEST,
@@ -55,7 +55,7 @@ public class NfcAuthService {
 
         String ticket = UUID.randomUUID().toString();
         Instant exp = Instant.now().plusSeconds(TICKET_TTL_SEC);
-        voteStore.put(ticket, new VoteTicketData(citizenId, electionId, exp));
+        voteStore.put(ticket, new VoteTicketData(citizenId, exp));
 
         return new NfcLoginResponse(ticket, TICKET_TTL_SEC);
     }
@@ -71,17 +71,18 @@ public class NfcAuthService {
             throw new ApiException(HttpStatus.UNAUTHORIZED, "TICKET_EXPIRED", "チケットの有効期限が切れています");
         }
 
-        String voteToken = jwtService.issueVoteToken(data.citizenId(), data.electionId());
+        // ★ ここが肝：VOTE(eid付き)ではなく PUBLIC（選挙に紐づかない）
+        String publicToken = jwtService.issuePublicSessionToken(data.citizenId());
 
         return new TokenResponse(
-                voteToken,
+                publicToken,
                 "Bearer",
-                5 * 60,
+                (int) (30 * 60), // ← ここは JwtService の ttl と合わせる（今は 30分）
                 null);
     }
 
     // -----------------------------
-    // Identity link (NEW)
+    // Identity link (existing)
     // -----------------------------
     public NfcLinkLoginResponse linkLogin(NfcLinkLoginRequest req) {
         UUID citizenId = nfcResolveService.resolveCitizenId(req.payload(), req.pin());

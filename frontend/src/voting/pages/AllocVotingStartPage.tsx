@@ -46,10 +46,10 @@ function readJwtPayload(token: string): any | null {
     }
 }
 
-function readJwtEid(token: string): string | null {
-    const pl = readJwtPayload(token);
-    return typeof pl?.eid === "string" ? pl.eid : null;
-}
+// function readJwtEid(token: string): string | null {
+//     const pl = readJwtPayload(token);
+//     return typeof pl?.eid === "string" ? pl.eid : null;
+// }
 
 function readJwtKind(token: string): string | null {
     const pl = readJwtPayload(token);
@@ -128,18 +128,12 @@ export function AllocVotingStartPage() {
         const t = effectiveToken?.trim();
         if (!t) return;
 
+        // ★PUBLICセッション方式：PUBLIC以外は保存しない（混線を構造的に排除）
         const kind = readJwtKind(t);
-        if (kind === "VOTE") {
-            const eid = readJwtEid(t);
-            if (eid && electionId && eid !== electionId) {
-                // ✅ 選挙が違う VOTE token は事故るので捨てる
-                publicToken.clear();
-                return;
-            }
-        }
-        publicToken.set(t); // kind === "PUBLIC" は選挙縛りなし
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [publicMode, effectiveToken, electionId]);
+        if (kind && kind !== "PUBLIC") return;
+
+        publicToken.set(t);
+    }, [publicMode, effectiveToken]);
 
     // ✅ URL から token を消去（リロード対策・クリーンアップ）
     useEffect(() => {

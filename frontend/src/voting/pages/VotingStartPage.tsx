@@ -80,10 +80,10 @@ function readJwtPayload(token: string): any | null {
     }
 }
 
-function readEid(token: string): string | null {
-    const pl = readJwtPayload(token);
-    return typeof pl?.eid === "string" ? pl.eid : null;
-}
+// function readEid(token: string): string | null {
+//     const pl = readJwtPayload(token);
+//     return typeof pl?.eid === "string" ? pl.eid : null;
+// }
 
 function readJwtKind(token: string): string | null {
     const pl = readJwtPayload(token);
@@ -120,22 +120,17 @@ export function VotingStartPage() {
         const t = effectiveToken?.trim();
         if (!t) return;
 
+        // ★ PUBLICセッション方式：
+        // - 基本は PUBLIC token のみ保存（混線を構造的に排除）
+        // - 移行期間だけ VOTE を許すならここで許可してもよいが、最終的には拒否推奨
         const kind = readJwtKind(t);
-        if (kind === "VOTE") {
-            const eid = readEid(t);
-            if (eid && electionId && eid !== electionId) {
-                publicToken.clear(); // VOTE 混線だけ捨てる
-                return;
-            }
-        } else if (kind === "PUBLIC") {
-            // election 縛りなしでOK
-        } else {
-            // 期待しない token は保存しない（任意）
+        if (kind && kind !== "PUBLIC") {
+            // 互換期間に VOTE を許したいなら `kind !== "PUBLIC" && kind !== "VOTE"` にする
             return;
         }
 
         publicToken.set(t);
-    }, [publicMode, effectiveToken, electionId]);
+    }, [publicMode, effectiveToken]);
 
     // ✅ URL から token を消去（リロード対策・クリーンアップ）
     useEffect(() => {
