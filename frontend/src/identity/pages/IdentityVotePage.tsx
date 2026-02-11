@@ -64,6 +64,25 @@ function hasWebNfc() {
     return typeof (window as any).NDEFReader !== "undefined";
 }
 
+function buildAndroidDeepLink(params: {
+    electionId: string;
+    returnTo: string;
+    pin?: string; // 任意（送らない推奨。今回は送らない）
+}) {
+    // DeepLink: ovs://nfc-auth?... をAndroidが受け取る
+    const q = new URLSearchParams();
+    q.set("electionId", params.electionId);
+    q.set("returnTo", params.returnTo);
+    // PINはWeb→Androidへ渡さない（セキュリティ/UX的に非推奨）
+    return `ovs://nfc-auth?${q.toString()}`;
+}
+
+function openAndroidApp(electionId: string, returnTo: string) {
+    const url = buildAndroidDeepLink({ electionId, returnTo });
+    // iOS/Androidブラウザ互換でこれが一番素直
+    window.location.href = url;
+}
+
 function isPinValid(pin: string) {
     return /^\d{4}$/.test(pin);
 }
@@ -507,6 +526,87 @@ export function IdentityVotePage() {
                             value={method}
                             onChange={setMethod}
                         />
+                        {/* ✅ Androidアプリで認証（DeepLink） */}
+                        <Card>
+                            <div style={{ display: "grid", gap: 10 }}>
+                                <div style={{ fontWeight: 900 }}>
+                                    AndroidアプリでNFC認証
+                                </div>
+
+                                <div
+                                    style={{
+                                        fontSize: 13,
+                                        opacity: 0.85,
+                                        lineHeight: 1.7,
+                                    }}
+                                >
+                                    ・Web NFC 非対応の端末でも認証できます
+                                    <br />
+                                    ・認証後はこの投票画面に戻って続行します
+                                </div>
+
+                                <div
+                                    style={{
+                                        display: "flex",
+                                        gap: 12,
+                                        flexWrap: "wrap",
+                                    }}
+                                >
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            if (!electionId) {
+                                                setErr(
+                                                    "electionId がありません（投票入口から開いてください）",
+                                                );
+                                                return;
+                                            }
+                                            if (!pinOk) {
+                                                setErr(
+                                                    "先にPIN（4桁）を入力してください",
+                                                );
+                                                return;
+                                            }
+                                            // ✅ Androidへ：electionId + returnTo を渡す
+                                            openAndroidApp(
+                                                electionId,
+                                                returnTo,
+                                            );
+                                        }}
+                                        style={{
+                                            padding: "10px 14px",
+                                            fontWeight: 800,
+                                        }}
+                                    >
+                                        Androidアプリを開く →
+                                    </button>
+
+                                    <span
+                                        style={{
+                                            fontSize: 12,
+                                            opacity: 0.75,
+                                            alignSelf: "center",
+                                        }}
+                                    >
+                                        ※
+                                        アプリ未インストールの場合は何も起きません
+                                    </span>
+                                </div>
+
+                                {import.meta.env?.DEV && (
+                                    <DevDebug
+                                        value={{
+                                            androidDeepLink: electionId
+                                                ? buildAndroidDeepLink({
+                                                      electionId,
+                                                      returnTo,
+                                                  })
+                                                : null,
+                                        }}
+                                    />
+                                )}
+                            </div>
+                        </Card>
 
                         <div
                             style={{

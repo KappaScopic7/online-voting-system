@@ -28,6 +28,7 @@ import { IdentityLinkPage } from "../identity/pages/IdentityLinkPage";
 import { IdentityVotePage } from "../identity/pages/IdentityVotePage";
 import { JudgeReviewStartPage } from "../voting/pages/JudgeReviewStartPage";
 import { JudgeReviewDonePage } from "../voting/pages/JudgeReviewDonePage";
+import { PublicAuthCallbackPage } from "../auth/pages/PublicAuthCallbackPage";
 
 export function PublicRoutes() {
     return (
@@ -68,6 +69,12 @@ export function PublicRoutes() {
                 path="/verify-email"
                 element={<Navigate to="/verify" replace />}
             />
+            {/* NFC本人認証（ログイン不要） */}
+            <Route
+                path="/auth/public/callback"
+                element={<PublicAuthCallbackPage />}
+            />
+
             {/* 本人認証投票（ログイン不要） */}
             <Route path="/voting/entry" element={<VotingEntryPage />} />
             <Route path="/voting/start" element={<VotingStartPage />} />

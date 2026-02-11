@@ -89,7 +89,8 @@ public class SecurityConfig {
 
                         // ---- public / user auth ----
                         .requestMatchers("/api/auth/register", "/api/auth/login", "/api/auth/verify",
-                                "/api/auth/nfc-login")
+                                "/api/auth/nfc-login", // ←古いの残すなら
+                                "/api/auth/nfc/login", "/api/auth/nfc/exchange")
                         .permitAll()
 
                         .requestMatchers(HttpMethod.GET, "/api/auth/me", "/api/auth/me/detail")

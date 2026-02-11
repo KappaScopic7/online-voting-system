@@ -24,6 +24,16 @@ function isPinValid(pin: string) {
     return /^\d{4}$/.test(pin);
 }
 
+function buildAndroidLinkDeepLink(params: { returnTo: string }) {
+    const q = new URLSearchParams();
+    q.set("returnTo", params.returnTo);
+    return `ovs://nfc-link?${q.toString()}`;
+}
+
+function openAndroidLinkApp(returnTo: string) {
+    window.location.href = buildAndroidLinkDeepLink({ returnTo });
+}
+
 type Step = "PIN" | "METHOD";
 
 export function IdentityLinkPage() {
@@ -304,6 +314,64 @@ export function IdentityLinkPage() {
                             value={method}
                             onChange={setMethod}
                         />
+                        <Card>
+                            <div style={{ display: "grid", gap: 10 }}>
+                                <div style={{ fontWeight: 900 }}>
+                                    AndroidアプリでNFC認証
+                                </div>
+                                <div
+                                    style={{
+                                        fontSize: 13,
+                                        opacity: 0.85,
+                                        lineHeight: 1.7,
+                                    }}
+                                >
+                                    ・PC/非対応端末でもスマホでカード読み取りできます
+                                    <br />
+                                    ・認証後、この画面に戻って紐付けを完了します
+                                </div>
+
+                                <div
+                                    style={{
+                                        display: "flex",
+                                        gap: 12,
+                                        flexWrap: "wrap",
+                                    }}
+                                >
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            if (!pinOk) {
+                                                setErr(
+                                                    "先にPIN（4桁）を入力してください",
+                                                );
+                                                return;
+                                            }
+                                            // ✅ このページに戻ってくればOK（state.from 維持したいなら from でもOK）
+                                            openAndroidLinkApp(from);
+                                        }}
+                                        disabled={busy}
+                                        style={{
+                                            padding: "10px 14px",
+                                            fontWeight: 800,
+                                        }}
+                                    >
+                                        Androidアプリを開く →
+                                    </button>
+
+                                    <span
+                                        style={{
+                                            fontSize: 12,
+                                            opacity: 0.75,
+                                            alignSelf: "center",
+                                        }}
+                                    >
+                                        ※
+                                        アプリ未インストールの場合は反応しません
+                                    </span>
+                                </div>
+                            </div>
+                        </Card>
 
                         <div
                             style={{
