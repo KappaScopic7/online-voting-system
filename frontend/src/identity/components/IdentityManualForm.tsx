@@ -2,7 +2,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { linkIdentity } from "../api/identity";
 import { useAuth } from "../../user/UserAuthContext";
-// import { demoPersonas } from "../../demo/personas";
 
 function isUuidLike(v: string) {
     return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
@@ -12,6 +11,21 @@ function isUuidLike(v: string) {
 
 function isPinValid(pin: string) {
     return /^\d{4}$/.test(pin);
+}
+
+/** UUID入力：hex以外を除去 → 32桁まで → 8-4-4-4-12 でハイフン挿入 */
+function formatUuidInput(raw: string): string {
+    const hex = raw.toLowerCase().replace(/[^0-9a-f]/g, "");
+    const s = hex.slice(0, 32);
+
+    const p1 = s.slice(0, 8);
+    const p2 = s.slice(8, 12);
+    const p3 = s.slice(12, 16);
+    const p4 = s.slice(16, 20);
+    const p5 = s.slice(20, 32);
+
+    const parts = [p1, p2, p3, p4, p5].filter((p) => p.length > 0);
+    return parts.join("-");
 }
 
 export function IdentityManualForm(props: {
@@ -32,20 +46,19 @@ export function IdentityManualForm(props: {
         pinRequired = false,
         devCitizenId,
     } = props;
-    const { setAccessToken } = useAuth();
 
-    // const isDev = import.meta.env?.DEV;
+    const { setAccessToken } = useAuth();
 
     const [citizenId, setCitizenId] = useState("");
     const [msg, setMsg] = useState<string | null>(null);
     const [fieldErr, setFieldErr] = useState<{ citizenId?: string }>({});
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    // ✅ 親から渡された devCitizenId をフォームへ反映
+    // ✅ 親から渡された devCitizenId をフォームへ反映（正規化して入れる）
     useEffect(() => {
         const v = (devCitizenId ?? "").trim();
         if (!v) return;
-        setCitizenId(v);
+        setCitizenId(formatUuidInput(v));
         setFieldErr({});
         setMsg(null);
     }, [devCitizenId]);
@@ -60,18 +73,13 @@ export function IdentityManualForm(props: {
         return !isSubmitting;
     }, [citizenId, isSubmitting, pinOk]);
 
-    // const fillDemoCitizenId = (id: string) => {
-    //     setCitizenId(id);
-    //     setFieldErr({});
-    //     setMsg(null);
-    // };
-
     const onSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setMsg(null);
         setFieldErr({});
 
         const v = citizenId.trim();
+
         if (!v) {
             setFieldErr({ citizenId: "citizenId を入力してください" });
             return;
@@ -104,6 +112,9 @@ export function IdentityManualForm(props: {
         }
     };
 
+    const uuidIncompleteButHasInput =
+        !!citizenId.trim() && !isUuidLike(citizenId.trim());
+
     return (
         <div style={{ display: "grid", gap: 12 }}>
             <div style={{ fontSize: 13, opacity: 0.85, lineHeight: 1.6 }}>
@@ -129,22 +140,53 @@ export function IdentityManualForm(props: {
                     <span style={{ fontSize: 13, fontWeight: 700 }}>
                         citizenId (UUID)
                     </span>
+
                     <input
                         value={citizenId}
-                        onChange={(e) => setCitizenId(e.target.value)}
+                        onChange={(e) => {
+                            // ✅ 入力をUUID形式に寄せる（禁止文字は入らない）
+                            const next = formatUuidInput(e.target.value);
+                            setCitizenId(next);
+
+                            // 入力中はエラー表示を過剰に出さない
+                            setFieldErr({});
+                            setMsg(null);
+                        }}
+                        onBlur={() => {
+                            // ✅ フォーカス外れで「不完全なら」だけ優しく出す
+                            const v = citizenId.trim();
+                            if (v && !isUuidLike(v)) {
+                                setFieldErr({
+                                    citizenId:
+                                        "UUID形式（8-4-4-4-12）で入力してください",
+                                });
+                            }
+                        }}
                         placeholder="例: 550e8400-e29b-41d4-a716-446655440000"
                         disabled={isSubmitting}
+                        inputMode="text"
+                        autoCapitalize="none"
+                        autoCorrect="off"
+                        spellCheck={false}
                         style={{
                             padding: "8px 10px",
                             borderRadius: 8,
                             border: "1px solid #ddd",
+                            fontFamily:
+                                "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
+                            letterSpacing: 0.2,
                         }}
                     />
-                    {fieldErr.citizenId && (
+
+                    {fieldErr.citizenId ? (
                         <small style={{ color: "crimson" }}>
                             {fieldErr.citizenId}
                         </small>
-                    )}
+                    ) : uuidIncompleteButHasInput ? (
+                        <small style={{ opacity: 0.7 }}>
+                            入力中: UUID形式に整形しています（32桁で完成）
+                        </small>
+                    ) : null}
                 </label>
 
                 <button
@@ -161,54 +203,6 @@ export function IdentityManualForm(props: {
                     </div>
                 )}
             </form>
-
-            {/* {isDev && (
-                <details>
-                    <summary style={{ cursor: "pointer", fontSize: 12 }}>
-                        DEV tools
-                    </summary>
-
-                    <div style={{ display: "grid", gap: 8, marginTop: 8 }}>
-                        <div
-                            style={{
-                                fontSize: 12,
-                                fontWeight: 800,
-                                opacity: 0.85,
-                            }}
-                        >
-                            DEV: citizenId クイック入力
-                        </div>
-
-                        <div
-                            style={{
-                                display: "flex",
-                                gap: 8,
-                                flexWrap: "wrap",
-                            }}
-                        >
-                            {Object.values(demoPersonas.voter)
-                                .filter((p) => p.citizenId)
-                                .map((p) => (
-                                    <button
-                                        key={p.key}
-                                        type="button"
-                                        onClick={() =>
-                                            fillDemoCitizenId(p.citizenId!)
-                                        }
-                                        disabled={isSubmitting}
-                                        style={{
-                                            fontSize: 12,
-                                            padding: "4px 8px",
-                                        }}
-                                        title={p.description}
-                                    >
-                                        {p.label}
-                                    </button>
-                                ))}
-                        </div>
-                    </div>
-                </details>
-            )} */}
         </div>
     );
 }
