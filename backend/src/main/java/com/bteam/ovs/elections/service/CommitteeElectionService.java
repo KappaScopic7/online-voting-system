@@ -2,10 +2,11 @@ package com.bteam.ovs.elections.service;
 
 import com.bteam.ovs.elections.controller.dto.CommitteeElectionListItem;
 import com.bteam.ovs.elections.controller.dto.ElectionDetailResponse;
-import com.bteam.ovs.elections.entity.BallotType;
+// import com.bteam.ovs.elections.entity.BallotType;
 import com.bteam.ovs.elections.entity.Election;
 import com.bteam.ovs.elections.entity.ElectionStatus;
 import com.bteam.ovs.elections.repository.ElectionRepository;
+import com.bteam.ovs.elections.service.tally.ElectionTallyJobService;
 import com.bteam.ovs.shared.errors.ApiException;
 import com.bteam.ovs.voting.service.AllocationVotingService;
 import com.bteam.ovs.voting.service.VotingService;
@@ -21,19 +22,22 @@ import java.util.List;
 public class CommitteeElectionService {
 
     private final ElectionRepository electionRepo;
-    private final VotingService votingService;
-    private final AllocationVotingService allocVotingService;
+    // private final VotingService votingService;
+    // private final AllocationVotingService allocVotingService;
     private final ElectionService electionService;
+    private final ElectionTallyJobService tallyJobService;
 
     public CommitteeElectionService(
             ElectionRepository electionRepo,
             VotingService votingService,
             AllocationVotingService allocVotingService,
-            ElectionService electionService) {
+            ElectionService electionService,
+            ElectionTallyJobService tallyJobService) {
         this.electionRepo = electionRepo;
-        this.votingService = votingService;
-        this.allocVotingService = allocVotingService;
+        // this.votingService = votingService;
+        // this.allocVotingService = allocVotingService;
         this.electionService = electionService;
+        this.tallyJobService = tallyJobService;
     }
 
     @Transactional
@@ -60,21 +64,21 @@ public class CommitteeElectionService {
         return electionService.toDetailResponse(e);
     }
 
-    @Transactional
-    public ElectionDetailResponse tally(UUID electionId) {
-        Election e = requireElection(electionId);
-        requireStatus(e, ElectionStatus.CLOSED);
+    // @Transactional
+    // public ElectionDetailResponse tally(UUID electionId) {
+    // Election e = requireElection(electionId);
+    // requireStatus(e, ElectionStatus.CLOSED);
 
-        if (e.getBallotType() == BallotType.ALLOCATION) {
-            allocVotingService.tally(electionId);
-        } else {
-            votingService.tally(electionId);
-        }
+    // if (e.getBallotType() == BallotType.ALLOCATION) {
+    // allocVotingService.tally(electionId);
+    // } else {
+    // votingService.tally(electionId);
+    // }
 
-        e.setTalliedAt(Instant.now());
-        e.setStatus(ElectionStatus.TALLIED);
-        return electionService.toDetailResponse(e);
-    }
+    // e.setTalliedAt(Instant.now());
+    // e.setStatus(ElectionStatus.TALLIED);
+    // return electionService.toDetailResponse(e);
+    // }
 
     @Transactional
     public ElectionDetailResponse publish(UUID electionId) {
@@ -131,5 +135,16 @@ public class CommitteeElectionService {
                         e.getTalliedAt(),
                         e.getPublishedAt()))
                 .toList();
+    }
+
+    @Transactional
+    public ElectionDetailResponse tally(UUID electionId) {
+        Election e = requireElection(electionId);
+        requireStatus(e, ElectionStatus.CLOSED);
+
+        // 非同期でグラフ生成 → 成功したらTALLIEDに上がる
+        tallyJobService.enqueue(electionId);
+
+        return electionService.toDetailResponse(e); // CLOSEDのまま返す
     }
 }

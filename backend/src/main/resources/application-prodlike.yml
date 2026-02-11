@@ -11,3 +11,15 @@ logging:
 ovs:
     seed:
         enabled: ${OVS_SEED_ENABLED:true}
+
+app:
+    tally:
+        tickMillis: ${APP_TALLY_TICK_MILLIS:30000}
+        timeoutSeconds: ${APP_TALLY_TIMEOUT_SECONDS:60}
+
+        python: ${APP_TALLY_PYTHON:/opt/ovs/venv/bin/python}
+        script: ${APP_TALLY_SCRIPT:/opt/ovs/scripts/generate_chart.py}
+        workDir: ${APP_TALLY_WORK_DIR:/opt/ovs}
+
+        jsonDir: ${APP_TALLY_JSON_DIR:/var/lib/ovs/tally}
+        chartDir: ${APP_TALLY_CHART_DIR:/var/lib/ovs/charts}

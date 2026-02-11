@@ -41,4 +41,19 @@ public interface ElectionRepository extends JpaRepository<Election, UUID> {
             String districtPrefCode,
             String districtCityCode);
 
+    // ===== 追加：時間遷移用 =====
+
+    @Query("""
+            select e from Election e
+            where e.status = 'READY'
+              and e.startsAt <= :now
+            """)
+    List<Election> findReadyToOpen(@Param("now") Instant now);
+
+    @Query("""
+            select e from Election e
+            where e.status = 'OPEN'
+              and e.endsAt <= :now
+            """)
+    List<Election> findOpenToClose(@Param("now") Instant now);
 }

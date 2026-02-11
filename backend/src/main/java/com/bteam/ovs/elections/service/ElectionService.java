@@ -238,64 +238,6 @@ public class ElectionService {
                 currentVote);
     }
 
-    public ElectionResultResponse result(UUID electionId) {
-        var election = electionRepo.findById(electionId)
-                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "ELECTION_NOT_FOUND", "選挙が存在しません"));
-
-        // ★ 公開判定：PUBLISHED のみ
-        if (election.getStatus() != ElectionStatus.PUBLISHED) {
-            throw new ApiException(HttpStatus.FORBIDDEN, "RESULT_NOT_AVAILABLE", "結果は選挙管理委員会の公開後に閲覧できます");
-        }
-
-        var candidates = candidateService.summariesByElection(electionId);
-        var rows = voteCurrentRepo.countByElectionGroupByTypeAndCandidate(electionId);
-
-        Map<UUID, Long> countMap = new HashMap<>();
-        long noneSupportVotes = 0L;
-
-        for (var r : rows) {
-            if ("NONE_SUPPORT".equals(r.getType())) {
-                noneSupportVotes += r.getCnt();
-                continue;
-            }
-            UUID cid = r.getCandidateId();
-            if (cid == null) {
-                noneSupportVotes += r.getCnt();
-                continue;
-            }
-            countMap.put(cid, r.getCnt());
-        }
-
-        long totalVotes = countMap.values().stream().mapToLong(Long::longValue).sum() + noneSupportVotes;
-
-        var results = candidates.stream()
-                .map(c -> {
-                    UUID candidateId = c.candidateId();
-                    String candidateKey = c.candidateKey();
-                    String candidateName = c.name();
-                    long votes = countMap.getOrDefault(candidateId, 0L);
-
-                    return new ElectionResultResponse.CandidateResult(
-                            candidateId,
-                            candidateKey,
-                            candidateName,
-                            votes);
-                })
-                .sorted((a, b) -> Long.compare(b.votes(), a.votes()))
-                .toList();
-
-        // 既存のDTO仕様に合わせて talliedAt は now を維持（厳密にしたいなら election.getTalliedAt() へ）
-        Instant talliedAt = (election.getTalliedAt() != null) ? election.getTalliedAt() : Instant.now();
-
-        return new ElectionResultResponse(
-                election.getId(),
-                election.getTitle(),
-                "CURRENT",
-                totalVotes,
-                talliedAt,
-                results);
-    }
-
     // 旧：時刻判定。マイグレーション中の保険用に残す
     public static String status(Instant now, Instant startsAt, Instant endsAt) {
         if (now.isBefore(startsAt))
@@ -306,7 +248,15 @@ public class ElectionService {
     }
 
     public static String status(Election e) {
-        return status(Instant.now(), e.getStartsAt(), e.getEndsAt());
+        ElectionStatus s = e.getStatus();
+        if (s == null)
+            return "UNKNOWN";
+
+        return switch (s) {
+            case DRAFT, READY -> "UPCOMING";
+            case OPEN -> "ONGOING";
+            case CLOSED, TALLIED, PUBLISHED, ARCHIVED -> "ENDED";
+        };
     }
 
     public ElectionResultBundleResponse resultBundle(UUID electionId) {
@@ -367,8 +317,16 @@ public class ElectionService {
 
         // ★ 公開判定：PUBLISHED のみ
         if (election.getStatus() != ElectionStatus.PUBLISHED) {
-            throw new ApiException(HttpStatus.FORBIDDEN, "RESULT_NOT_AVAILABLE", "結果は選挙管理委員会の公開後に閲覧できます");
+            throw new ApiException(HttpStatus.FORBIDDEN, "RESULT_NOT_AVAILABLE",
+                    "結果は選挙管理委員会の公開後に閲覧できます");
         }
+
+        return allocResultInternal(electionId);
+    }
+
+    public AllocElectionResultResponse allocResultInternal(UUID electionId) {
+        var election = electionRepo.findById(electionId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "ELECTION_NOT_FOUND", "選挙が存在しません"));
 
         boolean partyAlloc = isPartyAllocationElection(election);
 
@@ -389,12 +347,11 @@ public class ElectionService {
 
             long totalPoints = pointMap.values().stream().mapToLong(Long::longValue).sum() + noneSupportPoints;
 
-            // DTO を流用（candidateId枠にpartyIdを詰めるMVP）
             var results = parties.stream()
                     .map(p -> new AllocElectionResultResponse.CandidatePointResult(
                             p.getId(),
-                            p.getPartyKey(), // candidateKey枠にpartyKey
-                            p.getName(), // candidateName枠にparty名
+                            p.getPartyKey(),
+                            p.getName(),
                             pointMap.getOrDefault(p.getId(), 0L)))
                     .sorted((a, b) -> Long.compare(b.points(), a.points()))
                     .toList();
@@ -422,18 +379,11 @@ public class ElectionService {
         long totalPoints = pointMap.values().stream().mapToLong(Long::longValue).sum() + noneSupportPoints;
 
         var results = candidates.stream()
-                .map(c -> {
-                    UUID candidateId = c.candidateId();
-                    String candidateKey = c.candidateKey();
-                    String name = c.name();
-                    long points = pointMap.getOrDefault(candidateId, 0L);
-
-                    return new AllocElectionResultResponse.CandidatePointResult(
-                            candidateId,
-                            candidateKey,
-                            name,
-                            points);
-                })
+                .map(c -> new AllocElectionResultResponse.CandidatePointResult(
+                        c.candidateId(),
+                        c.candidateKey(),
+                        c.name(),
+                        pointMap.getOrDefault(c.candidateId(), 0L)))
                 .sorted((a, b) -> Long.compare(b.points(), a.points()))
                 .toList();
 
@@ -445,6 +395,68 @@ public class ElectionService {
                 noneSupportPoints,
                 talliedAt,
                 results);
+    }
+
+    // =========================
+    // result (public) + internal
+    // =========================
+
+    public ElectionResultResponse resultInternal(UUID electionId) {
+        var election = electionRepo.findById(electionId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "ELECTION_NOT_FOUND", "選挙が存在しません"));
+
+        var candidates = candidateService.summariesByElection(electionId);
+        var rows = voteCurrentRepo.countByElectionGroupByTypeAndCandidate(electionId);
+
+        Map<UUID, Long> countMap = new HashMap<>();
+        long noneSupportVotes = 0L;
+
+        for (var r : rows) {
+            if ("NONE_SUPPORT".equals(r.getType())) {
+                noneSupportVotes += r.getCnt();
+                continue;
+            }
+            UUID cid = r.getCandidateId();
+            if (cid == null) {
+                noneSupportVotes += r.getCnt();
+                continue;
+            }
+            countMap.put(cid, r.getCnt());
+        }
+
+        long totalVotes = countMap.values().stream().mapToLong(Long::longValue).sum() + noneSupportVotes;
+
+        var results = candidates.stream()
+                .map(c -> new ElectionResultResponse.CandidateResult(
+                        c.candidateId(),
+                        c.candidateKey(),
+                        c.name(),
+                        countMap.getOrDefault(c.candidateId(), 0L)))
+                .sorted((a, b) -> Long.compare(b.votes(), a.votes()))
+                .toList();
+
+        Instant talliedAt = (election.getTalliedAt() != null) ? election.getTalliedAt() : Instant.now();
+
+        return new ElectionResultResponse(
+                election.getId(),
+                election.getTitle(),
+                "CURRENT",
+                totalVotes,
+                talliedAt,
+                results);
+    }
+
+    public ElectionResultResponse result(UUID electionId) {
+        var election = electionRepo.findById(electionId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "ELECTION_NOT_FOUND", "選挙が存在しません"));
+
+        // ★ 公開判定：PUBLISHED のみ
+        if (election.getStatus() != ElectionStatus.PUBLISHED) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "RESULT_NOT_AVAILABLE",
+                    "結果は選挙管理委員会の公開後に閲覧できます");
+        }
+
+        return resultInternal(electionId);
     }
 
 }

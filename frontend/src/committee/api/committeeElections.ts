@@ -53,3 +53,15 @@ export async function actionUnpublish(electionId: string) {
     );
     return res.data;
 }
+export async function actionSetStatus(electionId: string, status: string) {
+    await httpStaff.post(`/committee/elections/${electionId}/status`, {
+        status,
+    });
+}
+
+export async function actionGenerateChart(electionId: string) {
+    await httpStaff.post(
+        `/committee/elections/${electionId}/chart:generate`,
+        {},
+    );
+}

@@ -7,3 +7,13 @@ spring:
 logging:
     level:
         "[org.springframework.security]": INFO
+
+app:
+    tally:
+        tickMillis: 5000
+        timeoutSeconds: 30
+        python: python3
+        script: "F:/online-voting-system/scripts/generate_chart.py"
+        workDir: "F:/online-voting-system"
+        jsonDir: "F:/online-voting-system/data/tally"
+        chartDir: "F:/online-voting-system/data/charts"

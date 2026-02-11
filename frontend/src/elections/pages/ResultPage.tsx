@@ -24,6 +24,8 @@ export function ResultPage() {
 
     const loc = useLocation();
     const state = (loc.state ?? {}) as LocationState;
+    const [chartOk, setChartOk] = useState(true);
+    const chartUrl = electionId ? `/api/elections/${electionId}/chart` : null;
 
     const backTo = normalizeFrom(state.from ?? "/elections");
     const from = loc.pathname + loc.search;
@@ -53,6 +55,7 @@ export function ResultPage() {
 
     useEffect(() => {
         if (!electionId) return;
+        setChartOk(true);
         load();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [electionId]);
@@ -149,6 +152,7 @@ export function ResultPage() {
                         onClick={() => {
                             setError(null);
                             setIsForbidden(false);
+                            setChartOk(true);
                             load();
                         }}
                         style={{ marginLeft: "auto" }}
@@ -175,6 +179,7 @@ export function ResultPage() {
                                 onClick={() => {
                                     setError(null);
                                     setIsForbidden(false);
+                                    setChartOk(true);
                                     load();
                                 }}
                             >
@@ -224,6 +229,48 @@ export function ResultPage() {
                             }}
                         >
                             <strong style={{ fontSize: 16 }}>{title}</strong>
+                            {chartUrl && chartOk && (
+                                <div
+                                    style={{
+                                        border: "1px solid #eee",
+                                        borderRadius: 12,
+                                        padding: 12,
+                                        background: "#fafafa",
+                                    }}
+                                >
+                                    <div
+                                        style={{
+                                            fontSize: 12,
+                                            opacity: 0.75,
+                                            marginBottom: 8,
+                                        }}
+                                    >
+                                        集計グラフ（画像）
+                                    </div>
+
+                                    <img
+                                        src={chartUrl}
+                                        alt="集計グラフ"
+                                        style={{
+                                            width: "100%",
+                                            borderRadius: 8,
+                                            display: "block",
+                                        }}
+                                        loading="lazy"
+                                        onError={() => setChartOk(false)} // ★404/403/失敗でフォールバックへ
+                                    />
+
+                                    <div
+                                        style={{
+                                            marginTop: 8,
+                                            fontSize: 12,
+                                            opacity: 0.7,
+                                        }}
+                                    >
+                                        ※画像が無い場合は、下にテキスト結果を表示します
+                                    </div>
+                                </div>
+                            )}
 
                             <span style={{ opacity: 0.85 }}>
                                 {isAlloc ? (
@@ -240,65 +287,66 @@ export function ResultPage() {
                             </span>
                         </div>
 
-                        {rows.length === 0 ? (
-                            <div
-                                style={{
-                                    border: "1px solid #eee",
-                                    borderRadius: 12,
-                                    padding: 12,
-                                    background: "#fafafa",
-                                }}
-                            >
-                                結果データがありません。
+                        {!chartOk &&
+                            (rows.length === 0 ? (
                                 <div
                                     style={{
-                                        marginTop: 8,
-                                        fontSize: 12,
-                                        opacity: 0.8,
+                                        border: "1px solid #eee",
+                                        borderRadius: 12,
+                                        padding: 12,
+                                        background: "#fafafa",
                                     }}
                                 >
-                                    {isAlloc
-                                        ? "alloc が null か results が空です（APIの返却を確認）"
-                                        : "normal が null か results が空です（APIの返却を確認）"}
+                                    結果データがありません。
+                                    <div
+                                        style={{
+                                            marginTop: 8,
+                                            fontSize: 12,
+                                            opacity: 0.8,
+                                        }}
+                                    >
+                                        {isAlloc
+                                            ? "alloc が null か results が空です（APIの返却を確認）"
+                                            : "normal が null か results が空です（APIの返却を確認）"}
+                                    </div>
                                 </div>
-                            </div>
-                        ) : (
-                            <div style={{ display: "grid", gap: 10 }}>
-                                {rows.map((r, idx) => {
-                                    const rank =
-                                        ranks.get(r.candidateId) ?? null;
-                                    const isTop =
-                                        topValue != null &&
-                                        r.value === topValue &&
-                                        r.value > 0;
+                            ) : (
+                                <div style={{ display: "grid", gap: 10 }}>
+                                    {rows.map((r, idx) => {
+                                        const rank =
+                                            ranks.get(r.candidateId) ?? null;
+                                        const isTop =
+                                            topValue != null &&
+                                            r.value === topValue &&
+                                            r.value > 0;
 
-                                    const barW = clamp(
-                                        maxValue > 0
-                                            ? (r.value / maxValue) * 100
-                                            : 0,
-                                        2,
-                                        100,
-                                    );
-                                    const p = percent(r.value, total);
+                                        const barW = clamp(
+                                            maxValue > 0
+                                                ? (r.value / maxValue) * 100
+                                                : 0,
+                                            2,
+                                            100,
+                                        );
+                                        const p = percent(r.value, total);
 
-                                    return (
-                                        <ResultRowCard
-                                            key={r.candidateId}
-                                            electionId={electionId}
-                                            from={from}
-                                            r={r}
-                                            rank={rank}
-                                            isTop={isTop}
-                                            barW={barW}
-                                            p={p}
-                                            total={total}
-                                            unit={isAlloc ? "pt" : "票"}
-                                            index={idx}
-                                        />
-                                    );
-                                })}
-                            </div>
-                        )}
+                                        return (
+                                            <ResultRowCard
+                                                key={r.candidateId}
+                                                electionId={electionId}
+                                                from={from}
+                                                r={r}
+                                                rank={rank}
+                                                isTop={isTop}
+                                                barW={barW}
+                                                p={p}
+                                                total={total}
+                                                unit={isAlloc ? "pt" : "票"}
+                                                index={idx}
+                                            />
+                                        );
+                                    })}
+                                </div>
+                            ))}
                     </div>
                 </Card>
             )}

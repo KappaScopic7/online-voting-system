@@ -1,3 +1,4 @@
+// frontend/src/committee/pages/CommitteeElectionsPage.tsx
 import { useEffect, useMemo, useState } from "react";
 import { Card, Page } from "../../shared/ui/page";
 import type {
@@ -11,6 +12,8 @@ import {
     actionStart,
     actionTally,
     actionUnpublish,
+    actionSetStatus,
+    actionGenerateChart,
     listCommitteeElections,
 } from "../api/committeeElections";
 
@@ -58,10 +61,25 @@ function canDo(st: ElectionStatus) {
     };
 }
 
+const ALL_STATUSES: ElectionStatus[] = [
+    "DRAFT",
+    "READY",
+    "OPEN",
+    "CLOSED",
+    "TALLIED",
+    "PUBLISHED",
+    "ARCHIVED",
+];
+
 export function CommitteeElectionsPage() {
     const [items, setItems] = useState<CommitteeElectionListItem[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [err, setErr] = useState<string | null>(null);
+
+    // ★行ごとの「次にセットしたい状態」を保持
+    const [nextStatus, setNextStatus] = useState<
+        Record<string, ElectionStatus>
+    >({});
 
     const reload = async () => {
         setIsLoading(true);
@@ -69,6 +87,15 @@ export function CommitteeElectionsPage() {
         try {
             const data = await listCommitteeElections();
             setItems(data);
+
+            // 未設定の行は現状statusを初期値にする
+            setNextStatus((prev) => {
+                const cp = { ...prev };
+                for (const e of data) {
+                    if (!cp[e.id]) cp[e.id] = e.status;
+                }
+                return cp;
+            });
         } catch (e: any) {
             setErr(e?.message ?? "一覧の取得に失敗しました");
         } finally {
@@ -138,6 +165,7 @@ export function CommitteeElectionsPage() {
                     <div style={{ marginTop: 12, display: "grid", gap: 12 }}>
                         {sorted.map((e) => {
                             const c = canDo(e.status);
+                            const desired = nextStatus[e.id] ?? e.status;
 
                             return (
                                 <div
@@ -197,6 +225,80 @@ export function CommitteeElectionsPage() {
                                                 {"  "} publishedAt:{" "}
                                                 {formatJST(e.publishedAt)}
                                             </div>
+
+                                            {/* ★強制ステータス変更 + チャート生成 */}
+                                            <div
+                                                style={{
+                                                    marginTop: 10,
+                                                    display: "flex",
+                                                    gap: 8,
+                                                    flexWrap: "wrap",
+                                                    alignItems: "center",
+                                                }}
+                                            >
+                                                <span
+                                                    style={{
+                                                        fontSize: 12,
+                                                        opacity: 0.75,
+                                                    }}
+                                                >
+                                                    強制:
+                                                </span>
+
+                                                <select
+                                                    value={desired}
+                                                    onChange={(ev) => {
+                                                        const v = ev.target
+                                                            .value as ElectionStatus;
+                                                        setNextStatus((p) => ({
+                                                            ...p,
+                                                            [e.id]: v,
+                                                        }));
+                                                    }}
+                                                >
+                                                    {ALL_STATUSES.map((st) => (
+                                                        <option
+                                                            key={st}
+                                                            value={st}
+                                                        >
+                                                            {st}（
+                                                            {statusLabel(st)}）
+                                                        </option>
+                                                    ))}
+                                                </select>
+
+                                                <button
+                                                    type="button"
+                                                    onClick={() =>
+                                                        runAction(() =>
+                                                            actionSetStatus(
+                                                                e.id,
+                                                                desired,
+                                                            ),
+                                                        )
+                                                    }
+                                                    disabled={
+                                                        desired === e.status
+                                                    }
+                                                    title="運用用：状態を強制変更"
+                                                >
+                                                    SET STATUS
+                                                </button>
+
+                                                <button
+                                                    type="button"
+                                                    onClick={() =>
+                                                        runAction(() =>
+                                                            actionGenerateChart(
+                                                                e.id,
+                                                            ),
+                                                        )
+                                                    }
+                                                    title="結果が入っている選挙でもチャート生成だけ実行"
+                                                >
+                                                    CHART
+                                                </button>
+                                            </div>
                                         </div>
 
                                         <div
@@ -205,6 +307,7 @@ export function CommitteeElectionsPage() {
                                                 gap: 8,
                                                 flexWrap: "wrap",
                                                 justifyContent: "flex-end",
+                                                alignContent: "flex-start",
                                             }}
                                         >
                                             <button
