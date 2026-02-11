@@ -1,5 +1,5 @@
 // frontend/src/voting/pages/AllocVotingStartPage.tsx
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
     Link,
     useLocation,
@@ -50,9 +50,9 @@ function isNone(r: Row) {
 function isCandidate(r: Row) {
     return r.type === "CANDIDATE";
 }
-function isParty(r: Row) {
-    return r.type === "PARTY";
-}
+// function isParty(r: Row) {
+//     return r.type === "PARTY";
+// }
 function isTruthy(s: string | null | undefined) {
     if (!s) return false;
     const v = s.toLowerCase();
@@ -133,6 +133,26 @@ export function AllocVotingStartPage() {
         () => rows.reduce((a, r) => a + (Number(r.points) || 0), 0),
         [rows],
     );
+
+    const resolveRowParty = (r: Row): PartyListItem | null => {
+        if (r.type === "PARTY" && r.targetId) {
+            return partyByAnyKey[r.targetId] ?? null;
+        }
+        if (r.type === "CANDIDATE" && r.targetId) {
+            const meta = candMetaById[r.targetId];
+            if (meta?.party) {
+                return {
+                    id: meta.party.id ?? "",
+                    partyKey: meta.party.partyKey ?? "",
+                    name: meta.party.name ?? "",
+                    shortName: meta.party.shortName ?? "",
+                    color: meta.party.color ?? "",
+                } as PartyListItem;
+            }
+        }
+        return null;
+    };
+
     const rest = Math.max(0, total - sum);
 
     const noneIdx = useMemo(() => rows.findIndex((r) => isNone(r)), [rows]);
@@ -143,7 +163,7 @@ export function AllocVotingStartPage() {
 
     const hasAnyPoints = rows.some((r) => (r.points ?? 0) > 0);
     const canGoConfirm =
-        !!data && sum === total && hasAnyPoints && !busy && !loading && !err;
+        !!data && hasAnyPoints && sum <= total && !busy && !loading && !err;
 
     const canSubmit =
         step === "CONFIRM" && !!data && sum === total && hasAnyPoints && !busy;
@@ -277,6 +297,13 @@ export function AllocVotingStartPage() {
         });
     };
 
+    const resetAll = () => {
+        if (busy) return;
+        setRows((prev) => {
+            return prev.map((r) => ({ ...r, points: 0 }));
+        });
+    };
+
     const clearNone = () => {
         if (busy) return;
         setRows((prev) => {
@@ -288,6 +315,7 @@ export function AllocVotingStartPage() {
 
     const setPoints = (idx: number, v: number) => {
         if (!data || busy) return;
+        setLastTouchedIdx(idx); // ★追加
 
         setRows((prev) => {
             const next = prev.map((r) => ({ ...r }));
@@ -313,6 +341,7 @@ export function AllocVotingStartPage() {
 
     const fillRestTo = (idx: number) => {
         if (!data || busy) return;
+        setLastTouchedIdx(idx); // ★追加
 
         setRows((prev) => {
             const next = prev.map((r) => ({ ...r }));
@@ -331,38 +360,79 @@ export function AllocVotingStartPage() {
             return next;
         });
     };
+    // ★最後に触った行（残り自動投入に使う）
+    const [lastTouchedIdx, setLastTouchedIdx] = useState<number | null>(null);
 
-    const resetAll = () => {
-        if (busy) return;
-        setRows((prev) => prev.map((r) => ({ ...r, points: 0 })));
-    };
+    // ★残りptを「最後に触った行」へ入れる（なければ false）
+    const applyRestToLastTouched = useCallback((): boolean => {
+        if (!data || busy) return false;
+        if (lastTouchedIdx == null) return false;
 
-    const resolveRowParty = (r: Row) => {
-        if (isCandidate(r) && r.targetId) {
-            const m = candMetaById[r.targetId] ?? null;
-            return m?.party ?? null;
-        }
-        if (isParty(r) && r.targetId) {
-            const p = partyByAnyKey[r.targetId] ?? null;
-            return p
-                ? {
-                      id: (p as any).id,
-                      partyKey: (p as any).partyKey,
-                      shortName: (p as any).shortName,
-                      name: (p as any).name,
-                      color: (p as any).color,
-                  }
-                : null;
-        }
-        return null;
-    };
+        const idx = lastTouchedIdx;
+
+        setRows((prev) => {
+            const next = prev.map((r) => ({ ...r }));
+
+            // NONE_SUPPORT を選んでいたら解除
+            const nIdx = next.findIndex((r) => isNone(r));
+            if (nIdx >= 0 && (next[nIdx].points ?? 0) > 0) {
+                next[nIdx].points = 0;
+            }
+
+            if (!next[idx] || isNone(next[idx])) return next;
+
+            const s = next.reduce((a, r) => a + (Number(r.points) || 0), 0);
+            const r = Math.max(0, total - s);
+            next[idx].points = (next[idx].points ?? 0) + r;
+
+            return next;
+        });
+
+        return true;
+    }, [data, busy, lastTouchedIdx, total]);
 
     const onGoConfirm = useCallback(() => {
-        if (!canGoConfirm) return;
+        if (!data || busy || loading || err) return;
+        if (!hasAnyPoints) return;
+
+        if (sum < total) {
+            const r = total - sum;
+            const ok = window.confirm(
+                `残り ${r}pt あります。\n最後に操作した項目へ残りを追加して続行しますか？`,
+            );
+            if (!ok) {
+                setErr("合計が一致しないと確認へ進めません");
+                return;
+            }
+
+            const applied = applyRestToLastTouched();
+            if (!applied) {
+                setErr(
+                    "最後に操作した項目がありません。どれかを操作してから再度お試しください。",
+                );
+                return;
+            }
+            // そのまま確認へ（次レンダーで sum が揃う）
+        }
+
+        if (sum > total) {
+            setErr("合計が上限を超えています");
+            return;
+        }
+
         setErr(null);
         setStep("CONFIRM");
         window.scrollTo({ top: 0, behavior: "smooth" });
-    }, [canGoConfirm]);
+    }, [
+        data,
+        busy,
+        loading,
+        err,
+        hasAnyPoints,
+        sum,
+        total,
+        applyRestToLastTouched,
+    ]);
 
     const onBackToEdit = useCallback(() => {
         if (busy) return;
@@ -434,44 +504,89 @@ export function AllocVotingStartPage() {
         backTo,
         effectiveToken,
     ]);
+    const bumpPoints = useCallback(
+        (idx: number, delta: number) => {
+            if (!data || busy) return;
+            setLastTouchedIdx(idx);
 
-    // ✅ footer actions（VotingStartPage と同じノリ）
+            setRows((prev) => {
+                const next = prev.map((r) => ({ ...r }));
+
+                // NONE_SUPPORT を選んでいたら解除
+                const nIdx = next.findIndex((r) => isNone(r));
+                if (nIdx >= 0 && (next[nIdx].points ?? 0) > 0) {
+                    next[nIdx].points = 0;
+                }
+
+                if (!next[idx] || isNone(next[idx])) return next;
+
+                const cur = Number(next[idx].points) || 0;
+                const s = next.reduce((a, r) => a + (Number(r.points) || 0), 0);
+                const remain = Math.max(0, total - s);
+
+                let add = delta;
+
+                // + のとき：残り以上は入れない（“入る分だけ”）
+                if (delta > 0) add = Math.min(delta, remain);
+
+                // - のとき：0 未満にしない
+                if (delta < 0) add = -Math.min(-delta, cur);
+
+                next[idx].points = clampInt(cur + add);
+                return next;
+            });
+        },
+        [data, busy, total],
+    );
+
+    function useStableCallback<T extends (...args: any[]) => any>(fn: T): T {
+        const ref = useRef(fn);
+        useEffect(() => {
+            ref.current = fn;
+        }, [fn]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        return useCallback(((...args: any[]) => ref.current(...args)) as T, []);
+    }
+
+    const loadStable = useStableCallback(load);
+    const onGoConfirmStable = useStableCallback(onGoConfirm);
+    const onBackToEditStable = useStableCallback(onBackToEdit);
+    const onSubmitStable = useStableCallback(onSubmit);
+
     useEffect(() => {
         const actions: FooterAction[] = [];
 
-        // 左：戻る（CONFIRMならEDITへ戻す、EDITなら backTo）
         if (step === "CONFIRM") {
             actions.push({
                 kind: "BUTTON",
                 label: "戻る",
                 disabled: busy,
-                onClick: onBackToEdit,
+                onClick: onBackToEditStable,
             });
         } else {
             actions.push({ kind: "LINK", to: backTo, label: "戻る" });
         }
 
-        // 右：メイン操作
         if (err) {
             actions.push({
                 kind: "BUTTON",
                 label: loading ? "読み込み中..." : "再試行",
                 disabled: loading || busy || !electionId,
-                onClick: load,
+                onClick: loadStable,
             });
         } else if (step === "EDIT") {
             actions.push({
                 kind: "BUTTON",
                 label: "次へ（内容確認）",
                 disabled: !canGoConfirm,
-                onClick: onGoConfirm,
+                onClick: onGoConfirmStable,
             });
         } else {
             actions.push({
                 kind: "BUTTON",
                 label: busy ? "送信中..." : "この内容で投票する",
                 disabled: !canSubmit,
-                onClick: onSubmit,
+                onClick: onSubmitStable,
             });
         }
 
@@ -484,13 +599,13 @@ export function AllocVotingStartPage() {
         err,
         loading,
         electionId,
-        load,
         backTo,
         canGoConfirm,
         canSubmit,
-        onGoConfirm,
-        onBackToEdit,
-        onSubmit,
+        loadStable,
+        onGoConfirmStable,
+        onBackToEditStable,
+        onSubmitStable,
     ]);
 
     const title = data?.electionTitle
@@ -609,7 +724,7 @@ export function AllocVotingStartPage() {
                 <div style={{ display: "grid", gap: 12 }}>
                     {/* ヘッダ */}
                     <Card>
-                        <div style={{ display: "grid", gap: 8 }}>
+                        <div style={{ display: "grid", gap: 10 }}>
                             <strong style={{ fontSize: 16 }}>
                                 {data.electionTitle}
                             </strong>
@@ -652,15 +767,17 @@ export function AllocVotingStartPage() {
                                 </div>
                             </div>
 
+                            {/* ★クイック操作バー */}
                             <div
                                 style={{
                                     display: "flex",
-                                    gap: 12,
+                                    gap: 10,
                                     flexWrap: "wrap",
                                     alignItems: "center",
                                 }}
                             >
                                 <button
+                                    type="button"
                                     onClick={() => {
                                         if (step === "CONFIRM") return;
                                         resetAll();
@@ -670,16 +787,60 @@ export function AllocVotingStartPage() {
                                     クリア
                                 </button>
 
-                                <span
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        if (step === "CONFIRM") return;
+                                        // 残りがあるなら最後に触った項目へ
+                                        if (rest > 0) applyRestToLastTouched();
+                                    }}
+                                    disabled={
+                                        busy || step === "CONFIRM" || rest === 0
+                                    }
+                                    title="残りポイントを最後に操作した項目へ追加します"
+                                >
+                                    残りを入れる
+                                </button>
+
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        if (step === "CONFIRM") return;
+                                        // 超雑でもいい：先頭の非NONEに残り全部
+                                        const idx = rows.findIndex(
+                                            (r) => r.type !== "NONE_SUPPORT",
+                                        );
+                                        if (idx >= 0) fillRestTo(idx);
+                                    }}
+                                    disabled={
+                                        busy || step === "CONFIRM" || rest === 0
+                                    }
+                                    title="残りポイントを先頭の項目へ追加します"
+                                >
+                                    先頭に残り全部
+                                </button>
+
+                                <button
+                                    type="button"
+                                    onClick={onGoConfirm}
+                                    disabled={
+                                        !canGoConfirm || step === "CONFIRM"
+                                    }
+                                    style={{ marginLeft: "auto" }}
+                                >
+                                    次へ（内容確認）
+                                </button>
+
+                                <div
                                     style={{
-                                        marginLeft: "auto",
+                                        width: "100%",
                                         fontSize: 12,
                                         opacity: 0.75,
                                     }}
                                 >
                                     ※ 合計が一致しないと送信できません /
                                     期間内なら変更可能
-                                </span>
+                                </div>
                             </div>
                         </div>
                     </Card>
@@ -731,19 +892,25 @@ export function AllocVotingStartPage() {
                                                 >
                                                     <div
                                                         style={{
-                                                            border: "1px dashed #eee",
-                                                            borderRadius: 10,
-                                                            padding: 12,
+                                                            border: noneSelected
+                                                                ? "2px solid #d33"
+                                                                : "1px dashed #eee",
+                                                            borderRadius: 12,
+                                                            padding: 14,
                                                             background:
-                                                                "#fafafa",
+                                                                noneSelected
+                                                                    ? "#fff5f5"
+                                                                    : "#fafafa",
                                                             display: "grid",
-                                                            gap: 10,
+                                                            gap: 12,
+                                                            transition:
+                                                                "all 120ms ease",
                                                         }}
                                                     >
                                                         <div
                                                             style={{
                                                                 display: "flex",
-                                                                gap: 10,
+                                                                gap: 12,
                                                                 alignItems:
                                                                     "center",
                                                                 flexWrap:
@@ -766,8 +933,9 @@ export function AllocVotingStartPage() {
                                                                 style={{
                                                                     display:
                                                                         "grid",
-                                                                    gap: 2,
+                                                                    gap: 4,
                                                                     flex: 1,
+                                                                    minWidth: 0,
                                                                 }}
                                                             >
                                                                 <div
@@ -777,18 +945,22 @@ export function AllocVotingStartPage() {
                                                                 >
                                                                     {r.label}
                                                                 </div>
+
                                                                 <div
                                                                     style={{
                                                                         fontSize: 12,
                                                                         opacity: 0.75,
-                                                                        lineHeight: 1.5,
+                                                                        lineHeight: 1.6,
                                                                     }}
                                                                 >
                                                                     ※
                                                                     できるだけ候補者へ配分してください。
                                                                     <br />※
                                                                     選択すると{" "}
-                                                                    {total}pt
+                                                                    <b>
+                                                                        {total}
+                                                                        pt
+                                                                    </b>{" "}
                                                                     を一括で消費します。
                                                                 </div>
                                                             </div>
@@ -802,8 +974,15 @@ export function AllocVotingStartPage() {
                                                                     disabled={
                                                                         busy
                                                                     }
+                                                                    style={{
+                                                                        background:
+                                                                            "#fff",
+                                                                        border: "1px solid #d33",
+                                                                        color: "#d33",
+                                                                        fontWeight: 700,
+                                                                    }}
                                                                 >
-                                                                    解除
+                                                                    解除する
                                                                 </button>
                                                             ) : (
                                                                 <button
@@ -814,8 +993,18 @@ export function AllocVotingStartPage() {
                                                                     disabled={
                                                                         busy
                                                                     }
+                                                                    style={{
+                                                                        background:
+                                                                            "#d33",
+                                                                        color: "#fff",
+                                                                        fontWeight: 700,
+                                                                        border: "none",
+                                                                        padding:
+                                                                            "6px 12px",
+                                                                        borderRadius: 6,
+                                                                    }}
                                                                 >
-                                                                    この選択をする…
+                                                                    全ポイントをここに入れる
                                                                 </button>
                                                             )}
                                                         </div>
@@ -838,13 +1027,30 @@ export function AllocVotingStartPage() {
                                                             >
                                                                 現在:
                                                             </div>
+
                                                             <div
                                                                 style={{
                                                                     fontWeight: 900,
+                                                                    fontSize: 18,
+                                                                    color: noneSelected
+                                                                        ? "#d33"
+                                                                        : "inherit",
                                                                 }}
                                                             >
                                                                 {r.points}pt
                                                             </div>
+
+                                                            {noneSelected && (
+                                                                <div
+                                                                    style={{
+                                                                        fontSize: 12,
+                                                                        color: "#d33",
+                                                                        fontWeight: 600,
+                                                                    }}
+                                                                >
+                                                                    （他の配分は0になります）
+                                                                </div>
+                                                            )}
                                                         </div>
                                                     </div>
                                                 </CandidateCardFrame>
@@ -1004,26 +1210,86 @@ export function AllocVotingStartPage() {
                                                             flexWrap: "wrap",
                                                         }}
                                                     >
-                                                        <input
-                                                            type="number"
-                                                            min={0}
-                                                            step={1}
-                                                            value={r.points}
-                                                            onChange={(e) =>
-                                                                setPoints(
+                                                        {/* ★クイック +/- */}
+                                                        <button
+                                                            type="button"
+                                                            onClick={() =>
+                                                                bumpPoints(
                                                                     idx,
-                                                                    Number(
-                                                                        e.target
-                                                                            .value,
-                                                                    ),
+                                                                    -10,
                                                                 )
                                                             }
+                                                            disabled={
+                                                                busy ||
+                                                                (r.points ??
+                                                                    0) <= 0
+                                                            }
+                                                            title="-10pt"
                                                             style={{
-                                                                width: 140,
+                                                                fontSize: 12,
                                                             }}
-                                                            disabled={busy}
-                                                        />
-                                                        <span>pt</span>
+                                                        >
+                                                            -10
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() =>
+                                                                bumpPoints(
+                                                                    idx,
+                                                                    -1,
+                                                                )
+                                                            }
+                                                            disabled={
+                                                                busy ||
+                                                                (r.points ??
+                                                                    0) <= 0
+                                                            }
+                                                            title="-1pt"
+                                                            style={{
+                                                                fontSize: 12,
+                                                            }}
+                                                        >
+                                                            -1
+                                                        </button>
+
+                                                        <button
+                                                            type="button"
+                                                            onClick={() =>
+                                                                bumpPoints(
+                                                                    idx,
+                                                                    +1,
+                                                                )
+                                                            }
+                                                            disabled={
+                                                                busy ||
+                                                                rest === 0
+                                                            }
+                                                            title="+1pt"
+                                                            style={{
+                                                                fontSize: 12,
+                                                            }}
+                                                        >
+                                                            +1
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() =>
+                                                                bumpPoints(
+                                                                    idx,
+                                                                    +10,
+                                                                )
+                                                            }
+                                                            disabled={
+                                                                busy ||
+                                                                rest === 0
+                                                            }
+                                                            title="+10pt"
+                                                            style={{
+                                                                fontSize: 12,
+                                                            }}
+                                                        >
+                                                            +10
+                                                        </button>
 
                                                         <button
                                                             type="button"
@@ -1039,8 +1305,39 @@ export function AllocVotingStartPage() {
                                                             }}
                                                             title="残りポイントをこの項目に追加します"
                                                         >
-                                                            残りを入れる
+                                                            残り全部
                                                         </button>
+
+                                                        {/* ★直接入力は残す（任意） */}
+                                                        <span
+                                                            style={{
+                                                                marginLeft: 6,
+                                                                fontSize: 12,
+                                                                opacity: 0.7,
+                                                            }}
+                                                        >
+                                                            直接:
+                                                        </span>
+                                                        <input
+                                                            type="number"
+                                                            min={0}
+                                                            step={1}
+                                                            value={r.points}
+                                                            onChange={(e) =>
+                                                                setPoints(
+                                                                    idx,
+                                                                    Number(
+                                                                        e.target
+                                                                            .value,
+                                                                    ),
+                                                                )
+                                                            }
+                                                            style={{
+                                                                width: 110,
+                                                            }}
+                                                            disabled={busy}
+                                                        />
+                                                        <span>pt</span>
 
                                                         <span
                                                             style={{

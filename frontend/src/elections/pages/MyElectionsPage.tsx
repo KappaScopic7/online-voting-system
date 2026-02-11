@@ -76,11 +76,11 @@ function MyElectionItemAction(props: { e: ElectionListItem; from: string }) {
         // ★方式共通：投票済み判定は hasCurrent
         const voted = !!e.hasCurrent;
 
-        // 通常投票だけ currentVote が入るので、表示できる時だけラベルを出す
-        const label = e.currentVote
-            ? (e.currentVote.candidateName ??
-              (e.currentVote.candidateId ? "投票済み" : "誰も支持しない"))
-            : null;
+        // // 通常投票だけ currentVote が入るので、表示できる時だけラベルを出す
+        // const label = e.currentVote
+        //     ? (e.currentVote.candidateName ??
+        //       (e.currentVote.candidateId ? "投票済み" : "誰も支持しない"))
+        //     : null;
 
         // 投票可能なら「投票する/変更する」
         if (e.canCast) {
@@ -93,22 +93,12 @@ function MyElectionItemAction(props: { e: ElectionListItem; from: string }) {
                         alignItems: "center",
                     }}
                 >
-                    {label ? (
-                        <span style={{ fontSize: 13, opacity: 0.9 }}>
-                            投票済み: <b>{label}</b>
-                        </span>
-                    ) : voted ? (
-                        <span style={{ fontSize: 13, opacity: 0.75 }}>
-                            投票済み
-                        </span>
-                    ) : null}
-
                     <Link
                         to={voteLink}
                         state={{ from }}
                         style={{ textDecoration: "none" }}
                     >
-                        <b>{voted ? "変更する →" : "投票する →"}</b>
+                        <b>{voted ? "投票を変更する →" : "投票する →"}</b>
                     </Link>
                 </div>
             );

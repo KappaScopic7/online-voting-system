@@ -397,3 +397,44 @@
 .footer {
     margin-bottom: var(--footer-bar-height);
 }
+
+/* 追加：モバイルメニュー（右上） */
+.mobileMenuWrap {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+}
+
+/* 既存 hamburgerButton を “右上に置くボタン” として活用 */
+.hamburgerButton {
+    display: none;
+    background: #fff;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    width: 40px;
+    height: 36px;
+    cursor: pointer;
+    font-size: 18px;
+}
+
+/* スマホだけ表示 */
+@media (pointer: coarse) {
+    .hamburgerButton {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* スマホは下の横並びnavは隠す（そのまま） */
+    .nav {
+        display: none;
+    }
+}
+
+/* 追加：モバイル用に menuOpen を “右上から出す” 位置調整 */
+.mobileMenuOpen {
+    right: 0;
+    top: calc(100% + 8px);
+    min-width: 220px;
+    /* menuOpen を流用してるので見た目は同じ */
+}

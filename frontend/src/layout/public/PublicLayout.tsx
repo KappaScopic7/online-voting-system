@@ -1,13 +1,13 @@
+// frontend/src/layout/public/PublicLayout.tsx
 import { Link, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "../../user/UserAuthContext";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import styles from "./PublicLayout.module.css";
 import logo from "../../assets/logo/ovs-logo.png";
 
 type NavItem = { to: string; label: string };
 type MenuItem = { to: string; label: string };
 
-// ★追加：フッターバーの型
 export type FooterAction =
     | { kind: "BACK"; label?: string }
     | { kind: "LINK"; to: string; label: string }
@@ -22,6 +22,25 @@ export type PublicLayoutOutletContext = {
     setFooterActions: (actions: FooterAction[] | null) => void;
 };
 
+function footerActionEq(a: FooterAction, b: FooterAction): boolean {
+    if (a.kind !== b.kind) return false;
+    if (a.kind === "BACK" && b.kind === "BACK")
+        return (a.label ?? "") === (b.label ?? "");
+    if (a.kind === "LINK" && b.kind === "LINK")
+        return a.to === b.to && a.label === b.label;
+    if (a.kind === "BUTTON" && b.kind === "BUTTON")
+        return a.label === b.label && !!a.disabled === !!b.disabled;
+    return false;
+}
+function footerActionsEq(a: FooterAction[] | null, b: FooterAction[] | null) {
+    if (a === b) return true;
+    if (!a || !b) return false;
+    if (a.length !== b.length) return false;
+    for (let i = 0; i < a.length; i++)
+        if (!footerActionEq(a[i], b[i])) return false;
+    return true;
+}
+
 export function PublicLayout() {
     const nav = useNavigate();
     const { me: user, logout: userLogout } = useAuth();
@@ -30,18 +49,29 @@ export function PublicLayout() {
     const lastYRef = useRef(0);
     const tickingRef = useRef(false);
 
+    // PC: 👤
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const menuWrapRef = useRef<HTMLDivElement>(null);
 
-    const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
+    // Mobile: ☰（右上ポップオーバー）
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const mobileMenuWrapRef = useRef<HTMLDivElement>(null);
 
-    const closeMenu = () => setIsMenuOpen(false);
-    const toggleMenu = () => setIsMenuOpen((v) => !v);
+    const closeUserMenu = () => setIsMenuOpen(false);
+    const toggleUserMenu = () => setIsMenuOpen((v) => !v);
+
+    const closeMobileMenu = () => setIsMobileMenuOpen(false);
+    const toggleMobileMenu = () => setIsMobileMenuOpen((v) => !v);
+
+    const closeAllMenus = () => {
+        closeUserMenu();
+        closeMobileMenu();
+    };
 
     const onLogout = () => {
         if (!user) return;
         userLogout();
-        closeMenu();
+        closeAllMenus();
         nav("/", { replace: true });
     };
 
@@ -51,7 +81,6 @@ export function PublicLayout() {
             { to: "/parties", label: "政党一覧" },
             { to: "/candidates", label: "候補者一覧" },
         ];
-
         if (!user) return common;
         return [
             ...common,
@@ -67,10 +96,10 @@ export function PublicLayout() {
             { to: "/me/votes", label: "投票履歴 →" },
             { to: "/me/identity", label: "本人確認 →" },
         ],
-        [user],
+        [],
     );
 
-    // ---- header show/hide on scroll (stable) ----
+    // header show/hide
     useEffect(() => {
         lastYRef.current = window.scrollY;
 
@@ -86,11 +115,8 @@ export function PublicLayout() {
                 const THRESHOLD = 20;
                 const TOP_LOCK = 60;
 
-                if (y <= TOP_LOCK) {
-                    setShowTopBar(true);
-                } else if (Math.abs(diff) >= THRESHOLD) {
-                    setShowTopBar(diff < 0);
-                }
+                if (y <= TOP_LOCK) setShowTopBar(true);
+                else if (Math.abs(diff) >= THRESHOLD) setShowTopBar(diff < 0);
 
                 lastYRef.current = y;
                 tickingRef.current = false;
@@ -101,41 +127,54 @@ export function PublicLayout() {
         return () => window.removeEventListener("scroll", onScroll);
     }, []);
 
-    // ---- close menu on outside click / Esc ----
+    // close menus on outside click / Esc
     useEffect(() => {
-        if (!isMenuOpen) return;
+        if (!isMenuOpen && !isMobileMenuOpen) return;
 
         const handleClickOutside = (event: MouseEvent) => {
-            if (
-                menuWrapRef.current &&
-                !menuWrapRef.current.contains(event.target as Node)
-            ) {
-                closeMenu();
-            }
+            const t = event.target as Node;
+
+            const inUser =
+                menuWrapRef.current && menuWrapRef.current.contains(t);
+            const inMobile =
+                mobileMenuWrapRef.current &&
+                mobileMenuWrapRef.current.contains(t);
+
+            if (!inUser) closeUserMenu();
+            if (!inMobile) closeMobileMenu();
         };
 
         const handleKeyDown = (event: KeyboardEvent) => {
-            if (event.key === "Escape") closeMenu();
+            if (event.key === "Escape") closeAllMenus();
         };
 
         document.addEventListener("mousedown", handleClickOutside);
         document.addEventListener("keydown", handleKeyDown);
-
         return () => {
             document.removeEventListener("mousedown", handleClickOutside);
             document.removeEventListener("keydown", handleKeyDown);
         };
-    }, [isMenuOpen]);
+    }, [isMenuOpen, isMobileMenuOpen]);
 
-    // ★追加：フッターアクション管理（デフォルト BACK）
+    // footer actions
     const [footerActions, setFooterActions] = useState<FooterAction[] | null>(
         null,
     );
 
-    const effectiveFooterActions: FooterAction[] =
-        footerActions && footerActions.length > 0
+    const setFooterActionsSafe = useCallback((next: FooterAction[] | null) => {
+        setFooterActions((prev) => (footerActionsEq(prev, next) ? prev : next));
+    }, []);
+
+    const defaultFooterActions = useMemo<FooterAction[]>(
+        () => [{ kind: "BACK", label: "戻る" }],
+        [],
+    );
+
+    const effectiveFooterActions = useMemo<FooterAction[]>(() => {
+        return footerActions && footerActions.length > 0
             ? footerActions
-            : [{ kind: "BACK", label: "戻る" }];
+            : defaultFooterActions;
+    }, [footerActions, defaultFooterActions]);
 
     return (
         <div className={styles.page}>
@@ -146,19 +185,10 @@ export function PublicLayout() {
             >
                 <div className={styles.barInner}>
                     <header className={styles.header}>
-                        <button
-                            type="button"
-                            className={styles.hamburgerButton}
-                            aria-label="メニュー"
-                            aria-expanded={isMobileNavOpen}
-                            onClick={() => setIsMobileNavOpen(true)}
-                        >
-                            ☰
-                        </button>
                         <Link
                             to="/"
                             className={styles.brand}
-                            onClick={closeMenu}
+                            onClick={closeAllMenus}
                             aria-label="トップページへ"
                         >
                             <img
@@ -169,20 +199,64 @@ export function PublicLayout() {
                         </Link>
 
                         <div className={styles.headerRight}>
+                            {/* ★モバイル用：右上に ☰ + ポップオーバー */}
+                            <div
+                                ref={mobileMenuWrapRef}
+                                className={styles.mobileMenuWrap}
+                            >
+                                <button
+                                    type="button"
+                                    className={styles.hamburgerButton}
+                                    aria-label="メニュー"
+                                    aria-expanded={isMobileMenuOpen}
+                                    onClick={toggleMobileMenu}
+                                >
+                                    ☰
+                                </button>
+
+                                {isMobileMenuOpen && (
+                                    <div
+                                        className={`${styles.menuOpen} ${styles.mobileMenuOpen}`}
+                                        role="menu"
+                                    >
+                                        {navItems.map((item, idx) => (
+                                            <div key={item.to}>
+                                                <Link
+                                                    className={styles.menuLink}
+                                                    to={item.to}
+                                                    onClick={closeAllMenus}
+                                                    role="menuitem"
+                                                >
+                                                    {item.label}
+                                                </Link>
+                                                {idx !==
+                                                    navItems.length - 1 && (
+                                                    <hr
+                                                        className={
+                                                            styles.divider
+                                                        }
+                                                    />
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* PC右側：ログイン/登録 or 👤 */}
                             {!user ? (
                                 <>
                                     <Link
                                         className={styles.headerLink}
                                         to="/login"
-                                        onClick={closeMenu}
+                                        onClick={closeAllMenus}
                                     >
                                         ログイン
                                     </Link>
-
                                     <Link
                                         className={styles.headerLink}
                                         to="/register"
-                                        onClick={closeMenu}
+                                        onClick={closeAllMenus}
                                     >
                                         新規登録
                                     </Link>
@@ -195,7 +269,7 @@ export function PublicLayout() {
                                     <button
                                         type="button"
                                         className={styles.menuButton}
-                                        onClick={toggleMenu}
+                                        onClick={toggleUserMenu}
                                         aria-haspopup="menu"
                                         aria-expanded={isMenuOpen}
                                         aria-label="ユーザーメニュー"
@@ -205,7 +279,11 @@ export function PublicLayout() {
 
                                     {isMenuOpen && (
                                         <div
-                                            className={`${styles.menuOpen} ${showTopBar ? styles.withShadow : ""}`}
+                                            className={`${styles.menuOpen} ${
+                                                showTopBar
+                                                    ? styles.withShadow
+                                                    : ""
+                                            }`}
                                             role="menu"
                                         >
                                             {menuItems.map((item, idx) => (
@@ -215,7 +293,7 @@ export function PublicLayout() {
                                                             styles.menuLink
                                                         }
                                                         to={item.to}
-                                                        onClick={closeMenu}
+                                                        onClick={closeAllMenus}
                                                         role="menuitem"
                                                     >
                                                         {item.label}
@@ -250,61 +328,19 @@ export function PublicLayout() {
                         </div>
                     </header>
 
+                    {/* PC用 nav（スマホではCSSで隠す） */}
                     <nav className={styles.nav} aria-label="グローバルナビ">
                         {navItems.map((item) => (
                             <Link
                                 key={item.to}
                                 to={item.to}
                                 className={styles.navLink}
-                                onClick={closeMenu}
+                                onClick={closeAllMenus}
                             >
                                 {item.label}
                             </Link>
                         ))}
                     </nav>
-
-                    <div
-                        className={`${styles.drawerOverlay} ${isMobileNavOpen ? styles.drawerOverlayOpen : ""}`}
-                        onClick={() => setIsMobileNavOpen(false)}
-                        aria-hidden={!isMobileNavOpen}
-                    >
-                        <aside
-                            className={`${styles.drawerPanel} ${isMobileNavOpen ? styles.drawerPanelOpen : ""}`}
-                            onClick={(e) => e.stopPropagation()}
-                            role="dialog"
-                            aria-modal="true"
-                            aria-label="モバイルメニュー"
-                        >
-                            <div className={styles.drawerHeader}>
-                                <span className={styles.drawerTitle}>
-                                    メニュー
-                                </span>
-                                <button
-                                    type="button"
-                                    className={styles.drawerClose}
-                                    aria-label="閉じる"
-                                    onClick={() => setIsMobileNavOpen(false)}
-                                >
-                                    ✕
-                                </button>
-                            </div>
-
-                            <div className={styles.drawerBody}>
-                                {navItems.map((item) => (
-                                    <Link
-                                        key={item.to}
-                                        to={item.to}
-                                        className={styles.drawerLink}
-                                        onClick={() =>
-                                            setIsMobileNavOpen(false)
-                                        }
-                                    >
-                                        {item.label}
-                                    </Link>
-                                ))}
-                            </div>
-                        </aside>
-                    </div>
                 </div>
             </div>
 
@@ -312,7 +348,7 @@ export function PublicLayout() {
                 <Outlet
                     context={
                         {
-                            setFooterActions,
+                            setFooterActions: setFooterActionsSafe,
                         } satisfies PublicLayoutOutletContext
                     }
                 />
@@ -362,6 +398,7 @@ export function PublicLayout() {
                     })}
                 </div>
             </div>
+
             <footer className={styles.footer}>
                 <span className={styles.footerText}>© OVS / B-team</span>
             </footer>

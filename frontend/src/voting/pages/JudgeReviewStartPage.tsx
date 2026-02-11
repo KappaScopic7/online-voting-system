@@ -113,14 +113,15 @@ export function JudgeReviewStartPage() {
 
             setData(res);
 
-            const base: Record<string, JudgeReviewChoice> = {};
-            const cur = (res as any)?.current ?? null;
-            if (cur) {
-                for (const [k, v] of Object.entries(cur)) {
-                    if (v === "OK" || v === "NO") base[k] = v;
-                }
-            }
-            setChoices(base);
+            // const base: Record<string, JudgeReviewChoice> = {};
+            // const cur = (res as any)?.current ?? null;
+            // if (cur) {
+            //     for (const [k, v] of Object.entries(cur)) {
+            //         if (v === "OK" || v === "NO") base[k] = v;
+            //     }
+            // }
+            // setChoices(base);
+            setChoices({});
 
             setStep("EDIT");
         } catch (e: any) {

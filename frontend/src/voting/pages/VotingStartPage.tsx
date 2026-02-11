@@ -171,12 +171,13 @@ export function VotingStartPage() {
                 setMetaById({});
             }
 
-            const firstCandidateId = res.candidates?.[0]?.candidateId ?? null;
-            setSelectedKey(
-                firstCandidateId
-                    ? `CANDIDATE:${firstCandidateId}`
-                    : "NONE_SUPPORT",
-            );
+            // const firstCandidateId = res.candidates?.[0]?.candidateId ?? null;
+            // 置き換え
+            setSelectedKey((prev) => {
+                if (prev && parseSelectedKey(prev)) return prev;
+                return "";
+            });
+
             setStep("SELECT");
         } catch (err: any) {
             const status = err?.response?.status;
