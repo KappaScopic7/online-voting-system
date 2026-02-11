@@ -1,5 +1,6 @@
 package com.bteam.ovs.elections.service;
 
+import com.bteam.ovs.elections.controller.dto.CommitteeElectionListItem;
 import com.bteam.ovs.elections.controller.dto.ElectionDetailResponse;
 import com.bteam.ovs.elections.entity.BallotType;
 import com.bteam.ovs.elections.entity.Election;
@@ -14,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.UUID;
+import java.util.List;
 
 @Service
 public class CommitteeElectionService {
@@ -107,5 +109,27 @@ public class CommitteeElectionService {
                     "ELECTION_STATUS_INVALID",
                     "Expected status " + expected + " but was " + e.getStatus());
         }
+    }
+
+    @Transactional(readOnly = true)
+    public List<CommitteeElectionListItem> list() {
+        return electionRepo.findAllByOrderByStartsAtDesc().stream()
+                .map(e -> new CommitteeElectionListItem(
+                        e.getId(),
+                        e.getElectionKey(),
+                        e.getTitle(),
+                        e.getSummary(),
+                        e.getElectionType(),
+                        e.getBallotType(),
+                        e.getAllocationTarget(),
+                        e.getDistrictPrefCode(),
+                        e.getDistrictCityCode(),
+                        e.getDistrictLabel(),
+                        e.getStartsAt(),
+                        e.getEndsAt(),
+                        e.getStatus(),
+                        e.getTalliedAt(),
+                        e.getPublishedAt()))
+                .toList();
     }
 }

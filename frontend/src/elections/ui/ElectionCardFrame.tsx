@@ -19,12 +19,14 @@ export function ElectionCardFrame(props: {
 
     meta?: ReactNode;
     action?: ReactNode;
-    children?: ReactNode; // ★追加
+    children?: ReactNode;
 
     formatDate?: (iso: string) => string;
 
     showCandidatesLink?: boolean;
     showResultLink?: boolean;
+
+    candidatesLinkLabel?: string; // ★追加
 }) {
     const nav = useNavigate();
 
@@ -33,10 +35,11 @@ export function ElectionCardFrame(props: {
         from,
         meta,
         action,
-        children, // ★追加
+        children,
         formatDate = formatJST,
         showCandidatesLink = true,
         showResultLink,
+        candidatesLinkLabel = "候補者一覧",
     } = props;
 
     const eid = encodeURIComponent(e.electionId);
@@ -139,7 +142,7 @@ export function ElectionCardFrame(props: {
                 >
                     {showCandidatesLink ? (
                         <Link to={candidatesLink} state={{ from }}>
-                            候補者一覧
+                            {candidatesLinkLabel}
                         </Link>
                     ) : null}
 

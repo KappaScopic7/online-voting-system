@@ -221,59 +221,130 @@ export function IdentityLinkPage() {
 
             {/* STEP 1: PIN */}
             {step === "PIN" && (
-                <Card>
-                    <div style={{ display: "grid", gap: 10 }}>
-                        <div style={{ fontWeight: 900 }}>
-                            PIN（4桁）を入力してください
-                        </div>
-
-                        <input
-                            inputMode="numeric"
-                            pattern="\d{4}"
-                            maxLength={4}
-                            placeholder="例: 1234"
-                            value={pin}
-                            onChange={(e) =>
-                                setPin(
-                                    e.target.value
-                                        .replace(/[^\d]/g, "")
-                                        .slice(0, 4),
-                                )
-                            }
-                            style={{ padding: 10, fontSize: 16, width: 180 }}
-                            disabled={busy}
-                        />
-
-                        {!pinOk && pin.length > 0 && (
-                            <div style={{ fontSize: 12, color: "crimson" }}>
-                                PINは4桁の数字で入力してください
+                <div style={{ display: "grid", gap: 12 }}>
+                    <Card>
+                        <div style={{ display: "grid", gap: 10 }}>
+                            <div style={{ fontWeight: 900 }}>
+                                PIN（4桁）を入力してください
                             </div>
-                        )}
 
-                        <div
-                            style={{
-                                display: "flex",
-                                gap: 12,
-                                flexWrap: "wrap",
-                                alignItems: "center",
-                                marginTop: 4,
-                            }}
-                        >
-                            <button
-                                type="button"
-                                onClick={goNext}
-                                disabled={!pinOk || busy}
-                                style={{ fontWeight: 700 }}
+                            <input
+                                inputMode="numeric"
+                                pattern="\d{4}"
+                                maxLength={4}
+                                placeholder="例: 1234"
+                                value={pin}
+                                onChange={(e) =>
+                                    setPin(
+                                        e.target.value
+                                            .replace(/[^\d]/g, "")
+                                            .slice(0, 4),
+                                    )
+                                }
+                                style={{
+                                    padding: 10,
+                                    fontSize: 16,
+                                    width: 180,
+                                }}
+                                disabled={busy}
+                            />
+
+                            {!pinOk && pin.length > 0 && (
+                                <div style={{ fontSize: 12, color: "crimson" }}>
+                                    PINは4桁の数字で入力してください
+                                </div>
+                            )}
+
+                            <div
+                                style={{
+                                    display: "flex",
+                                    gap: 12,
+                                    flexWrap: "wrap",
+                                    alignItems: "center",
+                                    marginTop: 4,
+                                }}
                             >
-                                次へ →
-                            </button>
+                                <button
+                                    type="button"
+                                    onClick={goNext}
+                                    disabled={!pinOk || busy}
+                                    style={{ fontWeight: 700 }}
+                                >
+                                    次へ →
+                                </button>
 
-                            <span style={{ fontSize: 12, opacity: 0.75 }}>
-                                ※ PINはカード所持者確認のために必要です
-                            </span>
+                                <span style={{ fontSize: 12, opacity: 0.75 }}>
+                                    ※ PINはカード所持者確認のために必要です
+                                </span>
+                            </div>
                         </div>
-                    </div>
-                </Card>
+                    </Card>
+
+                    {/* ✅ Android導線はPIN入力前に出す（このページのPINは不要で起動できる） */}
+                    <Card>
+                        <div style={{ display: "grid", gap: 10 }}>
+                            <div style={{ fontWeight: 900 }}>
+                                別端末（Android）でNFC認証
+                            </div>
+
+                            <div
+                                style={{
+                                    fontSize: 13,
+                                    opacity: 0.85,
+                                    lineHeight: 1.7,
+                                }}
+                            >
+                                ・このページのPIN入力は不要です（Android側で入力します）
+                                <br />
+                                ・認証後、この画面に戻って紐付けを完了します
+                            </div>
+
+                            <div
+                                style={{
+                                    display: "flex",
+                                    gap: 12,
+                                    flexWrap: "wrap",
+                                }}
+                            >
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        // ✅ このページに戻ってくればOK（state.from 維持したいなら from でもOK）
+                                        openAndroidLinkApp(from);
+                                    }}
+                                    disabled={busy}
+                                    style={{
+                                        padding: "10px 14px",
+                                        fontWeight: 800,
+                                    }}
+                                >
+                                    Androidアプリを開く →
+                                </button>
+
+                                <span
+                                    style={{
+                                        fontSize: 12,
+                                        opacity: 0.75,
+                                        alignSelf: "center",
+                                    }}
+                                >
+                                    ※ アプリ未インストールの場合は反応しません
+                                </span>
+                            </div>
+
+                            {import.meta.env?.DEV && (
+                                <DevDebug
+                                    value={{
+                                        androidDeepLink:
+                                            buildAndroidLinkDeepLink({
+                                                returnTo: from,
+                                            }),
+                                    }}
+                                />
+                            )}
+                        </div>
+                    </Card>
+                </div>
             )}
 
             {/* STEP 2: METHOD */}
@@ -301,71 +372,18 @@ export function IdentityLinkPage() {
 
                         {!canWebNfc && (
                             <div style={{ fontSize: 12, opacity: 0.75 }}>
-                                この端末は Web NFC
-                                非対応です。「NFC」を選ぶと、NFCリーダの入力で認証できます。
+                                この端末は Web NFC 非対応です。「NFC」を選ぶと、
+                                NFCリーダの入力で認証できます。
                             </div>
                         )}
 
-                        {/* Tabs（NFC対応なら NFC/手入力、非対応なら KEYBOARD/手入力 に誘導）
-                            IdentityMethodTabs の中身が固定なら、
-                            “見た目だけ”合わせるために method を補正する運用でOK
-                        */}
                         <IdentityMethodTabs
                             value={method}
                             onChange={setMethod}
+                            allowManual={!canWebNfc}
                         />
-                        <Card>
-                            <div style={{ display: "grid", gap: 10 }}>
-                                <div style={{ fontWeight: 900 }}>
-                                    AndroidアプリでNFC認証
-                                </div>
-                                <div
-                                    style={{
-                                        fontSize: 13,
-                                        opacity: 0.85,
-                                        lineHeight: 1.7,
-                                    }}
-                                >
-                                    ・PC/非対応端末でもスマホでカード読み取りできます
-                                    <br />
-                                    ・認証後、この画面に戻って紐付けを完了します
-                                </div>
 
-                                <div
-                                    style={{
-                                        display: "flex",
-                                        gap: 12,
-                                        flexWrap: "wrap",
-                                    }}
-                                >
-                                    <button
-                                        type="button"
-                                        onClick={() => {
-                                            // ✅ このページに戻ってくればOK（state.from 維持したいなら from でもOK）
-                                            openAndroidLinkApp(from);
-                                        }}
-                                        disabled={busy}
-                                        style={{
-                                            padding: "10px 14px",
-                                            fontWeight: 800,
-                                        }}
-                                    >
-                                        Androidアプリを開く →
-                                    </button>
-
-                                    <span
-                                        style={{
-                                            fontSize: 12,
-                                            opacity: 0.75,
-                                            alignSelf: "center",
-                                        }}
-                                    >
-                                        ※
-                                        アプリ未インストールの場合は反応しません
-                                    </span>
-                                </div>
-                            </div>
-                        </Card>
+                        {/* ✅ Androidカードは STEP2 から削除（PIN前に出す方針） */}
 
                         <div
                             style={{
@@ -383,8 +401,7 @@ export function IdentityLinkPage() {
                                     onError={setErr}
                                     devCitizenId={devCitizenId}
                                 />
-                            ) : // method === "NFC"
-                            canWebNfc ? (
+                            ) : canWebNfc ? (
                                 <IdentityNfcScanner
                                     pin={pin}
                                     pinRequired

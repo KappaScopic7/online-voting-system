@@ -124,10 +124,8 @@ export function VotingStartPage() {
         // - 基本は PUBLIC token のみ保存（混線を構造的に排除）
         // - 移行期間だけ VOTE を許すならここで許可してもよいが、最終的には拒否推奨
         const kind = readJwtKind(t);
-        if (kind && kind !== "PUBLIC") {
-            // 互換期間に VOTE を許したいなら `kind !== "PUBLIC" && kind !== "VOTE"` にする
-            return;
-        }
+        if (kind && kind !== "PUBLIC") return;
+        publicToken.set(t);
 
         publicToken.set(t);
     }, [publicMode, effectiveToken]);

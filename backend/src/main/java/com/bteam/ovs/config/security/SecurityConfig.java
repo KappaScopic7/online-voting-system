@@ -86,6 +86,7 @@ public class SecurityConfig {
                         // 本人認証トークンが必要（ログイン不要だが「認証は必要」）
                         .requestMatchers("/api/public/voting/**").authenticated()
                         .requestMatchers("/api/public/alloc-voting/**").authenticated()
+                        .requestMatchers("/api/public/judge-review/**").authenticated()
 
                         // ---- public / user auth ----
                         .requestMatchers(

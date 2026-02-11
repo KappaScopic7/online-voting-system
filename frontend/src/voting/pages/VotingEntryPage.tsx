@@ -121,7 +121,7 @@ export function VotingEntryPage() {
                 return;
             }
 
-            // ✅ eid 不一致は混線なので捨てて認証へ（安全）
+            // TODO: エラー時用確認
             const eid = readEid(effectiveToken);
             if (eid && eid !== electionId) {
                 publicToken.clear();

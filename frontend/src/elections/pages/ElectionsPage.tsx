@@ -109,9 +109,21 @@ function ElectionItemAction(props: {
 }
 
 function ElectionItemMeta({ e }: { e: ElectionListItem }) {
+    const bt = String(e.ballotType ?? "").toUpperCase();
+
+    const isProportional =
+        bt === "PROPORTIONAL" ||
+        bt === "PARTY_LIST" ||
+        bt === "PARTY" ||
+        bt === "LIST";
+
+    const label = isProportional ? "政党" : "候補者";
+
     return (
         <>
-            <span>候補者数: {e.candidateCount}</span>
+            <span>
+                {label}数: {e.candidateCount}
+            </span>
         </>
     );
 }
@@ -228,28 +240,42 @@ export function ElectionsPage() {
                 </Card>
             ) : (
                 <div style={{ display: "grid", gap: 12 }}>
-                    {filtered.map((e) => (
-                        <ElectionCardFrame
-                            key={e.electionId}
-                            e={{
-                                electionId: e.electionId,
-                                title: e.title,
-                                startsAt: e.startsAt,
-                                endsAt: e.endsAt,
-                                status: e.status,
-                                hasResult: e.hasResult,
-                            }}
-                            from={from}
-                            meta={<ElectionItemMeta e={e} />}
-                            action={
-                                <ElectionItemAction
-                                    e={e}
-                                    from={from}
-                                    meExists={!!me}
-                                />
-                            }
-                        />
-                    ))}
+                    {filtered.map((e) => {
+                        const bt = String(e.ballotType ?? "").toUpperCase();
+                        const isProportional =
+                            bt === "PROPORTIONAL" ||
+                            bt === "PARTY_LIST" ||
+                            bt === "PARTY" ||
+                            bt === "LIST";
+
+                        const candidatesLabel = isProportional
+                            ? "政党一覧"
+                            : "候補者一覧";
+
+                        return (
+                            <ElectionCardFrame
+                                key={e.electionId}
+                                e={{
+                                    electionId: e.electionId,
+                                    title: e.title,
+                                    startsAt: e.startsAt,
+                                    endsAt: e.endsAt,
+                                    status: e.status,
+                                    hasResult: e.hasResult,
+                                }}
+                                from={from}
+                                meta={<ElectionItemMeta e={e} />}
+                                candidatesLinkLabel={candidatesLabel}
+                                action={
+                                    <ElectionItemAction
+                                        e={e}
+                                        from={from}
+                                        meExists={!!me}
+                                    />
+                                }
+                            />
+                        );
+                    })}
                 </div>
             )}
 

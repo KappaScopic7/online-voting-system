@@ -14,15 +14,18 @@ export function IdentityMethodTabs(props: {
 
     nfcDisabled?: boolean;
     manualDisabled?: boolean;
+
+    allowManual?: boolean;
 }) {
     const {
         value,
         onChange,
         nfcDisabled = false,
         manualDisabled = false,
+        allowManual = false,
     } = props;
 
-    const manualEnabled = isManualDemoEnabled();
+    const manualEnabled = allowManual || isManualDemoEnabled();
 
     const tabStyle = (
         active: boolean,

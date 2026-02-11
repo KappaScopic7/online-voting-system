@@ -65,15 +65,9 @@ export function IdentityNfcKeyboardReader(props: {
         if (commitTimerRef.current) window.clearTimeout(commitTimerRef.current);
         commitTimerRef.current = window.setTimeout(() => commit(), 250);
     };
+    const demoMode = useMemo(() => isManualDemoEnabled(), []);
 
     useEffect(() => {
-        // ✅ デモ時のみ bridge を触る
-        if (!manualDemo) {
-            setBridgeState("OFFLINE");
-            setBridgeNote(null);
-            return;
-        }
-
         let alive = true;
         let lastTimer: number | null = null;
 
@@ -88,12 +82,45 @@ export function IdentityNfcKeyboardReader(props: {
             setBridgeNote(note);
         };
 
+        const tickLast = async () => {
+            if (!alive) return;
+            if (busy) return;
+
+            try {
+                const res = await fetch(bridgeLastUrl, {
+                    method: "GET",
+                    cache: "no-store",
+                });
+                if (!alive) return;
+
+                if (res.status === 204) return;
+                if (res.ok) {
+                    const data = (await res.json()) as { uuid?: string };
+                    const uuid = String(data.uuid ?? "").trim();
+                    if (uuid && uuid !== value) {
+                        setValue(uuid);
+                        scheduleCommit();
+                    }
+                    return;
+                }
+                throw new Error(`bridge /last status=${res.status}`);
+            } catch {
+                stopOffline(
+                    "NFC Bridgeとの通信が切れました（自動入力をOFFにしました）",
+                );
+            }
+        };
+
+        const startPollingLast = () => {
+            if (lastTimer) return;
+            lastTimer = window.setInterval(tickLast, 400);
+        };
+
         const checkHealth = async () => {
             if (!alive) return;
             if (busy) return;
 
             setBridgeState("CHECKING");
-
             try {
                 const res = await fetch(bridgeHealthUrl, {
                     method: "GET",
@@ -112,45 +139,8 @@ export function IdentityNfcKeyboardReader(props: {
             }
 
             stopOffline(
-                "NFC Bridge未接続（ローカルで runNfcBridge を起動すると自動入力が有効になります）",
+                "NFC Bridge未接続（ローカルで runNfcBridge を起動してください）",
             );
-        };
-
-        const tickLast = async () => {
-            if (!alive) return;
-            if (busy) return;
-
-            try {
-                const res = await fetch(bridgeLastUrl, {
-                    method: "GET",
-                    cache: "no-store",
-                });
-
-                if (!alive) return;
-
-                if (res.status === 204) return;
-
-                if (res.ok) {
-                    const data = (await res.json()) as { uuid?: string };
-                    const uuid = String(data.uuid ?? "").trim();
-                    if (uuid && uuid !== value) {
-                        setValue(uuid);
-                        scheduleCommit();
-                    }
-                    return;
-                }
-
-                throw new Error(`bridge /last status=${res.status}`);
-            } catch {
-                stopOffline(
-                    "NFC Bridgeとの通信が切れました（自動入力をOFFにしました）",
-                );
-            }
-        };
-
-        const startPollingLast = () => {
-            if (lastTimer) return;
-            lastTimer = window.setInterval(tickLast, 400);
         };
 
         checkHealth();
@@ -160,7 +150,8 @@ export function IdentityNfcKeyboardReader(props: {
             clearLast();
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [manualDemo, busy, value, bridgeHealthUrl, bridgeLastUrl]);
+    }, [busy, value, bridgeHealthUrl, bridgeLastUrl]);
+
     const commit = async () => {
         const v = value.trim();
         if (!v) return;
@@ -288,7 +279,7 @@ export function IdentityNfcKeyboardReader(props: {
                 )}
 
                 {/* デモ時だけ入力欄を出す */}
-                {manualDemo && (
+                {demoMode && (
                     <label style={{ display: "grid", gap: 4 }}>
                         <span style={{ fontSize: 13, fontWeight: 700 }}>
                             （デモ用）読み取り結果 citizenId (UUID)
