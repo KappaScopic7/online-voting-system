@@ -571,11 +571,7 @@ public class MachidaSangiinSeed {
                 new VoteJson(EID_TOKYO_DISTRICT, uuid("11111111-1111-1111-1111-111111111111"), 7, -120), // TD08
                 new VoteJson(EID_TOKYO_DISTRICT, uuid("22222222-2222-2222-2222-222222222222"), 11, -240), // TD12
                 new VoteJson(EID_TOKYO_DISTRICT, uuid("33333333-3333-3333-3333-333333333333"), 18, -360), // TD19
-                new VoteJson(EID_TOKYO_DISTRICT, uuid("44444444-4444-4444-4444-444444444444"), 22, -480), // TD23
-
-                // 国民審査（2択）
-                new VoteJson(EID_JUDGE_REVIEW, uuid("11111111-1111-1111-1111-111111111111"), 0, -60), // 信任
-                new VoteJson(EID_JUDGE_REVIEW, uuid("22222222-2222-2222-2222-222222222222"), 1, -90) // 罷免
+                new VoteJson(EID_TOKYO_DISTRICT, uuid("44444444-4444-4444-4444-444444444444"), 22, -480) // TD23
         ));
 
         // 過去：都知事 2024 の“それっぽい投票”を追加（結果画面の見栄え用）
@@ -598,6 +594,21 @@ public class MachidaSangiinSeed {
                         List.of(ai("CANDIDATE", 3, 100))),
                 alloc(EID_TOKYO_PR, uuid("44444444-4444-4444-4444-444444444444"), -360,
                         List.of(ai("CANDIDATE", 4, 70), ai("CANDIDATE", 5, 30))));
+    }
+
+    // ---------------------------
+    // Judge Review Votes（国民審査）
+    // ---------------------------
+    public List<JudgeReviewVoteJson> judgeReviewVoteCasts() {
+        return List.of(
+                // voter.ok が国民審査を投票済みにする例（J01 OK / J02 NO）
+                new JudgeReviewVoteJson(
+                        EID_JUDGE_REVIEW,
+                        uuid("11111111-1111-1111-1111-111111111111"),
+                        -180, // 3分前
+                        List.of(
+                                new JudgeReviewVoteJson.ItemJson(0, "OK"),
+                                new JudgeReviewVoteJson.ItemJson(1, "NO"))));
     }
 
     private AllocVoteJson alloc(String eid, UUID cid, long off, List<AllocVoteJson.AllocItemJson> items) {

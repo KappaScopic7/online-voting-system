@@ -13,10 +13,13 @@ import com.bteam.ovs.elections.repository.ElectionRepository;
 import com.bteam.ovs.parties.repository.PartyRepository;
 import com.bteam.ovs.shared.auth.AccountResolver;
 import com.bteam.ovs.shared.errors.ApiException;
+import com.bteam.ovs.voting.entity.VoteAllocCast;
+import com.bteam.ovs.voting.repository.VoteAllocCastRepository;
 import com.bteam.ovs.voting.repository.VoteAllocItemRepository;
 import com.bteam.ovs.voting.repository.VoteCurrentRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import com.bteam.ovs.voting.repository.JudgeReviewCastRepository;
 
 import java.time.Instant;
 import java.util.*;
@@ -33,6 +36,8 @@ public class ElectionService {
     private final CandidateService candidateService;
     private final VoteAllocItemRepository voteAllocItemRepo;
     private final PartyRepository partyRepo;
+    private final VoteAllocCastRepository voteAllocCastRepo;
+    private final JudgeReviewCastRepository judgeReviewCastRepo;
 
     public ElectionService(
             ElectionRepository electionRepo,
@@ -41,7 +46,9 @@ public class ElectionService {
             ElectionEligibilityService electionEligibilityService,
             CandidateService candidateService,
             VoteAllocItemRepository voteAllocItemRepo,
-            PartyRepository partyRepo) {
+            PartyRepository partyRepo,
+            VoteAllocCastRepository voteAllocCastRepo,
+            JudgeReviewCastRepository judgeReviewCastRepo) {
         this.electionRepo = electionRepo;
         this.voteCurrentRepo = voteCurrentRepo;
         this.accountResolver = accountResolver;
@@ -49,11 +56,11 @@ public class ElectionService {
         this.candidateService = candidateService;
         this.voteAllocItemRepo = voteAllocItemRepo;
         this.partyRepo = partyRepo;
+        this.voteAllocCastRepo = voteAllocCastRepo;
+        this.judgeReviewCastRepo = judgeReviewCastRepo;
     }
 
     public List<ElectionListItem> list(UUID accountIdOrNull) {
-        // final Instant now = Instant.now();
-
         var elections = electionRepo.findAllByOrderByStartsAtDesc();
         if (elections.isEmpty())
             return List.of();
@@ -63,7 +70,7 @@ public class ElectionService {
         // 候補者数
         Map<UUID, Long> candidateCountByElectionId = candidateService.countByElectionIds(electionIds);
 
-        // currentVote の候補者名表示用
+        // currentVote の候補者名表示用（通常投票用）
         Map<UUID, String> candidateNameById = candidateService.candidateNameMapByElectionIds(electionIds);
 
         // 公開API：accountIdが来ても「見つからない/無効/ロック」は未ログイン扱い
@@ -76,6 +83,7 @@ public class ElectionService {
             identityLinked = (citizenId != null);
         }
 
+        // ===== current (NORMAL) =====
         Map<UUID, com.bteam.ovs.voting.entity.VoteCurrent> currentByElectionId = Map.of();
         if (identityLinked) {
             currentByElectionId = voteCurrentRepo.findByCitizenIdAndElectionIdIn(citizenId, electionIds).stream()
@@ -85,8 +93,28 @@ public class ElectionService {
                             (a, b) -> a));
         }
 
+        // ===== current (ALLOCATION) =====
+        Set<UUID> allocCurrentElectionIds = Set.of();
+        if (identityLinked) {
+            allocCurrentElectionIds = voteAllocCastRepo.findByCitizenIdAndElectionIdIn(citizenId, electionIds).stream()
+                    .map(VoteAllocCast::getElectionId)
+                    .collect(Collectors.toSet());
+        }
+
+        // ===== current (JUDGE_REVIEW) =====
+        Set<UUID> jrCurrentElectionIds = Set.of();
+        if (identityLinked) {
+            jrCurrentElectionIds = judgeReviewCastRepo
+                    .findByCitizenIdAndElectionIdIn(citizenId, electionIds).stream()
+                    .map(c -> c.getElectionId())
+                    .collect(Collectors.toSet());
+        }
+
         final boolean finalIdentityLinked = identityLinked;
+        final UUID finalAccountIdOrNull = accountIdOrNull;
         final Map<UUID, com.bteam.ovs.voting.entity.VoteCurrent> finalCurrentByElectionId = currentByElectionId;
+        final Set<UUID> finalAllocCurrentElectionIds = allocCurrentElectionIds;
+        final Set<UUID> finalJrCurrentElectionIds = jrCurrentElectionIds;
 
         return elections.stream()
                 .map(e -> {
@@ -98,11 +126,12 @@ public class ElectionService {
 
                     boolean canCast = finalIdentityLinked
                             && e.getStatus() == ElectionStatus.OPEN
-                            && accountIdOrNull != null
-                            && electionEligibilityService.isEligible(accountIdOrNull, e.getId());
+                            && finalAccountIdOrNull != null
+                            && electionEligibilityService.isEligible(finalAccountIdOrNull, e.getId());
 
+                    // 通常投票の currentVote（表示用）
                     ElectionListItem.CurrentVote currentVote = null;
-                    if (finalIdentityLinked) {
+                    if (finalIdentityLinked && e.getBallotType() == BallotType.SINGLE_CHOICE) {
                         var cur = finalCurrentByElectionId.get(e.getId());
                         if (cur != null) {
                             if ("NONE_SUPPORT".equals(cur.getType())) {
@@ -120,6 +149,20 @@ public class ElectionService {
                         }
                     }
 
+                    // ★ここが本題：方式ごとに hasCurrent を作る
+                    boolean hasCurrent = false;
+                    if (finalIdentityLinked) {
+                        if (e.getBallotType() == BallotType.SINGLE_CHOICE) {
+                            hasCurrent = (currentVote != null);
+                        } else if (e.getBallotType() == BallotType.ALLOCATION) {
+                            hasCurrent = finalAllocCurrentElectionIds.contains(e.getId());
+                        } else if (e.getBallotType() == BallotType.JUDGE_REVIEW) {
+                            hasCurrent = finalJrCurrentElectionIds.contains(e.getId());
+                        } else {
+                            hasCurrent = false;
+                        }
+                    }
+
                     return new ElectionListItem(
                             e.getId(),
                             e.getTitle(),
@@ -131,7 +174,7 @@ public class ElectionService {
                             canCast,
                             currentVote,
                             e.getBallotType().name(),
-                            currentVote != null);
+                            hasCurrent);
                 })
                 .toList();
     }

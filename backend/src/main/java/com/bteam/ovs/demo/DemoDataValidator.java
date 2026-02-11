@@ -17,7 +17,8 @@ public class DemoDataValidator {
             List<VoteJson> votes,
             List<UserJson> users,
             List<CommitteeJson> committee,
-            List<AllocVoteJson> allocVoteCasts) {
+            List<AllocVoteJson> allocVoteCasts,
+            List<JudgeReviewVoteJson> judgeReviewVoteCasts) {
         validateUsers(users, citizenMap);
         validateCandidates(candidateMap, partyMap);
         validateElections(electionMap, candidateMap);
@@ -25,6 +26,7 @@ public class DemoDataValidator {
         validateVotes(votes, electionMap, citizenMap);
         validateCommitteeAccounts(committee);
         validateAllocVoteCasts(allocVoteCasts, electionMap, citizenMap);
+        validateJudgeReviewVotes(electionMap, citizenMap, judgeReviewVoteCasts);
     }
 
     // -------------------------------------------------
@@ -212,5 +214,40 @@ public class DemoDataValidator {
     private void mustNonBlank(String v, String msg) {
         if (v == null || v.isBlank())
             throw new IllegalStateException(msg);
+    }
+
+    private void validateJudgeReviewVotes(
+            Map<String, ElectionJson> electionMap,
+            Map<UUID, CitizenJson> citizenMap,
+            List<JudgeReviewVoteJson> votes) {
+
+        for (var v : votes) {
+            var e = electionMap.get(v.electionKey());
+            if (e == null)
+                throw new IllegalStateException("judgeReviewVotes: unknown electionKey=" + v.electionKey());
+
+            if (!"JUDGE_REVIEW".equals(e.ballotType())) {
+                throw new IllegalStateException(
+                        "judgeReviewVotes: ballotType must be JUDGE_REVIEW. electionKey=" + v.electionKey());
+            }
+
+            if (!citizenMap.containsKey(v.citizenId())) {
+                throw new IllegalStateException("judgeReviewVotes: unknown citizenId=" + v.citizenId());
+            }
+
+            if (v.items() == null || v.items().isEmpty()) {
+                throw new IllegalStateException("judgeReviewVotes: items empty. electionKey=" + v.electionKey());
+            }
+
+            int n = e.candidates().size();
+            for (var it : v.items()) {
+                if (it.judgeIndex() < 0 || it.judgeIndex() >= n)
+                    throw new IllegalStateException(
+                            "judgeReviewVotes: judgeIndex out of range. idx=" + it.judgeIndex());
+
+                if (!"OK".equals(it.choice()) && !"NO".equals(it.choice()))
+                    throw new IllegalStateException("judgeReviewVotes: invalid choice=" + it.choice());
+            }
+        }
     }
 }

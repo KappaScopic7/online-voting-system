@@ -7,11 +7,7 @@ import com.bteam.ovs.citizen.repository.CitizenRepository;
 import com.bteam.ovs.elections.repository.ElectionEligibilityRuleRepository;
 import com.bteam.ovs.elections.repository.ElectionRepository;
 import com.bteam.ovs.parties.repository.PartyRepository;
-import com.bteam.ovs.voting.repository.VoteAllocCastRepository;
-import com.bteam.ovs.voting.repository.VoteAllocCurrentRepository;
-import com.bteam.ovs.voting.repository.VoteAllocItemRepository;
-import com.bteam.ovs.voting.repository.VoteCastRepository;
-import com.bteam.ovs.voting.repository.VoteCurrentRepository;
+import com.bteam.ovs.voting.repository.*; // ★ まとめてimportでもOK
 import org.springframework.context.annotation.Profile;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -37,6 +33,10 @@ public class DemoDataService {
     private final VoteAllocCurrentRepository voteAllocCurrentRepo;
     private final VoteAllocItemRepository voteAllocItemRepo;
 
+    // ★ 追加
+    private final JudgeReviewCastRepository judgeReviewCastRepo;
+    private final JudgeReviewItemRepository judgeReviewItemRepo;
+
     private final CitizenRepository citizenRepo;
 
     private final PasswordEncoder passwordEncoder;
@@ -55,9 +55,15 @@ public class DemoDataService {
             VoteAllocCastRepository voteAllocCastRepo,
             VoteAllocCurrentRepository voteAllocCurrentRepo,
             VoteAllocItemRepository voteAllocItemRepo,
+
+            // ★ 追加
+            JudgeReviewCastRepository judgeReviewCastRepo,
+            JudgeReviewItemRepository judgeReviewItemRepo,
+
             CitizenRepository citizenRepo,
             PasswordEncoder passwordEncoder,
             TransactionTemplate tx) {
+
         this.initializer = initializer;
         this.userRepo = userRepo;
         this.staffRepo = staffRepo;
@@ -70,6 +76,11 @@ public class DemoDataService {
         this.voteAllocCastRepo = voteAllocCastRepo;
         this.voteAllocCurrentRepo = voteAllocCurrentRepo;
         this.voteAllocItemRepo = voteAllocItemRepo;
+
+        // ★ 追加
+        this.judgeReviewCastRepo = judgeReviewCastRepo;
+        this.judgeReviewItemRepo = judgeReviewItemRepo;
+
         this.citizenRepo = citizenRepo;
         this.passwordEncoder = passwordEncoder;
         this.tx = tx;
@@ -83,12 +94,20 @@ public class DemoDataService {
                     partyRepo, electionRepo, candidateRepo, ruleRepo,
                     voteCastRepo, voteCurrentRepo,
                     voteAllocCastRepo, voteAllocCurrentRepo, voteAllocItemRepo,
+
+                    // ★ 追加
+                    judgeReviewCastRepo, judgeReviewItemRepo,
+
                     citizenRepo,
                     passwordEncoder);
         });
     }
 
     private void wipeAll() {
+        // ★ judge review は item -> cast の順で消す
+        judgeReviewItemRepo.deleteAll();
+        judgeReviewCastRepo.deleteAll();
+
         // FK順で消す（initializer の保存順に合わせる）
         voteAllocCurrentRepo.deleteAll();
         voteAllocItemRepo.deleteAll();

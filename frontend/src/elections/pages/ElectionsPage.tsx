@@ -11,29 +11,6 @@ import { ElectionCardFrame } from "../ui/ElectionCardFrame";
 import { useElectionListControls } from "../hooks/useElectionListControls";
 import { filterSortElections } from "../model/electionListView";
 
-function hasAnyCurrentVote(e: ElectionListItem): boolean {
-    const x: any = e as any;
-    // NORMAL（候補者/誰も支持しない）
-    if (x.currentVote) return true;
-
-    // ALLOCATION（配分投票）: よくある候補キー
-    if (x.currentAllocVote) return true;
-    if (x.currentAlloc) return true;
-    if (x.allocCurrent) return true;
-    if (
-        x.currentAllocItems &&
-        Array.isArray(x.currentAllocItems) &&
-        x.currentAllocItems.length > 0
-    )
-        return true;
-
-    // JUDGE_REVIEW（国民審査）
-    if (x.currentJudgeReview) return true;
-    if (x.judgeReviewCurrent) return true;
-
-    return false;
-}
-
 function ElectionItemAction(props: {
     e: ElectionListItem;
     from: string;
@@ -69,7 +46,8 @@ function ElectionItemAction(props: {
         }
 
         if (e.canCast) {
-            const voted = hasAnyCurrentVote(e);
+            // const voted = e.hasCurrent || !!e.currentVote;
+            const voted = !!e.hasCurrent;
 
             return (
                 <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
@@ -178,9 +156,8 @@ export function ElectionsPage() {
             const notVoted: ElectionListItem[] = [];
             const voted: ElectionListItem[] = [];
             for (const e of xs) {
-                const hasCurrentVote = hasAnyCurrentVote(e);
-
-                (hasCurrentVote ? voted : notVoted).push(e);
+                const has = e.hasCurrent || !!e.currentVote;
+                (has ? voted : notVoted).push(e);
             }
             return [...notVoted, ...voted];
         };

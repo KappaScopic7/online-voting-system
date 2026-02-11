@@ -5,6 +5,12 @@ export type ElectionCandidateSummary = {
     name: string;
 };
 
+export type BallotType =
+    | "SINGLE_CHOICE"
+    | "ALLOCATION"
+    | "JUDGE_REVIEW"
+    | string;
+
 export type ElectionListItem = {
     electionId: string;
     title: string;
@@ -19,6 +25,9 @@ export type ElectionListItem = {
         candidateName: string | null;
         castedAt: string;
     };
+
+    ballotType: BallotType; // ★追加
+    hasCurrent: boolean; // ★追加（方式問わず投票済み）
 };
 
 export type ElectionResultResponse = {
@@ -66,8 +75,6 @@ export type AllocElectionResultResponse = {
         points: number;
     }[];
 };
-
-export type BallotType = "SINGLE_CHOICE" | "ALLOCATION" | string;
 
 export type ElectionResultBundleResponse = {
     electionId: string;

@@ -73,6 +73,8 @@ type CandidateMeta = {
     } | null;
 };
 
+type Step = "EDIT" | "CONFIRM";
+
 export function AllocVotingStartPage() {
     const nav = useNavigate();
     const loc = useLocation();
@@ -115,6 +117,7 @@ export function AllocVotingStartPage() {
 
     const [data, setData] = useState<AllocVoteStartResponse | null>(null);
     const [rows, setRows] = useState<Row[]>([]);
+    const [step, setStep] = useState<Step>("EDIT");
 
     // ★メタ（政党色/画像）
     const [candMetaById, setCandMetaById] = useState<
@@ -138,11 +141,12 @@ export function AllocVotingStartPage() {
         return (rows[noneIdx]?.points ?? 0) > 0;
     }, [rows, noneIdx]);
 
+    const hasAnyPoints = rows.some((r) => (r.points ?? 0) > 0);
+    const canGoConfirm =
+        !!data && sum === total && hasAnyPoints && !busy && !loading && !err;
+
     const canSubmit =
-        !!data &&
-        sum === total &&
-        rows.some((r) => (r.points ?? 0) > 0) &&
-        !busy;
+        step === "CONFIRM" && !!data && sum === total && hasAnyPoints && !busy;
 
     const clampInt = (v: number) => Math.max(0, Math.floor(Number(v) || 0));
 
@@ -170,6 +174,8 @@ export function AllocVotingStartPage() {
             const main = normalized.filter((r) => r.type !== "NONE_SUPPORT");
             const none = normalized.filter((r) => r.type === "NONE_SUPPORT");
             setRows([...main, ...none]);
+
+            setStep("EDIT");
 
             // ★追加ロード：候補者 / 政党 メタ（失敗しても投票は続行）
             try {
@@ -240,6 +246,7 @@ export function AllocVotingStartPage() {
             setRows([]);
             setPartyByAnyKey({});
             setCandMetaById({});
+            setStep("EDIT");
         } finally {
             setLoading(false);
         }
@@ -330,6 +337,40 @@ export function AllocVotingStartPage() {
         setRows((prev) => prev.map((r) => ({ ...r, points: 0 })));
     };
 
+    const resolveRowParty = (r: Row) => {
+        if (isCandidate(r) && r.targetId) {
+            const m = candMetaById[r.targetId] ?? null;
+            return m?.party ?? null;
+        }
+        if (isParty(r) && r.targetId) {
+            const p = partyByAnyKey[r.targetId] ?? null;
+            return p
+                ? {
+                      id: (p as any).id,
+                      partyKey: (p as any).partyKey,
+                      shortName: (p as any).shortName,
+                      name: (p as any).name,
+                      color: (p as any).color,
+                  }
+                : null;
+        }
+        return null;
+    };
+
+    const onGoConfirm = useCallback(() => {
+        if (!canGoConfirm) return;
+        setErr(null);
+        setStep("CONFIRM");
+        window.scrollTo({ top: 0, behavior: "smooth" });
+    }, [canGoConfirm]);
+
+    const onBackToEdit = useCallback(() => {
+        if (busy) return;
+        setErr(null);
+        setStep("EDIT");
+        window.scrollTo({ top: 0, behavior: "smooth" });
+    }, [busy]);
+
     const onSubmit = useCallback(async () => {
         if (!data || busy) return;
 
@@ -376,6 +417,9 @@ export function AllocVotingStartPage() {
             } else {
                 setErr(msg ?? "送信に失敗しました");
             }
+
+            // 送信失敗時は EDIT に戻す（修正導線）
+            setStep("EDIT");
         } finally {
             setBusy(false);
         }
@@ -391,20 +435,36 @@ export function AllocVotingStartPage() {
         effectiveToken,
     ]);
 
-    // ✅ footer actions（下部バーに移す）
+    // ✅ footer actions（VotingStartPage と同じノリ）
     useEffect(() => {
         const actions: FooterAction[] = [];
 
-        // 左：戻る
-        actions.push({ kind: "LINK", to: backTo, label: "戻る" });
+        // 左：戻る（CONFIRMならEDITへ戻す、EDITなら backTo）
+        if (step === "CONFIRM") {
+            actions.push({
+                kind: "BUTTON",
+                label: "戻る",
+                disabled: busy,
+                onClick: onBackToEdit,
+            });
+        } else {
+            actions.push({ kind: "LINK", to: backTo, label: "戻る" });
+        }
 
-        // 右：再試行 or 送信
+        // 右：メイン操作
         if (err) {
             actions.push({
                 kind: "BUTTON",
                 label: loading ? "読み込み中..." : "再試行",
                 disabled: loading || busy || !electionId,
                 onClick: load,
+            });
+        } else if (step === "EDIT") {
+            actions.push({
+                kind: "BUTTON",
+                label: "次へ（内容確認）",
+                disabled: !canGoConfirm,
+                onClick: onGoConfirm,
             });
         } else {
             actions.push({
@@ -419,13 +479,17 @@ export function AllocVotingStartPage() {
         return () => setFooterActions(null);
     }, [
         setFooterActions,
-        backTo,
+        step,
+        busy,
         err,
         loading,
-        busy,
         electionId,
         load,
+        backTo,
+        canGoConfirm,
         canSubmit,
+        onGoConfirm,
+        onBackToEdit,
         onSubmit,
     ]);
 
@@ -435,27 +499,17 @@ export function AllocVotingStartPage() {
 
     const hasCandidate = rows.some((r) => r.type === "CANDIDATE");
 
-    const resolveRowParty = (r: Row) => {
-        if (isCandidate(r) && r.targetId) {
-            const m = candMetaById[r.targetId] ?? null;
-            return m?.party ?? null;
-        }
-        if (isParty(r) && r.targetId) {
-            const p = partyByAnyKey[r.targetId] ?? null;
-            return p
-                ? {
-                      id: (p as any).id,
-                      partyKey: (p as any).partyKey,
-                      shortName: (p as any).shortName,
-                      name: (p as any).name,
-                      color: (p as any).color,
-                  }
-                : null;
-        }
-        return null;
-    };
-
     const isDev = import.meta.env?.DEV;
+
+    const chosenItems = useMemo(() => {
+        return rows
+            .filter((r) => (r.points ?? 0) > 0)
+            .map((r) => {
+                const party = resolveRowParty(r);
+                return { ...r, party };
+            });
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [rows, candMetaById, partyByAnyKey]);
 
     return (
         <Page
@@ -553,6 +607,7 @@ export function AllocVotingStartPage() {
 
             {!err && !loading && data && (
                 <div style={{ display: "grid", gap: 12 }}>
+                    {/* ヘッダ */}
                     <Card>
                         <div style={{ display: "grid", gap: 8 }}>
                             <strong style={{ fontSize: 16 }}>
@@ -605,7 +660,13 @@ export function AllocVotingStartPage() {
                                     alignItems: "center",
                                 }}
                             >
-                                <button onClick={resetAll} disabled={busy}>
+                                <button
+                                    onClick={() => {
+                                        if (step === "CONFIRM") return;
+                                        resetAll();
+                                    }}
+                                    disabled={busy || step === "CONFIRM"}
+                                >
                                     クリア
                                 </button>
 
@@ -623,57 +684,199 @@ export function AllocVotingStartPage() {
                         </div>
                     </Card>
 
-                    <Card>
-                        <div style={{ display: "grid", gap: 10 }}>
-                            {rows.map((r, idx) => {
-                                const cand = isCandidate(r) && !!r.targetId;
-                                const none = isNone(r);
+                    {/* 本体 */}
+                    {step === "EDIT" ? (
+                        <Card>
+                            <div style={{ display: "grid", gap: 10 }}>
+                                {rows.map((r, idx) => {
+                                    const cand = isCandidate(r) && !!r.targetId;
+                                    const none = isNone(r);
 
-                                const party = resolveRowParty(r);
-                                const partyColor =
-                                    (party?.color ?? "").trim() || null;
+                                    const party = resolveRowParty(r);
+                                    const partyColor =
+                                        (party?.color ?? "").trim() || null;
 
-                                const candMeta =
-                                    cand && r.targetId
-                                        ? (candMetaById[r.targetId] ?? null)
-                                        : null;
+                                    const candMeta =
+                                        cand && r.targetId
+                                            ? (candMetaById[r.targetId] ?? null)
+                                            : null;
 
-                                const candidateKey =
-                                    (candMeta?.candidateKey ?? "").trim() ||
-                                    null;
+                                    const candidateKey =
+                                        (candMeta?.candidateKey ?? "").trim() ||
+                                        null;
 
-                                const imgSrc =
-                                    cand && r.targetId
-                                        ? (resolveCandidateImageUrl(
-                                              candidateKey ?? undefined,
-                                          ) ??
-                                          candMeta?.imageUrl ??
-                                          null)
-                                        : null;
+                                    const imgSrc =
+                                        cand && r.targetId
+                                            ? (resolveCandidateImageUrl(
+                                                  candidateKey ?? undefined,
+                                              ) ??
+                                              candMeta?.imageUrl ??
+                                              null)
+                                            : null;
 
-                                const detailHref =
-                                    cand && r.targetId
-                                        ? `/elections/${encodeURIComponent(
-                                              data.electionId,
-                                          )}/candidates/${encodeURIComponent(
-                                              r.targetId,
-                                          )}`
-                                        : null;
+                                    const detailHref =
+                                        cand && r.targetId
+                                            ? `/elections/${encodeURIComponent(
+                                                  data.electionId,
+                                              )}/candidates/${encodeURIComponent(
+                                                  r.targetId,
+                                              )}`
+                                            : null;
 
-                                if (none) {
+                                    if (none) {
+                                        return (
+                                            <div key={rowKey(r)}>
+                                                <CandidateCardFrame
+                                                    partyColor={null}
+                                                >
+                                                    <div
+                                                        style={{
+                                                            border: "1px dashed #eee",
+                                                            borderRadius: 10,
+                                                            padding: 12,
+                                                            background:
+                                                                "#fafafa",
+                                                            display: "grid",
+                                                            gap: 10,
+                                                        }}
+                                                    >
+                                                        <div
+                                                            style={{
+                                                                display: "flex",
+                                                                gap: 10,
+                                                                alignItems:
+                                                                    "center",
+                                                                flexWrap:
+                                                                    "wrap",
+                                                            }}
+                                                        >
+                                                            <div
+                                                                aria-hidden
+                                                                style={{
+                                                                    width: 44,
+                                                                    height: 44,
+                                                                    borderRadius: 999,
+                                                                    border: "1px solid #eee",
+                                                                    background:
+                                                                        "#f7f7f7",
+                                                                }}
+                                                            />
+
+                                                            <div
+                                                                style={{
+                                                                    display:
+                                                                        "grid",
+                                                                    gap: 2,
+                                                                    flex: 1,
+                                                                }}
+                                                            >
+                                                                <div
+                                                                    style={{
+                                                                        fontWeight: 800,
+                                                                    }}
+                                                                >
+                                                                    {r.label}
+                                                                </div>
+                                                                <div
+                                                                    style={{
+                                                                        fontSize: 12,
+                                                                        opacity: 0.75,
+                                                                        lineHeight: 1.5,
+                                                                    }}
+                                                                >
+                                                                    ※
+                                                                    できるだけ候補者へ配分してください。
+                                                                    <br />※
+                                                                    選択すると{" "}
+                                                                    {total}pt
+                                                                    を一括で消費します。
+                                                                </div>
+                                                            </div>
+
+                                                            {noneSelected ? (
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={
+                                                                        clearNone
+                                                                    }
+                                                                    disabled={
+                                                                        busy
+                                                                    }
+                                                                >
+                                                                    解除
+                                                                </button>
+                                                            ) : (
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={
+                                                                        commitNoneAll
+                                                                    }
+                                                                    disabled={
+                                                                        busy
+                                                                    }
+                                                                >
+                                                                    この選択をする…
+                                                                </button>
+                                                            )}
+                                                        </div>
+
+                                                        <div
+                                                            style={{
+                                                                display: "flex",
+                                                                gap: 8,
+                                                                alignItems:
+                                                                    "baseline",
+                                                                flexWrap:
+                                                                    "wrap",
+                                                            }}
+                                                        >
+                                                            <div
+                                                                style={{
+                                                                    fontSize: 12,
+                                                                    opacity: 0.75,
+                                                                }}
+                                                            >
+                                                                現在:
+                                                            </div>
+                                                            <div
+                                                                style={{
+                                                                    fontWeight: 900,
+                                                                }}
+                                                            >
+                                                                {r.points}pt
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </CandidateCardFrame>
+                                            </div>
+                                        );
+                                    }
+
                                     return (
                                         <div key={rowKey(r)}>
                                             <CandidateCardFrame
-                                                partyColor={null}
+                                                partyColor={partyColor}
                                             >
                                                 <div
                                                     style={{
-                                                        border: "1px dashed #eee",
-                                                        borderRadius: 10,
-                                                        padding: 12,
-                                                        background: "#fafafa",
                                                         display: "grid",
                                                         gap: 10,
+                                                        background: "#fff",
+                                                        borderRadius: 12,
+                                                        transition:
+                                                            "background 120ms ease",
+                                                    }}
+                                                    onMouseEnter={(ev) => {
+                                                        (
+                                                            ev.currentTarget as HTMLDivElement
+                                                        ).style.background =
+                                                            "#fafafa";
+                                                    }}
+                                                    onMouseLeave={(ev) => {
+                                                        (
+                                                            ev.currentTarget as HTMLDivElement
+                                                        ).style.background =
+                                                            "#fff";
                                                     }}
                                                 >
                                                     <div
@@ -685,69 +888,111 @@ export function AllocVotingStartPage() {
                                                             flexWrap: "wrap",
                                                         }}
                                                     >
-                                                        <div
-                                                            aria-hidden
-                                                            style={{
-                                                                width: 44,
-                                                                height: 44,
-                                                                borderRadius: 999,
-                                                                border: "1px solid #eee",
-                                                                background:
-                                                                    "#f7f7f7",
-                                                            }}
+                                                        <CandidateAvatar
+                                                            name={r.label}
+                                                            imageUrl={imgSrc}
+                                                            candidateKey={
+                                                                candidateKey ??
+                                                                undefined
+                                                            }
+                                                            index={idx}
+                                                            size={44}
                                                         />
 
                                                         <div
                                                             style={{
                                                                 display: "grid",
-                                                                gap: 2,
+                                                                gap: 4,
                                                                 flex: 1,
+                                                                minWidth: 0,
                                                             }}
                                                         >
                                                             <div
                                                                 style={{
-                                                                    fontWeight: 800,
+                                                                    display:
+                                                                        "flex",
+                                                                    gap: 10,
+                                                                    alignItems:
+                                                                        "baseline",
+                                                                    flexWrap:
+                                                                        "wrap",
                                                                 }}
                                                             >
-                                                                {r.label}
+                                                                <div
+                                                                    style={{
+                                                                        fontWeight: 800,
+                                                                        overflow:
+                                                                            "hidden",
+                                                                        textOverflow:
+                                                                            "ellipsis",
+                                                                        whiteSpace:
+                                                                            "nowrap",
+                                                                    }}
+                                                                >
+                                                                    {r.label}
+                                                                </div>
+
+                                                                {party?.shortName ||
+                                                                party?.name ? (
+                                                                    <PartyPill
+                                                                        shortName={
+                                                                            party?.shortName ??
+                                                                            ""
+                                                                        }
+                                                                        name={
+                                                                            party?.name ??
+                                                                            party?.shortName ??
+                                                                            ""
+                                                                        }
+                                                                        color={
+                                                                            partyColor ??
+                                                                            ""
+                                                                        }
+                                                                    />
+                                                                ) : null}
+
+                                                                <span
+                                                                    style={{
+                                                                        marginLeft:
+                                                                            "auto",
+                                                                        fontSize: 12,
+                                                                        opacity: 0.7,
+                                                                    }}
+                                                                >
+                                                                    {cand
+                                                                        ? "候補者"
+                                                                        : "政党"}
+                                                                </span>
                                                             </div>
-                                                            <div
-                                                                style={{
-                                                                    fontSize: 12,
-                                                                    opacity: 0.75,
-                                                                    lineHeight: 1.5,
-                                                                }}
-                                                            >
-                                                                ※
-                                                                できるだけ候補者へ配分してください。
-                                                                <br />※
-                                                                選択すると{" "}
-                                                                {total}pt
-                                                                を一括で消費します。
-                                                            </div>
+
+                                                            {candMeta?.title ? (
+                                                                <div
+                                                                    style={{
+                                                                        fontSize: 13,
+                                                                        opacity: 0.85,
+                                                                        lineHeight: 1.5,
+                                                                    }}
+                                                                >
+                                                                    {
+                                                                        candMeta.title
+                                                                    }
+                                                                </div>
+                                                            ) : null}
                                                         </div>
 
-                                                        {noneSelected ? (
-                                                            <button
-                                                                type="button"
-                                                                onClick={
-                                                                    clearNone
-                                                                }
-                                                                disabled={busy}
+                                                        {detailHref ? (
+                                                            <Link
+                                                                to={detailHref}
+                                                                state={{
+                                                                    from: self,
+                                                                }}
+                                                                style={{
+                                                                    fontSize: 13,
+                                                                }}
                                                             >
-                                                                解除
-                                                            </button>
-                                                        ) : (
-                                                            <button
-                                                                type="button"
-                                                                onClick={
-                                                                    commitNoneAll
-                                                                }
-                                                                disabled={busy}
-                                                            >
-                                                                この選択をする…
-                                                            </button>
-                                                        )}
+                                                                詳細 →
+                                                            </Link>
+                                                        ) : null}
                                                     </div>
 
                                                     <div
@@ -755,259 +1000,338 @@ export function AllocVotingStartPage() {
                                                             display: "flex",
                                                             gap: 8,
                                                             alignItems:
-                                                                "baseline",
+                                                                "center",
                                                             flexWrap: "wrap",
                                                         }}
                                                     >
-                                                        <div
+                                                        <input
+                                                            type="number"
+                                                            min={0}
+                                                            step={1}
+                                                            value={r.points}
+                                                            onChange={(e) =>
+                                                                setPoints(
+                                                                    idx,
+                                                                    Number(
+                                                                        e.target
+                                                                            .value,
+                                                                    ),
+                                                                )
+                                                            }
+                                                            style={{
+                                                                width: 140,
+                                                            }}
+                                                            disabled={busy}
+                                                        />
+                                                        <span>pt</span>
+
+                                                        <button
+                                                            type="button"
+                                                            onClick={() =>
+                                                                fillRestTo(idx)
+                                                            }
+                                                            disabled={
+                                                                busy ||
+                                                                rest === 0
+                                                            }
                                                             style={{
                                                                 fontSize: 12,
-                                                                opacity: 0.75,
+                                                            }}
+                                                            title="残りポイントをこの項目に追加します"
+                                                        >
+                                                            残りを入れる
+                                                        </button>
+
+                                                        <span
+                                                            style={{
+                                                                marginLeft:
+                                                                    "auto",
+                                                                fontSize: 12,
+                                                                opacity: 0.7,
                                                             }}
                                                         >
-                                                            現在:
-                                                        </div>
+                                                            現在:{" "}
+                                                            <b>{r.points}</b>pt
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </CandidateCardFrame>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+
+                            {/* ✅ 通常位置のボタン（ここにも出す） */}
+                            <div
+                                style={{
+                                    marginTop: 12,
+                                    display: "flex",
+                                    gap: 12,
+                                    flexWrap: "wrap",
+                                    alignItems: "center",
+                                }}
+                            >
+                                <button
+                                    type="button"
+                                    onClick={onGoConfirm}
+                                    disabled={!canGoConfirm}
+                                >
+                                    次へ（内容確認）
+                                </button>
+
+                                {hasCandidate && (
+                                    <Link
+                                        to={`/elections/${data.electionId}/candidates`}
+                                        state={{ from: self }}
+                                    >
+                                        候補者を見る
+                                    </Link>
+                                )}
+
+                                <span
+                                    style={{
+                                        marginLeft: "auto",
+                                        fontSize: 12,
+                                        opacity: 0.75,
+                                    }}
+                                >
+                                    ※
+                                    送信前に確認画面があります（送信は下部バーからも可能）
+                                </span>
+                            </div>
+                        </Card>
+                    ) : (
+                        <Card>
+                            <div style={{ display: "grid", gap: 12 }}>
+                                <div style={{ fontWeight: 800 }}>内容確認</div>
+
+                                <div
+                                    style={{
+                                        border: "1px solid #eee",
+                                        borderRadius: 12,
+                                        padding: 12,
+                                        display: "grid",
+                                        gap: 10,
+                                        background: "#fafafa",
+                                    }}
+                                >
+                                    <div>
+                                        選挙:{" "}
+                                        <strong>{data.electionTitle}</strong>
+                                    </div>
+
+                                    <div style={{ fontSize: 12, opacity: 0.8 }}>
+                                        合計: <b>{sum}</b> / {total}（残り{" "}
+                                        {rest}）
+                                    </div>
+
+                                    <div style={{ display: "grid", gap: 8 }}>
+                                        {chosenItems.length === 0 ? (
+                                            <div
+                                                style={{
+                                                    fontSize: 13,
+                                                    opacity: 0.8,
+                                                }}
+                                            >
+                                                （配分がありません）
+                                            </div>
+                                        ) : (
+                                            chosenItems.map((r, i) => {
+                                                const partyColor =
+                                                    (
+                                                        r.party?.color ?? ""
+                                                    ).trim() || "";
+                                                const candMeta =
+                                                    isCandidate(r) && r.targetId
+                                                        ? (candMetaById[
+                                                              r.targetId
+                                                          ] ?? null)
+                                                        : null;
+                                                const candidateKey =
+                                                    (
+                                                        candMeta?.candidateKey ??
+                                                        ""
+                                                    ).trim() || null;
+                                                const imgSrc =
+                                                    isCandidate(r) && r.targetId
+                                                        ? (resolveCandidateImageUrl(
+                                                              candidateKey ??
+                                                                  undefined,
+                                                          ) ??
+                                                          candMeta?.imageUrl ??
+                                                          null)
+                                                        : null;
+
+                                                return (
+                                                    <div
+                                                        key={`${rowKey(r)}:${i}`}
+                                                        style={{
+                                                            display: "flex",
+                                                            gap: 10,
+                                                            alignItems:
+                                                                "center",
+                                                            flexWrap: "wrap",
+                                                            padding: 10,
+                                                            borderRadius: 10,
+                                                            background: "#fff",
+                                                            border: "1px solid #eee",
+                                                        }}
+                                                    >
+                                                        {isNone(r) ? (
+                                                            <div
+                                                                aria-hidden
+                                                                style={{
+                                                                    width: 34,
+                                                                    height: 34,
+                                                                    borderRadius: 999,
+                                                                    border: "1px solid #eee",
+                                                                    background:
+                                                                        "#fafafa",
+                                                                }}
+                                                            />
+                                                        ) : (
+                                                            <CandidateAvatar
+                                                                name={r.label}
+                                                                imageUrl={
+                                                                    imgSrc
+                                                                }
+                                                                candidateKey={
+                                                                    candidateKey ??
+                                                                    undefined
+                                                                }
+                                                                index={i}
+                                                                size={34}
+                                                            />
+                                                        )}
+
                                                         <div
                                                             style={{
+                                                                minWidth: 0,
+                                                            }}
+                                                        >
+                                                            <div
+                                                                style={{
+                                                                    fontWeight: 800,
+                                                                    lineHeight: 1.2,
+                                                                }}
+                                                            >
+                                                                {r.label}
+                                                            </div>
+                                                            {r.party
+                                                                ?.shortName ||
+                                                            r.party?.name ? (
+                                                                <div
+                                                                    style={{
+                                                                        marginTop: 4,
+                                                                    }}
+                                                                >
+                                                                    <PartyPill
+                                                                        shortName={
+                                                                            r
+                                                                                .party
+                                                                                ?.shortName ??
+                                                                            ""
+                                                                        }
+                                                                        name={
+                                                                            r
+                                                                                .party
+                                                                                ?.name ??
+                                                                            r
+                                                                                .party
+                                                                                ?.shortName ??
+                                                                            ""
+                                                                        }
+                                                                        color={
+                                                                            partyColor
+                                                                        }
+                                                                    />
+                                                                </div>
+                                                            ) : null}
+                                                            <div
+                                                                style={{
+                                                                    fontSize: 12,
+                                                                    opacity: 0.7,
+                                                                    marginTop: 2,
+                                                                }}
+                                                            >
+                                                                {isNone(r)
+                                                                    ? "誰も支持しない"
+                                                                    : isCandidate(
+                                                                            r,
+                                                                        )
+                                                                      ? "候補者"
+                                                                      : "政党"}
+                                                            </div>
+                                                        </div>
+
+                                                        <div
+                                                            style={{
+                                                                marginLeft:
+                                                                    "auto",
                                                                 fontWeight: 900,
                                                             }}
                                                         >
                                                             {r.points}pt
                                                         </div>
                                                     </div>
-                                                </div>
-                                            </CandidateCardFrame>
-                                        </div>
-                                    );
-                                }
-
-                                return (
-                                    <div key={rowKey(r)}>
-                                        <CandidateCardFrame
-                                            partyColor={partyColor}
-                                        >
-                                            <div
-                                                style={{
-                                                    display: "grid",
-                                                    gap: 10,
-                                                    background: "#fff",
-                                                    borderRadius: 12,
-                                                    transition:
-                                                        "background 120ms ease",
-                                                }}
-                                                onMouseEnter={(ev) => {
-                                                    (
-                                                        ev.currentTarget as HTMLDivElement
-                                                    ).style.background =
-                                                        "#fafafa";
-                                                }}
-                                                onMouseLeave={(ev) => {
-                                                    (
-                                                        ev.currentTarget as HTMLDivElement
-                                                    ).style.background = "#fff";
-                                                }}
-                                            >
-                                                <div
-                                                    style={{
-                                                        display: "flex",
-                                                        gap: 10,
-                                                        alignItems: "center",
-                                                        flexWrap: "wrap",
-                                                    }}
-                                                >
-                                                    <CandidateAvatar
-                                                        name={r.label}
-                                                        imageUrl={imgSrc}
-                                                        candidateKey={
-                                                            candidateKey ??
-                                                            undefined
-                                                        }
-                                                        index={idx}
-                                                        size={44}
-                                                    />
-
-                                                    <div
-                                                        style={{
-                                                            display: "grid",
-                                                            gap: 4,
-                                                            flex: 1,
-                                                            minWidth: 0,
-                                                        }}
-                                                    >
-                                                        <div
-                                                            style={{
-                                                                display: "flex",
-                                                                gap: 10,
-                                                                alignItems:
-                                                                    "baseline",
-                                                                flexWrap:
-                                                                    "wrap",
-                                                            }}
-                                                        >
-                                                            <div
-                                                                style={{
-                                                                    fontWeight: 800,
-                                                                    overflow:
-                                                                        "hidden",
-                                                                    textOverflow:
-                                                                        "ellipsis",
-                                                                    whiteSpace:
-                                                                        "nowrap",
-                                                                }}
-                                                            >
-                                                                {r.label}
-                                                            </div>
-
-                                                            {party?.shortName ||
-                                                            party?.name ? (
-                                                                <PartyPill
-                                                                    shortName={
-                                                                        party?.shortName ??
-                                                                        ""
-                                                                    }
-                                                                    name={
-                                                                        party?.name ??
-                                                                        party?.shortName ??
-                                                                        ""
-                                                                    }
-                                                                    color={
-                                                                        partyColor ??
-                                                                        ""
-                                                                    }
-                                                                />
-                                                            ) : null}
-
-                                                            <span
-                                                                style={{
-                                                                    marginLeft:
-                                                                        "auto",
-                                                                    fontSize: 12,
-                                                                    opacity: 0.7,
-                                                                }}
-                                                            >
-                                                                {cand
-                                                                    ? "候補者"
-                                                                    : "政党"}
-                                                            </span>
-                                                        </div>
-
-                                                        {candMeta?.title ? (
-                                                            <div
-                                                                style={{
-                                                                    fontSize: 13,
-                                                                    opacity: 0.85,
-                                                                    lineHeight: 1.5,
-                                                                }}
-                                                            >
-                                                                {candMeta.title}
-                                                            </div>
-                                                        ) : null}
-                                                    </div>
-
-                                                    {detailHref ? (
-                                                        <Link
-                                                            to={detailHref}
-                                                            state={{
-                                                                from: self,
-                                                            }}
-                                                            style={{
-                                                                fontSize: 13,
-                                                            }}
-                                                        >
-                                                            詳細 →
-                                                        </Link>
-                                                    ) : null}
-                                                </div>
-
-                                                <div
-                                                    style={{
-                                                        display: "flex",
-                                                        gap: 8,
-                                                        alignItems: "center",
-                                                        flexWrap: "wrap",
-                                                    }}
-                                                >
-                                                    <input
-                                                        type="number"
-                                                        min={0}
-                                                        step={1}
-                                                        value={r.points}
-                                                        onChange={(e) =>
-                                                            setPoints(
-                                                                idx,
-                                                                Number(
-                                                                    e.target
-                                                                        .value,
-                                                                ),
-                                                            )
-                                                        }
-                                                        style={{ width: 140 }}
-                                                        disabled={busy}
-                                                    />
-                                                    <span>pt</span>
-
-                                                    <button
-                                                        type="button"
-                                                        onClick={() =>
-                                                            fillRestTo(idx)
-                                                        }
-                                                        disabled={
-                                                            busy || rest === 0
-                                                        }
-                                                        style={{ fontSize: 12 }}
-                                                        title="残りポイントをこの項目に追加します"
-                                                    >
-                                                        残りを入れる
-                                                    </button>
-
-                                                    <span
-                                                        style={{
-                                                            marginLeft: "auto",
-                                                            fontSize: 12,
-                                                            opacity: 0.7,
-                                                        }}
-                                                    >
-                                                        現在: <b>{r.points}</b>
-                                                        pt
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        </CandidateCardFrame>
+                                                );
+                                            })
+                                        )}
                                     </div>
-                                );
-                            })}
-                        </div>
 
-                        {/* 下部の「戻る/送信」は footer bar に移したので、ここはリンクだけ残す */}
-                        <div
-                            style={{
-                                marginTop: 12,
-                                display: "flex",
-                                gap: 12,
-                                flexWrap: "wrap",
-                                alignItems: "center",
-                            }}
-                        >
-                            {hasCandidate && (
-                                <Link
-                                    to={`/elections/${data.electionId}/candidates`}
-                                    state={{ from: self }}
+                                    <div
+                                        style={{
+                                            fontSize: 12,
+                                            opacity: 0.75,
+                                            lineHeight: 1.6,
+                                        }}
+                                    >
+                                        ※ 送信後、投票履歴に記録されます
+                                        <br />※
+                                        投票は期間内であれば何度でも変更できます（最後に送信した内容が有効）
+                                    </div>
+                                </div>
+
+                                {/* ✅ 通常位置の送信ボタン（ここにも出す） */}
+                                <div
+                                    style={{
+                                        display: "flex",
+                                        gap: 12,
+                                        flexWrap: "wrap",
+                                    }}
                                 >
-                                    候補者を見る
-                                </Link>
-                            )}
+                                    <button
+                                        type="button"
+                                        onClick={onBackToEdit}
+                                        disabled={busy}
+                                    >
+                                        戻る
+                                    </button>
 
-                            <span
-                                style={{
-                                    marginLeft: "auto",
-                                    fontSize: 12,
-                                    opacity: 0.75,
-                                }}
-                            >
-                                ※ 送信は下部バーから行います
-                            </span>
-                        </div>
-                    </Card>
+                                    <button
+                                        type="button"
+                                        onClick={onSubmit}
+                                        disabled={!canSubmit}
+                                    >
+                                        {busy
+                                            ? "送信中..."
+                                            : "この内容で投票する"}
+                                    </button>
+
+                                    <span
+                                        style={{
+                                            marginLeft: "auto",
+                                            fontSize: 12,
+                                            opacity: 0.75,
+                                            alignSelf: "center",
+                                        }}
+                                    >
+                                        ※ 送信は下部バーからも行えます
+                                    </span>
+                                </div>
+                            </div>
+                        </Card>
+                    )}
                 </div>
             )}
 
@@ -1033,6 +1357,8 @@ export function AllocVotingStartPage() {
                         hasStoredPublicToken: !!publicToken.get(),
                         candMetaCount: Object.keys(candMetaById).length,
                         partyMetaCount: Object.keys(partyByAnyKey).length,
+                        step,
+                        canGoConfirm,
                         canSubmit,
                     }}
                 />

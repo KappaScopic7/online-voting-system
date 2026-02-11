@@ -62,6 +62,9 @@ public class DemoDataInitializer {
             VoteAllocCurrentRepository voteAllocCurrentRepo,
             VoteAllocItemRepository voteAllocItemRepo,
 
+            JudgeReviewCastRepository judgeReviewCastRepo,
+            JudgeReviewItemRepository judgeReviewItemRepo,
+
             CitizenRepository citizenRepo,
             PasswordEncoder passwordEncoder) {
 
@@ -83,6 +86,7 @@ public class DemoDataInitializer {
         List<UserJson> users = seed.users();
         List<CommitteeJson> committee = seed.committeeAccounts();
         List<AllocVoteJson> allocVoteCasts = seed.allocVoteCasts();
+        List<JudgeReviewVoteJson> judgeReviewVoteCasts = seed.judgeReviewVoteCasts();
 
         // index + validate（既存の安全網を流用）
         var indexed = new DemoDataIndexer().indexAll(citizens, parties, candidates, elections);
@@ -92,7 +96,8 @@ public class DemoDataInitializer {
                 indexed.partyMap(),
                 indexed.candidateMap(),
                 indexed.electionMap(),
-                rules, voteCasts, users, committee, allocVoteCasts);
+                rules, voteCasts, users, committee, allocVoteCasts,
+                judgeReviewVoteCasts);
 
         // elections + candidates（DBに保存）
         Map<String, ElectionCreated> createdElections = seedElectionsAndCandidates(
@@ -111,6 +116,11 @@ public class DemoDataInitializer {
         new AllocVoteSeeder().seedFromCastsOnly(
                 voteAllocCastRepo, voteAllocCurrentRepo, voteAllocItemRepo,
                 allocVoteCasts, createdElections);
+
+        // judge review: casts + items
+        seedJudgeReviewVotes(
+                judgeReviewCastRepo, judgeReviewItemRepo,
+                judgeReviewVoteCasts, createdElections);
 
         seedCommittee(staffRepo, passwordEncoder, committee);
     }
@@ -355,5 +365,16 @@ public class DemoDataInitializer {
                     candidateId,
                     castedAt);
         }
+    }
+
+    private void seedJudgeReviewVotes(
+            JudgeReviewCastRepository judgeReviewCastRepo,
+            JudgeReviewItemRepository judgeReviewItemRepo,
+            List<JudgeReviewVoteJson> judgeReviewVoteCasts,
+            Map<String, ElectionCreated> createdElections) {
+
+        new JudgeReviewSeeder().seed(
+                judgeReviewCastRepo, judgeReviewItemRepo,
+                judgeReviewVoteCasts, createdElections);
     }
 }

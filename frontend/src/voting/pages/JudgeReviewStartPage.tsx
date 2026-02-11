@@ -34,6 +34,8 @@ function isTruthy(s: string | null | undefined) {
     return v === "1" || v === "true" || v === "yes" || v === "on";
 }
 
+type Step = "EDIT" | "CONFIRM";
+
 export function JudgeReviewStartPage() {
     const nav = useNavigate();
     const loc = useLocation();
@@ -70,10 +72,13 @@ export function JudgeReviewStartPage() {
     const [loading, setLoading] = useState(false);
     const [busy, setBusy] = useState(false);
 
+    const [step, setStep] = useState<Step>("EDIT");
+
     // judgeCandidateId -> "OK"|"NO"
     const [choices, setChoices] = useState<Record<string, JudgeReviewChoice>>(
         {},
     );
+
     const judges = data?.judges ?? [];
 
     const completed = useMemo(() => {
@@ -81,6 +86,19 @@ export function JudgeReviewStartPage() {
         if (!judges.length) return false;
         return judges.every((j) => !!choices[j.candidateId]);
     }, [data, judges, choices]);
+
+    const chosenList = useMemo(() => {
+        return judges.map((j, idx) => {
+            const v = choices[j.candidateId] ?? null;
+            return {
+                idx: idx + 1,
+                candidateId: j.candidateId,
+                name: j.name,
+                title: j.title ?? "裁判官",
+                choice: v, // "OK" | "NO" | null
+            };
+        });
+    }, [judges, choices]);
 
     const load = useCallback(async () => {
         if (!electionId) return;
@@ -103,6 +121,8 @@ export function JudgeReviewStartPage() {
                 }
             }
             setChoices(base);
+
+            setStep("EDIT");
         } catch (e: any) {
             const status = e?.response?.status;
             const msg = e?.response?.data?.message;
@@ -125,6 +145,7 @@ export function JudgeReviewStartPage() {
 
             setData(null);
             setChoices({});
+            setStep("EDIT");
         } finally {
             setLoading(false);
         }
@@ -139,10 +160,28 @@ export function JudgeReviewStartPage() {
         setChoices((prev) => ({ ...prev, [judgeCandidateId]: v }));
     };
 
+    const onGoConfirm = useCallback(() => {
+        if (!completed) {
+            setErr("全裁判官分の選択が必要です（〇/×）");
+            return;
+        }
+        setErr(null);
+        setStep("CONFIRM");
+        window.scrollTo({ top: 0, behavior: "smooth" });
+    }, [completed]);
+
+    const onBackToEdit = useCallback(() => {
+        if (busy) return;
+        setErr(null);
+        setStep("EDIT");
+        window.scrollTo({ top: 0, behavior: "smooth" });
+    }, [busy]);
+
     const onSubmit = useCallback(async () => {
         if (!data || busy) return;
         if (!completed) {
             setErr("全裁判官分の選択が必要です（〇/×）");
+            setStep("EDIT");
             return;
         }
 
@@ -158,11 +197,8 @@ export function JudgeReviewStartPage() {
                 })),
             };
 
-            if (publicMode) {
-                await publicConfirmJudgeReview(req);
-            } else {
-                await confirmJudgeReview(req);
-            }
+            if (publicMode) await publicConfirmJudgeReview(req);
+            else await confirmJudgeReview(req);
 
             nav(`/judge-review/done${publicMode ? "?session=public" : ""}`, {
                 state: {
@@ -176,18 +212,19 @@ export function JudgeReviewStartPage() {
             const status = e?.response?.status;
             const msg = e?.response?.data?.message;
 
-            if (status === 403) {
+            if (status === 403)
                 setErr(msg ?? "投票できません（期間外/権限なし）");
-            } else if (status === 401) {
+            else if (status === 401) {
                 setErr(
                     msg ??
                         (publicMode
                             ? "本人認証の有効期限が切れました。もう一度本人認証してください。"
                             : "ログインが必要です"),
                 );
-            } else {
-                setErr(msg ?? "送信に失敗しました");
-            }
+            } else setErr(msg ?? "送信に失敗しました");
+
+            // 送信失敗時は編集に戻す
+            setStep("EDIT");
         } finally {
             setBusy(false);
         }
@@ -203,20 +240,36 @@ export function JudgeReviewStartPage() {
         effectiveToken,
     ]);
 
-    // ✅ footer actions（下部バーに移す）
+    // ✅ footer actions（EDIT/CONFIRM/ERR で出し分け）
     useEffect(() => {
         const actions: FooterAction[] = [];
 
         // 左：戻る
-        actions.push({ kind: "LINK", to: backTo, label: "戻る" });
+        if (step === "CONFIRM") {
+            actions.push({
+                kind: "BUTTON",
+                label: "戻る",
+                disabled: busy,
+                onClick: onBackToEdit,
+            });
+        } else {
+            actions.push({ kind: "LINK", to: backTo, label: "戻る" });
+        }
 
-        // 右：再試行 or 送信
+        // 右：メイン操作
         if (err) {
             actions.push({
                 kind: "BUTTON",
                 label: loading ? "読み込み中..." : "再試行",
                 disabled: loading || busy || !electionId,
                 onClick: load,
+            });
+        } else if (step === "EDIT") {
+            actions.push({
+                kind: "BUTTON",
+                label: "次へ（内容確認）",
+                disabled: busy || loading || !completed,
+                onClick: onGoConfirm,
             });
         } else {
             actions.push({
@@ -231,13 +284,16 @@ export function JudgeReviewStartPage() {
         return () => setFooterActions(null);
     }, [
         setFooterActions,
-        backTo,
+        step,
+        busy,
         err,
         loading,
-        busy,
         electionId,
         load,
+        backTo,
         completed,
+        onGoConfirm,
+        onBackToEdit,
         onSubmit,
     ]);
 
@@ -344,160 +400,323 @@ export function JudgeReviewStartPage() {
                         </div>
                     </Card>
 
-                    <Card>
-                        <div style={{ display: "grid", gap: 12 }}>
-                            <div
-                                style={{
-                                    display: "flex",
-                                    gap: 12,
-                                    flexWrap: "wrap",
-                                    alignItems: "baseline",
-                                }}
-                            >
-                                <div style={{ fontWeight: 800 }}>
-                                    裁判官ごとに選択
-                                </div>
+                    {step === "EDIT" ? (
+                        <Card>
+                            <div style={{ display: "grid", gap: 12 }}>
                                 <div
                                     style={{
-                                        marginLeft: "auto",
-                                        fontSize: 12,
-                                        opacity: 0.75,
+                                        display: "flex",
+                                        gap: 12,
+                                        flexWrap: "wrap",
+                                        alignItems: "baseline",
                                     }}
                                 >
-                                    完了:{" "}
-                                    {
-                                        judges.filter(
-                                            (j) => !!choices[j.candidateId],
-                                        ).length
-                                    }
-                                    /{judges.length}
+                                    <div style={{ fontWeight: 800 }}>
+                                        裁判官ごとに選択
+                                    </div>
+                                    <div
+                                        style={{
+                                            marginLeft: "auto",
+                                            fontSize: 12,
+                                            opacity: 0.75,
+                                        }}
+                                    >
+                                        完了:{" "}
+                                        {
+                                            judges.filter(
+                                                (j) => !!choices[j.candidateId],
+                                            ).length
+                                        }
+                                        /{judges.length}
+                                    </div>
                                 </div>
-                            </div>
 
-                            <div style={{ display: "grid", gap: 10 }}>
-                                {judges.map((j, idx) => {
-                                    const v = choices[j.candidateId] ?? null;
-                                    return (
-                                        <div
-                                            key={j.candidateId}
-                                            style={{
-                                                border: "1px solid #eee",
-                                                borderRadius: 12,
-                                                padding: 12,
-                                                background: "#fff",
-                                                display: "grid",
-                                                gap: 10,
-                                            }}
-                                        >
+                                <div style={{ display: "grid", gap: 10 }}>
+                                    {judges.map((j, idx) => {
+                                        const v =
+                                            choices[j.candidateId] ?? null;
+                                        return (
                                             <div
+                                                key={j.candidateId}
                                                 style={{
-                                                    display: "flex",
+                                                    border: "1px solid #eee",
+                                                    borderRadius: 12,
+                                                    padding: 12,
+                                                    background: "#fff",
+                                                    display: "grid",
                                                     gap: 10,
-                                                    flexWrap: "wrap",
-                                                    alignItems: "baseline",
                                                 }}
                                             >
                                                 <div
-                                                    style={{ fontWeight: 800 }}
-                                                >
-                                                    {idx + 1}. {j.name}
-                                                </div>
-                                                <div
                                                     style={{
-                                                        fontSize: 12,
-                                                        opacity: 0.75,
+                                                        display: "flex",
+                                                        gap: 10,
+                                                        flexWrap: "wrap",
+                                                        alignItems: "baseline",
                                                     }}
                                                 >
-                                                    {j.title ?? "裁判官"}
+                                                    <div
+                                                        style={{
+                                                            fontWeight: 800,
+                                                        }}
+                                                    >
+                                                        {idx + 1}. {j.name}
+                                                    </div>
+                                                    <div
+                                                        style={{
+                                                            fontSize: 12,
+                                                            opacity: 0.75,
+                                                        }}
+                                                    >
+                                                        {j.title ?? "裁判官"}
+                                                    </div>
+                                                    <div
+                                                        style={{
+                                                            marginLeft: "auto",
+                                                            fontSize: 12,
+                                                            opacity: 0.75,
+                                                        }}
+                                                    >
+                                                        選択: <b>{v ?? "-"}</b>
+                                                    </div>
                                                 </div>
-                                                <div
-                                                    style={{
-                                                        marginLeft: "auto",
-                                                        fontSize: 12,
-                                                        opacity: 0.75,
-                                                    }}
-                                                >
-                                                    選択: <b>{v ?? "-"}</b>
-                                                </div>
-                                            </div>
 
-                                            <div
-                                                style={{
-                                                    display: "flex",
-                                                    gap: 12,
-                                                    flexWrap: "wrap",
-                                                    alignItems: "center",
-                                                }}
-                                            >
-                                                <label
+                                                <div
                                                     style={{
-                                                        display: "inline-flex",
-                                                        gap: 8,
+                                                        display: "flex",
+                                                        gap: 12,
+                                                        flexWrap: "wrap",
                                                         alignItems: "center",
                                                     }}
                                                 >
-                                                    <input
-                                                        type="radio"
-                                                        name={`jr:${j.candidateId}`}
-                                                        checked={v === "OK"}
-                                                        onChange={() =>
-                                                            setChoice(
-                                                                j.candidateId,
-                                                                "OK",
-                                                            )
-                                                        }
-                                                        disabled={busy}
-                                                    />
-                                                    信任（〇）
-                                                </label>
+                                                    <label
+                                                        style={{
+                                                            display:
+                                                                "inline-flex",
+                                                            gap: 8,
+                                                            alignItems:
+                                                                "center",
+                                                        }}
+                                                    >
+                                                        <input
+                                                            type="radio"
+                                                            name={`jr:${j.candidateId}`}
+                                                            checked={v === "OK"}
+                                                            onChange={() =>
+                                                                setChoice(
+                                                                    j.candidateId,
+                                                                    "OK",
+                                                                )
+                                                            }
+                                                            disabled={busy}
+                                                        />
+                                                        信任（〇）
+                                                    </label>
 
-                                                <label
-                                                    style={{
-                                                        display: "inline-flex",
-                                                        gap: 8,
-                                                        alignItems: "center",
-                                                    }}
-                                                >
-                                                    <input
-                                                        type="radio"
-                                                        name={`jr:${j.candidateId}`}
-                                                        checked={v === "NO"}
-                                                        onChange={() =>
-                                                            setChoice(
-                                                                j.candidateId,
-                                                                "NO",
-                                                            )
-                                                        }
-                                                        disabled={busy}
-                                                    />
-                                                    罷免（×）
-                                                </label>
+                                                    <label
+                                                        style={{
+                                                            display:
+                                                                "inline-flex",
+                                                            gap: 8,
+                                                            alignItems:
+                                                                "center",
+                                                        }}
+                                                    >
+                                                        <input
+                                                            type="radio"
+                                                            name={`jr:${j.candidateId}`}
+                                                            checked={v === "NO"}
+                                                            onChange={() =>
+                                                                setChoice(
+                                                                    j.candidateId,
+                                                                    "NO",
+                                                                )
+                                                            }
+                                                            disabled={busy}
+                                                        />
+                                                        罷免（×）
+                                                    </label>
 
-                                                <Link
-                                                    to={`/elections/${data.electionId}/candidates/${j.candidateId}`}
-                                                    state={{ from: self }}
-                                                    style={{
-                                                        marginLeft: "auto",
-                                                        fontSize: 13,
-                                                    }}
-                                                >
-                                                    詳細 →
-                                                </Link>
+                                                    <Link
+                                                        to={`/elections/${data.electionId}/candidates/${j.candidateId}`}
+                                                        state={{ from: self }}
+                                                        style={{
+                                                            marginLeft: "auto",
+                                                            fontSize: 13,
+                                                        }}
+                                                    >
+                                                        詳細 →
+                                                    </Link>
+                                                </div>
                                             </div>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-
-                            {/* 下部の「戻る/送信」は footer bar に移した */}
-                            {!completed && (
-                                <div style={{ fontSize: 12, opacity: 0.75 }}>
-                                    ※
-                                    全裁判官分の選択が必要です（送信は下部バー）
+                                        );
+                                    })}
                                 </div>
-                            )}
-                        </div>
-                    </Card>
+
+                                {/* ✅ 通常位置の確認ボタンも出す */}
+                                <div
+                                    style={{
+                                        marginTop: 4,
+                                        display: "flex",
+                                        gap: 12,
+                                        flexWrap: "wrap",
+                                        alignItems: "center",
+                                    }}
+                                >
+                                    <button
+                                        type="button"
+                                        onClick={onGoConfirm}
+                                        disabled={busy || loading || !completed}
+                                    >
+                                        次へ（内容確認）
+                                    </button>
+
+                                    <span
+                                        style={{
+                                            marginLeft: "auto",
+                                            fontSize: 12,
+                                            opacity: 0.75,
+                                        }}
+                                    >
+                                        ※
+                                        送信前に確認画面があります（送信は下部バーからも可能）
+                                    </span>
+                                </div>
+
+                                {!completed && (
+                                    <div
+                                        style={{ fontSize: 12, opacity: 0.75 }}
+                                    >
+                                        ※
+                                        全裁判官分の選択が必要です（次へ進めません）
+                                    </div>
+                                )}
+                            </div>
+                        </Card>
+                    ) : (
+                        <Card>
+                            <div style={{ display: "grid", gap: 12 }}>
+                                <div style={{ fontWeight: 800 }}>内容確認</div>
+
+                                <div
+                                    style={{
+                                        border: "1px solid #eee",
+                                        borderRadius: 12,
+                                        padding: 12,
+                                        display: "grid",
+                                        gap: 10,
+                                        background: "#fafafa",
+                                    }}
+                                >
+                                    <div>
+                                        選挙:{" "}
+                                        <strong>{data.electionTitle}</strong>
+                                    </div>
+
+                                    <div style={{ display: "grid", gap: 8 }}>
+                                        {chosenList.map((x) => {
+                                            const label =
+                                                x.choice === "OK"
+                                                    ? "信任（〇）"
+                                                    : x.choice === "NO"
+                                                      ? "罷免（×）"
+                                                      : "-";
+                                            return (
+                                                <div
+                                                    key={x.candidateId}
+                                                    style={{
+                                                        display: "flex",
+                                                        gap: 10,
+                                                        alignItems: "center",
+                                                        flexWrap: "wrap",
+                                                        padding: 10,
+                                                        borderRadius: 10,
+                                                        background: "#fff",
+                                                        border: "1px solid #eee",
+                                                    }}
+                                                >
+                                                    <div
+                                                        style={{
+                                                            fontWeight: 800,
+                                                        }}
+                                                    >
+                                                        {x.idx}. {x.name}
+                                                    </div>
+                                                    <div
+                                                        style={{
+                                                            fontSize: 12,
+                                                            opacity: 0.75,
+                                                        }}
+                                                    >
+                                                        {x.title}
+                                                    </div>
+
+                                                    <div
+                                                        style={{
+                                                            marginLeft: "auto",
+                                                            fontWeight: 900,
+                                                        }}
+                                                    >
+                                                        {label}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+
+                                    <div
+                                        style={{
+                                            fontSize: 12,
+                                            opacity: 0.75,
+                                            lineHeight: 1.6,
+                                        }}
+                                    >
+                                        ※ 送信後、投票履歴に記録されます
+                                        <br />※
+                                        投票は期間内であれば何度でも変更できます（最後に送信した内容が有効）
+                                    </div>
+                                </div>
+
+                                {/* ✅ 通常位置の確定ボタンも出す */}
+                                <div
+                                    style={{
+                                        display: "flex",
+                                        gap: 12,
+                                        flexWrap: "wrap",
+                                        alignItems: "center",
+                                    }}
+                                >
+                                    <button
+                                        type="button"
+                                        onClick={onBackToEdit}
+                                        disabled={busy}
+                                    >
+                                        戻る
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        onClick={onSubmit}
+                                        disabled={busy || !completed}
+                                    >
+                                        {busy
+                                            ? "送信中..."
+                                            : "この内容で投票する"}
+                                    </button>
+
+                                    <span
+                                        style={{
+                                            marginLeft: "auto",
+                                            fontSize: 12,
+                                            opacity: 0.75,
+                                        }}
+                                    >
+                                        ※ 送信は下部バーからも行えます
+                                    </span>
+                                </div>
+                            </div>
+                        </Card>
+                    )}
                 </div>
             )}
 
@@ -519,6 +738,7 @@ export function JudgeReviewStartPage() {
                         tokenFromQuery: tokenFromQuery ? "(present)" : null,
                         effectiveToken: effectiveToken ? "(present)" : null,
                         hasStoredPublicToken: !!publicToken.get(),
+                        step,
                     }}
                 />
             )}

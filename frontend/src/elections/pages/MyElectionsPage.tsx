@@ -1,7 +1,8 @@
 import { useEffect, useMemo } from "react";
 import { Link, useLocation } from "react-router-dom";
 
-import { fetchMyElections, type MyElectionItem } from "../api/meElections";
+import { fetchMyElections } from "../api/meElections";
+import type { ElectionListItem } from "../model/electionTypes";
 import {
     fetchMeEligibility,
     type MeEligibilityResponse,
@@ -45,8 +46,8 @@ function EligibilityBadge({ elig }: { elig: MeEligibilityResponse | null }) {
     );
 }
 
-function MyElectionItemMeta({ e }: { e: MyElectionItem }) {
-    const voted = !!e.currentVote;
+function MyElectionItemMeta({ e }: { e: ElectionListItem }) {
+    const voted = !!e.hasCurrent;
 
     return (
         <>
@@ -65,18 +66,24 @@ function MyElectionItemMeta({ e }: { e: MyElectionItem }) {
     );
 }
 
-function MyElectionItemAction(props: { e: MyElectionItem; from: string }) {
+function MyElectionItemAction(props: { e: ElectionListItem; from: string }) {
     const { e, from } = props;
 
     const voteLink = `/voting/entry?electionId=${encodeURIComponent(e.electionId)}`;
     const resultLink = `/elections/result?electionId=${encodeURIComponent(e.electionId)}`;
 
     if (e.status === "ONGOING") {
-        if (e.currentVote) {
-            const label =
-                e.currentVote.candidateName ??
-                (e.currentVote.candidateId ? "投票済み" : "誰も支持しない");
+        // ★方式共通：投票済み判定は hasCurrent
+        const voted = !!e.hasCurrent;
 
+        // 通常投票だけ currentVote が入るので、表示できる時だけラベルを出す
+        const label = e.currentVote
+            ? (e.currentVote.candidateName ??
+              (e.currentVote.candidateId ? "投票済み" : "誰も支持しない"))
+            : null;
+
+        // 投票可能なら「投票する/変更する」
+        if (e.canCast) {
             return (
                 <div
                     style={{
@@ -86,32 +93,28 @@ function MyElectionItemAction(props: { e: MyElectionItem; from: string }) {
                         alignItems: "center",
                     }}
                 >
-                    <span style={{ fontSize: 13, opacity: 0.9 }}>
-                        投票済み: <b>{label}</b>
-                    </span>
+                    {label ? (
+                        <span style={{ fontSize: 13, opacity: 0.9 }}>
+                            投票済み: <b>{label}</b>
+                        </span>
+                    ) : voted ? (
+                        <span style={{ fontSize: 13, opacity: 0.75 }}>
+                            投票済み
+                        </span>
+                    ) : null}
+
                     <Link
                         to={voteLink}
                         state={{ from }}
                         style={{ textDecoration: "none" }}
                     >
-                        <b>変更する →</b>
+                        <b>{voted ? "変更する →" : "投票する →"}</b>
                     </Link>
                 </div>
             );
         }
 
-        if (e.canCast) {
-            return (
-                <Link
-                    to={voteLink}
-                    state={{ from }}
-                    style={{ textDecoration: "none" }}
-                >
-                    <b>投票する →</b>
-                </Link>
-            );
-        }
-
+        // canCast=false の場合は本人認証/メール認証導線
         return (
             <div
                 style={{
@@ -177,7 +180,7 @@ export function MyElectionsPage() {
         run: reload,
     } = useAsyncLoad(loadFn);
 
-    const items = (data?.elections ?? null) as MyElectionItem[] | null;
+    const items = (data?.elections ?? null) as ElectionListItem[] | null;
     const elig = (data?.eligibility ?? null) as MeEligibilityResponse | null;
 
     const { controls, bind } = useElectionListControls();
@@ -189,10 +192,33 @@ export function MyElectionsPage() {
 
     const showHint = elig?.source === "NONE" || !elig?.cityCode;
 
-    const filtered = useMemo(
-        () => filterSortElections(items as any, controls),
-        [items, controls],
-    ) as MyElectionItem[] | null;
+    const filtered = useMemo(() => {
+        const list = filterSortElections(items as any, controls);
+        if (list === null) return null;
+
+        const ongoing: ElectionListItem[] = [];
+        const upcoming: ElectionListItem[] = [];
+        const ended: ElectionListItem[] = [];
+
+        for (const e of list as ElectionListItem[]) {
+            if (e.status === "ONGOING") ongoing.push(e);
+            else if (e.status === "ENDED") ended.push(e);
+            else upcoming.push(e);
+        }
+
+        // ★未投票優先は hasCurrent で判定（方式共通）
+        const splitByVoted = (xs: ElectionListItem[]) => {
+            const notVoted: ElectionListItem[] = [];
+            const voted: ElectionListItem[] = [];
+            for (const e of xs) {
+                const has = !!e.hasCurrent;
+                (has ? voted : notVoted).push(e);
+            }
+            return [...notVoted, ...voted];
+        };
+
+        return [...splitByVoted(ongoing), ...upcoming, ...ended];
+    }, [items, controls]);
 
     return (
         <Page
