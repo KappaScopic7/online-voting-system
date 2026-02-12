@@ -254,105 +254,98 @@ export function LoginPage() {
                 </form>
             </Card>
 
-            {isDev && (
-                <Card>
-                    <details>
-                        <summary style={{ cursor: "pointer" }}>
-                            DEV tools
-                        </summary>
+            <Card>
+                <details>
+                    <summary style={{ cursor: "pointer" }}>DEV tools</summary>
 
-                        <div style={{ marginTop: 10, display: "grid", gap: 6 }}>
-                            <div
+                    <div style={{ marginTop: 10, display: "grid", gap: 6 }}>
+                        <div
+                            style={{
+                                display: "flex",
+                                gap: 8,
+                                flexWrap: "wrap",
+                            }}
+                        >
+                            <button
+                                type="button"
+                                onClick={async () => {
+                                    try {
+                                        setDevErr(null);
+                                        setDevLoading(true);
+                                        const list = await fetchDemoPersonas();
+                                        setDevPersonas(
+                                            Array.isArray(list) ? list : [],
+                                        );
+                                    } catch (e: any) {
+                                        const m =
+                                            e?.response?.data?.message ??
+                                            e?.message ??
+                                            "DEV personas の取得に失敗しました";
+                                        setDevErr(m);
+                                    } finally {
+                                        setDevLoading(false);
+                                    }
+                                }}
+                                disabled={isSubmitting || devLoading}
                                 style={{
-                                    display: "flex",
-                                    gap: 8,
-                                    flexWrap: "wrap",
+                                    fontSize: 12,
+                                    padding: "6px 10px",
                                 }}
                             >
-                                <button
-                                    type="button"
-                                    onClick={async () => {
-                                        try {
-                                            setDevErr(null);
-                                            setDevLoading(true);
-                                            const list =
-                                                await fetchDemoPersonas();
-                                            setDevPersonas(
-                                                Array.isArray(list) ? list : [],
-                                            );
-                                        } catch (e: any) {
-                                            const m =
-                                                e?.response?.data?.message ??
-                                                e?.message ??
-                                                "DEV personas の取得に失敗しました";
-                                            setDevErr(m);
-                                        } finally {
-                                            setDevLoading(false);
-                                        }
-                                    }}
-                                    disabled={isSubmitting || devLoading}
-                                    style={{
-                                        fontSize: 12,
-                                        padding: "6px 10px",
-                                    }}
-                                >
-                                    {devLoading ? "読み込み中..." : "再読込"}
-                                </button>
-                            </div>
-
-                            {devErr && (
-                                <div
-                                    style={{
-                                        color: "crimson",
-                                        lineHeight: 1.5,
-                                    }}
-                                >
-                                    {devErr}
-                                </div>
-                            )}
-
-                            {devPersonas.map((p) => (
-                                <button
-                                    key={p.key}
-                                    type="button"
-                                    onClick={() => doLogin(p.email, p.password)}
-                                    disabled={isSubmitting}
-                                    style={{
-                                        fontSize: 12,
-                                        padding: "6px 10px",
-                                        textAlign: "left",
-                                    }}
-                                    title={p.description}
-                                >
-                                    {p.label}
-                                </button>
-                            ))}
-
-                            {!devLoading &&
-                                !devErr &&
-                                devPersonas.length === 0 && (
-                                    <div style={{ opacity: 0.8, fontSize: 12 }}>
-                                        DEVユーザーが0件です（/api/demo/personas
-                                        を確認）
-                                    </div>
-                                )}
+                                {devLoading ? "読み込み中..." : "再読込"}
+                            </button>
                         </div>
 
-                        <DevDebug
-                            value={{
-                                email,
-                                isSubmitting,
-                                fieldErr,
-                                state,
-                                returnTo,
-                                devPersonas,
-                                devLoading,
-                                devErr,
-                            }}
-                        />
-                    </details>
-                </Card>
-            )}
+                        {devErr && (
+                            <div
+                                style={{
+                                    color: "crimson",
+                                    lineHeight: 1.5,
+                                }}
+                            >
+                                {devErr}
+                            </div>
+                        )}
+
+                        {devPersonas.map((p) => (
+                            <button
+                                key={p.key}
+                                type="button"
+                                onClick={() => doLogin(p.email, p.password)}
+                                disabled={isSubmitting}
+                                style={{
+                                    fontSize: 12,
+                                    padding: "6px 10px",
+                                    textAlign: "left",
+                                }}
+                                title={p.description}
+                            >
+                                {p.label}
+                            </button>
+                        ))}
+
+                        {!devLoading && !devErr && devPersonas.length === 0 && (
+                            <div style={{ opacity: 0.8, fontSize: 12 }}>
+                                DEVユーザーが0件です（/api/demo/personas
+                                を確認）
+                            </div>
+                        )}
+                    </div>
+
+                    <DevDebug
+                        value={{
+                            email,
+                            isSubmitting,
+                            fieldErr,
+                            state,
+                            returnTo,
+                            devPersonas,
+                            devLoading,
+                            devErr,
+                        }}
+                    />
+                </details>
+            </Card>
         </Page>
     );
 }
