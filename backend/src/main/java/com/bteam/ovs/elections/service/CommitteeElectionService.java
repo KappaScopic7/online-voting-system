@@ -142,9 +142,8 @@ public class CommitteeElectionService {
         Election e = requireElection(electionId);
         requireStatus(e, ElectionStatus.CLOSED);
 
-        // 非同期でグラフ生成 → 成功したらTALLIEDに上がる
         tallyJobService.enqueue(electionId);
 
-        return electionService.toDetailResponse(e); // CLOSEDのまま返す
+        return electionService.toDetailResponse(e);
     }
 }

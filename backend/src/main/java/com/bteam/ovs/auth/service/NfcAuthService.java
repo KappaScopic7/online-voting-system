@@ -17,13 +17,11 @@ public class NfcAuthService {
 
     private static final long TICKET_TTL_SEC = 60;
 
-    // ===== public voting ticket =====
     private record VoteTicketData(UUID citizenId, Instant expiresAt) {
     }
 
     private final Map<String, VoteTicketData> voteStore = new ConcurrentHashMap<>();
 
-    // ===== identity link ticket =====
     private record LinkTicketData(UUID citizenId, Instant expiresAt) {
     }
 
@@ -37,11 +35,7 @@ public class NfcAuthService {
         this.jwtService = jwtService;
     }
 
-    // -----------------------------
-    // Public voting (updated: PUBLIC session)
-    // -----------------------------
     public NfcLoginResponse login(NfcLoginRequest req) {
-        // electionId のバリデーションは「導線上のチェック」として残してもOK（トークンには入れない）
         try {
             UUID.fromString(req.electionId().trim());
         } catch (Exception e) {
@@ -71,19 +65,15 @@ public class NfcAuthService {
             throw new ApiException(HttpStatus.UNAUTHORIZED, "TICKET_EXPIRED", "チケットの有効期限が切れています");
         }
 
-        // ★ ここが肝：VOTE(eid付き)ではなく PUBLIC（選挙に紐づかない）
         String publicToken = jwtService.issuePublicSessionToken(data.citizenId());
 
         return new TokenResponse(
                 publicToken,
                 "Bearer",
-                (int) (30 * 60), // ← ここは JwtService の ttl と合わせる（今は 30分）
+                (int) (30 * 60),
                 null);
     }
 
-    // -----------------------------
-    // Identity link (existing)
-    // -----------------------------
     public NfcLinkLoginResponse linkLogin(NfcLinkLoginRequest req) {
         UUID citizenId = nfcResolveService.resolveCitizenId(req.payload(), req.pin());
 

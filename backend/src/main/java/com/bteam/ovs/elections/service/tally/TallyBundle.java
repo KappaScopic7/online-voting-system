@@ -9,14 +9,13 @@ public record TallyBundle(
         String ballotType,
         Instant talliedAt,
         long total,
-        Long noneSupportTotal, // SINGLE_CHOICE: 票数 / ALLOCATION: ポイント
+        Long noneSupportTotal,
         List<Row> rows) {
     public record Row(
-            String targetType, // "CANDIDATE" or "PARTY"
+            String targetType,
             String targetId,
-            String key, // candidateKey / partyKey
-            String label, // name
-            long value // votes / points
-    ) {
+            String key,
+            String label,
+            long value) {
     }
 }

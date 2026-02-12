@@ -4,7 +4,7 @@ import java.util.UUID;
 
 public record ElectionResultBundleResponse(
         UUID electionId,
-        String ballotType, // "SINGLE_CHOICE" or "ALLOCATION"
+        String ballotType,
         ElectionResultResponse normal,
         AllocElectionResultResponse alloc) {
 }

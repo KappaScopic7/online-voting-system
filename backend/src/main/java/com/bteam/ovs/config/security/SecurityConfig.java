@@ -1,7 +1,7 @@
 // backend/src/main/java/com/bteam/ovs/config/security/SecurityConfig.java
 package com.bteam.ovs.config.security;
 
-import java.util.Arrays; // 追加
+import java.util.Arrays;
 import java.util.List;
 
 import com.bteam.ovs.auth.entity.AccountKind;
@@ -70,9 +70,6 @@ public class SecurityConfig {
 
                 .authorizeHttpRequests(auth -> auth
 
-                        // =========================
-                        // Public (no auth)
-                        // =========================
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/error").permitAll()
 
@@ -83,12 +80,12 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/public/notices/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/public/announcement/**").permitAll()
 
-                        // 本人認証トークンが必要（ログイン不要だが「認証は必要」）
                         .requestMatchers("/api/public/voting/**").authenticated()
                         .requestMatchers("/api/public/alloc-voting/**").authenticated()
                         .requestMatchers("/api/public/judge-review/**").authenticated()
+                        .requestMatchers("/api/public/pairings/**").permitAll()
+                        .requestMatchers("/api/public/link-pairings/**").permitAll()
 
-                        // ---- public / user auth ----
                         .requestMatchers(
                                 "/api/auth/register",
                                 "/api/auth/login",
@@ -102,18 +99,12 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/auth/me", "/api/auth/me/detail")
                         .authenticated()
 
-                        // ---- staff auth ----
                         .requestMatchers("/api/staff/auth/login").permitAll()
 
-                        // ---- admin auth (互換で残すなら) ----
                         .requestMatchers("/api/admin/auth/login").permitAll()
 
-                        // ---- identity (public) ----
                         .requestMatchers("/api/identity/nfc/resolve").permitAll()
 
-                        // ---- read-only public APIs ----
-                        // elections / candidates / parties / master は GET だけ公開
-                        // （結果系を明示で上に置いておくと「ここだけ公開」を変えたくなった時も安全）
                         .requestMatchers(HttpMethod.GET,
                                 "/api/elections/*/result",
                                 "/api/elections/*/alloc-result")
@@ -124,13 +115,9 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/parties/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/master/**").permitAll()
 
-                        // =========================
-                        // Staff-only APIs
-                        // =========================
                         .requestMatchers("/api/staff/**")
                         .access((a, c) -> decide(a.get(), AccountKind.STAFF))
 
-                        // /api/admin/** は「STAFF かつ ADMIN/COMMITTEE」
                         .requestMatchers("/api/admin/**")
 
                         .access((a, c) -> decide(
@@ -138,22 +125,12 @@ public class SecurityConfig {
                                         && hasAnyRole(a.get(), Role.ADMIN,
                                                 Role.COMMITTEE)))
 
-                        // ---- demo tools (staff admin only) ----
-                        // .requestMatchers("/api/demo/**")
-                        // .access((a, c) -> decide(a.get(), AccountKind.STAFF, Role.ADMIN))
-
-                        // =========================
-                        // User-only APIs
-                        // =========================
-                        // ---- favorites (user only) ----
                         .requestMatchers("/api/favorites/**")
                         .access((a, c) -> decide(a.get(), AccountKind.USER))
 
-                        // ---- identity (user only) ----
                         .requestMatchers("/api/identity/**")
                         .access((a, c) -> decide(a.get(), AccountKind.USER))
 
-                        // ---- voter only (user + voter role) ----
                         .requestMatchers("/api/voting/**", "/api/votes/**",
                                 "/api/alloc-voting/**")
                         .access((a, c) -> decide(

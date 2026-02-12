@@ -1,4 +1,3 @@
-// backend/src/main/java/com/bteam/ovs/auth/controller/NfcAuthController.java
 package com.bteam.ovs.auth.controller;
 
 import com.bteam.ovs.auth.controller.dto.*;
@@ -16,8 +15,6 @@ public class NfcAuthController {
         this.service = service;
     }
 
-    // ===== public voting (existing) =====
-
     @PostMapping(value = "/login", produces = "application/json; charset=UTF-8")
     public NfcLoginResponse login(@RequestBody @Valid NfcLoginRequest req) {
         return service.login(req);
@@ -27,8 +24,6 @@ public class NfcAuthController {
     public TokenResponse exchange(@RequestBody @Valid NfcExchangeRequest req) {
         return service.exchange(req);
     }
-
-    // ===== identity link (NEW) =====
 
     @PostMapping(value = "/link/login", produces = "application/json; charset=UTF-8")
     public NfcLinkLoginResponse linkLogin(@RequestBody @Valid NfcLinkLoginRequest req) {

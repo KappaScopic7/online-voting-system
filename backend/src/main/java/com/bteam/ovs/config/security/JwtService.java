@@ -28,16 +28,13 @@ public class JwtService {
     public JwtService(
             @Value("${security.jwt.secret}") String secret,
             @Value("${security.jwt.expiration-minutes}") long expirationMinutes) {
-        // ★ IMPORTANT: do NOT log the secret itself
         final int secretLen = secret == null ? 0 : secret.length();
-        final String secretHead = preview(secret, 4); // 先頭だけ（さらに安全にするなら削除OK）
+        final String secretHead = preview(secret, 4);
 
-        // 起動時に「設定が読めてるか」だけ見える化
         System.out.println("[JWT] init: secretLen=" + secretLen
                 + " secretHead=" + secretHead
                 + " expMin=" + expirationMinutes);
 
-        // HS256 用のキー生成（secret が短すぎると IllegalArgumentException になり得る）
         try {
             this.key = Keys.hmacShaKeyFor((secret == null ? "" : secret).getBytes(StandardCharsets.UTF_8));
         } catch (RuntimeException e) {
@@ -52,7 +49,6 @@ public class JwtService {
         Instant now = Instant.now();
         Instant exp = now.plusSeconds(expirationMinutes * 60);
 
-        // 発行ログ（トークン本文は絶対出さない）
         System.out.println("[JWT] issueAccessToken: accountId=" + accountId
                 + " sub=" + safe(subject)
                 + " kind=" + kind
@@ -82,21 +78,14 @@ public class JwtService {
         return key;
     }
 
-    // ===== helpers =====
-
     private static String safe(String s) {
         if (s == null)
             return "null";
-        // メール等の可能性があるので、必要なら短縮
         if (s.length() <= 64)
             return s;
         return s.substring(0, 64) + "...";
     }
 
-    /**
-     * secret を直接出さないためのプレビュー。
-     * 先頭数文字だけでも危険と感じるなら、常に "***" を返すようにしてOK。
-     */
     private static String preview(String s, int n) {
         if (s == null)
             return "null";
@@ -104,14 +93,13 @@ public class JwtService {
             return "(empty)";
         int len = s.length();
         int k = Math.min(Math.max(n, 0), len);
-        // 例: abcd...(len=40)
         String head = s.substring(0, k);
         return head + "...(len=" + len + ")";
     }
 
     public String issueVoteToken(UUID citizenId, UUID electionId, Duration ttl) {
         Instant now = Instant.now();
-        long sec = Math.max(30, ttl == null ? 300 : ttl.toSeconds()); // 最低30秒など保険
+        long sec = Math.max(30, ttl == null ? 300 : ttl.toSeconds());
         Instant exp = now.plusSeconds(sec);
 
         System.out.println("[JWT] issueVoteToken: citizenId=" + citizenId
@@ -130,7 +118,6 @@ public class JwtService {
                 .compact();
     }
 
-    // 既存互換
     public String issueVoteToken(UUID citizenId, UUID electionId) {
         return issueVoteToken(citizenId, electionId, Duration.ofMinutes(30));
     }
@@ -175,8 +162,8 @@ public class JwtService {
         Instant exp = now.plusSeconds(sec);
 
         return Jwts.builder()
-                .setSubject(citizenId.toString()) // ✅ Filter が読む場所
-                .claim(JwtClaims.KIND, "PUBLIC") // ✅ Filter が読む場所
+                .setSubject(citizenId.toString())
+                .claim(JwtClaims.KIND, "PUBLIC")
                 .setIssuedAt(Date.from(now))
                 .setExpiration(Date.from(exp))
                 .signWith(key, SignatureAlgorithm.HS256)

@@ -2,6 +2,9 @@
 package com.bteam.ovs.citizen.entity;
 
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.Setter;
+
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
@@ -13,6 +16,8 @@ import java.util.UUID;
 @Entity
 @Table(name = "citizen")
 @EntityListeners(AuditingEntityListener.class)
+@Getter
+@Setter
 public class Citizen {
 
     @Id
@@ -41,7 +46,6 @@ public class Citizen {
     @Column(name = "gender", nullable = false, length = 5)
     private Gender gender;
 
-    // ✅ 追加：NFC投票PIN（BCrypt hash）
     @Column(name = "nfc_pin_hash", nullable = false, length = 255)
     private String nfcPinHash;
 
@@ -53,84 +57,4 @@ public class Citizen {
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
-    // --- getters/setters ---
-    public UUID getCitizenId() {
-        return citizenId;
-    }
-
-    public void setCitizenId(UUID citizenId) {
-        this.citizenId = citizenId;
-    }
-
-    public String getFamilyName() {
-        return familyName;
-    }
-
-    public void setFamilyName(String familyName) {
-        this.familyName = familyName;
-    }
-
-    public String getGivenName() {
-        return givenName;
-    }
-
-    public void setGivenName(String givenName) {
-        this.givenName = givenName;
-    }
-
-    public LocalDate getBirthDate() {
-        return birthDate;
-    }
-
-    public void setBirthDate(LocalDate birthDate) {
-        this.birthDate = birthDate;
-    }
-
-    public String getPrefCode() {
-        return prefCode;
-    }
-
-    public void setPrefCode(String prefCode) {
-        this.prefCode = prefCode;
-    }
-
-    public String getCityCode() {
-        return cityCode;
-    }
-
-    public void setCityCode(String cityCode) {
-        this.cityCode = cityCode;
-    }
-
-    public String getAddressLine() {
-        return addressLine;
-    }
-
-    public void setAddressLine(String addressLine) {
-        this.addressLine = addressLine;
-    }
-
-    public Gender getGender() {
-        return gender;
-    }
-
-    public void setGender(Gender gender) {
-        this.gender = gender;
-    }
-
-    public String getNfcPinHash() {
-        return nfcPinHash;
-    }
-
-    public void setNfcPinHash(String nfcPinHash) {
-        this.nfcPinHash = nfcPinHash;
-    }
-
-    public Instant getCreatedAt() {
-        return createdAt;
-    }
-
-    public Instant getUpdatedAt() {
-        return updatedAt;
-    }
 }

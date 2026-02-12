@@ -30,10 +30,8 @@ public class CommitteeElectionAdminService {
             throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_STATUS", "statusが不正です");
         }
 
-        // ★「ちょこちょこ変更」なので、基本は制限しない（committeeだけに任せる）
         e.setStatus(status);
 
-        // ★整合用（必要なら）
         Instant now = Instant.now();
         switch (status) {
             case TALLIED -> {

@@ -33,7 +33,6 @@ public class NfcResolveService {
                         "CITIZEN_NOT_FOUND",
                         "Citizen not found: " + citizenId));
 
-        // ✅ PIN照合（hash）
         String hash = c.getNfcPinHash();
         if (hash == null || hash.isBlank()) {
             throw new ApiException(

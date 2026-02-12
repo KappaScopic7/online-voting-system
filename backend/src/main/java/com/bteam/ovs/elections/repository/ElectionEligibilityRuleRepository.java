@@ -11,6 +11,5 @@ public interface ElectionEligibilityRuleRepository extends JpaRepository<Electio
 
     List<ElectionEligibilityRule> findByElectionId(UUID electionId);
 
-    // MyElections 計算で使う想定：住所(cityCode)が一致する候補ルールを引く
     List<ElectionEligibilityRule> findByCityCode(String cityCode);
 }

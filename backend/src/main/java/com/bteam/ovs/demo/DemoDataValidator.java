@@ -29,9 +29,6 @@ public class DemoDataValidator {
         validateJudgeReviewVotes(electionMap, citizenMap, judgeReviewVoteCasts);
     }
 
-    // -------------------------------------------------
-    // users
-    // -------------------------------------------------
     private void validateUsers(List<UserJson> users, Map<UUID, CitizenJson> citizenMap) {
         for (var u : users) {
             if (u.citizenId() != null && !citizenMap.containsKey(u.citizenId())) {
@@ -41,9 +38,6 @@ public class DemoDataValidator {
         }
     }
 
-    // -------------------------------------------------
-    // candidates
-    // -------------------------------------------------
     private void validateCandidates(Map<String, CandidateJson> candidateMap, Map<String, PartyJson> partyMap) {
         for (var c : candidateMap.values()) {
             if (c.partyKey() != null && !c.partyKey().isBlank()) {
@@ -57,7 +51,6 @@ public class DemoDataValidator {
             mustNonBlank(c.title(), "candidates.json: title blank candidateKey=" + c.candidateKey());
             mustNonBlank(c.bio(), "candidates.json: bio blank candidateKey=" + c.candidateKey());
         }
-        // 画像URL重複チェック（別人に同一画像が付いてないか検出）
         var byUrl = new java.util.HashMap<String, java.util.List<String>>();
         for (var c : candidateMap.values()) {
             String url = c.imageUrl();
@@ -74,9 +67,6 @@ public class DemoDataValidator {
 
     }
 
-    // -------------------------------------------------
-    // elections
-    // -------------------------------------------------
     private void validateElections(Map<String, ElectionJson> electionMap, Map<String, CandidateJson> candidateMap) {
         for (var e : electionMap.values()) {
             if (e.candidates() == null || e.candidates().isEmpty()) {
@@ -91,9 +81,6 @@ public class DemoDataValidator {
         }
     }
 
-    // -------------------------------------------------
-    // rules
-    // -------------------------------------------------
     private void validateRules(List<RuleJson> rules, Map<String, ElectionJson> electionMap) {
         for (var r : rules) {
             mustNonBlank(r.electionKey(), "electionRules.json: electionKey blank");
@@ -107,9 +94,6 @@ public class DemoDataValidator {
         }
     }
 
-    // -------------------------------------------------
-    // votes (normal ballot)
-    // -------------------------------------------------
     private void validateVotes(
             List<VoteJson> votes,
             Map<String, ElectionJson> electionMap,
@@ -131,9 +115,6 @@ public class DemoDataValidator {
         }
     }
 
-    // -------------------------------------------------
-    // committee accounts
-    // -------------------------------------------------
     private void validateCommitteeAccounts(List<CommitteeJson> committee) {
         for (var c : committee) {
             mustNonBlank(c.loginId(), "committeeAccounts.json: loginId blank");
@@ -150,9 +131,6 @@ public class DemoDataValidator {
         }
     }
 
-    // -------------------------------------------------
-    // allocVoteCasts (alloc ballot casts-only)
-    // -------------------------------------------------
     private void validateAllocVoteCasts(
             List<AllocVoteJson> allocVoteCasts,
             Map<String, ElectionJson> electionMap,
@@ -195,7 +173,6 @@ public class DemoDataValidator {
                                         + av.electionKey() + " index=" + it.candidateIndex() + " size=" + size);
                     }
                 } else if ("NONE_SUPPORT".equals(it.type())) {
-                    // ok
                 } else {
                     throw new IllegalStateException(
                             "allocVoteCasts.json: unknown item.type=" + it.type()

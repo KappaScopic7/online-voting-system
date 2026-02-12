@@ -8,7 +8,7 @@ type DoneState = {
     from?: string;
     electionId?: string;
     electionTitle?: string;
-    token?: string | null; // public の token 引き回し
+    token?: string | null;
 } | null;
 
 function isTruthy(s: string | null | undefined) {
@@ -38,7 +38,6 @@ export function JudgeReviewDonePage() {
 
     const tokenFromState = (state?.token ?? "").trim();
 
-    // Done → Start（変更）へ戻すリンク
     const entryLink = electionId
         ? `/judge-review/start?electionId=${encodeURIComponent(electionId)}${
               isPublic ? "&session=public" : ""

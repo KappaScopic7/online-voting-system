@@ -31,7 +31,6 @@ public class CandidateService {
         this.partyLookupService = partyLookupService;
     }
 
-    /** Election詳細向け：候補者一覧 + candidateId->name */
     public ElectionCandidatesBundle bundleByElection(UUID electionId) {
         requireElectionExists(electionId);
 
@@ -44,7 +43,6 @@ public class CandidateService {
                         Candidate::getName,
                         (a, b) -> a));
 
-        // ✅ null/blank partyKey を除外して lookup
         var partyKeys = candidateEntities.stream()
                 .map(c -> partyLookupService.blankToNull(c.getPartyKey()))
                 .filter(Objects::nonNull)
@@ -56,7 +54,7 @@ public class CandidateService {
         var items = candidateEntities.stream()
                 .map(c -> {
                     String partyKey = partyLookupService.blankToNull(c.getPartyKey());
-                    var party = (partyKey == null) ? null : partyMap.get(partyKey); // ✅ get(null)しない
+                    var party = (partyKey == null) ? null : partyMap.get(partyKey);
                     return toCandidateItem(c, party);
                 })
                 .toList();
@@ -151,10 +149,6 @@ public class CandidateService {
                 .toList();
     }
 
-    // -------------------------
-    // helpers
-    // -------------------------
-
     private void requireElectionExists(UUID electionId) {
         if (!electionRepo.existsById(electionId)) {
             throw new ApiException(HttpStatus.NOT_FOUND, "ELECTION_NOT_FOUND", "選挙が存在しません");
@@ -164,7 +158,6 @@ public class CandidateService {
     private CandidateItem toCandidateItem(
             com.bteam.ovs.candidates.entity.Candidate c,
             com.bteam.ovs.parties.entity.Party pOrNull) {
-        // CandidateItem の入れ子型 PartyEmbed は candidates.dto 側のやつ
         CandidateItem.PartyEmbed party = (pOrNull == null)
                 ? null
                 : partyLookupService.toCandidateItemEmbed(pOrNull);
@@ -203,10 +196,6 @@ public class CandidateService {
                 party);
     }
 
-    // -------------------------
-    // internal records
-    // -------------------------
-
     public record ElectionCandidatesBundle(
             List<CandidateItem> items,
             Map<UUID, String> candidateNameById) {
@@ -214,7 +203,7 @@ public class CandidateService {
 
     public record CandidateSummary(
             UUID candidateId,
-            String candidateKey, // ★ 追加
+            String candidateKey,
             String name) {
     }
 

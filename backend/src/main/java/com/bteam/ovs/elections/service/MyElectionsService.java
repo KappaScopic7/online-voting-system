@@ -61,7 +61,6 @@ public class MyElectionsService {
     @Transactional(readOnly = true)
     public List<ElectionListItem> listMyElections(UUID accountId) {
 
-        // ===== Eligibility 判定 =====
         var snap = resolver.resolve(accountId);
         if (snap.source() == com.bteam.ovs.eligibility.service.entity.EligibilitySnapshot.Source.NONE) {
             return List.of();
@@ -85,9 +84,7 @@ public class MyElectionsService {
         if (electionIds.isEmpty())
             return List.of();
 
-        // ===== Election 取得 =====
         var elections = electionRepo.findAllById(electionIds);
-        // ElectionsPage と揃えるなら startsAt desc のほうが自然（list() と同じ）
         elections.sort(Comparator.comparing(Election::getStartsAt,
                 Comparator.nullsLast(Comparator.naturalOrder())).reversed());
 
@@ -96,13 +93,10 @@ public class MyElectionsService {
 
         var electionIdList = elections.stream().map(Election::getId).toList();
 
-        // 候補者数
         Map<UUID, Long> candidateCountByElectionId = candidateService.countByElectionIds(electionIdList);
 
-        // currentVote の候補者名表示用
         Map<UUID, String> candidateNameById = candidateService.candidateNameMapByElectionIds(electionIdList);
 
-        // accountId は Me 前提なので active を探す
         UUID citizenId = null;
         boolean identityLinked = false;
 
@@ -112,7 +106,6 @@ public class MyElectionsService {
             identityLinked = (citizenId != null);
         }
 
-        // ===== current (NORMAL) =====
         Map<UUID, com.bteam.ovs.voting.entity.VoteCurrent> currentByElectionId = Map.of();
         if (identityLinked) {
             currentByElectionId = voteCurrentRepo.findByCitizenIdAndElectionIdIn(citizenId, electionIdList).stream()
@@ -122,7 +115,6 @@ public class MyElectionsService {
                             (a, b) -> a));
         }
 
-        // ===== current (ALLOCATION) =====
         Set<UUID> allocCurrentElectionIds = Set.of();
         if (identityLinked) {
             allocCurrentElectionIds = voteAllocCastRepo.findByCitizenIdAndElectionIdIn(citizenId, electionIdList)
@@ -131,7 +123,6 @@ public class MyElectionsService {
                     .collect(Collectors.toSet());
         }
 
-        // ===== current (JUDGE_REVIEW) =====
         Set<UUID> jrCurrentElectionIds = Set.of();
         if (identityLinked) {
             jrCurrentElectionIds = judgeReviewCastRepo.findByCitizenIdAndElectionIdIn(citizenId, electionIdList)
@@ -147,9 +138,8 @@ public class MyElectionsService {
 
         return elections.stream()
                 .map(e -> {
-                    String st = ElectionService.status(e); // nowは中でInstant.now()
+                    String st = ElectionService.status(e);
 
-                    // hasResult を /api/elections と揃える（PUBLISHEDのみ）
                     boolean hasResult = (e.getStatus() == ElectionStatus.PUBLISHED);
 
                     long cnt = candidateCountByElectionId.getOrDefault(e.getId(), 0L);
@@ -159,7 +149,6 @@ public class MyElectionsService {
                             && e.getStatus() == ElectionStatus.OPEN
                             && electionEligibilityService.isEligible(accountId, e.getId());
 
-                    // SINGLE_CHOICE の currentVote（表示用、NONE_SUPPORT対応）
                     ElectionListItem.CurrentVote currentVote = null;
                     if (finalIdentityLinked && e.getBallotType() == BallotType.SINGLE_CHOICE) {
                         var cur = finalCurrentByElectionId.get(e.getId());
@@ -179,7 +168,6 @@ public class MyElectionsService {
                         }
                     }
 
-                    // 方式別 hasCurrent（/api/elections と揃える）
                     boolean hasCurrent = false;
                     if (finalIdentityLinked) {
                         if (e.getBallotType() == BallotType.SINGLE_CHOICE) {

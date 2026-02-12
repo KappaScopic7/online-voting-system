@@ -30,7 +30,6 @@ public class VoteTokenAuthenticationFilter extends OncePerRequestFilter {
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
-        // public 投票系エンドポイントに適用
         String path = request.getRequestURI();
         return !(path.startsWith("/api/public/voting/") ||
                 path.startsWith("/api/public/alloc-voting/") ||
@@ -75,7 +74,6 @@ public class VoteTokenAuthenticationFilter extends OncePerRequestFilter {
                 String eidStr = String.valueOf(claims.get("eid"));
                 tokenElectionId = UUID.fromString(eidStr);
 
-                // （VOTE のときだけ）electionId一致チェック
                 String reqElectionId = request.getParameter("electionId");
                 if (reqElectionId != null && !reqElectionId.isBlank()) {
                     UUID reqEid = UUID.fromString(reqElectionId);
@@ -86,7 +84,6 @@ public class VoteTokenAuthenticationFilter extends OncePerRequestFilter {
                     }
                 }
             } else if ("PUBLIC".equals(kind)) {
-                // election縛り無し
                 tokenElectionId = null;
             } else {
                 chain.doFilter(request, response);

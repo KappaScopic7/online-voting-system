@@ -15,13 +15,10 @@ public class DemoPersonaController {
 
     @GetMapping("/personas")
     public List<DemoPersonaDto> personas() {
-        // initializer と同じ seed を参照（Mode変えるならここも合わせる）
         var seed = new MachidaSangiinSeed(Mode.MOCK);
 
-        // users() は UserJson(email,password,...) を返すのでそこから作る
         var users = seed.users();
 
-        // label/description は雑でもOK。必要なら Seed 側でメタ持たせる。
         var counter = new int[] { 1 };
         return users.stream()
                 .map(u -> new DemoPersonaDto(

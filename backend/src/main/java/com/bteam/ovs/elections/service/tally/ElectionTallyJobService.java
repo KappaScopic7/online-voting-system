@@ -67,7 +67,6 @@ public class ElectionTallyJobService {
         System.out.println("[tally] scriptPath=" + scriptPath);
         System.out.println("[tally] pythonCmd=" + pythonCmd);
 
-        // CLOSED のときだけ走らせる（多重起動・誤起動対策）
         if (e.getStatus() != ElectionStatus.CLOSED)
             return;
 
@@ -80,11 +79,9 @@ public class ElectionTallyJobService {
             Path jsonPath = Path.of(jsonDir, electionId + ".json");
             Path pngPath = Path.of(chartDir, electionId + ".png");
 
-            // 1) Springで集計JSON生成
             var bundle = tallyJsonService.build(electionId, now);
             om.writerWithDefaultPrettyPrinter().writeValue(jsonPath.toFile(), bundle);
 
-            // 2) Pythonでグラフ生成（ヘッドレス強制・workDir固定）
             ProcessBuilder pb = new ProcessBuilder(
                     pythonCmd,
                     scriptPath,
@@ -104,17 +101,16 @@ public class ElectionTallyJobService {
                 p.destroyForcibly();
                 System.err.println("[tally] TIMEOUT electionId=" + electionId);
                 System.err.println(logs);
-                return; // CLOSEDのまま
+                return;
             }
 
             int code = p.exitValue();
             if (code != 0 || !Files.exists(pngPath)) {
                 System.err.println("[tally] FAILED electionId=" + electionId + " code=" + code);
                 System.err.println(logs);
-                return; // CLOSEDのまま
+                return;
             }
 
-            // 3) 成功：TALLIEDへ
             e.setTalliedAt(now);
             e.setStatus(ElectionStatus.TALLIED);
 
@@ -123,7 +119,6 @@ public class ElectionTallyJobService {
         } catch (Exception ex) {
             System.err.println("[tally] EXCEPTION electionId=" + electionId);
             ex.printStackTrace();
-            // CLOSEDのまま
         }
     }
 

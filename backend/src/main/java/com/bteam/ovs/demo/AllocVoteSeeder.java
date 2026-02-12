@@ -43,7 +43,6 @@ public class AllocVoteSeeder {
 
             Instant castedAt = now.plusSeconds(vj.castedAtOffsetSec());
 
-            // 1) cast
             var cast = new VoteAllocCast();
             cast.setElectionId(ce.electionId());
             cast.setCitizenId(vj.citizenId());
@@ -51,10 +50,8 @@ public class AllocVoteSeeder {
             cast.setCastedAt(castedAt);
             cast = castRepo.save(cast);
 
-            // 2) items
             saveItems(itemRepo, ce, cast.getId(), vj);
 
-            // 3) latest
             var key = new AllocKey(ce.electionId(), vj.citizenId());
             var prev = latest.get(key);
             if (prev == null || castedAt.isAfter(prev.castedAt())) {
@@ -62,7 +59,6 @@ public class AllocVoteSeeder {
             }
         }
 
-        // 4) current from latest
         for (var e : latest.entrySet()) {
             var key = e.getKey();
             var lat = e.getValue();

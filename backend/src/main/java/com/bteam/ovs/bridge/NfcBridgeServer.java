@@ -25,9 +25,8 @@ public class NfcBridgeServer {
     private static final Pattern UUID_LOOSE = Pattern.compile(
             "(?i)\\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\\b");
 
-    // ★ wait時間（接続確認時間）を延ばすだけ
-    private static final int WAIT_FOR_PRESENT_MS = 5000; // 1000 -> 5000
-    private static final int WAIT_FOR_ABSENT_MS = 3000; // 1000 -> 3000
+    private static final int WAIT_FOR_PRESENT_MS = 5000;
+    private static final int WAIT_FOR_ABSENT_MS = 3000;
 
     public static void main(String[] args) throws Exception {
         String enable = System.getenv("OVS_NFC_BRIDGE");
@@ -91,7 +90,7 @@ public class NfcBridgeServer {
             List<CardTerminal> terminals = factory.terminals().list();
             if (terminals.isEmpty()) {
                 System.out.println("[nfc] no card terminals found -> stop");
-                return; // ← ループしない
+                return;
             }
         } catch (Exception e) {
             System.out.println("[nfc] init failed -> stop: " + e.getMessage());
@@ -114,7 +113,7 @@ public class NfcBridgeServer {
 
                 while (true) {
                     try {
-                        terminal.waitForCardPresent(WAIT_FOR_PRESENT_MS); // ★延長
+                        terminal.waitForCardPresent(WAIT_FOR_PRESENT_MS);
                     } catch (CardException ce) {
                         System.out.println("[nfc] waitForCardPresent failed: " + ce.getMessage());
                         break;
@@ -154,7 +153,7 @@ public class NfcBridgeServer {
                         }
 
                         try {
-                            terminal.waitForCardAbsent(WAIT_FOR_ABSENT_MS); // ★延長
+                            terminal.waitForCardAbsent(WAIT_FOR_ABSENT_MS);
                         } catch (CardException ce) {
                             System.out.println("[nfc] waitForCardAbsent failed: " + ce.getMessage());
                             break;

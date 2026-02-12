@@ -14,7 +14,7 @@ public record ElectionResultResponse(
 
     public record CandidateResult(
             UUID candidateId,
-            String candidateKey, // ★ 追加
+            String candidateKey,
             String candidateName,
             long votes) {
     }

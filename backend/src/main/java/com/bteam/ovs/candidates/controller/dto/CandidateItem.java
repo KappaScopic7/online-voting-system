@@ -5,7 +5,7 @@ import java.util.UUID;
 
 public record CandidateItem(
         UUID id,
-        UUID electionId, // ★追加
+        UUID electionId,
         String candidateKey,
         String name,
         Integer age,

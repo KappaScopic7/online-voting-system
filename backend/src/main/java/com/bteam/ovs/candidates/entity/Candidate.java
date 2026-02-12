@@ -2,6 +2,9 @@
 package com.bteam.ovs.candidates.entity;
 
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.Setter;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -11,6 +14,8 @@ import java.util.UUID;
         @UniqueConstraint(name = "uq_candidate_election_candidate_key", columnNames = { "election_id",
                 "candidate_key" })
 })
+@Getter
+@Setter
 public class Candidate {
     @Id
     @GeneratedValue
@@ -26,10 +31,10 @@ public class Candidate {
     private String name;
 
     @Column
-    private Integer age; // null可（デモ候補）
+    private Integer age;
 
     @Column(name = "party_key", length = 100)
-    private String partyKey; // null可（無所属）
+    private String partyKey;
 
     @Column(nullable = false, length = 300)
     private String title;
@@ -51,96 +56,4 @@ public class Candidate {
     @Column(name = "sort_order", nullable = false)
     private int sortOrder;
 
-    // getters/setters
-    public UUID getId() {
-        return id;
-    }
-
-    public UUID getElectionId() {
-        return electionId;
-    }
-
-    public void setElectionId(UUID electionId) {
-        this.electionId = electionId;
-    }
-
-    public String getCandidateKey() {
-        return candidateKey;
-    }
-
-    public void setCandidateKey(String candidateKey) {
-        this.candidateKey = candidateKey;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public Integer getAge() {
-        return age;
-    }
-
-    public void setAge(Integer age) {
-        this.age = age;
-    }
-
-    public String getPartyKey() {
-        return partyKey;
-    }
-
-    public void setPartyKey(String partyKey) {
-        this.partyKey = partyKey;
-    }
-
-    public String getTitle() {
-        return title;
-    }
-
-    public void setTitle(String title) {
-        this.title = title;
-    }
-
-    public String getBio() {
-        return bio;
-    }
-
-    public void setBio(String bio) {
-        this.bio = bio;
-    }
-
-    public List<String> getPolicies() {
-        return policies;
-    }
-
-    public void setPolicies(List<String> policies) {
-        this.policies = policies;
-    }
-
-    public String getWebsiteUrl() {
-        return websiteUrl;
-    }
-
-    public void setWebsiteUrl(String websiteUrl) {
-        this.websiteUrl = websiteUrl;
-    }
-
-    public String getImageUrl() {
-        return imageUrl;
-    }
-
-    public void setImageUrl(String imageUrl) {
-        this.imageUrl = imageUrl;
-    }
-
-    public int getSortOrder() {
-        return sortOrder;
-    }
-
-    public void setSortOrder(int sortOrder) {
-        this.sortOrder = sortOrder;
-    }
 }

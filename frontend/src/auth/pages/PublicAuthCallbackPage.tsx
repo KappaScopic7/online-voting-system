@@ -1,89 +1,95 @@
-// frontend/src/auth/pages/PublicAuthCallbackPage.tsx
-import { useEffect, useMemo, useRef, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
-import { Card, DevDebug, Page } from "../../shared/ui/page";
-import { httpAnon } from "../../shared/httpAnon";
-import { publicToken } from "../../shared/tokenStorage";
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { Card, Page, DevDebug } from "../../shared/ui/page";
 import { normalizeFrom } from "../../shared/normalizeFrom";
-
-type ExchangeResponse = {
-    accessToken: string;
-    tokenType?: string;
-    expiresIn?: number;
-    role?: string | null;
-};
+import { publicToken } from "../../shared/tokenStorage";
+import { exchangeNfcTicket } from "../api/publicAuth";
 
 export function PublicAuthCallbackPage() {
     const nav = useNavigate();
-    const loc = useLocation();
+    const [sp] = useSearchParams();
 
-    const didRunRef = useRef(false);
+    const ticket = (sp.get("ticket") ?? "").trim();
+    const electionIdQ = (sp.get("electionId") ?? "").trim();
+    const returnToQ = (sp.get("returnTo") ?? "").trim();
 
-    const q = useMemo(() => new URLSearchParams(loc.search), [loc.search]);
-    const ticket = (q.get("ticket") ?? "").trim();
-    const electionId = (q.get("electionId") ?? "").trim();
-    const returnToRaw = (q.get("returnTo") ?? "").trim(); // 任意（Androidから渡せる）
-    const returnTo = normalizeFrom(returnToRaw || "");
+    const electionId = electionIdQ || "00000000-0000-0000-0000-000000000000";
 
-    const [msg, setMsg] = useState("認証結果を確認しています…");
+    const returnTo = useMemo(() => {
+        const fallback = electionIdQ
+            ? `/voting/entry?electionId=${encodeURIComponent(electionIdQ)}&session=public`
+            : "/elections";
+        return normalizeFrom(returnToQ || fallback);
+    }, [returnToQ, electionIdQ]);
+
+    const [status, setStatus] = useState<"PROCESSING" | "ERROR" | "DONE">(
+        "PROCESSING",
+    );
+    const [err, setErr] = useState<string | null>(null);
 
     useEffect(() => {
-        if (didRunRef.current) return;
-        didRunRef.current = true;
-
-        if (!ticket || !electionId) {
-            nav("/elections", { replace: true });
-            return;
-        }
-
         (async () => {
-            setMsg("本人認証トークンを発行中…");
+            try {
+                setErr(null);
+                setStatus("PROCESSING");
 
-            // ✅ ticket -> voteToken 交換（サーバが返す accessToken を publicToken に保存）
-            const res = await httpAnon.post<ExchangeResponse>(
-                "/auth/nfc/exchange",
-                { ticket },
-            );
+                if (!ticket) throw new Error("ticket がありません");
 
-            const t = (res.data?.accessToken ?? "").trim();
-            if (!t) throw new Error("accessToken missing");
+                const res = await exchangeNfcTicket({ ticket, electionId });
 
-            publicToken.set(t);
+                const accessToken = (res?.accessToken ?? "").trim();
+                if (!accessToken)
+                    throw new Error("accessToken が返りませんでした");
 
-            const to =
-                returnTo && returnTo.startsWith("/")
-                    ? returnTo
-                    : `/voting/entry?electionId=${encodeURIComponent(electionId)}&session=public`;
+                // ✅ PCブラウザに public session token を保存
+                publicToken.set(accessToken);
 
-            nav(to, { replace: true });
-        })().catch((e) => {
-            console.error(e);
-            publicToken.clear();
-            setMsg("認証に失敗しました。もう一度やり直してください。");
-
-            nav(
-                `/identity/vote?electionId=${encodeURIComponent(
-                    electionId,
-                )}&session=public`,
-                { replace: true },
-            );
-        });
-    }, [ticket, electionId, nav, returnTo]);
+                setStatus("DONE");
+                window.setTimeout(() => nav(returnTo, { replace: true }), 150);
+            } catch (e: any) {
+                setStatus("ERROR");
+                setErr(
+                    e?.response?.data?.message ?? e?.message ?? "exchange 失敗",
+                );
+            }
+        })();
+    }, [ticket, electionId, returnTo, nav]);
 
     return (
         <Page
-            title={<h1 style={{ margin: 0, fontSize: 20 }}>本人認証</h1>}
-            maxWidth={720}
+            title={<h1 style={{ margin: 0, fontSize: 20 }}>認証処理</h1>}
+            maxWidth={680}
         >
-            <Card>{msg}</Card>
-            <DevDebug
-                value={{
-                    ticket: ticket ? "(present)" : null,
-                    electionId,
-                    returnTo: returnToRaw || null,
-                    hasPublicToken: !!publicToken.get(),
-                }}
-            />
+            <Card>
+                {status === "PROCESSING" && (
+                    <div style={{ fontWeight: 800 }}>
+                        認証情報をPCに反映しています…
+                    </div>
+                )}
+                {status === "DONE" && (
+                    <div style={{ fontWeight: 800 }}>
+                        認証完了。投票画面へ移動します…
+                    </div>
+                )}
+                {status === "ERROR" && (
+                    <div>
+                        <div style={{ fontWeight: 900, marginBottom: 8 }}>
+                            エラー
+                        </div>
+                        <div style={{ whiteSpace: "pre-wrap" }}>{err}</div>
+                    </div>
+                )}
+            </Card>
+
+            {import.meta.env?.DEV && (
+                <DevDebug
+                    value={{
+                        ticket: ticket ? "(present)" : null,
+                        electionIdQ,
+                        returnTo,
+                    }}
+                />
+            )}
         </Page>
     );
 }

@@ -84,7 +84,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
             System.out.println("[JWT] extracted kind=" + safe(kindStr));
 
-            // ===== VOTE token branch (ログインなし投票) =====
             if ("VOTE".equalsIgnoreCase(kindStr)) {
                 if (isBlank(sub)) {
                     System.out.println("[JWT] reject(VOTE): subject missing");
@@ -93,7 +92,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     return;
                 }
 
-                String eid = toStr(claims.get("eid")); // JwtService.issueVoteTokenで入れてる
+                String eid = toStr(claims.get("eid"));
                 if (isBlank(eid)) {
                     System.out.println("[JWT] reject(VOTE): eid missing");
                     SecurityContextHolder.clearContext();
@@ -133,7 +132,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 return;
             }
 
-            // ===== PUBLIC token branch (未ログイン本人認証セッション) =====
             if ("PUBLIC".equalsIgnoreCase(kindStr)) {
                 if (isBlank(sub)) {
                     System.out.println("[JWT] reject(PUBLIC): subject missing");
@@ -167,7 +165,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 return;
             }
 
-            // ===== Access token branch (既存：USER/STAFF) =====
             String aid = toStr(claims.get(JwtClaims.ACCOUNT_ID));
             String roleStr = toStr(claims.get(JwtClaims.ROLE));
 

@@ -7,7 +7,7 @@ import java.util.UUID;
 public record AllocElectionResultResponse(
         UUID electionId,
         String electionTitle,
-        String resultKind, // "ALLOC_CURRENT" など
+        String resultKind,
         long totalPoints,
         long noneSupportPoints,
         Instant generatedAt,
@@ -15,7 +15,7 @@ public record AllocElectionResultResponse(
 
     public record CandidatePointResult(
             UUID candidateId,
-            String candidateKey, // ★ 追加
+            String candidateKey,
             String name,
             long points) {
     }

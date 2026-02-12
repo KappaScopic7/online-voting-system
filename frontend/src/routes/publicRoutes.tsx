@@ -29,6 +29,7 @@ import { IdentityVotePage } from "../identity/pages/IdentityVotePage";
 import { JudgeReviewStartPage } from "../voting/pages/JudgeReviewStartPage";
 import { JudgeReviewDonePage } from "../voting/pages/JudgeReviewDonePage";
 import { PublicAuthCallbackPage } from "../auth/pages/PublicAuthCallbackPage";
+import { IdentityPendingPage } from "../identity/pages/IdentityPendingPage";
 
 export function PublicRoutes() {
     return (
@@ -98,6 +99,8 @@ export function PublicRoutes() {
             />
             {/* 本人認証（ログイン不要でも使う） */}
             <Route path="/identity/link" element={<IdentityLinkPage />} />
+
+            <Route path="identity/pending" element={<IdentityPendingPage />} />
 
             {/* ✅ 投票用本人認証（ログイン不要） */}
             <Route path="/identity/vote" element={<IdentityVotePage />} />

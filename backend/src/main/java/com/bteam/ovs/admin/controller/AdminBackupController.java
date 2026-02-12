@@ -13,7 +13,7 @@ import java.time.format.DateTimeFormatter;
 
 @RestController
 @RequestMapping("/admin/backup")
-@PreAuthorize("hasAuthority('ADMIN')") // RequireStaff role="ADMIN" に合わせる
+@PreAuthorize("hasAuthority('ADMIN')")
 public class AdminBackupController {
 
     @Value("${spring.datasource.url}")
@@ -37,7 +37,6 @@ public class AdminBackupController {
         return jdbcUrl.replaceAll("jdbc:postgresql://[^/]+/(\\w+).*", "$1");
     }
 
-    // ====== ダウンロード ======
     @GetMapping
     public ResponseEntity<byte[]> backup() throws Exception {
 
@@ -68,7 +67,6 @@ public class AdminBackupController {
                 .body(baos.toByteArray());
     }
 
-    // ====== アップロード ======
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<String> restore(@RequestPart("file") MultipartFile file)
             throws Exception {

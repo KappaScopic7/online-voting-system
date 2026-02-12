@@ -67,13 +67,10 @@ public class ElectionService {
 
         var electionIds = elections.stream().map(Election::getId).toList();
 
-        // 候補者数
         Map<UUID, Long> candidateCountByElectionId = candidateService.countByElectionIds(electionIds);
 
-        // currentVote の候補者名表示用（通常投票用）
         Map<UUID, String> candidateNameById = candidateService.candidateNameMapByElectionIds(electionIds);
 
-        // 公開API：accountIdが来ても「見つからない/無効/ロック」は未ログイン扱い
         UUID citizenId = null;
         boolean identityLinked = false;
 
@@ -83,7 +80,6 @@ public class ElectionService {
             identityLinked = (citizenId != null);
         }
 
-        // ===== current (NORMAL) =====
         Map<UUID, com.bteam.ovs.voting.entity.VoteCurrent> currentByElectionId = Map.of();
         if (identityLinked) {
             currentByElectionId = voteCurrentRepo.findByCitizenIdAndElectionIdIn(citizenId, electionIds).stream()
@@ -93,7 +89,6 @@ public class ElectionService {
                             (a, b) -> a));
         }
 
-        // ===== current (ALLOCATION) =====
         Set<UUID> allocCurrentElectionIds = Set.of();
         if (identityLinked) {
             allocCurrentElectionIds = voteAllocCastRepo.findByCitizenIdAndElectionIdIn(citizenId, electionIds).stream()
@@ -101,7 +96,6 @@ public class ElectionService {
                     .collect(Collectors.toSet());
         }
 
-        // ===== current (JUDGE_REVIEW) =====
         Set<UUID> jrCurrentElectionIds = Set.of();
         if (identityLinked) {
             jrCurrentElectionIds = judgeReviewCastRepo
@@ -129,7 +123,6 @@ public class ElectionService {
                             && finalAccountIdOrNull != null
                             && electionEligibilityService.isEligible(finalAccountIdOrNull, e.getId());
 
-                    // 通常投票の currentVote（表示用）
                     ElectionListItem.CurrentVote currentVote = null;
                     if (finalIdentityLinked && e.getBallotType() == BallotType.SINGLE_CHOICE) {
                         var cur = finalCurrentByElectionId.get(e.getId());
@@ -149,7 +142,6 @@ public class ElectionService {
                         }
                     }
 
-                    // ★ここが本題：方式ごとに hasCurrent を作る
                     boolean hasCurrent = false;
                     if (finalIdentityLinked) {
                         if (e.getBallotType() == BallotType.SINGLE_CHOICE) {
@@ -180,20 +172,17 @@ public class ElectionService {
     }
 
     public ElectionDetailResponse detail(UUID electionId, UUID accountIdOrNull) {
-        // final Instant now = Instant.now();
 
         var election = electionRepo.findById(electionId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "ELECTION_NOT_FOUND", "選挙が存在しません"));
 
         String st = status(election);
 
-        // 候補者（一覧＋candidateId->name）
         var bundle = candidateService.bundleByElection(electionId);
         var candidates = bundle.items();
         int candidateCount = candidates.size();
         Map<UUID, String> candidateNameById = bundle.candidateNameById();
 
-        // 公開API：accountIdが来ても「見つからない/無効/ロック」は未ログイン扱い
         boolean identityLinked = false;
         UUID citizenId = null;
 
@@ -238,7 +227,6 @@ public class ElectionService {
                 currentVote);
     }
 
-    // 旧：時刻判定。マイグレーション中の保険用に残す
     public static String status(Instant now, Instant startsAt, Instant endsAt) {
         if (now.isBefore(startsAt))
             return "UPCOMING";
@@ -263,7 +251,6 @@ public class ElectionService {
         var election = electionRepo.findById(electionId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "ELECTION_NOT_FOUND", "選挙が存在しません"));
 
-        // ★ 公開判定：PUBLISHED のみ
         if (election.getStatus() != ElectionStatus.PUBLISHED) {
             throw new ApiException(HttpStatus.FORBIDDEN, "RESULT_NOT_AVAILABLE", "結果は選挙管理委員会の公開後に閲覧できます");
         }
@@ -283,7 +270,6 @@ public class ElectionService {
                 null);
     }
 
-    // ★ 追加：CommitteeElectionService が呼ぶ
     public ElectionDetailResponse toDetailResponse(Election election) {
         String st = status(election);
 
@@ -291,7 +277,6 @@ public class ElectionService {
         var candidates = bundle.items();
         int candidateCount = candidates.size();
 
-        // committee用途：投票可否/現在票は不要（false/null）
         return new ElectionDetailResponse(
                 election.getId(),
                 election.getTitle(),
@@ -315,7 +300,6 @@ public class ElectionService {
         var election = electionRepo.findById(electionId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "ELECTION_NOT_FOUND", "選挙が存在しません"));
 
-        // ★ 公開判定：PUBLISHED のみ
         if (election.getStatus() != ElectionStatus.PUBLISHED) {
             throw new ApiException(HttpStatus.FORBIDDEN, "RESULT_NOT_AVAILABLE",
                     "結果は選挙管理委員会の公開後に閲覧できます");
@@ -334,9 +318,6 @@ public class ElectionService {
 
         Instant talliedAt = (election.getTalliedAt() != null) ? election.getTalliedAt() : Instant.now();
 
-        // =========================
-        // PARTY 配分（比例など）
-        // =========================
         if (partyAlloc) {
             var parties = partyRepo.findAll();
 
@@ -366,9 +347,6 @@ public class ElectionService {
                     results);
         }
 
-        // =========================
-        // CANDIDATE 配分（既存）
-        // =========================
         var candidates = candidateService.summariesByElection(electionId);
 
         Map<UUID, Long> pointMap = voteAllocItemRepo.sumPointsByElectionGroupByCandidate(electionId).stream()
@@ -396,10 +374,6 @@ public class ElectionService {
                 talliedAt,
                 results);
     }
-
-    // =========================
-    // result (public) + internal
-    // =========================
 
     public ElectionResultResponse resultInternal(UUID electionId) {
         var election = electionRepo.findById(electionId)
@@ -450,7 +424,6 @@ public class ElectionService {
         var election = electionRepo.findById(electionId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "ELECTION_NOT_FOUND", "選挙が存在しません"));
 
-        // ★ 公開判定：PUBLISHED のみ
         if (election.getStatus() != ElectionStatus.PUBLISHED) {
             throw new ApiException(HttpStatus.FORBIDDEN, "RESULT_NOT_AVAILABLE",
                     "結果は選挙管理委員会の公開後に閲覧できます");

@@ -7,7 +7,7 @@ import com.bteam.ovs.citizen.repository.CitizenRepository;
 import com.bteam.ovs.elections.repository.ElectionEligibilityRuleRepository;
 import com.bteam.ovs.elections.repository.ElectionRepository;
 import com.bteam.ovs.parties.repository.PartyRepository;
-import com.bteam.ovs.voting.repository.*; // ★ まとめてimportでもOK
+import com.bteam.ovs.voting.repository.*;
 import org.springframework.context.annotation.Profile;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -33,7 +33,6 @@ public class DemoDataService {
     private final VoteAllocCurrentRepository voteAllocCurrentRepo;
     private final VoteAllocItemRepository voteAllocItemRepo;
 
-    // ★ 追加
     private final JudgeReviewCastRepository judgeReviewCastRepo;
     private final JudgeReviewItemRepository judgeReviewItemRepo;
 
@@ -56,7 +55,6 @@ public class DemoDataService {
             VoteAllocCurrentRepository voteAllocCurrentRepo,
             VoteAllocItemRepository voteAllocItemRepo,
 
-            // ★ 追加
             JudgeReviewCastRepository judgeReviewCastRepo,
             JudgeReviewItemRepository judgeReviewItemRepo,
 
@@ -77,7 +75,6 @@ public class DemoDataService {
         this.voteAllocCurrentRepo = voteAllocCurrentRepo;
         this.voteAllocItemRepo = voteAllocItemRepo;
 
-        // ★ 追加
         this.judgeReviewCastRepo = judgeReviewCastRepo;
         this.judgeReviewItemRepo = judgeReviewItemRepo;
 
@@ -95,7 +92,6 @@ public class DemoDataService {
                     voteCastRepo, voteCurrentRepo,
                     voteAllocCastRepo, voteAllocCurrentRepo, voteAllocItemRepo,
 
-                    // ★ 追加
                     judgeReviewCastRepo, judgeReviewItemRepo,
 
                     citizenRepo,
@@ -104,11 +100,9 @@ public class DemoDataService {
     }
 
     private void wipeAll() {
-        // ★ judge review は item -> cast の順で消す
         judgeReviewItemRepo.deleteAll();
         judgeReviewCastRepo.deleteAll();
 
-        // FK順で消す（initializer の保存順に合わせる）
         voteAllocCurrentRepo.deleteAll();
         voteAllocItemRepo.deleteAll();
         voteAllocCastRepo.deleteAll();
@@ -122,7 +116,7 @@ public class DemoDataService {
         partyRepo.deleteAll();
 
         userRepo.deleteAll();
-        staffRepo.deleteAll(); // admin/committee を毎回作り直すならOK
+        staffRepo.deleteAll();
         citizenRepo.deleteAll();
     }
 }

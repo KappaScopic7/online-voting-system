@@ -69,12 +69,6 @@ public class DemoDataInitializer {
             PasswordEncoder passwordEncoder) {
 
         seedAdmin(staffRepo, passwordEncoder);
-
-        // ============================
-        // ★ JSON廃止：Javaで生成
-        // ============================
-        // Mode.MOCK: 卒制用にもじった名称
-        // Mode.REAL_LIKE: 実在表記寄り（公開用途は注意）
         var seed = new MachidaSangiinSeed(Mode.MOCK);
 
         List<CitizenJson> citizens = seed.citizens();
@@ -88,7 +82,6 @@ public class DemoDataInitializer {
         List<AllocVoteJson> allocVoteCasts = seed.allocVoteCasts();
         List<JudgeReviewVoteJson> judgeReviewVoteCasts = seed.judgeReviewVoteCasts();
 
-        // index + validate（既存の安全網を流用）
         var indexed = new DemoDataIndexer().indexAll(citizens, parties, candidates, elections);
 
         new DemoDataValidator().validateAll(
@@ -99,25 +92,19 @@ public class DemoDataInitializer {
                 rules, voteCasts, users, committee, allocVoteCasts,
                 judgeReviewVoteCasts);
 
-        // elections + candidates（DBに保存）
         Map<String, ElectionCreated> createdElections = seedElectionsAndCandidates(
                 electionRepo, candidateRepo, elections, indexed.candidateMap());
 
-        // ============================
-        // ===== seed (DB insert) =====
-        // ============================
         seedCitizens(citizenRepo, passwordEncoder, citizens);
         seedUsers(userRepo, passwordEncoder, users);
         seedParties(partyRepo, parties);
         seedRules(ruleRepo, rules, createdElections);
         seedVotes(voteCastRepo, voteCurrentRepo, voteCasts, createdElections);
 
-        // alloc: casts + items を入れて、最新から current 生成
         new AllocVoteSeeder().seedFromCastsOnly(
                 voteAllocCastRepo, voteAllocCurrentRepo, voteAllocItemRepo,
                 allocVoteCasts, createdElections);
 
-        // judge review: casts + items
         seedJudgeReviewVotes(
                 judgeReviewCastRepo, judgeReviewItemRepo,
                 judgeReviewVoteCasts, createdElections);
@@ -256,7 +243,6 @@ public class DemoDataInitializer {
             e.setStartsAt(startsAt);
             e.setEndsAt(endsAt);
 
-            // seed時に status を時刻から付与（結果検証のため「終了済み」は PUBLISHED まで進める）
             if (now.isBefore(startsAt)) {
                 e.setStatus(ElectionStatus.READY);
                 e.setTalliedAt(null);
@@ -268,10 +254,8 @@ public class DemoDataInitializer {
                 e.setPublishedAt(null);
 
             } else {
-                // ★ ここが重要：結果ページを見たいので PUBLISHED にする
                 e.setStatus(ElectionStatus.PUBLISHED);
 
-                // 結果がある扱いにするため埋める（API が hasResult を publishedAt で判定しててもOK）
                 if (e.getTalliedAt() == null) {
                     e.setTalliedAt(endsAt.plusSeconds(30));
                 }
@@ -280,7 +264,6 @@ public class DemoDataInitializer {
                 }
             }
 
-            // allocationTarget はデフォルト CANDIDATE のままでOK
             electionRepo.save(e);
 
             List<UUID> candidateIds = new ArrayList<>();
@@ -348,7 +331,6 @@ public class DemoDataInitializer {
             UUID candidateId = ce.candidateIds().get(vj.candidateIndex());
             Instant castedAt = now.plusSeconds(vj.castedAtOffsetSec());
 
-            // cast: 履歴
             var cast = new VoteCast();
             cast.setElectionId(ce.electionId());
             cast.setCitizenId(vj.citizenId());
@@ -357,7 +339,6 @@ public class DemoDataInitializer {
             cast.setCastedAt(castedAt);
             voteCastRepo.save(cast);
 
-            // current: upsert
             voteCurrentRepo.upsertCurrent(
                     ce.electionId(),
                     vj.citizenId(),

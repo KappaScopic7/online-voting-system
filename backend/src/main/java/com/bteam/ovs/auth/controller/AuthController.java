@@ -25,7 +25,6 @@ public class AuthController {
         this.jwtService = jwtService;
     }
 
-    // ★ electionId をやめる
     private record TicketData(UUID citizenId, Instant expiresAt) {
     }
 
@@ -34,7 +33,7 @@ public class AuthController {
     public static class NfcLoginRequest {
         public String payload;
         public String pin;
-        // public String electionId; // ★不要（残すなら optional 扱いに）
+        // public String electionId;
     }
 
     public static class ExchangeRequest {
@@ -48,7 +47,6 @@ public class AuthController {
             throw new ApiException(HttpStatus.BAD_REQUEST, "BAD_REQUEST", "request is null");
         }
 
-        // ✅ ここが整合の本体（payload→citizenId + PIN照合）
         UUID citizenId = nfcResolveService.resolveCitizenId(request.payload, request.pin);
 
         String ticket = UUID.randomUUID().toString();
@@ -65,7 +63,7 @@ public class AuthController {
             throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_TICKET", "ticket is required");
         }
 
-        TicketData data = ticketStore.remove(req.ticket.trim()); // ワンタイム
+        TicketData data = ticketStore.remove(req.ticket.trim());
         if (data == null) {
             throw new ApiException(HttpStatus.UNAUTHORIZED, "INVALID_TICKET", "ticket is invalid");
         }
@@ -74,13 +72,12 @@ public class AuthController {
             throw new ApiException(HttpStatus.UNAUTHORIZED, "TICKET_EXPIRED", "ticket expired");
         }
 
-        // ✅ PUBLIC セッショントークン（選挙縛り無し）
         String publicToken = jwtService.issuePublicSessionToken(data.citizenId());
 
         return new TokenResponse(
                 publicToken,
                 "Bearer",
-                30 * 60, // ← JwtService の TTL と合わせるのが理想（後述）
+                30 * 60,
                 null);
     }
 

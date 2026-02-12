@@ -33,7 +33,6 @@ public class ElectionEligibilityService {
         }
     }
 
-    /** ダメなら ApiException(FORBIDDEN) を投げる（必要なら controller/service で使える） */
     public void requireEligible(UUID accountId, UUID electionId) {
         var election = electionRepo.findById(electionId)
                 .orElseThrow(() -> new ApiException(
@@ -49,7 +48,6 @@ public class ElectionEligibilityService {
                     "年齢情報がないため投票できません");
         }
 
-        // 選挙開始日時 기준で年齢判定（UTC寄せ）
         LocalDate on = election.getStartsAt().atZone(ZoneOffset.UTC).toLocalDate();
 
         int age = calcAge(snap.birthDate(), on);
@@ -60,7 +58,6 @@ public class ElectionEligibilityService {
                     "年齢条件を満たしていません");
         }
 
-        // 住所条件などは卒制なら後で足す
     }
 
     private int calcAge(LocalDate birthDate, LocalDate onDate) {

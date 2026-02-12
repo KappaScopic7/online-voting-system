@@ -25,25 +25,20 @@
         "java.compile.nullAnalysis.mode": "disabled",
         "java.configuration.updateBuildConfiguration": "interactive",
         "files.exclude": {
-            // ===== root で非表示 =====
-            // ".vscode": true,
             "graph-service": true,
             "docker-compose.yml": true,
             "package.json": true,
             "package-lock.json": true,
             "frontend": true,
             "backend": true,
-            // ===== dotfiles =====
             ".editorconfig": true,
             ".gitattributes": true,
             ".gitignore": true,
             ".prettierrc": true,
             ".github": true,
-            // ===== どのフォルダから見ても確実に隠す =====
             "**/OnlineVotingSystemApplication.java": true,
             "**/application.yaml": true,
             "**/application.properties": true,
-            // ===== 共通ノイズ =====
             "**/node_modules": true,
             "**/.gradle": true,
             "**/build": true,

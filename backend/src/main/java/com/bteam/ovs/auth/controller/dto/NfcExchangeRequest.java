@@ -1,7 +1,8 @@
 package com.bteam.ovs.auth.controller.dto;
 
-import jakarta.validation.constraints.NotBlank;
+import java.util.UUID;
 
 public record NfcExchangeRequest(
-        @NotBlank String ticket) {
+        String ticket,
+        UUID electionId) {
 }

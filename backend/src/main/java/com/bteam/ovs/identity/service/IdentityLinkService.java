@@ -17,9 +17,9 @@ public class IdentityLinkService {
     }
 
     private final UserAccountRepository userRepo;
-    private final CitizenRepository citizenRepo; // ★追加
+    private final CitizenRepository citizenRepo;
 
-    public IdentityLinkService(UserAccountRepository userRepo, CitizenRepository citizenRepo) { // ★変更
+    public IdentityLinkService(UserAccountRepository userRepo, CitizenRepository citizenRepo) {
         this.userRepo = userRepo;
         this.citizenRepo = citizenRepo;
     }
@@ -38,7 +38,6 @@ public class IdentityLinkService {
             throw new ApiException(HttpStatus.FORBIDDEN, "EMAIL_NOT_VERIFIED", "メール認証が完了していません");
         }
 
-        // ★ citizenId 実在チェック（スタブ市民マスタ）
         if (!citizenRepo.existsById(citizenId)) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "CITIZEN_NOT_FOUND", "指定されたcitizenIdは存在しません");
         }

@@ -28,7 +28,6 @@ public class JudgeReviewSeeder {
 
             Instant castedAt = now.plusSeconds(vj.castedAtOffsetSec());
 
-            // cast upsert
             var cast = judgeReviewCastRepo
                     .findByElectionIdAndCitizenId(ce.electionId(), vj.citizenId())
                     .orElseGet(() -> {
@@ -41,7 +40,6 @@ public class JudgeReviewSeeder {
             cast.setCastedAt(castedAt);
             cast = judgeReviewCastRepo.save(cast);
 
-            // items: 全消しして入れ直し
             judgeReviewItemRepo.deleteByCastId(cast.getId());
 
             for (var itemJson : vj.items()) {

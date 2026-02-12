@@ -22,7 +22,6 @@ import { CandidateCardFrame } from "../../candidates/ui/CandidateCardFrame";
 import { PartyPill } from "../../parties/ui/PartyPill";
 import { resolveCandidateImageUrl } from "../../elections/ui/candidateImages";
 
-// ★プロジェクトに合わせて import を調整
 import { fetchElectionCandidates } from "../../candidates/api/candidates";
 import { fetchParties } from "../../parties/api/parties";
 import type { PartyListItem } from "../../parties/model/partyTypes";
@@ -106,21 +105,17 @@ export function AllocVotingStartPage() {
     const [sp] = useSearchParams();
     const electionId = sp.get("electionId") ?? "";
 
-    // ✅ public モード判定：session=public / public=1 のみ
     const session = (sp.get("session") ?? "").toLowerCase();
     const publicByQuery = session === "public" || isTruthy(sp.get("public"));
 
-    // ✅ URL に public が無くても、publicToken が生きてたら public 扱い
     const hasStoredPublicToken = !!publicToken.get();
     const publicMode = publicByQuery || hasStoredPublicToken;
 
-    // token は「URLで public 明示のときだけ」拾う
     const tokenFromQuery = publicByQuery ? sp.get("token") : null;
     const effectiveToken = publicMode
         ? tokenFromQuery?.trim() || publicToken.get()
         : null;
 
-    // ✅ footer bar
     const { setFooterActions } = useOutletContext<PublicLayoutOutletContext>();
 
     useEffect(() => {
@@ -128,7 +123,6 @@ export function AllocVotingStartPage() {
         const t = effectiveToken?.trim();
         if (!t) return;
 
-        // ★PUBLICセッション方式：PUBLIC以外は保存しない（混線を構造的に排除）
         const kind = readJwtKind(t);
         if (kind && kind !== "PUBLIC") return;
 
@@ -833,7 +827,6 @@ export function AllocVotingStartPage() {
                                     type="button"
                                     onClick={() => {
                                         if (step === "CONFIRM") return;
-                                        // 残りがあるなら最後に触った項目へ
                                         if (rest > 0) applyRestToLastTouched();
                                     }}
                                     disabled={
@@ -848,7 +841,6 @@ export function AllocVotingStartPage() {
                                     type="button"
                                     onClick={() => {
                                         if (step === "CONFIRM") return;
-                                        // 超雑でもいい：先頭の非NONEに残り全部
                                         const idx = rows.findIndex(
                                             (r) => r.type !== "NONE_SUPPORT",
                                         );
