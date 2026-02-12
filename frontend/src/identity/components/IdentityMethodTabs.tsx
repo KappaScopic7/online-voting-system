@@ -3,10 +3,10 @@ import React from "react";
 
 export type IdentityMethod = "MANUAL" | "NFC";
 
-function isManualDemoEnabled(): boolean {
-    const sp = new URLSearchParams(window.location.search);
-    return sp.get("demo") === "1" || sp.get("manual") === "1";
-}
+// function isManualDemoEnabled(): boolean {
+//     const sp = new URLSearchParams(window.location.search);
+//     return sp.get("demo") === "1" || sp.get("manual") === "1";
+// }
 
 export function IdentityMethodTabs(props: {
     value: IdentityMethod;
@@ -22,10 +22,10 @@ export function IdentityMethodTabs(props: {
         onChange,
         nfcDisabled = false,
         manualDisabled = false,
-        allowManual = false,
+        // allowManual = false,
     } = props;
 
-    const manualEnabled = allowManual || isManualDemoEnabled();
+    // const manualEnabled = allowManual || isManualDemoEnabled();
 
     const tabStyle = (
         active: boolean,
@@ -52,17 +52,14 @@ export function IdentityMethodTabs(props: {
                 NFC
             </button>
 
-            {/* ✅ 手入力はデモ時のみ出す */}
-            {manualEnabled && (
-                <button
-                    type="button"
-                    onClick={() => onChange("MANUAL")}
-                    disabled={manualDisabled}
-                    style={tabStyle(value === "MANUAL", manualDisabled)}
-                >
-                    手入力（デモ）
-                </button>
-            )}
+            <button
+                type="button"
+                onClick={() => onChange("MANUAL")}
+                disabled={manualDisabled}
+                style={tabStyle(value === "MANUAL", manualDisabled)}
+            >
+                手入力（デモ）
+            </button>
         </div>
     );
 }
