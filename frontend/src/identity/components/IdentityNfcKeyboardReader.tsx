@@ -6,18 +6,13 @@ import { issueVoteToken } from "../../public/api/voteToken";
 import { publicToken } from "../../shared/tokenStorage";
 
 function looksLikeUuid(v: string) {
-    return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
         v,
     );
 }
 
 function isPinValid(pin: string) {
     return /^\d{4}$/.test(pin);
-}
-
-function isManualDemoEnabled(): boolean {
-    const sp = new URLSearchParams(window.location.search);
-    return sp.get("demo") === "1" || sp.get("manual") === "1";
 }
 
 type BridgeState = "CHECKING" | "ONLINE" | "OFFLINE";
@@ -53,9 +48,6 @@ export function IdentityNfcKeyboardReader(props: {
     const [bridgeState, setBridgeState] = useState<BridgeState>("CHECKING");
     const [bridgeNote, setBridgeNote] = useState<string | null>(null);
 
-    // ✅ 先に定義（useEffectで使うので）
-    const manualDemo = useMemo(() => isManualDemoEnabled(), []);
-
     const BRIDGE_BASE = "/nfc-bridge";
     const bridgeHealthUrl = useMemo(() => `${BRIDGE_BASE}/health`, []);
     const bridgeLastUrl = useMemo(() => `${BRIDGE_BASE}/last`, []);
@@ -65,7 +57,6 @@ export function IdentityNfcKeyboardReader(props: {
         if (commitTimerRef.current) window.clearTimeout(commitTimerRef.current);
         commitTimerRef.current = window.setTimeout(() => commit(), 250);
     };
-    const demoMode = useMemo(() => isManualDemoEnabled(), []);
 
     useEffect(() => {
         let alive = true;
@@ -94,6 +85,7 @@ export function IdentityNfcKeyboardReader(props: {
                 if (!alive) return;
 
                 if (res.status === 204) return;
+
                 if (res.ok) {
                     const data = (await res.json()) as { uuid?: string };
                     const uuid = String(data.uuid ?? "").trim();
@@ -103,6 +95,7 @@ export function IdentityNfcKeyboardReader(props: {
                     }
                     return;
                 }
+
                 throw new Error(`bridge /last status=${res.status}`);
             } catch {
                 stopOffline(
@@ -231,82 +224,79 @@ export function IdentityNfcKeyboardReader(props: {
                     <span style={{ fontWeight: 400, opacity: 0.7 }}>
                         {" "}
                         {bridgeState === "ONLINE"
-                            ? "（スキャン待機中）"
+                            ? "（スキャン待機中 / 自動入力ON）"
                             : bridgeState === "CHECKING"
                               ? "（接続確認中…）"
-                              : "（未接続）"}
+                              : "（未接続 / 手入力OK）"}
                     </span>
                 </div>
 
                 <div style={{ margin: 0, opacity: 0.85, lineHeight: 1.5 }}>
-                    PCのNFCリーダーでカードをかざしてください。
+                    PCのNFCリーダーでカードをかざすか、下の欄に
+                    citizenId（UUID）を入力してください。
                 </div>
 
-                {/* センサーっぽい表示（通常） */}
-                {!manualDemo && (
-                    <div
-                        style={{
-                            padding: 12,
-                            border: "1px dashed #bbb",
-                            borderRadius: 12,
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "space-between",
-                            gap: 12,
-                            minHeight: 48,
-                        }}
-                    >
-                        <div style={{ opacity: value.trim() ? 1 : 0.65 }}>
-                            {value.trim()
-                                ? "認証データを検出しました"
-                                : "（読み取り待ち…）"}
-                        </div>
-
-                        {value.trim() && (
-                            <div
-                                style={{
-                                    fontFamily:
-                                        "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
-                                    fontSize: 12,
-                                    opacity: 0.75,
-                                }}
-                                title={value}
-                            >
-                                {value.slice(0, 8)}…
-                            </div>
-                        )}
+                {/* センサーっぽい表示（ONLINE時は自動入力が動く） */}
+                <div
+                    style={{
+                        padding: 12,
+                        border: "1px dashed #bbb",
+                        borderRadius: 12,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        gap: 12,
+                        minHeight: 48,
+                    }}
+                >
+                    <div style={{ opacity: value.trim() ? 1 : 0.65 }}>
+                        {value.trim()
+                            ? "認証データを検出しました"
+                            : bridgeState === "ONLINE"
+                              ? "（読み取り待ち…）"
+                              : "（手入力してください）"}
                     </div>
-                )}
 
-                {/* デモ時だけ入力欄を出す */}
-                {demoMode && (
-                    <label style={{ display: "grid", gap: 4 }}>
-                        <span style={{ fontSize: 13, fontWeight: 700 }}>
-                            （デモ用）読み取り結果 citizenId (UUID)
-                            {bridgeState === "ONLINE" ? "（自動入力ON）" : ""}
-                            {bridgeState === "CHECKING"
-                                ? "（bridge確認中…）"
-                                : ""}
-                        </span>
-                        <input
-                            ref={inputRef}
-                            value={value}
-                            disabled={busy}
-                            onChange={(e) => {
-                                setValue(e.target.value);
-                                scheduleCommit();
+                    {value.trim() && (
+                        <div
+                            style={{
+                                fontFamily:
+                                    "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
+                                fontSize: 12,
+                                opacity: 0.75,
                             }}
-                            onKeyDown={(e) => {
-                                if (e.key === "Enter") {
-                                    e.preventDefault();
-                                    commit();
-                                }
-                            }}
-                            placeholder="ここに自動入力されます（手入力もOK）"
-                            style={{ width: "100%", padding: 8 }}
-                        />
-                    </label>
-                )}
+                            title={value}
+                        >
+                            {value.slice(0, 8)}…
+                        </div>
+                    )}
+                </div>
+
+                {/* ★本番でも常に手入力欄を出す */}
+                <label style={{ display: "grid", gap: 4 }}>
+                    <span style={{ fontSize: 13, fontWeight: 700 }}>
+                        citizenId (UUID)
+                        {bridgeState === "ONLINE" ? "（自動入力されます）" : ""}
+                        {bridgeState === "CHECKING" ? "（bridge確認中…）" : ""}
+                    </span>
+                    <input
+                        ref={inputRef}
+                        value={value}
+                        disabled={busy}
+                        onChange={(e) => {
+                            setValue(e.target.value);
+                            scheduleCommit();
+                        }}
+                        onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                                e.preventDefault();
+                                commit();
+                            }
+                        }}
+                        placeholder="例: 123e4567-e89b-12d3-a456-426614174000"
+                        style={{ width: "100%", padding: 8 }}
+                    />
+                </label>
             </div>
 
             {!pinOk && (
@@ -366,13 +356,6 @@ export function IdentityNfcKeyboardReader(props: {
                       ? "本人認証を登録"
                       : "本人認証して投票へ進む"}
             </button>
-
-            {!manualDemo && (
-                <div style={{ fontSize: 12, opacity: 0.65, lineHeight: 1.5 }}>
-                    ※ デモ用の手入力フォームは通常非表示です （URLに{" "}
-                    <code>?demo=1</code> を付けると表示されます）
-                </div>
-            )}
         </div>
     );
 }

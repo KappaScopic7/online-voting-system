@@ -198,7 +198,12 @@
             "type": "shell",
             "command": ".\\gradlew.bat",
             "args": ["runNfcBridge"],
-            "options": { "cwd": "${workspaceFolder}/backend" },
+            "options": {
+                "cwd": "${workspaceFolder}/backend",
+                "env": {
+                    "OVS_NFC_BRIDGE": "1"
+                }
+            },
             "isBackground": true,
 
             "problemMatcher": {
@@ -221,7 +226,12 @@
             "type": "shell",
             "command": ".\\gradlew.bat",
             "args": ["runNfcBridge"],
-            "options": { "cwd": "${workspaceFolder}/backend" },
+            "options": {
+                "cwd": "${workspaceFolder}/backend",
+                "env": {
+                    "OVS_NFC_BRIDGE": "1"
+                }
+            },
             "isBackground": true,
             "problemMatcher": {
                 "base": "$msCompile",
