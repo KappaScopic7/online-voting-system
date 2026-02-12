@@ -79,7 +79,6 @@ public class VotingService {
 
         Election election = requireElection(electionId);
 
-        // ★追加：選管運用（OPEN + 期間内）でないと開始不可
         requireOpenAndWithinPeriod(election, Instant.now());
 
         var candidates = candidateRepo.findByElectionId(electionId).stream()
@@ -106,7 +105,6 @@ public class VotingService {
         Election election = requireElection(electionId);
 
         Instant now = Instant.now();
-        // ★変更：選管運用（OPEN + 期間内）
         requireOpenAndWithinPeriod(election, now);
 
         String candidateName;
@@ -275,7 +273,6 @@ public class VotingService {
 
         Election election = requireElection(electionId);
 
-        // ★追加：選管運用（OPEN + 期間内）でないと開始不可
         requireOpenAndWithinPeriod(election, Instant.now());
 
         var candidates = candidateRepo.findByElectionId(electionId).stream()
@@ -292,7 +289,6 @@ public class VotingService {
         Election election = requireElection(electionId);
 
         Instant now = Instant.now();
-        // ★変更：選管運用（OPEN + 期間内）
         requireOpenAndWithinPeriod(election, now);
 
         if (!candidateRepo.existsByIdAndElectionId(candidateId, electionId)) {
@@ -332,7 +328,6 @@ public class VotingService {
         Election election = requireElection(electionId);
 
         Instant now = Instant.now();
-        // ★変更：選管運用（OPEN + 期間内）
         requireOpenAndWithinPeriod(election, now);
 
         // 履歴
@@ -367,7 +362,6 @@ public class VotingService {
         Election election = requireElection(electionId);
 
         Instant now = Instant.now();
-        // ★変更：選管運用（OPEN + 期間内）
         requireOpenAndWithinPeriod(election, now);
 
         if (items == null || items.isEmpty()) {
@@ -454,7 +448,6 @@ public class VotingService {
         }
     }
 
-    // ★ committee の tally ボタンから呼ばれる。今は no-op でOK（結果は ElectionService が都度集計）
     @Transactional
     public void tally(UUID electionId) {
         // no-op
@@ -589,9 +582,8 @@ public class VotingService {
         cast.setCastedAt(now);
         cast = judgeReviewCastRepo.save(cast);
 
-        // ★ items差し替え（bulk delete + 即時反映）
         judgeReviewItemRepo.deleteByCastId(cast.getId());
-        judgeReviewItemRepo.flush(); // ★保険。上の flushAutomatically が効かない環境でも確実にする
+        judgeReviewItemRepo.flush();
 
         for (var e : map.entrySet()) {
             var item = new JudgeReviewItem();
