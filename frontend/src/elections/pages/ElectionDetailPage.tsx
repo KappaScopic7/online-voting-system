@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useParams, useOutletContext } from "react-router-dom";
 import { fetchElectionDetail } from "../api/elections";
 import type { ElectionDetailResponse } from "../model/electionTypes";
-import type { PublicLayoutOutletContext } from "../../layout/public/PublicLayout";
+// import type { PublicLayoutOutletContext } from "../../layout/public/PublicLayout";
 import { useAuth } from "../../user/UserAuthContext";
 import { Card, DevDebug, Page } from "../../shared/ui/page";
 import { ErrorCard } from "../../shared/ui/ErrorCard";
@@ -13,6 +13,12 @@ import { CurrentVoteCard } from "../ui/CurrentVoteCard";
 import { ElectionCandidatesListCard } from "../ui/ElectionCandidatesListCard";
 import { ElectionVoteEntryCard } from "../ui/ElectionVoteEntryCard";
 import { FavoriteButton } from "../../me/ui/FavoriteButton";
+import { publicToken } from "../../shared/tokenStorage";
+// ✅ 追加（FooterAction も import）
+import type {
+    FooterAction,
+    PublicLayoutOutletContext,
+} from "../../layout/public/PublicLayout";
 
 export function ElectionDetailPage() {
     const { electionId } = useParams<{ electionId: string }>();
@@ -62,26 +68,53 @@ export function ElectionDetailPage() {
         }
 
         const isOngoing = data.status === "ONGOING";
-        const needIdentity = isOngoing && !!me && !data.canCast;
+        const authedByPublic = !!publicToken.get();
 
-        if (needIdentity) {
-            setFooterActions([
-                { kind: "BACK", label: "戻る" },
-                { kind: "LINK", to: "/identity/link", label: "本人認証へ →" },
-            ]);
-        } else {
-            setFooterActions([
+        const voteLink = `/voting/entry?electionId=${eid}`;
+        const publicVoteLink = `/voting/entry?electionId=${eid}&session=public`;
+
+        if (!isOngoing) {
+            const actions: FooterAction[] = [{ kind: "BACK", label: "戻る" }];
+            setFooterActions(actions);
+            return () => setFooterActions(null);
+        }
+
+        if (!me) {
+            const actions: FooterAction[] = [
                 { kind: "BACK", label: "戻る" },
                 {
                     kind: "LINK",
-                    to: `/voting/entry?electionId=${eid}`,
-                    label: "投票する →",
+                    to: publicVoteLink,
+                    label: authedByPublic ? "投票する →" : "本人認証で投票 →",
                 },
-            ]);
+                ...(authedByPublic
+                    ? []
+                    : ([
+                          {
+                              kind: "LINK",
+                              to: "/login",
+                              label: "ログインして投票 →",
+                          },
+                      ] satisfies FooterAction[])),
+            ];
+            setFooterActions(actions);
+            return () => setFooterActions(null);
         }
 
+        const needIdentity = !data.canCast;
+        const actions: FooterAction[] = needIdentity
+            ? [
+                  { kind: "BACK", label: "戻る" },
+                  { kind: "LINK", to: "/identity/link", label: "本人認証へ →" },
+              ]
+            : [
+                  { kind: "BACK", label: "戻る" },
+                  { kind: "LINK", to: voteLink, label: "投票する →" },
+              ];
+
+        setFooterActions(actions);
         return () => setFooterActions(null);
-    }, [data, me, setFooterActions]);
+    }, [data, me, setFooterActions, eid]);
 
     return (
         <Page

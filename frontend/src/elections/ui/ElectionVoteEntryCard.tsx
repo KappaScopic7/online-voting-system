@@ -2,6 +2,7 @@
 import { Link } from "react-router-dom";
 import { Card } from "../../shared/ui/page";
 import type { ElectionDetailResponse } from "../model/electionTypes";
+// import { publicToken } from "../../shared/tokenStorage";
 
 export function ElectionVoteEntryCard(props: {
     data: ElectionDetailResponse;
