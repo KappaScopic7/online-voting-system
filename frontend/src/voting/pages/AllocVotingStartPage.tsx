@@ -843,7 +843,7 @@ export function AllocVotingStartPage() {
                                 >
                                     残りを入れる
                                 </button>
-
+                                {/* 
                                 <button
                                     type="button"
                                     onClick={() => {
@@ -860,7 +860,7 @@ export function AllocVotingStartPage() {
                                     title="残りポイントを先頭の項目へ追加します"
                                 >
                                     先頭に残り全部
-                                </button>
+                                </button> */}
 
                                 <button
                                     type="button"

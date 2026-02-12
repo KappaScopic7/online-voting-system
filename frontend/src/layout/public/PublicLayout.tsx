@@ -196,6 +196,7 @@ export function PublicLayout() {
                                 src={logo}
                                 alt="OVS"
                             />
+                            <span className={styles.brandText}>B team</span>
                         </Link>
 
                         <div className={styles.headerRight}>
