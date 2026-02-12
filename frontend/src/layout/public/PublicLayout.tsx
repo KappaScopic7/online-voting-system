@@ -196,6 +196,20 @@ export function PublicLayout() {
                                 src={logo}
                                 alt="OVS"
                             />
+                            <span
+                                style={{
+                                    marginLeft: "12px", // ロゴとの間隔を少し広げる
+                                    fontWeight: "bold", // 太字
+                                    fontSize: "2rem", // サイズを大きく（画像のバランスに合わせる）
+                                    fontFamily:
+                                        "'Times New Roman', Times, serif", // 明朝体（セリフ体）にする
+                                    color: "#000", // 真っ黒にして強調
+                                    lineHeight: 1, // 高さを揃える
+                                    letterSpacing: "0.05em", // 少し文字間隔を空けて読みやすく
+                                }}
+                            >
+                                B team
+                            </span>
                         </Link>
 
                         <div className={styles.headerRight}>
