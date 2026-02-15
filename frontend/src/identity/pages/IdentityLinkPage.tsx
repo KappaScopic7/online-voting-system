@@ -22,6 +22,7 @@ import { IdentityErrorCard } from "../ui/IdentityErrorCard";
 import { IdentityStepHeaderCard } from "../ui/IdentityStepHeaderCard";
 import { IdentityPinStepCard } from "../ui/IdentityPinStepCard";
 import { isPinValid } from "../utils/identityValidation";
+import { createLinkPairing } from "../api/identity";
 
 type Step = "PIN" | "METHOD";
 
@@ -49,8 +50,7 @@ export function IdentityLinkPage() {
         return from && from !== loc.pathname ? from : fallback;
     }, [loc.state, loc.pathname]);
 
-    // ✅ PIN必須は Android のみ（方針）
-    const pinRequired = isAndroid;
+    const pinRequired = true; // 恒久本人認証は常に PIN 必須（PIN+タッチ）
 
     // ✅ Androidは最初からMETHOD（PIN+タッチを同画面で見せる）
     const [step, setStep] = useState<Step>(isAndroid ? "METHOD" : "PIN");
@@ -120,19 +120,37 @@ export function IdentityLinkPage() {
         setStep("METHOD");
     };
 
-    // ✅ PCは PendingPage へ寄せる（QR待機画面）
-    const openPcPending = () => {
-        const deepLink = buildAndroidLinkDeepLink({ returnTo: self });
-        const q = new URLSearchParams();
-        q.set("mode", "linkPending");
-        q.set("deepLink", deepLink);
-        q.set("backTo", backTo);
+    const openPcPending = async () => {
+        try {
+            setErr(null);
 
-        // refresh後に戻す先
-        nav(`/identity/pending?${q.toString()}`, {
-            replace: false,
-            state: { from: (loc.state as any)?.from ?? "/me/elections" },
-        });
+            const created = await createLinkPairing();
+            const pairId = (created?.pairId ?? "").trim();
+            if (!pairId) throw new Error("pairId missing");
+
+            // Androidアプリへ渡す deepLink（pairId必須）
+            const qDeep = new URLSearchParams();
+            qDeep.set("pairId", pairId);
+            qDeep.set("returnTo", self); // PCのpendingに戻す
+            const deepLink = `ovs://nfc-link?${qDeep.toString()}`;
+
+            // PCの待機画面へ
+            const q = new URLSearchParams();
+            q.set("mode", "linkPending");
+            q.set("deepLink", deepLink);
+            q.set("backTo", backTo);
+
+            nav(`/identity/pending?${q.toString()}`, {
+                replace: false,
+                state: { from: (loc.state as any)?.from ?? "/me/elections" },
+            });
+        } catch (e: any) {
+            setErr(
+                e?.response?.data?.message ??
+                    e?.message ??
+                    "本人認証の開始に失敗しました",
+            );
+        }
     };
 
     return (

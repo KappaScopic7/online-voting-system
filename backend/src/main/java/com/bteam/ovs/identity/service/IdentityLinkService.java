@@ -42,6 +42,9 @@ public class IdentityLinkService {
             throw new ApiException(HttpStatus.BAD_REQUEST, "CITIZEN_NOT_FOUND", "指定されたcitizenIdは存在しません");
         }
         if (acc.getCitizenId() != null) {
+            if (citizenId.equals(acc.getCitizenId())) {
+                return new LinkedAccount(acc.getId(), acc.getEmail(), acc.getRole());
+            }
             throw new ApiException(HttpStatus.CONFLICT, "ALREADY_LINKED", "すでに本人認証済みです");
         }
 

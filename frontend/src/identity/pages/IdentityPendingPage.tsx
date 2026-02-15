@@ -153,7 +153,6 @@ export function IdentityPendingPage() {
     useEffect(() => {
         if (!isLinkPending) return;
         let cancelled = false;
-        let id: number | null = null;
 
         const tick = async () => {
             try {
@@ -168,20 +167,14 @@ export function IdentityPendingPage() {
             }
         };
 
-        // まず1回
         tick();
-
-        // 以後はログインしている時だけ回したいなら：
-        if (me) {
-            id = window.setInterval(tick, 1200);
-        }
+        const id = window.setInterval(tick, 1200);
 
         return () => {
             cancelled = true;
-            if (id) window.clearInterval(id);
+            window.clearInterval(id);
         };
-        // me を依存に入れる（me が取れたら interval 開始）
-    }, [isLinkPending, me, refreshMe]);
+    }, [isLinkPending, refreshMe]);
 
     useEffect(() => {
         if (!isLinkPending) return;

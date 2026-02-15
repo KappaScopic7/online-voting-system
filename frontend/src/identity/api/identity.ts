@@ -62,3 +62,15 @@ export async function completeVotePairing(
     );
     return res.data;
 }
+export type LinkPairingCreateResponse = {
+    pairId: string;
+    expiresAt?: string;
+};
+
+export async function createLinkPairing() {
+    const res = await httpUser.post<LinkPairingCreateResponse>(
+        "/identity/link-pairings",
+        {},
+    );
+    return res.data;
+}
