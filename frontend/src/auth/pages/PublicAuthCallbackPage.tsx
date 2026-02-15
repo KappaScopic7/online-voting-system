@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useRef } from "react"; // useRefを追加
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Card, Page, DevDebug } from "../../shared/ui/page";
 import { normalizeFrom } from "../../shared/normalizeFrom";
@@ -27,23 +27,13 @@ export function PublicAuthCallbackPage() {
     );
     const [err, setErr] = useState<string | null>(null);
 
-    // ★追加: 二重実行を防ぐためのフラグ
-    const processedRef = useRef(false);
-
     useEffect(() => {
-        // ★追加: 既に処理済みなら何もしない
-        if (processedRef.current) return;
-        if (!ticket) return; // チケットがない場合もガード
-
-        // ★追加: フラグを立てる（これで2回目は通らない）
-        processedRef.current = true;
-
         (async () => {
             try {
                 setErr(null);
                 setStatus("PROCESSING");
 
-                // if (!ticket) throw new Error("ticket がありません"); // 上でチェック済み
+                if (!ticket) throw new Error("ticket がありません");
 
                 const res = await exchangeNfcTicket({ ticket, electionId });
 
@@ -55,19 +45,14 @@ export function PublicAuthCallbackPage() {
                 publicToken.set(accessToken);
 
                 setStatus("DONE");
-                // 遷移を少し待つ（ユーザーに完了を見せるため）
-                window.setTimeout(() => nav(returnTo, { replace: true }), 500);
+                window.setTimeout(() => nav(returnTo, { replace: true }), 150);
             } catch (e: any) {
-                // エラーになった場合、フラグを戻すかどうかは要件次第だが、
-                // チケット消費エラーの場合は戻しても意味がないので戻さない。
                 setStatus("ERROR");
                 setErr(
                     e?.response?.data?.message ?? e?.message ?? "exchange 失敗",
                 );
             }
         })();
-        // 依存配列から ticket, electionId 等を外して、マウント時の1回だけに限定しても良いが
-        // useRefでガードしているのでこのままでも大丈夫
     }, [ticket, electionId, returnTo, nav]);
 
     return (
@@ -82,35 +67,16 @@ export function PublicAuthCallbackPage() {
                     </div>
                 )}
                 {status === "DONE" && (
-                    <div style={{ fontWeight: 800, color: "green" }}>
-                        認証完了！投票画面へ移動します…
+                    <div style={{ fontWeight: 800 }}>
+                        認証完了。投票画面へ移動します…
                     </div>
                 )}
                 {status === "ERROR" && (
                     <div>
-                        <div
-                            style={{
-                                fontWeight: 900,
-                                marginBottom: 8,
-                                color: "crimson",
-                            }}
-                        >
-                            エラーが発生しました
+                        <div style={{ fontWeight: 900, marginBottom: 8 }}>
+                            エラー
                         </div>
-                        <div
-                            style={{ whiteSpace: "pre-wrap", color: "crimson" }}
-                        >
-                            {err}
-                        </div>
-                        <div
-                            style={{
-                                marginTop: 12,
-                                fontSize: 12,
-                                opacity: 0.8,
-                            }}
-                        >
-                            ※ もう一度QRコードを読み取ってやり直してください。
-                        </div>
+                        <div style={{ whiteSpace: "pre-wrap" }}>{err}</div>
                     </div>
                 )}
             </Card>

@@ -1,4 +1,3 @@
-// frontend/src/identity/pages/IdentityPendingPage.tsx
 import { useEffect, useMemo, useState } from "react";
 import {
     Link,
@@ -30,7 +29,11 @@ export function IdentityPendingPage() {
     const isLinkPending = mode === "linkPending";
 
     const pairId = sp.get("pairId") ?? "";
-    const electionId = sp.get("electionId") ?? "";
+
+    // ★ここを少し修正：確実に文字列として取得
+    const electionIdRaw = sp.get("electionId");
+    const electionId = electionIdRaw ? electionIdRaw.trim() : "";
+
     const returnTo = sp.get("returnTo") ?? "";
     const deepLink = sp.get("deepLink") ?? "";
     const backToQ = sp.get("backTo") ?? "";
@@ -72,14 +75,11 @@ export function IdentityPendingPage() {
               "4. 認証完了後、この画面が自動で戻ります",
           ].join("\n");
 
-    // Androidでこの画面を開いた場合は “QRじゃなく deepLinkを開く” のが自然
     useEffect(() => {
         if (!isAndroid) return;
         if (!deepLink) return;
         if (!isVotePairing && !isLinkPending) return;
 
-        // Androidはワンタップでアプリを開いてOK（ユーザー操作の邪魔にならない程度に）
-        // ただし、無限ループ防止のため1回だけ
         const key = `ovs.pending.autolaunch.${mode}.${pairId ?? ""}.${deepLink}`;
         if (sessionStorage.getItem(key)) return;
         sessionStorage.setItem(key, "1");
@@ -113,7 +113,11 @@ export function IdentityPendingPage() {
                 if (r.status === "COMPLETED" && r.ticket) {
                     const q = new URLSearchParams();
                     q.set("ticket", String(r.ticket));
-                    if (electionId) q.set("electionId", electionId);
+
+                    // ★ここも修正：electionIdがあれば確実にセット
+                    if (electionId) {
+                        q.set("electionId", electionId);
+                    }
                     if (returnTo) q.set("returnTo", returnTo);
 
                     window.location.href = `/auth/public/callback?${q.toString()}`;
@@ -142,13 +146,16 @@ export function IdentityPendingPage() {
         };
     }, [isVotePairing, pairId, electionId, returnTo]);
 
-    // ============================================================
-    // 🟩 LINK PENDING MODE（PC待機画面 + me refresh）
-    // ============================================================
+    // ... (以下変更なし) ...
+    // ...LINK PENDING MODE, Render部分など...
+
+    // (省略せずに元のコードの後半をそのまま使ってください。
+    //  ただし、↑のuseEffectの中身だけが重要です)
+
+    // ...Link Pending部分のコード...
     const { me, refreshMe } = useAuth();
     const [linkMsg, setLinkMsg] = useState<string | null>(null);
     const [linkErr, setLinkErr] = useState<string | null>(null);
-    // const [linkBusy, setLinkBusy] = useState(false);
 
     useEffect(() => {
         if (!isLinkPending) return;
@@ -196,9 +203,6 @@ export function IdentityPendingPage() {
         );
     }, [isLinkPending, me, nav, fromLegacy]);
 
-    // ============================================================
-    // Unknown mode fallback
-    // ============================================================
     if (!isVotePairing && !isLinkPending) {
         return (
             <Page
@@ -227,9 +231,6 @@ export function IdentityPendingPage() {
         );
     }
 
-    // ============================================================
-    // Render (共通UI)
-    // ============================================================
     const statusLabel = isVotePairing
         ? `status: ${pairStatus}`
         : me?.identityStatus
