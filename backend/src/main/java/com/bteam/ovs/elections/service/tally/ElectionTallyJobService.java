@@ -67,7 +67,7 @@ public class ElectionTallyJobService {
         System.out.println("[tally] scriptPath=" + scriptPath);
         System.out.println("[tally] pythonCmd=" + pythonCmd);
 
-        if (e.getStatus() != ElectionStatus.CLOSED)
+        if (e.getStatus() != ElectionStatus.CLOSED && e.getStatus() != ElectionStatus.TALLYING)
             return;
 
         Instant now = Instant.now();

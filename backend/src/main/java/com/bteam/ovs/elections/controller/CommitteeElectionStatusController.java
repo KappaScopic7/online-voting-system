@@ -4,6 +4,8 @@ package com.bteam.ovs.elections.controller;
 import com.bteam.ovs.elections.controller.dto.SetElectionStatusRequest;
 import com.bteam.ovs.elections.service.CommitteeElectionAdminService;
 import org.springframework.web.bind.annotation.*;
+import com.bteam.ovs.shared.security.Authz;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 import java.util.UUID;
 
@@ -18,6 +20,7 @@ public class CommitteeElectionStatusController {
     }
 
     @PostMapping("/{electionId}/status")
+    @PreAuthorize(Authz.STAFF)
     public void setStatus(@PathVariable UUID electionId, @RequestBody SetElectionStatusRequest req) {
         adminService.setStatus(electionId, req.status());
     }

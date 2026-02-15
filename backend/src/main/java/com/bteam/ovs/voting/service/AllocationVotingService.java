@@ -392,7 +392,7 @@ public class AllocationVotingService {
         return switch (s) {
             case DRAFT, READY -> "UPCOMING";
             case OPEN -> "ONGOING";
-            case CLOSED, TALLIED, PUBLISHED, ARCHIVED -> "ENDED";
+            case CLOSED, TALLYING, TALLIED, PUBLISHED, ARCHIVED -> "ENDED"; // ★TALLYING追加
         };
     }
 
