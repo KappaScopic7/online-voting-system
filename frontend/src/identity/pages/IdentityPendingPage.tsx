@@ -2,31 +2,32 @@
 import { useEffect, useMemo, useState } from "react";
 import {
     Link,
-    useLocation,
     useNavigate,
     useSearchParams,
+    useLocation,
 } from "react-router-dom";
-import { useAuth } from "../../user/UserAuthContext";
-import { getVotePairing } from "../api/identity";
 import { Card, Page, DevDebug } from "../../shared/ui/page";
-import { normalizeFrom } from "../../shared/normalizeFrom";
 import { QRCodeSVG } from "qrcode.react";
 
-type LocationState = {
-    from?: string;
-};
+import { useAuth } from "../../user/UserAuthContext";
+import { getVotePairing } from "../api/identity";
+import { useIdentityNav } from "../hooks/useIdentityNav";
+import { useIdentityDevice } from "../hooks/useIdentityDevice";
 
+/**
+ * mode:
+ * - votePairing: PC投票のためのペアリング待機（pairIdをポーリング）
+ * - linkPending: PC本人認証のためのスマホ誘導待機（me を refresh して LINKED を待つ）
+ */
 export function IdentityPendingPage() {
     const nav = useNavigate();
     const loc = useLocation();
-    const state = (loc.state ?? {}) as LocationState;
     const [sp] = useSearchParams();
+    const { isAndroid } = useIdentityDevice();
 
-    // ----------------------------
-    // モード判定
-    // ----------------------------
     const mode = sp.get("mode") ?? "";
     const isVotePairing = mode === "votePairing";
+    const isLinkPending = mode === "linkPending";
 
     const pairId = sp.get("pairId") ?? "";
     const electionId = sp.get("electionId") ?? "";
@@ -34,13 +35,59 @@ export function IdentityPendingPage() {
     const deepLink = sp.get("deepLink") ?? "";
     const backToQ = sp.get("backTo") ?? "";
 
-    const backTo = useMemo(() => {
-        const fallback = "/elections";
-        return normalizeFrom(backToQ || state.from || fallback);
-    }, [backToQ, state.from]);
+    // Link pending 用
+    const fromLegacy = useMemo(
+        () => (loc.state as any)?.from ?? "/me",
+        [loc.state],
+    );
+
+    const { backTo } = useIdentityNav({
+        fallbackBackTo: "/elections",
+        fallbackReturnTo: "/elections",
+        returnToQ: backToQ,
+    });
+
+    const isDev = import.meta.env?.DEV;
 
     // ============================================================
-    // 🟦 VOTE PAIRING MODE（PC待機画面 + QR表示）
+    // 共通：QR表示 + 説明UI
+    // ============================================================
+    const title = isVotePairing
+        ? "スマホでNFC認証（PC待機中）"
+        : isLinkPending
+          ? "スマホでNFC認証（本人認証 / PC待機中）"
+          : "待機中";
+
+    const stepsText = isVotePairing
+        ? [
+              "1. スマホでQRを読み取る",
+              "2. アプリでPIN入力",
+              "3. NFCカードをスキャン",
+              "4. 認証完了でこの画面が自動で進みます",
+          ].join("\n")
+        : [
+              "1. スマホでQRを読み取る",
+              "2. アプリでPIN入力",
+              "3. NFCカードをタッチ",
+              "4. 認証完了後、この画面が自動で戻ります",
+          ].join("\n");
+
+    // Androidでこの画面を開いた場合は “QRじゃなく deepLinkを開く” のが自然
+    useEffect(() => {
+        if (!isAndroid) return;
+        if (!deepLink) return;
+        if (!isVotePairing && !isLinkPending) return;
+
+        // Androidはワンタップでアプリを開いてOK（ユーザー操作の邪魔にならない程度に）
+        // ただし、無限ループ防止のため1回だけ
+        const key = `ovs.pending.autolaunch.${mode}.${pairId ?? ""}.${deepLink}`;
+        if (sessionStorage.getItem(key)) return;
+        sessionStorage.setItem(key, "1");
+        window.location.href = deepLink;
+    }, [isAndroid, deepLink, mode, isVotePairing, isLinkPending, pairId]);
+
+    // ============================================================
+    // 🟦 VOTE PAIRING MODE（PC待機画面 + pairId ポーリング）
     // ============================================================
     const [pairMsg, setPairMsg] = useState<string | null>(null);
     const [pairErr, setPairErr] = useState<string | null>(null);
@@ -48,6 +95,7 @@ export function IdentityPendingPage() {
 
     useEffect(() => {
         if (!isVotePairing) return;
+
         if (!pairId) {
             setPairErr("pairId がありません。最初からやり直してください。");
             return;
@@ -68,7 +116,6 @@ export function IdentityPendingPage() {
                     if (electionId) q.set("electionId", electionId);
                     if (returnTo) q.set("returnTo", returnTo);
 
-                    // ✅ PCでcallbackへ
                     window.location.href = `/auth/public/callback?${q.toString()}`;
                     return;
                 }
@@ -82,15 +129,13 @@ export function IdentityPendingPage() {
                     "スマホでQRを読み取り、アプリでPIN入力 → カードをスキャンしてください。",
                 );
             } catch {
-                if (!cancelled) {
+                if (!cancelled)
                     setPairMsg("接続中...（スマホで認証を続けてください）");
-                }
             }
         };
 
         tick();
         const id = window.setInterval(tick, 1200);
-
         return () => {
             cancelled = true;
             window.clearInterval(id);
@@ -98,62 +143,73 @@ export function IdentityPendingPage() {
     }, [isVotePairing, pairId, electionId, returnTo]);
 
     // ============================================================
-    // 🟨 LEGACY LINK MODE（従来審査中）
+    // 🟩 LINK PENDING MODE（PC待機画面 + me refresh）
     // ============================================================
     const { me, refreshMe } = useAuth();
-    const fromLegacy = state.from ?? "/me";
+    const [linkMsg, setLinkMsg] = useState<string | null>(null);
+    const [linkErr, setLinkErr] = useState<string | null>(null);
+    // const [linkBusy, setLinkBusy] = useState(false);
 
-    const [msg, setMsg] = useState<string | null>(null);
-    const [isRefreshing, setIsRefreshing] = useState(false);
+    useEffect(() => {
+        if (!isLinkPending) return;
+        let cancelled = false;
+        let id: number | null = null;
 
-    const check = async () => {
-        setMsg(null);
-        setIsRefreshing(true);
-        try {
-            await refreshMe();
-        } catch (e: any) {
-            setMsg(e?.response?.data?.message ?? "Failed to refresh");
-        } finally {
-            setIsRefreshing(false);
+        const tick = async () => {
+            try {
+                await refreshMe();
+            } catch (e: any) {
+                if (!cancelled) {
+                    setLinkErr(
+                        e?.response?.data?.message ?? "Failed to refresh",
+                    );
+                    setLinkMsg("接続中...（スマホで認証を続けてください）");
+                }
+            }
+        };
+
+        // まず1回
+        tick();
+
+        // 以後はログインしている時だけ回したいなら：
+        if (me) {
+            id = window.setInterval(tick, 1200);
         }
-    };
+
+        return () => {
+            cancelled = true;
+            if (id) window.clearInterval(id);
+        };
+        // me を依存に入れる（me が取れたら interval 開始）
+    }, [isLinkPending, me, refreshMe]);
 
     useEffect(() => {
-        if (isVotePairing) return;
-        check();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isVotePairing]);
+        if (!isLinkPending) return;
 
-    useEffect(() => {
-        if (isVotePairing) return;
-        if (!me) return;
-
+        if (!me) {
+            setLinkMsg("認証結果を確認中...（ログインしている必要があります）");
+            return;
+        }
         if (me.identityStatus === "LINKED") {
             nav(fromLegacy ?? "/me", { replace: true });
             return;
         }
-
         if (me.identityStatus !== "PENDING") {
-            nav("/me/identity", {
-                replace: true,
-                state: { from: fromLegacy },
-            });
+            nav("/me/identity", { replace: true, state: { from: fromLegacy } });
+            return;
         }
-    }, [isVotePairing, me, nav, fromLegacy]);
-
-    const isDev = import.meta.env?.DEV;
+        setLinkMsg(
+            "スマホで認証を完了してください（完了すると自動で戻ります）",
+        );
+    }, [isLinkPending, me, nav, fromLegacy]);
 
     // ============================================================
-    // 🟦 RENDER: VOTE PAIRING
+    // Unknown mode fallback
     // ============================================================
-    if (isVotePairing) {
+    if (!isVotePairing && !isLinkPending) {
         return (
             <Page
-                title={
-                    <h1 style={{ margin: 0, fontSize: 20 }}>
-                        スマホでNFC認証（PC待機中）
-                    </h1>
-                }
+                title={<h1 style={{ margin: 0, fontSize: 20 }}>待機</h1>}
                 actions={
                     <div style={{ display: "flex", gap: 12 }}>
                         <Link to={backTo}>← 戻る</Link>
@@ -162,92 +218,16 @@ export function IdentityPendingPage() {
                 }
                 maxWidth={680}
             >
-                {pairErr && (
-                    <Card role="alert">
-                        <div style={{ fontWeight: 900, marginBottom: 6 }}>
-                            エラー
-                        </div>
-                        <div>{pairErr}</div>
-                    </Card>
-                )}
-
-                <Card>
-                    <div
-                        style={{
-                            display: "grid",
-                            gap: 20,
-                            justifyItems: "center",
-                            textAlign: "center",
-                        }}
-                    >
-                        <div style={{ fontWeight: 900 }}>
-                            スマホでこのQRを読み取ってください
-                        </div>
-
-                        {deepLink && (
-                            <div
-                                style={{
-                                    padding: 20,
-                                    background: "white",
-                                    borderRadius: 16,
-                                    boxShadow: "0 10px 30px rgba(0,0,0,0.1)",
-                                }}
-                            >
-                                <QRCodeSVG
-                                    value={deepLink}
-                                    size={260}
-                                    bgColor="#ffffff"
-                                    fgColor="#000000"
-                                    level="M"
-                                    includeMargin
-                                />
-                            </div>
-                        )}
-
-                        <div
-                            style={{
-                                fontSize: 14,
-                                opacity: 0.8,
-                                lineHeight: 1.6,
-                            }}
-                        >
-                            1. スマホでQRを読み取る
-                            <br />
-                            2. アプリでPIN入力
-                            <br />
-                            3. NFCカードをスキャン
-                            <br />
-                            4. 認証完了でこの画面が自動で進みます
-                        </div>
-
-                        <div style={{ fontSize: 12, opacity: 0.6 }}>
-                            status: <b>{pairStatus}</b>
-                        </div>
-
-                        {pairMsg && (
-                            <div
-                                style={{
-                                    fontSize: 13,
-                                    opacity: 0.8,
-                                    whiteSpace: "pre-wrap",
-                                }}
-                            >
-                                {pairMsg}
-                            </div>
-                        )}
+                <Card role="alert">
+                    <div style={{ fontWeight: 900, marginBottom: 6 }}>
+                        エラー
                     </div>
+                    <div>mode が不正です。最初からやり直してください。</div>
                 </Card>
 
                 {isDev && (
                     <DevDebug
-                        value={{
-                            mode,
-                            pairId,
-                            electionId,
-                            returnTo,
-                            deepLink,
-                            pairStatus,
-                        }}
+                        value={{ mode, sp: Object.fromEntries(sp.entries()) }}
                     />
                 )}
             </Page>
@@ -255,35 +235,134 @@ export function IdentityPendingPage() {
     }
 
     // ============================================================
-    // 🟨 RENDER: LEGACY LINK
+    // Render (共通UI)
     // ============================================================
+    const statusLabel = isVotePairing
+        ? `status: ${pairStatus}`
+        : me?.identityStatus
+          ? `status: ${me.identityStatus}`
+          : "status: ...";
+    const mainMsg = isVotePairing ? pairMsg : linkMsg;
+    const mainErr = isVotePairing ? pairErr : linkErr;
+
     return (
-        <div style={{ padding: 16, display: "grid", gap: 12, maxWidth: 640 }}>
-            <h2>本人認証（審査中）</h2>
+        <Page
+            title={<h1 style={{ margin: 0, fontSize: 20 }}>{title}</h1>}
+            actions={
+                <div style={{ display: "flex", gap: 12 }}>
+                    <Link to={backTo}>← 戻る</Link>
+                    <Link to="/elections">選挙一覧 →</Link>
+                </div>
+            }
+            maxWidth={680}
+        >
+            {mainErr && (
+                <Card role="alert">
+                    <div style={{ fontWeight: 900, marginBottom: 6 }}>
+                        エラー
+                    </div>
+                    <div>{mainErr}</div>
+                </Card>
+            )}
 
-            <div
-                style={{
-                    border: "1px solid #ddd",
-                    borderRadius: 8,
-                    padding: 12,
-                }}
-            >
-                <p>
-                    現在、本人認証は <b>審査中</b> です。
-                </p>
+            <Card>
+                <div
+                    style={{
+                        display: "grid",
+                        gap: 18,
+                        justifyItems: "center",
+                        textAlign: "center",
+                    }}
+                >
+                    <div style={{ fontWeight: 900 }}>
+                        {isAndroid
+                            ? "Androidの場合：アプリを開きます（開かない場合はQRを使ってください）"
+                            : "スマホでこのQRを読み取ってください"}
+                    </div>
 
-                <button onClick={check} disabled={isRefreshing}>
-                    {isRefreshing ? "更新中..." : "状態を更新"}
-                </button>
+                    {deepLink ? (
+                        <div
+                            style={{
+                                padding: 20,
+                                background: "white",
+                                borderRadius: 16,
+                                boxShadow: "0 10px 30px rgba(0,0,0,0.1)",
+                            }}
+                        >
+                            <QRCodeSVG
+                                value={deepLink}
+                                size={260}
+                                bgColor="#ffffff"
+                                fgColor="#000000"
+                                level="M"
+                                includeMargin
+                            />
+                        </div>
+                    ) : (
+                        <div style={{ fontSize: 13, opacity: 0.8 }}>
+                            deepLink がありません（前画面の指定ミスです）
+                        </div>
+                    )}
 
-                {msg && <div style={{ marginTop: 8 }}>{msg}</div>}
-            </div>
+                    {deepLink && (
+                        <button
+                            type="button"
+                            onClick={() => {
+                                window.location.href = deepLink;
+                            }}
+                            style={{
+                                padding: "10px 14px",
+                                fontWeight: 900,
+                            }}
+                        >
+                            アプリを開く →
+                        </button>
+                    )}
 
-            <Link to="/me/identity" state={{ from: fromLegacy }}>
-                本人認証をやり直す
-            </Link>
+                    <div
+                        style={{
+                            fontSize: 14,
+                            opacity: 0.8,
+                            lineHeight: 1.6,
+                            whiteSpace: "pre-wrap",
+                        }}
+                    >
+                        {stepsText}
+                    </div>
 
-            {isDev && <DevDebug value={{ me, state, msg }} />}
-        </div>
+                    <div style={{ fontSize: 12, opacity: 0.6 }}>
+                        <b>{statusLabel}</b>
+                    </div>
+
+                    {mainMsg && (
+                        <div
+                            style={{
+                                fontSize: 13,
+                                opacity: 0.8,
+                                whiteSpace: "pre-wrap",
+                            }}
+                        >
+                            {mainMsg}
+                        </div>
+                    )}
+                </div>
+            </Card>
+
+            {isDev && (
+                <DevDebug
+                    value={{
+                        mode,
+                        pairId,
+                        electionId,
+                        returnTo,
+                        deepLink,
+                        pairStatus,
+                        me,
+                        fromLegacy,
+                        ua: navigator.userAgent,
+                    }}
+                />
+            )}
+        </Page>
     );
 }

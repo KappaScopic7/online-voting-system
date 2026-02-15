@@ -1,13 +1,7 @@
 // frontend/src/identity/pages/IdentityVotePage.tsx
 import { useEffect, useMemo, useRef, useState } from "react";
-import {
-    Link,
-    useLocation,
-    useNavigate,
-    useSearchParams,
-} from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Card, DevDebug, Page } from "../../shared/ui/page";
-import { normalizeFrom } from "../../shared/normalizeFrom";
 import { publicToken } from "../../shared/tokenStorage";
 import { issueVoteToken } from "../../public/api/voteToken";
 import {
@@ -22,52 +16,18 @@ import {
 import { IdentityManualForm } from "../components/IdentityManualForm";
 import { createVotePairing } from "../api/identity";
 
-type LocationState = { from?: string } | null;
+import { useIdentityDevice } from "../hooks/useIdentityDevice";
+import { useIdentityNav } from "../hooks/useIdentityNav";
+import { IdentityErrorCard } from "../ui/IdentityErrorCard";
+import { IdentityStepHeaderCard } from "../ui/IdentityStepHeaderCard";
+import { IdentityPinStepCard } from "../ui/IdentityPinStepCard";
+import {
+    extractUuidFromNdef,
+    isPinValid,
+    looksLikeUuid,
+} from "../utils/identityValidation";
 
-function looksLikeUuid(v: string) {
-    return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
-        String(v ?? "").trim(),
-    );
-}
-
-function extractUuidFromNdef(event: any): string | null {
-    const msg = event?.message;
-    const records = msg?.records;
-    if (!records || !Array.isArray(records)) return null;
-
-    for (const rec of records) {
-        try {
-            if (rec.recordType === "text") {
-                const encoding = rec.encoding ?? "utf-8";
-                const text = rec.data
-                    ? new TextDecoder(encoding).decode(rec.data)
-                    : "";
-                const v = String(text).trim();
-                if (looksLikeUuid(v)) return v;
-            }
-            if (rec.recordType === "url") {
-                const url = rec.data
-                    ? new TextDecoder("utf-8").decode(rec.data)
-                    : "";
-                const m = String(url).match(
-                    /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i,
-                );
-                if (m?.[0]) return m[0];
-            }
-        } catch {
-            // ignore
-        }
-    }
-    return null;
-}
-
-function hasWebNfc() {
-    return typeof (window as any).NDEFReader !== "undefined";
-}
-
-function isPinValid(pin: string) {
-    return /^\d{4}$/.test(pin);
-}
+type Step = "PIN" | "METHOD";
 
 // ✅ PC側：pairId ありの deep link（Flutterの votePairing に入る）
 function buildAndroidPairDeepLink(params: {
@@ -82,46 +42,31 @@ function buildAndroidPairDeepLink(params: {
     return `ovs://nfc-auth?${q.toString()}`;
 }
 
-function isMobileBrowser() {
-    const ua = navigator.userAgent ?? "";
-    return /Android|iPhone|iPad|iPod/i.test(ua);
-}
-
-type Step = "PIN" | "METHOD";
-
 export function IdentityVotePage() {
     const nav = useNavigate();
-    const loc = useLocation();
-    const state = (loc.state as LocationState) ?? null;
     const [sp] = useSearchParams();
-
-    const canWebNfc = useMemo(() => hasWebNfc(), []);
-    const isMobile = useMemo(() => isMobileBrowser(), []);
-    const isPc = !isMobile;
+    const { canWebNfc, isPc, isAndroid } = useIdentityDevice();
 
     const electionId = sp.get("electionId") ?? "";
     const returnToQ = sp.get("returnTo") ?? "";
-    const backFromState = state?.from ?? "";
 
-    const backTo = useMemo(() => {
-        const fallback = electionId
+    const fallbackBackTo = useMemo(() => {
+        return electionId
             ? `/elections/${encodeURIComponent(electionId)}`
             : "/elections";
-        return normalizeFrom(backFromState || fallback);
-    }, [backFromState, electionId]);
+    }, [electionId]);
 
-    // ✅ 戻り先：優先順位 returnTo(query) > state.from > fallback
-    const returnTo = useMemo(() => {
-        const fallback = electionId
-            ? `/voting/entry?electionId=${encodeURIComponent(
-                  electionId,
-              )}&session=public`
+    const fallbackReturnTo = useMemo(() => {
+        return electionId
+            ? `/voting/entry?electionId=${encodeURIComponent(electionId)}&session=public`
             : "/elections";
-        const raw = returnToQ || backFromState || fallback;
-        return normalizeFrom(raw);
-    }, [returnToQ, backFromState, electionId]);
+    }, [electionId]);
 
-    const self = loc.pathname + loc.search;
+    const { self, backTo, returnTo } = useIdentityNav({
+        fallbackBackTo,
+        fallbackReturnTo,
+        returnToQ,
+    });
 
     // ----------------------------
     // PC: Pairing Flow
@@ -168,33 +113,36 @@ export function IdentityVotePage() {
     };
 
     // ----------------------------
-    // Mobile: existing flow (keep)
+    // Mobile: issue vote token
     // ----------------------------
-    const [step, setStep] = useState<Step>("PIN");
+    const [step, setStep] = useState<Step>(isAndroid ? "METHOD" : "PIN");
 
     const [pin, setPin] = useState("");
     const pinOk = isPinValid(pin);
 
-    const [devCitizenId, setDevCitizenId] = useState("");
-
+    const [err, setErr] = useState<string | null>(null);
     const [status, setStatus] = useState<
         "IDLE" | "SCANNING" | "PROCESSING" | "SUCCESS" | "ERROR"
     >("IDLE");
     const [msg, setMsg] = useState(
         "PIN を入力して、NFCまたは手入力で本人認証してください",
     );
-    const [err, setErr] = useState<string | null>(null);
 
     const [method, setMethod] = useState<IdentityMethod>(() =>
         canWebNfc ? "NFC" : "MANUAL",
     );
 
-    const canSubmit = pinOk;
+    const isDev = import.meta.env?.DEV;
+    const allowManual = !canWebNfc || (!isAndroid && isDev);
+
+    useEffect(() => {
+        if (!allowManual && method === "MANUAL") setMethod("NFC");
+    }, [allowManual, method]);
 
     // ✅ WebNFC の onreading 二重発火/多重送信ガード
     const busyRef = useRef(false);
 
-    const resetRuntimeState = () => {
+    const resetRuntime = () => {
         setStatus("IDLE");
         setMsg("PIN を入力して、NFCまたは手入力で本人認証してください");
         setErr(null);
@@ -232,7 +180,6 @@ export function IdentityVotePage() {
             setMsg("送信中...");
 
             const res = await issueVoteToken({ electionId, payload, pin });
-
             const token = (res?.voteToken ?? "").trim();
             if (!token) throw new Error("voteToken missing");
 
@@ -241,9 +188,7 @@ export function IdentityVotePage() {
             setStatus("SUCCESS");
             setMsg("本人認証に成功しました。投票画面へ移動します…");
 
-            window.setTimeout(() => {
-                nav(returnTo, { replace: true });
-            }, 300);
+            window.setTimeout(() => nav(returnTo, { replace: true }), 300);
         } catch (e: any) {
             setStatus("ERROR");
             setErr(e?.response?.data?.message ?? "本人認証に失敗しました");
@@ -260,7 +205,7 @@ export function IdentityVotePage() {
             );
             return;
         }
-        if (!canSubmit) {
+        if (!pinOk) {
             setErr("先にPIN（4桁）を入力してください");
             return;
         }
@@ -312,35 +257,16 @@ export function IdentityVotePage() {
         }
     };
 
-    // ----------------------------
-    // Step controls（Mobile用）
-    // ----------------------------
-    const goNext = () => {
-        if (!pinOk) return;
-        setErr(null);
-        setStep("METHOD");
-        setStatus("IDLE");
-        setMsg("PIN を入力して、NFCまたは手入力で本人認証してください");
-    };
-    const goBackToPin = () => {
-        setErr(null);
-        setStep("PIN");
-        resetRuntimeState();
-    };
-
-    const scanDisabled =
-        !canWebNfc ||
-        !canSubmit ||
-        status === "SCANNING" ||
-        status === "PROCESSING" ||
-        status === "SUCCESS";
-
-    const isDev = import.meta.env?.DEV;
+    useEffect(() => {
+        if (!allowManual && method === "MANUAL") setMethod("NFC");
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [allowManual]);
 
     // ----------------------------
-    // DEV: personas（Mobile用）
+    // DEV personas
     // ----------------------------
     const [devPersonas, setDevPersonas] = useState<DemoPersonaDto[]>([]);
+    const [devCitizenId, setDevCitizenId] = useState("");
     const [devLoading, setDevLoading] = useState(false);
     const [devErr, setDevErr] = useState<string | null>(null);
 
@@ -352,11 +278,11 @@ export function IdentityVotePage() {
             const list = await fetchDemoPersonas();
             setDevPersonas(Array.isArray(list) ? list : []);
         } catch (e: any) {
-            const m =
+            setDevErr(
                 e?.response?.data?.message ??
-                e?.message ??
-                "DEV personas の取得に失敗しました";
-            setDevErr(m);
+                    e?.message ??
+                    "DEV personas の取得に失敗しました",
+            );
             setDevPersonas([]);
         } finally {
             setDevLoading(false);
@@ -399,9 +325,7 @@ export function IdentityVotePage() {
             }
             maxWidth={680}
         >
-            {/* =========================
-             * PC: Pairing UI（標準）
-             * ========================= */}
+            {/* ========================= PC: Pairing ========================= */}
             {isPc ? (
                 <div style={{ display: "grid", gap: 12 }}>
                     {pcErr && (
@@ -484,210 +408,111 @@ export function IdentityVotePage() {
                     )}
                 </div>
             ) : (
-                /* =========================
-                 * Mobile: existing UI（従来）
-                 * ========================= */
+                /* ========================= Mobile ========================= */
                 <>
-                    {/* エラー */}
-                    {err && (
-                        <Card role="alert">
-                            <div style={{ fontWeight: 800, marginBottom: 6 }}>
-                                エラー
-                            </div>
-                            <div style={{ marginBottom: 10 }}>{err}</div>
-                            <div
-                                style={{
-                                    display: "flex",
-                                    gap: 12,
-                                    flexWrap: "wrap",
+                    <IdentityErrorCard
+                        err={err}
+                        onClose={() => setErr(null)}
+                        backTo={backTo}
+                        busy={status === "PROCESSING" || status === "SUCCESS"}
+                    />
+
+                    <IdentityStepHeaderCard
+                        stepLabel={
+                            isAndroid
+                                ? "PIN入力 → NFCカードをタッチしてください"
+                                : step === "PIN"
+                                  ? "STEP 1 / 2：PIN（4桁）を入力"
+                                  : "STEP 2 / 2：認証方法を選択"
+                        }
+                        canWebNfc={canWebNfc}
+                    />
+
+                    {/* iOS等: 従来どおり PIN→METHOD */}
+                    {!isAndroid && step === "PIN" && (
+                        <div style={{ display: "grid", gap: 12 }}>
+                            <IdentityPinStepCard
+                                pin={pin}
+                                setPin={setPin}
+                                disabled={
+                                    status === "PROCESSING" ||
+                                    status === "SUCCESS"
+                                }
+                                onNext={() => {
+                                    if (!isPinValid(pin)) return;
+                                    setErr(null);
+                                    setStep("METHOD");
+                                    resetRuntime();
                                 }}
-                            >
-                                <button
-                                    type="button"
-                                    onClick={() => setErr(null)}
-                                >
-                                    閉じる
-                                </button>
-                                <Link to={backTo}>← 戻る</Link>
-                            </div>
-                        </Card>
+                            />
+                        </div>
                     )}
 
-                    {/* 共通ヘッダ */}
-                    <Card>
-                        <div style={{ display: "grid", gap: 10 }}>
-                            <div style={{ fontWeight: 900 }}>
-                                {step === "PIN"
-                                    ? "STEP 1 / 2：PIN（4桁）を入力"
-                                    : "STEP 2 / 2：認証方法を選択"}
-                            </div>
-
-                            <div
-                                style={{
-                                    fontSize: 13,
-                                    opacity: 0.85,
-                                    lineHeight: 1.7,
-                                }}
-                            >
-                                ・NFC または 手入力で本人認証できます
-                                <br />
-                                ・認証後は投票画面へ戻ります
-                                <br />
-                                ・PIN（4桁）はカード所持者確認のために必要です
-                            </div>
-
-                            <div
-                                style={{
-                                    display: "flex",
-                                    gap: 8,
-                                    flexWrap: "wrap",
-                                    alignItems: "center",
-                                }}
-                            >
-                                <span
-                                    style={{
-                                        fontSize: 12,
-                                        opacity: 0.75,
-                                        padding: "4px 10px",
-                                        borderRadius: 999,
-                                        border: "1px solid #eee",
-                                        background: "#fafafa",
-                                    }}
-                                >
-                                    端末:{" "}
-                                    {canWebNfc
-                                        ? "Web NFC 対応"
-                                        : "Web NFC 非対応"}
-                                </span>
-
-                                <span
-                                    style={{
-                                        fontSize: 12,
-                                        opacity: 0.75,
-                                        padding: "4px 10px",
-                                        borderRadius: 999,
-                                        border: "1px solid #eee",
-                                        background: "#fafafa",
-                                    }}
-                                >
-                                    認証方法:{" "}
-                                    {canWebNfc
-                                        ? "NFC（かざす） / 手入力"
-                                        : "NFC（リーダ） / 手入力"}
-                                </span>
-                            </div>
-                        </div>
-                    </Card>
-
-                    {/* STEP 1: PIN */}
-                    {step === "PIN" && (
-                        <div style={{ display: "grid", gap: 12 }}>
-                            <Card>
-                                <div style={{ display: "grid", gap: 10 }}>
-                                    <div style={{ fontWeight: 900 }}>
-                                        PIN（4桁）を入力してください
-                                    </div>
-
-                                    <input
-                                        inputMode="numeric"
-                                        pattern="\d{4}"
-                                        maxLength={4}
-                                        placeholder="例: 1234"
-                                        value={pin}
-                                        onChange={(e) =>
-                                            setPin(
-                                                e.target.value
-                                                    .replace(/[^\d]/g, "")
-                                                    .slice(0, 4),
-                                            )
-                                        }
-                                        style={{
-                                            padding: 10,
-                                            fontSize: 16,
-                                            width: 180,
-                                        }}
-                                        disabled={
-                                            status === "PROCESSING" ||
-                                            status === "SUCCESS"
-                                        }
-                                    />
-
-                                    {!pinOk && pin.length > 0 && (
-                                        <div
-                                            style={{
-                                                fontSize: 12,
-                                                color: "crimson",
+                    {/* Androidは常にMETHOD表示（PINカードをこの画面で出す） */}
+                    {(isAndroid || step === "METHOD") && (
+                        <Card>
+                            <div style={{ display: "grid", gap: 10 }}>
+                                {/* ✅ Android: PIN入力催促を最前面に */}
+                                {isAndroid && (
+                                    <Card>
+                                        <IdentityPinStepCard
+                                            pin={pin}
+                                            setPin={setPin}
+                                            disabled={
+                                                status === "PROCESSING" ||
+                                                status === "SUCCESS"
+                                            }
+                                            onNext={() => {
+                                                // Androidは次へ概念不要
                                             }}
-                                        >
-                                            PINは4桁の数字で入力してください
-                                        </div>
-                                    )}
-
-                                    <div
-                                        style={{
-                                            display: "flex",
-                                            gap: 12,
-                                            flexWrap: "wrap",
-                                            alignItems: "center",
-                                            marginTop: 4,
-                                        }}
-                                    >
-                                        <button
-                                            type="button"
-                                            onClick={goNext}
-                                            disabled={!pinOk}
-                                            style={{ fontWeight: 700 }}
-                                        >
-                                            次へ →
-                                        </button>
-
-                                        <span
+                                        />
+                                        <div
                                             style={{
                                                 fontSize: 12,
                                                 opacity: 0.75,
                                             }}
                                         >
                                             ※
-                                            PINはカード所持者確認のために必要です
-                                        </span>
-                                    </div>
-                                </div>
-                            </Card>
-                        </div>
-                    )}
+                                            PINを入力したら、下でカードをタッチしてください
+                                        </div>
+                                    </Card>
+                                )}
 
-                    {/* STEP 2: METHOD */}
-                    {step === "METHOD" && (
-                        <Card>
-                            <div style={{ display: "grid", gap: 10 }}>
-                                <div
-                                    style={{
-                                        display: "flex",
-                                        gap: 12,
-                                        flexWrap: "wrap",
-                                        alignItems: "center",
-                                    }}
-                                >
-                                    <button type="button" onClick={goBackToPin}>
-                                        ← PINを修正
-                                    </button>
-
-                                    <span
+                                {/* ✅ Android以外: 従来のPIN修正導線 */}
+                                {!isAndroid && (
+                                    <div
                                         style={{
-                                            fontSize: 12,
-                                            opacity: 0.75,
+                                            display: "flex",
+                                            gap: 12,
+                                            flexWrap: "wrap",
+                                            alignItems: "center",
                                         }}
                                     >
-                                        PIN: <b>••••</b>（入力済み）
-                                    </span>
-
-                                    <span style={{ marginLeft: "auto" }} />
-                                </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setStep("PIN");
+                                                resetRuntime();
+                                            }}
+                                        >
+                                            ← PINを修正
+                                        </button>
+                                        <span
+                                            style={{
+                                                fontSize: 12,
+                                                opacity: 0.75,
+                                            }}
+                                        >
+                                            PIN: <b>••••</b>（入力済み）
+                                        </span>
+                                        <span style={{ marginLeft: "auto" }} />
+                                    </div>
+                                )}
 
                                 <IdentityMethodTabs
                                     value={method}
                                     onChange={setMethod}
-                                    allowManual={!canWebNfc}
+                                    allowManual={allowManual}
                                 />
 
                                 <div
@@ -698,7 +523,7 @@ export function IdentityVotePage() {
                                         padding: 12,
                                     }}
                                 >
-                                    {method === "MANUAL" ? (
+                                    {method === "MANUAL" && allowManual ? (
                                         <IdentityManualForm
                                             mode="VOTE_TOKEN_ISSUE"
                                             electionId={electionId}
@@ -706,18 +531,13 @@ export function IdentityVotePage() {
                                             pinRequired
                                             devCitizenId={devCitizenId}
                                             onIssued={() =>
-                                                nav(returnTo, {
-                                                    replace: true,
-                                                })
+                                                nav(returnTo, { replace: true })
                                             }
                                             onError={setErr}
                                         />
                                     ) : canWebNfc ? (
                                         <div
-                                            style={{
-                                                display: "grid",
-                                                gap: 12,
-                                            }}
+                                            style={{ display: "grid", gap: 12 }}
                                         >
                                             <div
                                                 style={{
@@ -741,13 +561,21 @@ export function IdentityVotePage() {
                                                         whiteSpace: "pre-wrap",
                                                     }}
                                                 >
-                                                    {msg}
+                                                    {isAndroid
+                                                        ? "PINを入力して「スキャン開始」→ 端末背面にカードをタッチしてください"
+                                                        : msg}
                                                 </p>
                                             </div>
 
                                             <button
                                                 onClick={startScan}
-                                                disabled={scanDisabled}
+                                                disabled={
+                                                    !canWebNfc ||
+                                                    !pinOk ||
+                                                    status === "SCANNING" ||
+                                                    status === "PROCESSING" ||
+                                                    status === "SUCCESS"
+                                                }
                                                 style={{
                                                     padding: 12,
                                                     fontSize: 16,
@@ -760,7 +588,7 @@ export function IdentityVotePage() {
                                                       : "スキャン中..."}
                                             </button>
 
-                                            {!canSubmit && (
+                                            {!pinOk && (
                                                 <div
                                                     style={{
                                                         fontSize: 12,
@@ -779,9 +607,7 @@ export function IdentityVotePage() {
                                             pin={pin}
                                             pinRequired
                                             onIssued={() =>
-                                                nav(returnTo, {
-                                                    replace: true,
-                                                })
+                                                nav(returnTo, { replace: true })
                                             }
                                             onError={setErr}
                                         />
@@ -795,14 +621,15 @@ export function IdentityVotePage() {
                                         marginTop: 8,
                                     }}
                                 >
-                                    ※
-                                    うまくいかない場合は「手入力」をお試しください
+                                    ※ うまくいかない場合は
+                                    {allowManual
+                                        ? "「手入力」をお試しください"
+                                        : "カードを当て直す / PINを確認してください"}
                                 </div>
                             </div>
                         </Card>
                     )}
 
-                    {/* DEV tools */}
                     {isDev && (
                         <Card>
                             <details>
@@ -916,27 +743,11 @@ export function IdentityVotePage() {
                                     status,
                                     canWebNfc,
                                     hasStoredPublicToken: !!publicToken.get(),
-                                    state,
-                                    loc,
+                                    isAndroid,
                                 }}
                             />
                         </Card>
                     )}
-
-                    <DevDebug
-                        value={{
-                            electionId,
-                            returnTo,
-                            backTo,
-                            step,
-                            method,
-                            pinOk,
-                            status,
-                            canWebNfc,
-                            isMobile,
-                            isPc,
-                        }}
-                    />
                 </>
             )}
         </Page>

@@ -1,38 +1,31 @@
 // frontend/src/identity/components/IdentityNfcKeyboardReader.tsx
 import { useEffect, useMemo, useRef, useState } from "react";
-import { linkIdentity } from "../api/identity";
 import { useAuth } from "../../user/UserAuthContext";
-import { issueVoteToken } from "../../public/api/voteToken";
-import { publicToken } from "../../shared/tokenStorage";
-
-function looksLikeUuid(v: string) {
-    return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
-        v,
-    );
-}
-
-function isPinValid(pin: string) {
-    return /^\d{4}$/.test(pin);
-}
+import {
+    performIdentityAction,
+    type IdentityActionMode,
+} from "../services/identityAction";
+import { looksLikeUuid, isPinValid } from "../utils/identityValidation";
 
 type BridgeState = "CHECKING" | "ONLINE" | "OFFLINE";
 
-export type IdentityKeyboardMode = "IDENTITY_LINK" | "VOTE_TOKEN_ISSUE";
-
 export function IdentityNfcKeyboardReader(props: {
-    mode?: IdentityKeyboardMode;
+    mode?: IdentityActionMode;
+
     onLinked?: (accessToken: string) => void;
-    electionId?: string;
     onIssued?: (voteToken: string) => void;
+
+    electionId?: string;
     onError?: (msg: string) => void;
+
     pin?: string;
     pinRequired?: boolean;
 }) {
     const {
         mode = "IDENTITY_LINK",
         onLinked,
-        electionId,
         onIssued,
+        electionId,
         onError,
         pin = "",
         pinRequired = false,
@@ -166,7 +159,6 @@ export function IdentityNfcKeyboardReader(props: {
             return;
         }
 
-        // VOTE は electionId 必須
         if (mode === "VOTE_TOKEN_ISSUE" && !String(electionId ?? "").trim()) {
             const m = "electionId がありません（投票入口から開いてください）";
             setMsg(m);
@@ -176,28 +168,23 @@ export function IdentityNfcKeyboardReader(props: {
 
         setBusy(true);
         try {
-            if (mode === "IDENTITY_LINK") {
-                const token = await linkIdentity({
-                    citizenId: v,
-                    pin: pinRequired ? pin : undefined,
-                });
-                await setAccessToken(token.accessToken);
-                onLinked?.(token.accessToken);
-                return;
-            }
-
-            // mode === "VOTE_TOKEN_ISSUE"
-            const res = await issueVoteToken({
-                electionId: String(electionId),
-                payload: v,
+            const r = await performIdentityAction({
+                mode,
+                citizenId: v,
                 pin,
+                pinRequired,
+                electionId,
+                setAccessToken,
             });
-            publicToken.set(res.voteToken);
-            onIssued?.(res.voteToken);
+
+            if (r.kind === "LINK") onLinked?.(r.accessToken);
+            else onIssued?.(r.voteToken);
         } catch (err: any) {
             const m =
                 err?.response?.data?.message ??
-                (mode === "IDENTITY_LINK" ? "Link failed" : "Issue failed");
+                (mode === "IDENTITY_LINK"
+                    ? "本人認証に失敗しました"
+                    : "本人認証（投票）に失敗しました");
             setMsg(m);
             onError?.(m);
         } finally {
@@ -236,7 +223,6 @@ export function IdentityNfcKeyboardReader(props: {
                     citizenId（UUID）を入力してください。
                 </div>
 
-                {/* センサーっぽい表示（ONLINE時は自動入力が動く） */}
                 <div
                     style={{
                         padding: 12,
@@ -272,7 +258,6 @@ export function IdentityNfcKeyboardReader(props: {
                     )}
                 </div>
 
-                {/* ★本番でも常に手入力欄を出す */}
                 <label style={{ display: "grid", gap: 4 }}>
                     <span style={{ fontSize: 13, fontWeight: 700 }}>
                         citizenId (UUID)

@@ -30,26 +30,30 @@ public class PublicPairingsController {
 
     // PC: poll
     @GetMapping("/{pairId}")
-    public ResponseEntity<?> get(@PathVariable UUID pairId) {
+    public ResponseEntity<?> get(@PathVariable("pairId") UUID pairId) {
         VotePairing p = service.getAndTouchExpire(pairId);
         if (p == null)
             return ResponseEntity.notFound().build();
         return ResponseEntity.ok(VotePairingDtos.toGetResponse(p));
     }
 
-    // Android App: ticket 登録（Flutterが叩く）
     @PostMapping("/{pairId}/complete")
     public ResponseEntity<?> complete(
-            @PathVariable UUID pairId,
+            @PathVariable("pairId") UUID pairId,
             @RequestBody VotePairingDtos.CompleteRequest req) {
-        String ticket = req == null ? null : req.ticket();
-        if (ticket == null || ticket.trim().isEmpty()) {
-            return ResponseEntity.badRequest().body(new Msg("ticket is required"));
-        }
-        boolean ok = service.complete(pairId, ticket.trim());
-        if (!ok)
-            return ResponseEntity.notFound().build(); // or 409/410でもOK。今は簡単に。
-        return ResponseEntity.ok(new Msg("ok"));
+        String payload = req == null ? null : req.payload();
+        String pin = req == null ? null : req.pin();
+
+        if (payload == null || payload.trim().isEmpty())
+            return ResponseEntity.badRequest().body(new Msg("payload is required"));
+        if (pin == null || pin.trim().isEmpty())
+            return ResponseEntity.badRequest().body(new Msg("pin is required"));
+
+        var ticket = service.completeWithNfc(pairId, payload.trim(), pin.trim());
+        if (ticket == null)
+            return ResponseEntity.notFound().build();
+
+        return ResponseEntity.ok(new VotePairingDtos.CompleteResponse(ticket));
     }
 
     public record Msg(String message) {

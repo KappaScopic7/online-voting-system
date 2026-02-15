@@ -15,17 +15,26 @@ public class VotePairingDtos {
 
     public record GetResponse(
             UUID pairId,
+            UUID electionId,
             String status,
+            Instant createdAt,
+            Instant expiresAt,
             String ticket) {
     }
 
-    public record CompleteRequest(String ticket) {
+    public record CompleteRequest(String payload, String pin) {
+    }
+
+    public record CompleteResponse(String ticket) {
     }
 
     public static GetResponse toGetResponse(VotePairing p) {
         return new GetResponse(
                 p.getPairId(),
+                p.getElectionId(),
                 p.getStatus().name(),
+                p.getCreatedAt(),
+                p.getExpiresAt(),
                 p.getTicket());
     }
 }

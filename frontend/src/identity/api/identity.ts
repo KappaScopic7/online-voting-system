@@ -42,3 +42,23 @@ export async function getVotePairing(pairId: string) {
     );
     return res.data;
 }
+
+export type VotePairingCompleteRequest = {
+    payload: string;
+    pin: string;
+};
+
+export type VotePairingCompleteResponse = {
+    ticket: string;
+};
+
+export async function completeVotePairing(
+    pairId: string,
+    req: VotePairingCompleteRequest,
+) {
+    const res = await httpPublic.post<VotePairingCompleteResponse>(
+        `/public/pairings/${encodeURIComponent(pairId)}/complete`,
+        req,
+    );
+    return res.data;
+}

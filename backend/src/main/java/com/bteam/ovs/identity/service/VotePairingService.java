@@ -5,20 +5,27 @@ import com.bteam.ovs.identity.repository.VotePairingRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Base64;
 import java.util.UUID;
 
 @Service
 public class VotePairingService {
 
     private final VotePairingRepository repo;
+    private final NfcResolveService nfcResolveService;
 
-    // とりあえず 5分でOK（好みで調整）
     private static final Duration TTL = Duration.ofMinutes(5);
 
-    public VotePairingService(VotePairingRepository repo) {
+    // 推測されにくい ticket（URL-safe）
+    private static final SecureRandom RNG = new SecureRandom();
+    private static final int TICKET_BYTES = 32;
+
+    public VotePairingService(VotePairingRepository repo, NfcResolveService nfcResolveService) {
         this.repo = repo;
+        this.nfcResolveService = nfcResolveService;
     }
 
     @Transactional
@@ -43,6 +50,7 @@ public class VotePairingService {
         return p;
     }
 
+    // 既存：ticket を外から渡す版（残してもOK）
     @Transactional
     public boolean complete(UUID pairId, String ticket) {
         VotePairing p = repo.findById(pairId).orElse(null);
@@ -53,11 +61,39 @@ public class VotePairingService {
         if (p.getStatus() == VotePairing.Status.EXPIRED)
             return false;
 
-        // 二重completeは上書きしない（安全側）
         if (p.getStatus() == VotePairing.Status.COMPLETED)
             return true;
 
         p.complete(ticket);
         return true;
     }
+
+    @Transactional
+    public String completeWithNfc(UUID pairId, String payload, String pin) {
+        VotePairing p = repo.findById(pairId).orElse(null);
+        if (p == null)
+            return null;
+
+        p.expireIfNeeded(Instant.now());
+        if (p.getStatus() == VotePairing.Status.EXPIRED)
+            return null;
+
+        if (p.getStatus() == VotePairing.Status.COMPLETED) {
+            return p.getTicket(); // or return null; じゃなくこれが正解
+        }
+
+        nfcResolveService.resolve(payload, pin);
+
+        String ticket = generateTicket();
+        p.complete(ticket);
+        return ticket;
+
+    }
+
+    private String generateTicket() {
+        byte[] b = new byte[TICKET_BYTES];
+        RNG.nextBytes(b);
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(b);
+    }
+
 }

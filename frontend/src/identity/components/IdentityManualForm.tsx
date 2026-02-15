@@ -1,36 +1,14 @@
 // frontend/src/identity/components/IdentityManualForm.tsx
 import { useEffect, useMemo, useState } from "react";
-import { linkIdentity } from "../api/identity";
 import { useAuth } from "../../user/UserAuthContext";
-import { issueVoteToken } from "../../public/api/voteToken";
-import { publicToken } from "../../shared/tokenStorage";
+import {
+    performIdentityAction,
+    type IdentityActionMode,
+} from "../services/identityAction";
+import { formatUuidInput } from "../utils/identityFormat";
+import { looksLikeUuid, isPinValid } from "../utils/identityValidation";
 
-function isUuidLike(v: string) {
-    return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
-        v,
-    );
-}
-
-function isPinValid(pin: string) {
-    return /^\d{4}$/.test(pin);
-}
-
-/** UUID入力：hex以外を除去 → 32桁まで → 8-4-4-4-12 でハイフン挿入 */
-function formatUuidInput(raw: string): string {
-    const hex = raw.toLowerCase().replace(/[^0-9a-f]/g, "");
-    const s = hex.slice(0, 32);
-
-    const p1 = s.slice(0, 8);
-    const p2 = s.slice(8, 12);
-    const p3 = s.slice(12, 16);
-    const p4 = s.slice(16, 20);
-    const p5 = s.slice(20, 32);
-
-    const parts = [p1, p2, p3, p4, p5].filter((p) => p.length > 0);
-    return parts.join("-");
-}
-
-export type IdentityManualMode = "IDENTITY_LINK" | "VOTE_TOKEN_ISSUE";
+export type IdentityManualMode = IdentityActionMode;
 
 export function IdentityManualForm(props: {
     mode?: IdentityManualMode;
@@ -74,7 +52,7 @@ export function IdentityManualForm(props: {
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     useEffect(() => {
-        const v = (devCitizenId ?? "").trim();
+        const v = String(devCitizenId ?? "").trim();
         if (!v) return;
         setCitizenId(formatUuidInput(v));
         setFieldErr({});
@@ -86,7 +64,7 @@ export function IdentityManualForm(props: {
     const canSubmit = useMemo(() => {
         const v = citizenId.trim();
         if (!v) return false;
-        if (!isUuidLike(v)) return false;
+        if (!looksLikeUuid(v)) return false;
         if (!pinOk) return false;
         if (mode === "VOTE_TOKEN_ISSUE" && !String(electionId ?? "").trim())
             return false;
@@ -104,7 +82,7 @@ export function IdentityManualForm(props: {
             setFieldErr({ citizenId: "citizenId を入力してください" });
             return;
         }
-        if (!isUuidLike(v)) {
+        if (!looksLikeUuid(v)) {
             setFieldErr({ citizenId: "UUID形式が不正です" });
             return;
         }
@@ -124,24 +102,17 @@ export function IdentityManualForm(props: {
         try {
             setIsSubmitting(true);
 
-            if (mode === "IDENTITY_LINK") {
-                const token = await linkIdentity({
-                    citizenId: v,
-                    pin: pinRequired ? pin : undefined,
-                });
-                await setAccessToken(token.accessToken);
-                onLinked?.(token.accessToken);
-                return;
-            }
-
-            // mode === "VOTE_TOKEN_ISSUE"
-            const res = await issueVoteToken({
-                electionId: String(electionId),
-                payload: v,
+            const r = await performIdentityAction({
+                mode,
+                citizenId: v,
                 pin,
+                pinRequired,
+                electionId,
+                setAccessToken,
             });
-            publicToken.set(res.voteToken);
-            onIssued?.(res.voteToken);
+
+            if (r.kind === "LINK") onLinked?.(r.accessToken);
+            else onIssued?.(r.voteToken);
         } catch (err: any) {
             const m =
                 err?.response?.data?.message ??
@@ -156,7 +127,7 @@ export function IdentityManualForm(props: {
     };
 
     const uuidIncompleteButHasInput =
-        !!citizenId.trim() && !isUuidLike(citizenId.trim());
+        !!citizenId.trim() && !looksLikeUuid(citizenId.trim());
 
     const defaultSubmitLabel =
         mode === "IDENTITY_LINK" ? "本人認証を登録" : "本人認証して投票へ進む";
@@ -190,14 +161,13 @@ export function IdentityManualForm(props: {
                     <input
                         value={citizenId}
                         onChange={(e) => {
-                            const next = formatUuidInput(e.target.value);
-                            setCitizenId(next);
+                            setCitizenId(formatUuidInput(e.target.value));
                             setFieldErr({});
                             setMsg(null);
                         }}
                         onBlur={() => {
                             const vv = citizenId.trim();
-                            if (vv && !isUuidLike(vv)) {
+                            if (vv && !looksLikeUuid(vv)) {
                                 setFieldErr({
                                     citizenId:
                                         "UUID形式（8-4-4-4-12）で入力してください",
