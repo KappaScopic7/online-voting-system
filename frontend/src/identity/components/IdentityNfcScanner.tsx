@@ -118,9 +118,9 @@ export function IdentityNfcScanner({
                 try {
                     const r = await performIdentityAction({
                         mode,
-                        citizenId: uuid,
+                        payload: uuid, //citizenId: uuid, 02/16変更ポイント
                         pin,
-                        pinRequired,
+                        //pinRequired, 02/16変更ポイント
                         electionId,
                         setAccessToken,
                     });

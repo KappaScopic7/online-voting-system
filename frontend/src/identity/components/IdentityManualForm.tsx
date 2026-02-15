@@ -104,9 +104,9 @@ export function IdentityManualForm(props: {
 
             const r = await performIdentityAction({
                 mode,
-                citizenId: v,
+                payload: v, //citizenId: v, 02/16変更ポイント
                 pin,
-                pinRequired,
+                //pinRequired, 02/16変更ポイント
                 electionId,
                 setAccessToken,
             });
