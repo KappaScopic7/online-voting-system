@@ -51,6 +51,9 @@ public class NfcAuthService {
         Instant exp = Instant.now().plusSeconds(TICKET_TTL_SEC);
         voteStore.put(ticket, new VoteTicketData(citizenId, exp));
 
+        System.out.println("===[DEBUG: LOGIN SUCCESS]===");
+        System.out.println("発行したチケット: [" + ticket + "]");
+
         return new NfcLoginResponse(ticket, TICKET_TTL_SEC);
     }
 
