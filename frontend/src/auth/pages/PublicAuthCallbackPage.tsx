@@ -1,4 +1,4 @@
-import { useState } from "react"; // useEffect, useRef を削除
+import { useEffect, useMemo, useState, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Card, Page, DevDebug } from "../../shared/ui/page";
 import { normalizeFrom } from "../../shared/normalizeFrom";
@@ -15,120 +15,104 @@ export function PublicAuthCallbackPage() {
 
     const electionId = electionIdQ || "00000000-0000-0000-0000-000000000000";
 
-    const [status, setStatus] = useState<
-        "IDLE" | "PROCESSING" | "ERROR" | "DONE"
-    >("IDLE");
+    const returnTo = useMemo(() => {
+        const fallback = electionIdQ
+            ? `/voting/entry?electionId=${encodeURIComponent(electionIdQ)}&session=public`
+            : "/elections";
+        return normalizeFrom(returnToQ || fallback);
+    }, [returnToQ, electionIdQ]);
+
+    const [status, setStatus] = useState<"PROCESSING" | "ERROR" | "DONE">(
+        "PROCESSING",
+    );
     const [err, setErr] = useState<string | null>(null);
 
-    const handleExchange = async () => {
-        if (!ticket) {
-            setErr("チケットがありません");
-            return;
-        }
+    // ★二重実行防止フラグ
+    const processedRef = useRef(false);
 
-        try {
-            setErr(null);
-            setStatus("PROCESSING");
+    useEffect(() => {
+        if (processedRef.current) return;
+        if (!ticket) return;
 
-            const res = await exchangeNfcTicket({ ticket, electionId });
+        processedRef.current = true;
 
-            const accessToken = (res?.accessToken ?? "").trim();
-            if (!accessToken) throw new Error("accessToken が返りませんでした");
+        (async () => {
+            try {
+                setErr(null);
+                setStatus("PROCESSING");
 
-            publicToken.set(accessToken);
+                const res = await exchangeNfcTicket({ ticket, electionId });
 
-            setStatus("DONE");
-            window.setTimeout(() => {
-                // 戻り先へ移動
-                const fallback = electionIdQ
-                    ? `/voting/entry?electionId=${encodeURIComponent(electionIdQ)}&session=public`
-                    : "/elections";
-                const target = normalizeFrom(returnToQ || fallback);
-                nav(target, { replace: true });
-            }, 500);
-        } catch (e: any) {
-            setStatus("ERROR");
-            setErr(e?.response?.data?.message ?? e?.message ?? "exchange 失敗");
-        }
-    };
+                const accessToken = (res?.accessToken ?? "").trim();
+                if (!accessToken)
+                    throw new Error("accessToken が返りませんでした");
+
+                publicToken.set(accessToken);
+
+                setStatus("DONE");
+                window.setTimeout(() => nav(returnTo, { replace: true }), 500);
+            } catch (e: any) {
+                setStatus("ERROR");
+                setErr(
+                    e?.response?.data?.message ?? e?.message ?? "exchange 失敗",
+                );
+            }
+        })();
+    }, [ticket, electionId, returnTo, nav]);
 
     return (
         <Page
-            title={
-                <h1 style={{ margin: 0, fontSize: 20 }}>
-                    認証処理（デバッグ）
-                </h1>
-            }
+            title={<h1 style={{ margin: 0, fontSize: 20 }}>認証処理</h1>}
             maxWidth={680}
         >
             <Card>
-                <div style={{ textAlign: "center", padding: 20 }}>
-                    <div
-                        style={{
-                            marginBottom: 20,
-                            wordBreak: "break-all",
-                            fontSize: 12,
-                            color: "#666",
-                        }}
-                    >
-                        Ticket: {ticket.slice(0, 10)}...
-                        <br />
-                        ElectionId: {electionId}
+                {status === "PROCESSING" && (
+                    <div style={{ fontWeight: 800 }}>
+                        認証情報をPCに反映しています…
                     </div>
-
-                    {status === "IDLE" && (
-                        <button
-                            onClick={handleExchange}
+                )}
+                {status === "DONE" && (
+                    <div style={{ fontWeight: 800, color: "green" }}>
+                        認証完了！投票画面へ移動します…
+                    </div>
+                )}
+                {status === "ERROR" && (
+                    <div>
+                        <div
                             style={{
-                                padding: "12px 24px",
-                                fontSize: "16px",
-                                fontWeight: "bold",
-                                background: "#007bff",
-                                color: "white",
-                                border: "none",
-                                borderRadius: "8px",
-                                cursor: "pointer",
+                                fontWeight: 900,
+                                marginBottom: 8,
+                                color: "crimson",
                             }}
                         >
-                            認証を実行する（1回だけ）
-                        </button>
-                    )}
-
-                    {status === "PROCESSING" && (
-                        <div style={{ fontWeight: 800 }}>通信中...</div>
-                    )}
-
-                    {status === "DONE" && (
-                        <div style={{ fontWeight: 800, color: "green" }}>
-                            認証成功！移動します...
+                            エラーが発生しました
                         </div>
-                    )}
-
-                    {status === "ERROR" && (
-                        <div>
-                            <div
-                                style={{
-                                    fontWeight: 900,
-                                    color: "crimson",
-                                    marginBottom: 8,
-                                }}
-                            >
-                                エラー
-                            </div>
-                            <div style={{ color: "crimson" }}>{err}</div>
-                            <button
-                                onClick={() => window.location.reload()}
-                                style={{ marginTop: 16 }}
-                            >
-                                ページをリロードして再試行
-                            </button>
+                        <div
+                            style={{ whiteSpace: "pre-wrap", color: "crimson" }}
+                        >
+                            {err}
                         </div>
-                    )}
-                </div>
+                        <div
+                            style={{
+                                marginTop: 12,
+                                fontSize: 12,
+                                opacity: 0.8,
+                            }}
+                        >
+                            ※ もう一度QRコードを読み取ってやり直してください。
+                        </div>
+                    </div>
+                )}
             </Card>
 
             {import.meta.env?.DEV && (
-                <DevDebug value={{ ticket, electionId, status }} />
+                <DevDebug
+                    value={{
+                        ticket: ticket ? "(present)" : null,
+                        electionIdQ,
+                        returnTo,
+                    }}
+                />
             )}
         </Page>
     );
