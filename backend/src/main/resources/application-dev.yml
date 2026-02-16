@@ -10,8 +10,8 @@ logging:
 
 app:
     tally:
-        python: "F:/online-voting-system/scripts/.venv/Scripts/python.exe"
-        script: "F:/online-voting-system/scripts/generate_chart.py"
-        workDir: "F:/online-voting-system"
-        jsonDir: "F:/online-voting-system/data/tally"
-        chartDir: "F:/online-voting-system/data/charts"
+        python: ${APP_TALLY_PYTHON:python}
+        script: ${APP_TALLY_SCRIPT:./scripts/generate_chart.py}
+        workDir: ${APP_TALLY_WORKDIR:.}
+        jsonDir: ${APP_TALLY_JSONDIR:./data/tally}
+        chartDir: ${APP_TALLY_CHARTDIR:./data/charts}
