@@ -8,7 +8,6 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -23,7 +22,7 @@ public class AdminBackupService {
     @Value("${spring.datasource.password}")
     private String dbPassword;
 
-    // ローカルか本番かを切り替えるフラグ (デフォルトは false = 直接実行)
+    // ローカルorEC2で切り替える用のフラグ
     @Value("${ovs.backup.use-docker:false}")
     private boolean useDocker;
 
