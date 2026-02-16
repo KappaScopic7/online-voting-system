@@ -142,9 +142,7 @@ export function AdminLayout() {
                                     aria-expanded={isMenuOpen}
                                     aria-label="ユーザーメニュー"
                                 >
-                                    <span aria-hidden>
-                                        <i className="fa-solid fa-wrench"></i>
-                                    </span>
+                                    <span aria-hidden>🛠️</span>
                                 </button>
                                 {/* ----------------------------------------- MenuOpne ----------------------------------------- */}
 
