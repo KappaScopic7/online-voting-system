@@ -97,4 +97,9 @@ public class NfcAuthService {
 
         return new NfcLinkExchangeResponse(data.citizenId().toString());
     }
+
+    public void registerTicket(String ticket, UUID citizenId) {
+        Instant exp = Instant.now().plusSeconds(TICKET_TTL_SEC);
+        voteStore.put(ticket, new VoteTicketData(citizenId, exp));
+    }
 }
