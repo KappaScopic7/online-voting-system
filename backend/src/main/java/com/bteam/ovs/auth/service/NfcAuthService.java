@@ -51,21 +51,29 @@ public class NfcAuthService {
         Instant exp = Instant.now().plusSeconds(TICKET_TTL_SEC);
         voteStore.put(ticket, new VoteTicketData(citizenId, exp));
 
+        System.out.println("===[DEBUG: LOGIN SUCCESS]===");
+        System.out.println("発行したチケット: [" + ticket + "]");
+
         return new NfcLoginResponse(ticket, TICKET_TTL_SEC);
     }
 
     public TokenResponse exchange(NfcExchangeRequest req) {
         String ticket = req.ticket().trim();
 
-        VoteTicketData data = voteStore.remove(ticket);
+        VoteTicketData data = voteStore.get(ticket);
+
         if (data == null) {
             throw new ApiException(HttpStatus.UNAUTHORIZED, "INVALID_TICKET", "チケットが無効です");
         }
+
         if (data.expiresAt().isBefore(Instant.now())) {
+            voteStore.remove(ticket); // 期限切れの時だけ消す
             throw new ApiException(HttpStatus.UNAUTHORIZED, "TICKET_EXPIRED", "チケットの有効期限が切れています");
         }
 
         String publicToken = jwtService.issuePublicSessionToken(data.citizenId());
+
+        voteStore.remove(ticket);
 
         return new TokenResponse(
                 publicToken,
@@ -96,5 +104,10 @@ public class NfcAuthService {
         }
 
         return new NfcLinkExchangeResponse(data.citizenId().toString());
+    }
+
+    public void registerTicket(String ticket, UUID citizenId) {
+        Instant exp = Instant.now().plusSeconds(TICKET_TTL_SEC);
+        voteStore.put(ticket, new VoteTicketData(citizenId, exp));
     }
 }

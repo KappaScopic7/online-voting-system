@@ -14,6 +14,8 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.bteam.ovs.elections.controller.dto.ElectionUpdateRequest;
+import com.bteam.ovs.elections.entity.ElectionStatus;
 
 import java.time.Instant;
 import java.util.HashSet;
@@ -55,6 +57,65 @@ public class ElectionAdminService {
 
         e = electionRepo.save(e);
         return new ElectionResponse(e.getId(), e.getTitle(), e.getStartsAt(), e.getEndsAt());
+    }
+
+    @Transactional(readOnly = true)
+    public List<ElectionResponse> list() {
+        return electionRepo.findAllByOrderByStartsAtDesc().stream()
+                .map(e -> new ElectionResponse(e.getId(), e.getTitle(), e.getStartsAt(), e.getEndsAt()))
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public ElectionResponse detail(UUID electionId) {
+        var e = electionRepo.findById(electionId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "ELECTION_NOT_FOUND", "選挙が存在しません"));
+        return new ElectionResponse(e.getId(), e.getTitle(), e.getStartsAt(), e.getEndsAt());
+    }
+
+    @Transactional
+    public ElectionResponse update(UUID electionId, ElectionUpdateRequest req) {
+        var e = electionRepo.findById(electionId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "ELECTION_NOT_FOUND", "選挙が存在しません"));
+
+        // ✅ Adminは「作成中(DRAFT)のみ編集可」にして責務分離
+        if (e.getStatus() != null && e.getStatus() != ElectionStatus.DRAFT) {
+            throw new ApiException(HttpStatus.CONFLICT, "ELECTION_NOT_EDITABLE", "DRAFTの間のみ編集できます");
+        }
+
+        String title = normalize(req.title());
+        if (title == null || title.isBlank()) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_TITLE", "titleが不正です");
+        }
+
+        Instant startsAt = req.startsAt();
+        Instant endsAt = req.endsAt();
+        if (startsAt == null || endsAt == null) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_PERIOD", "startsAt/endsAt が不正です");
+        }
+        if (!startsAt.isBefore(endsAt)) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_PERIOD", "startsAt は endsAt より前である必要があります");
+        }
+
+        e.setTitle(title);
+        e.setStartsAt(startsAt);
+        e.setEndsAt(endsAt);
+
+        e = electionRepo.save(e);
+        return new ElectionResponse(e.getId(), e.getTitle(), e.getStartsAt(), e.getEndsAt());
+    }
+
+    @Transactional
+    public void delete(UUID electionId) {
+        var e = electionRepo.findById(electionId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "ELECTION_NOT_FOUND", "選挙が存在しません"));
+
+        // ✅ DRAFTのみ削除可
+        if (e.getStatus() != null && e.getStatus() != ElectionStatus.DRAFT) {
+            throw new ApiException(HttpStatus.CONFLICT, "ELECTION_NOT_DELETABLE", "DRAFTの間のみ削除できます");
+        }
+
+        electionRepo.delete(e);
     }
 
     @Transactional

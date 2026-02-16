@@ -1,5 +1,6 @@
 package com.bteam.ovs.identity.service;
 
+import com.bteam.ovs.auth.service.NfcAuthService; // ★追加
 import com.bteam.ovs.identity.entity.VotePairing;
 import com.bteam.ovs.identity.repository.VotePairingRepository;
 import org.springframework.stereotype.Service;
@@ -16,6 +17,7 @@ public class VotePairingService {
 
     private final VotePairingRepository repo;
     private final NfcResolveService nfcResolveService;
+    private final NfcAuthService nfcAuthService; // ★追加: 金庫番
 
     private static final Duration TTL = Duration.ofMinutes(5);
 
@@ -23,9 +25,15 @@ public class VotePairingService {
     private static final SecureRandom RNG = new SecureRandom();
     private static final int TICKET_BYTES = 32;
 
-    public VotePairingService(VotePairingRepository repo, NfcResolveService nfcResolveService) {
+    // ★コンストラクタ修正
+    public VotePairingService(
+            VotePairingRepository repo,
+            NfcResolveService nfcResolveService,
+            NfcAuthService nfcAuthService // ★追加
+    ) {
         this.repo = repo;
         this.nfcResolveService = nfcResolveService;
+        this.nfcAuthService = nfcAuthService; // ★追加
     }
 
     @Transactional
@@ -79,15 +87,25 @@ public class VotePairingService {
             return null;
 
         if (p.getStatus() == VotePairing.Status.COMPLETED) {
-            return p.getTicket(); // or return null; じゃなくこれが正解
+            return p.getTicket();
         }
 
-        nfcResolveService.resolve(payload, pin);
+        // 1. 本人確認（Resolve）して CitizenID を取得
+        // ★修正: 戻り値を受け取るように変更
+        var resolveRes = nfcResolveService.resolve(payload, pin);
+        UUID citizenId = UUID.fromString(resolveRes.citizenId());
 
+        // 2. チケット生成
         String ticket = generateTicket();
-        p.complete(ticket);
-        return ticket;
 
+        // 3. DBに保存
+        p.complete(ticket);
+
+        // 4. ★ここが最重要！ 金庫番（NfcAuthService）にもチケットを預ける
+        // これがないと exchange で見つからない
+        nfcAuthService.registerTicket(ticket, citizenId);
+
+        return ticket;
     }
 
     private String generateTicket() {
@@ -95,5 +113,4 @@ public class VotePairingService {
         RNG.nextBytes(b);
         return Base64.getUrlEncoder().withoutPadding().encodeToString(b);
     }
-
 }
