@@ -369,20 +369,20 @@ public class MachidaSangiinSeed {
                         LocalDate.of(2003, 10, 10), "町田市2-3-4", "M", "2345"),
 
                 citizenMachida(uuid("33333333-3333-3333-3333-333333333333"), "イェダム", "ユ",
-                        LocalDate.of(2004, 5, 21), "韓国市1-2-3", "M", "3456"),
+                        LocalDate.of(2004, 5, 21), "町田市1-2-3", "M", "3456"),
 
-                citizenOtherCity(uuid("44444444-4444-4444-4444-444444444444"), "榎丸", "澄香",
-                        LocalDate.of(1990, 3, 3), "立川市1-1-1", "F", "4567"),
+                citizenMachida(uuid("44444444-4444-4444-4444-444444444444"), "榎丸", "澄香",
+                        LocalDate.of(1990, 3, 3), "町田市1-1-1", "F", "4567"),
 
                 citizenMachida(uuid("55555555-5555-5555-5555-555555555555"), "山内", "政和",
                         LocalDate.of(2014, 9, 5), "町田市3-4-5", "M", "5678"),
 
-                citizenOtherCity(uuid("66666666-6666-6666-6666-666666666666"), "生田目", "凌輔",
-                        LocalDate.of(2022, 12, 25), "大和市1-1-1", "M", "6789"));
+                citizenMachida(uuid("66666666-6666-6666-6666-666666666666"), "生田目", "凌輔",
+                        LocalDate.of(2022, 12, 25), "町田市1-1-1", "M", "6789"));
 
         var all = new ArrayList<CitizenJson>(base.size() + PAST_DUMMY_CITIZENS);
         all.addAll(base);
-        all.addAll(dummyTokyoCitizensForPast(PAST_DUMMY_CITIZENS));
+        all.addAll(dummyTokyoCitizensForPast(PAST_DUMMY_CITIZENS)); // ← 下で町田にする
         return all;
     }
 
@@ -391,10 +391,12 @@ public class MachidaSangiinSeed {
         return new CitizenJson(id, fn, gn, bd, PREF_TOKYO, CITY_MACHIDA, addr, gender, pin);
     }
 
-    private CitizenJson citizenOtherCity(UUID id, String fn, String gn, LocalDate bd, String addr, String gender,
-            String pin) {
-        return new CitizenJson(id, fn, gn, bd, PREF_TOKYO, CITY_TACHIKAWA, addr, gender, pin);
-    }
+    // private CitizenJson citizenOtherCity(UUID id, String fn, String gn, LocalDate
+    // bd, String addr, String gender,
+    // String pin) {
+    // return new CitizenJson(id, fn, gn, bd, PREF_TOKYO, CITY_TACHIKAWA, addr,
+    // gender, pin);
+    // }
 
     public List<UserJson> users() {
         return List.of(
