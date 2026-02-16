@@ -27,7 +27,7 @@ public class CommitteeElectionResultsController {
     }
 
     @GetMapping("/{electionId}/results")
-    public ElectionResultBundleResponse results(@PathVariable UUID electionId) {
+    public ElectionResultBundleResponse results(@PathVariable("electionId") UUID electionId) {
 
         var election = electionRepo.findById(electionId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "ELECTION_NOT_FOUND", "選挙が存在しません"));

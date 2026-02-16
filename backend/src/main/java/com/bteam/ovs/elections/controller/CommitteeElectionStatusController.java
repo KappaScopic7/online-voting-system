@@ -21,7 +21,7 @@ public class CommitteeElectionStatusController {
 
     @PostMapping("/{electionId}/status")
     @PreAuthorize(Authz.STAFF)
-    public void setStatus(@PathVariable UUID electionId, @RequestBody SetElectionStatusRequest req) {
+    public void setStatus(@PathVariable("electionId") UUID electionId, @RequestBody SetElectionStatusRequest req) {
         adminService.setStatus(electionId, req.status());
     }
 }

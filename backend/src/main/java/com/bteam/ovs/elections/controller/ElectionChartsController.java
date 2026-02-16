@@ -27,7 +27,7 @@ public class ElectionChartsController {
     }
 
     @GetMapping("/{electionId}/chart")
-    public ResponseEntity<Resource> chart(@PathVariable UUID electionId) throws Exception {
+    public ResponseEntity<Resource> chart(@PathVariable("electionId") UUID electionId) throws Exception {
 
         var election = electionRepo.findById(electionId)
                 .orElseThrow(() -> new ApiException(

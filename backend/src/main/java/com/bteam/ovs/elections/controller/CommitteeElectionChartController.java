@@ -22,7 +22,7 @@ public class CommitteeElectionChartController {
 
     @GetMapping("/{electionId}/chart")
     @PreAuthorize(Authz.STAFF)
-    public ResponseEntity<Resource> getChart(@PathVariable UUID electionId) throws Exception {
+    public ResponseEntity<Resource> getChart(@PathVariable("electionId") UUID electionId) throws Exception {
 
         Path path = Path.of(chartDir, electionId + ".png");
 

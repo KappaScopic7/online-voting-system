@@ -28,32 +28,32 @@ public class CommitteeElectionsController {
     }
 
     @PostMapping("/{electionId}/actions/ready")
-    public ElectionDetailResponse markReady(@PathVariable UUID electionId) {
+    public ElectionDetailResponse markReady(@PathVariable("electionId") UUID electionId) {
         return adminService.markReady(electionId);
     }
 
     @PostMapping("/{electionId}/actions/start")
-    public ElectionDetailResponse start(@PathVariable UUID electionId) {
+    public ElectionDetailResponse start(@PathVariable("electionId") UUID electionId) {
         return adminService.start(electionId);
     }
 
     @PostMapping("/{electionId}/actions/close")
-    public ElectionDetailResponse close(@PathVariable UUID electionId) {
+    public ElectionDetailResponse close(@PathVariable("electionId") UUID electionId) {
         return adminService.close(electionId);
     }
 
     @PostMapping("/{electionId}/actions/tally")
-    public ElectionDetailResponse tally(@PathVariable UUID electionId) {
+    public ElectionDetailResponse tally(@PathVariable("electionId") UUID electionId) {
         return adminService.tally(electionId);
     }
 
     @PostMapping("/{electionId}/actions/publish")
-    public ElectionDetailResponse publish(@PathVariable UUID electionId) {
+    public ElectionDetailResponse publish(@PathVariable("electionId") UUID electionId) {
         return adminService.publish(electionId);
     }
 
     @PostMapping("/{electionId}/actions/unpublish")
-    public ElectionDetailResponse unpublish(@PathVariable UUID electionId) {
+    public ElectionDetailResponse unpublish(@PathVariable("electionId") UUID electionId) {
         return adminService.unpublish(electionId);
     }
 
@@ -63,7 +63,7 @@ public class CommitteeElectionsController {
     }
 
     @GetMapping("/{electionId}")
-    public ElectionDetailResponse detail(@PathVariable UUID electionId) {
+    public ElectionDetailResponse detail(@PathVariable("electionId") UUID electionId) {
         return queryService.detail(electionId);
     }
 }
