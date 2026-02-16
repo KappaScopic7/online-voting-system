@@ -10,9 +10,7 @@ logging:
 
 app:
     tally:
-        tickMillis: 5000
-        timeoutSeconds: 30
-        python: python3
+        python: "F:/online-voting-system/scripts/.venv/Scripts/python.exe"
         script: "F:/online-voting-system/scripts/generate_chart.py"
         workDir: "F:/online-voting-system"
         jsonDir: "F:/online-voting-system/data/tally"
