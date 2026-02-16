@@ -59,12 +59,6 @@ public class NfcAuthService {
 
     public TokenResponse exchange(NfcExchangeRequest req) {
         String ticket = req.ticket().trim();
-        System.out.println("===[DEBUG: EXCHANGE START]===");
-        System.out.println("PCから届いたチケット: [" + ticket + "]");
-        System.out.println("サーバーが保持中のチケット一覧: " + voteStore.keySet());
-        System.out.println("===[DEBUG: EXCHANGE START]===");
-        System.out.println("PCから届いたチケット: [" + ticket + "]");
-        System.out.println("サーバーが保持中のチケット一覧: " + voteStore.keySet());
 
         VoteTicketData data = voteStore.get(ticket);
 

@@ -27,7 +27,7 @@ export function PublicAuthCallbackPage() {
     );
     const [err, setErr] = useState<string | null>(null);
 
-    // ★二重実行防止フラグ
+    // 二重処理防止用のフラグ。念のため。
     const processedRef = useRef(false);
 
     useEffect(() => {
