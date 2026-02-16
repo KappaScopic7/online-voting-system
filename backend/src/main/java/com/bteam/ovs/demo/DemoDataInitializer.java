@@ -254,13 +254,24 @@ public class DemoDataInitializer {
                 e.setPublishedAt(null);
 
             } else {
-                e.setStatus(ElectionStatus.PUBLISHED);
+                // ✅ 終了後（過去選挙）
+                boolean isTokyoGov2024 = ej.electionKey().equals(MachidaSangiinSeed.EID_TOKYO_GOV_2024);
 
-                if (e.getTalliedAt() == null) {
-                    e.setTalliedAt(endsAt.plusSeconds(30));
-                }
-                if (e.getPublishedAt() == null) {
-                    e.setPublishedAt(endsAt.plusSeconds(60));
+                if (isTokyoGov2024) {
+                    // ✅ 起動時に「終了（未公開）」で止める
+                    e.setStatus(ElectionStatus.CLOSED);
+                    e.setTalliedAt(null);
+                    e.setPublishedAt(null);
+                } else {
+                    // ✅ それ以外の過去選挙は従来どおり公開済み
+                    e.setStatus(ElectionStatus.PUBLISHED);
+
+                    if (e.getTalliedAt() == null) {
+                        e.setTalliedAt(endsAt.plusSeconds(30));
+                    }
+                    if (e.getPublishedAt() == null) {
+                        e.setPublishedAt(endsAt.plusSeconds(60));
+                    }
                 }
             }
 
