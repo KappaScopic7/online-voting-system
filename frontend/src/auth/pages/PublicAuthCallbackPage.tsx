@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Card, Page, DevDebug } from "../../shared/ui/page";
 import { normalizeFrom } from "../../shared/normalizeFrom";
@@ -27,13 +27,19 @@ export function PublicAuthCallbackPage() {
     );
     const [err, setErr] = useState<string | null>(null);
 
+    // ★二重実行防止フラグ
+    const processedRef = useRef(false);
+
     useEffect(() => {
+        if (processedRef.current) return;
+        if (!ticket) return;
+
+        processedRef.current = true;
+
         (async () => {
             try {
                 setErr(null);
                 setStatus("PROCESSING");
-
-                if (!ticket) throw new Error("ticket がありません");
 
                 const res = await exchangeNfcTicket({ ticket, electionId });
 
@@ -41,11 +47,10 @@ export function PublicAuthCallbackPage() {
                 if (!accessToken)
                     throw new Error("accessToken が返りませんでした");
 
-                // ✅ PCブラウザに public session token を保存
                 publicToken.set(accessToken);
 
                 setStatus("DONE");
-                window.setTimeout(() => nav(returnTo, { replace: true }), 150);
+                window.setTimeout(() => nav(returnTo, { replace: true }), 500);
             } catch (e: any) {
                 setStatus("ERROR");
                 setErr(
@@ -67,16 +72,35 @@ export function PublicAuthCallbackPage() {
                     </div>
                 )}
                 {status === "DONE" && (
-                    <div style={{ fontWeight: 800 }}>
-                        認証完了。投票画面へ移動します…
+                    <div style={{ fontWeight: 800, color: "green" }}>
+                        認証完了！投票画面へ移動します…
                     </div>
                 )}
                 {status === "ERROR" && (
                     <div>
-                        <div style={{ fontWeight: 900, marginBottom: 8 }}>
-                            エラー
+                        <div
+                            style={{
+                                fontWeight: 900,
+                                marginBottom: 8,
+                                color: "crimson",
+                            }}
+                        >
+                            エラーが発生しました
                         </div>
-                        <div style={{ whiteSpace: "pre-wrap" }}>{err}</div>
+                        <div
+                            style={{ whiteSpace: "pre-wrap", color: "crimson" }}
+                        >
+                            {err}
+                        </div>
+                        <div
+                            style={{
+                                marginTop: 12,
+                                fontSize: 12,
+                                opacity: 0.8,
+                            }}
+                        >
+                            ※ もう一度QRコードを読み取ってやり直してください。
+                        </div>
                     </div>
                 )}
             </Card>
