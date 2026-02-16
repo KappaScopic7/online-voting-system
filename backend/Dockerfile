@@ -13,11 +13,12 @@ RUN ./gradlew --no-daemon clean bootJar
 FROM eclipse-temurin:21-jre
 WORKDIR /app
 
-# Python環境と日本語フォント（Noto CJK）をインストール
+# Python環境、日本語フォント、およびDBバックアップ用の postgresql-client をインストール
 RUN apt-get update && apt-get install -y \
     python3 \
     python3-pip \
     fonts-noto-cjk \
+    postgresql-client \
  && rm -rf /var/lib/apt/lists/*
 
 # ライブラリのインストール
