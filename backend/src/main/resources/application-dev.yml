@@ -15,3 +15,7 @@ app:
         workDir: ${APP_TALLY_WORKDIR:.}
         jsonDir: ${APP_TALLY_JSONDIR:./data/tally}
         chartDir: ${APP_TALLY_CHARTDIR:./data/charts}
+
+ovs:
+    backup:
+        dockerContainer: "ovs-postgres-dev"
