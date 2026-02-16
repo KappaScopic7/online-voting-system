@@ -146,13 +146,6 @@ export function IdentityPendingPage() {
         };
     }, [isVotePairing, pairId, electionId, returnTo]);
 
-    // ... (以下変更なし) ...
-    // ...LINK PENDING MODE, Render部分など...
-
-    // (省略せずに元のコードの後半をそのまま使ってください。
-    //  ただし、↑のuseEffectの中身だけが重要です)
-
-    // ...Link Pending部分のコード...
     const { me, refreshMe } = useAuth();
     const [linkMsg, setLinkMsg] = useState<string | null>(null);
     const [linkErr, setLinkErr] = useState<string | null>(null);
@@ -194,13 +187,17 @@ export function IdentityPendingPage() {
             nav(fromLegacy ?? "/me", { replace: true });
             return;
         }
-        if (me.identityStatus !== "PENDING") {
-            nav("/me/identity", { replace: true, state: { from: fromLegacy } });
-            return;
+
+        // 2. それ以外（PENDINGや、まだ申請前の状態）なら画面に留まる
+        //    以前のコードはここで勝手に nav() していたため一瞬で消えていました
+        if (me.identityStatus === "PENDING") {
+            setLinkMsg(
+                "スマホで認証を完了してください（完了すると自動で戻ります）",
+            );
+        } else {
+            // まだPENDINGになっていない（QR読み取り待ち）状態
+            setLinkMsg("スマホでQRを読み取ってください");
         }
-        setLinkMsg(
-            "スマホで認証を完了してください（完了すると自動で戻ります）",
-        );
     }, [isLinkPending, me, nav, fromLegacy]);
 
     if (!isVotePairing && !isLinkPending) {
