@@ -163,6 +163,7 @@
     position: absolute;
     top: calc(100% + 8px);
     /* ★少し下に空ける */
+    z-index: 5000;
     right: 0;
     background-color: #fff;
     padding: 10px;
@@ -275,7 +276,7 @@
     opacity: 0;
     pointer-events: none;
     transition: opacity 180ms ease;
-    z-index: 3000;
+    z-index: 100000;
 }
 
 @media (pointer: coarse) {
@@ -389,4 +390,12 @@
         gap: 10px;
         text-align: center;
     }
+}
+
+.adminLayout {
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    background: #fff;
+    isolation: isolate;
 }
