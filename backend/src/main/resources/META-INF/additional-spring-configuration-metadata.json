@@ -1,0 +1,49 @@
+{
+    "properties": [
+        {
+            "name": "app.tally.python",
+            "type": "java.lang.String",
+            "description": "A description for 'app.tally.python'"
+        },
+        {
+            "name": "app.tally.script",
+            "type": "java.lang.String",
+            "description": "A description for 'app.tally.script'"
+        },
+        {
+            "name": "app.tally.workDir",
+            "type": "java.lang.String",
+            "description": "A description for 'app.tally.workDir'"
+        },
+        {
+            "name": "app.tally.jsonDir",
+            "type": "java.lang.String",
+            "description": "A description for 'app.tally.jsonDir'"
+        },
+        {
+            "name": "app.tally.chartDir",
+            "type": "java.lang.String",
+            "description": "A description for 'app.tally.chartDir'"
+        },
+        {
+            "name": "ovs.backup.docker-container",
+            "type": "java.lang.String",
+            "description": "A description for 'ovs.backup.docker-container'"
+        },
+        {
+            "name": "ovs.seed.enabled",
+            "type": "java.lang.String",
+            "description": "A description for 'ovs.seed.enabled'"
+        },
+        {
+            "name": "app.tally.tickMillis",
+            "type": "java.lang.String",
+            "description": "A description for 'app.tally.tickMillis'"
+        },
+        {
+            "name": "app.tally.timeoutSeconds",
+            "type": "java.lang.String",
+            "description": "A description for 'app.tally.timeoutSeconds'"
+        }
+    ]
+}

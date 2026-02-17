@@ -46,3 +46,15 @@ out/
 
 *.12
 *.pem
+
+# Python virtual environment
+.venv/
+
+# Python cache files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Generated data/charts
+data/tally/
+data/charts/

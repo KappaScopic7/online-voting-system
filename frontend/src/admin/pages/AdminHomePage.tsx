@@ -22,12 +22,19 @@ export function AdminHomePage() {
         setBusy(true);
         try {
             const token = staffToken.get();
-            const res = await fetch("/admin/backup", {
+            const res = await fetch("/api/admin/backup", {
                 method: "GET",
                 headers: {
                     Authorization: token ? `Bearer ${token}` : "",
                 },
             });
+            const ct = res.headers.get("content-type") ?? "";
+            if (ct.includes("text/html")) {
+                const t = await res.text();
+                throw new Error(
+                    `HTMLを受信しました。URLがフロントに当たってます。\n${t.slice(0, 200)}`,
+                );
+            }
 
             if (!res.ok) {
                 const t = await res.text().catch(() => "");
@@ -65,7 +72,7 @@ export function AdminHomePage() {
             const fd = new FormData();
             fd.append("file", file);
 
-            const res = await fetch("/admin/backup", {
+            const res = await fetch("/api/admin/backup", {
                 method: "POST",
                 headers: {
                     Authorization: token ? `Bearer ${token}` : "",

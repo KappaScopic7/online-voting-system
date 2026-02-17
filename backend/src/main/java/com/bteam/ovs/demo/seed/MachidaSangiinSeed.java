@@ -77,12 +77,15 @@ public class MachidaSangiinSeed {
     // tokyoDistrictSurnameParties() と prSurnameParties() は削除して、これ1本に統一
     private List<PartyJson> surnameParties() {
         return List.of(
-                party("KT", "加藤党", "KT", "#1E88E5", "加藤を中心とする政党（デモ用）", List.of("デモ", "苗字党")),
-                party("HS", "橋本党", "HS", "#43A047", "橋本を中心とする政党（デモ用）", List.of("デモ", "苗字党")),
-                party("ES", "榎丸党", "ES", "#F4511E", "榎丸を中心とする政党（デモ用）", List.of("デモ", "苗字党")),
-                party("YY", "イェダム党", "YY", "#8E24AA", "イェダムを中心とする政党（デモ用）", List.of("デモ", "苗字党")),
-                party("NR", "生田目党", "NR", "#546E7A", "生田目を中心とする政党（デモ用）", List.of("デモ", "苗字党")),
-                party("YM", "山内党", "YM", "#6D4C41", "山内を中心とする政党（デモ用）", List.of("デモ", "苗字党")));
+                party("KT", "加藤党", "KT", "#1E88E5", "行政手続きのデジタル化と透明性を推進し、暮らしの不安を減らす。", List.of("行政DX", "透明性", "若者参画")),
+                party("HS", "橋本党", "HS", "#43A047", "交通・医療・買い物など生活インフラを整え、地域の不便を減らす。", List.of("地域交通", "医療体制", "生活支援")),
+                party("ES", "榎丸党", "ES", "#F4511E", "教育・保育を中心に、家庭の負担を減らして安心して働ける社会へ。",
+                        List.of("教育投資", "保育拡充", "子育て支援")),
+                party("YY", "イェダム党", "YY", "#8E24AA", "多文化共生と情報格差の解消により、誰もが手続きを迷わない行政へ。",
+                        List.of("多文化共生", "多言語化", "生活相談")),
+                party("NR", "生田目党", "NR", "#546E7A", "データに基づく政策と財政の見える化で、ムダを減らし生活を守る。",
+                        List.of("財政改革", "生活防衛", "中小企業支援")),
+                party("YM", "山内党", "YM", "#6D4C41", "地域コミュニティを基盤に、防災・防犯・福祉の連携を強化する。", List.of("防災", "防犯", "福祉連携")));
     }
 
     // private List<PartyJson> tokyoDistrictSurnameParties() {
@@ -150,12 +153,18 @@ public class MachidaSangiinSeed {
 
     private List<CandidateJson> tokyoDistrictCandidates6() {
         return List.of(
-                cand("TD01", "加藤 匠", 21, "KT", "候補者", "東京都選挙区 候補者。", List.of("東京都選挙区")),
-                cand("TD02", "橋本 哲志", 22, "HS", "候補者", "東京都選挙区 候補者。", List.of("東京都選挙区")),
-                cand("TD03", "榎丸 澄香", 21, "ES", "候補者", "東京都選挙区 候補者。", List.of("東京都選挙区")),
-                cand("TD04", "ユ イェダム", 21, "YY", "候補者", "東京都選挙区 候補者。", List.of("東京都選挙区")),
-                cand("TD05", "生田目 凌輔", 21, "NR", "候補者", "東京都選挙区 候補者。", List.of("東京都選挙区")),
-                cand("TD06", "山内 政和", 21, "YM", "候補者", "東京都選挙区 候補者。", List.of("東京都選挙区")));
+                cand("TD01", "加藤 匠", 21, "KT", "候補者", "町田市出身。現場目線の行政DXで、手続きの待ち時間と不安を減らす。若者の声が届く仕組みづくりを重視。",
+                        List.of("行政DX", "子育て支援", "若者参画", "防災情報の統合", "教育のデジタル化")),
+                cand("TD02", "橋本 哲志", 22, "HS", "候補者", "地域の交通・医療・買い物の不便を減らすことを最優先。高齢者と子育て世帯が暮らしやすい「生活インフラ」を整える。",
+                        List.of("地域交通", "医療体制", "高齢者支援", "物価対策", "災害時の移動支援")),
+                cand("TD03", "榎丸 澄香", 21, "ES", "候補者", "教育・保育の現場課題に向き合い、家庭の負担と不安を軽くする仕組みを提案。安心して働ける環境づくりに注力。",
+                        List.of("保育拡充", "教育投資", "働き方支援", "給食・学用品支援", "女性の健康支援")),
+                cand("TD04", "ユ イェダム", 21, "YY", "候補者", "多文化共生の視点から、暮らしの情報格差をなくす。言語・制度の壁を下げ、誰も取り残さない行政を目指す。",
+                        List.of("多文化共生", "生活相談窓口", "行政情報の多言語化", "雇用の安定", "差別解消")),
+                cand("TD05", "生田目 凌輔", 21, "NR", "候補者", "データと現場の両方を重視し、ムダを減らして必要な所へ予算を回す。安全保障よりもまず「生活防衛」を強化。",
+                        List.of("財政の見える化", "公共事業の点検", "生活防衛", "治安・防犯", "中小企業支援")),
+                cand("TD06", "山内 政和", 21, "YM", "候補者", "地域コミュニティの力を伸ばし、防災・治安・子どもの居場所づくりを底上げ。現場の声を政策に反映する。",
+                        List.of("地域防災", "防犯", "子どもの居場所", "地域活動支援", "福祉の連携")));
     }
 
     // ✅ 2026比例（苗字党6党）を候補として作る
@@ -360,20 +369,20 @@ public class MachidaSangiinSeed {
                         LocalDate.of(2003, 10, 10), "町田市2-3-4", "M", "2345"),
 
                 citizenMachida(uuid("33333333-3333-3333-3333-333333333333"), "イェダム", "ユ",
-                        LocalDate.of(2004, 5, 21), "韓国市1-2-3", "M", "3456"),
+                        LocalDate.of(2004, 5, 21), "町田市1-2-3", "M", "3456"),
 
-                citizenOtherCity(uuid("44444444-4444-4444-4444-444444444444"), "榎丸", "澄香",
-                        LocalDate.of(1990, 3, 3), "立川市1-1-1", "F", "4567"),
+                citizenMachida(uuid("44444444-4444-4444-4444-444444444444"), "榎丸", "澄香",
+                        LocalDate.of(1990, 3, 3), "町田市1-1-1", "F", "4567"),
 
                 citizenMachida(uuid("55555555-5555-5555-5555-555555555555"), "山内", "政和",
                         LocalDate.of(2014, 9, 5), "町田市3-4-5", "M", "5678"),
 
-                citizenOtherCity(uuid("66666666-6666-6666-6666-666666666666"), "生田目", "凌輔",
-                        LocalDate.of(2022, 12, 25), "大和市1-1-1", "M", "6789"));
+                citizenMachida(uuid("66666666-6666-6666-6666-666666666666"), "生田目", "凌輔",
+                        LocalDate.of(2022, 12, 25), "町田市1-1-1", "M", "6789"));
 
         var all = new ArrayList<CitizenJson>(base.size() + PAST_DUMMY_CITIZENS);
         all.addAll(base);
-        all.addAll(dummyTokyoCitizensForPast(PAST_DUMMY_CITIZENS));
+        all.addAll(dummyTokyoCitizensForPast(PAST_DUMMY_CITIZENS)); // ← 下で町田にする
         return all;
     }
 
@@ -382,10 +391,12 @@ public class MachidaSangiinSeed {
         return new CitizenJson(id, fn, gn, bd, PREF_TOKYO, CITY_MACHIDA, addr, gender, pin);
     }
 
-    private CitizenJson citizenOtherCity(UUID id, String fn, String gn, LocalDate bd, String addr, String gender,
-            String pin) {
-        return new CitizenJson(id, fn, gn, bd, PREF_TOKYO, CITY_TACHIKAWA, addr, gender, pin);
-    }
+    // private CitizenJson citizenOtherCity(UUID id, String fn, String gn, LocalDate
+    // bd, String addr, String gender,
+    // String pin) {
+    // return new CitizenJson(id, fn, gn, bd, PREF_TOKYO, CITY_TACHIKAWA, addr,
+    // gender, pin);
+    // }
 
     public List<UserJson> users() {
         return List.of(
