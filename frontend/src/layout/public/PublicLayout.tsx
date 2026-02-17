@@ -196,7 +196,7 @@ export function PublicLayout() {
                                 src={logo}
                                 alt="OVS"
                             />
-                            <span className={styles.brandText}>町田校OVS</span>
+                            <span className={styles.brandText}>町田OVS</span>
                         </Link>
 
                         <div className={styles.headerRight}>
@@ -244,88 +244,98 @@ export function PublicLayout() {
                                 )}
                             </div>
 
-                            {/* PC右側：ログイン/登録 or 👤 */}
-                            {!user ? (
-                                <>
-                                    <Link
-                                        className={styles.headerLink}
-                                        to="/login"
-                                        onClick={closeAllMenus}
-                                    >
-                                        ログイン
-                                    </Link>
-                                    <Link
-                                        className={styles.headerLink}
-                                        to="/register"
-                                        onClick={closeAllMenus}
-                                    >
-                                        新規登録
-                                    </Link>
-                                </>
-                            ) : (
-                                <div
-                                    ref={menuWrapRef}
-                                    className={styles.menuWrap}
+                            {/* PC右側：常にアイコンを表示し、中身を分岐させる */}
+                            <div ref={menuWrapRef} className={styles.menuWrap}>
+                                <button
+                                    type="button"
+                                    className={styles.menuButton}
+                                    onClick={toggleUserMenu}
+                                    aria-haspopup="menu"
+                                    aria-expanded={isMenuOpen}
+                                    aria-label="ユーザーメニュー"
                                 >
-                                    <button
-                                        type="button"
-                                        className={styles.menuButton}
-                                        onClick={toggleUserMenu}
-                                        aria-haspopup="menu"
-                                        aria-expanded={isMenuOpen}
-                                        aria-label="ユーザーメニュー"
+                                    <span aria-hidden>👤</span>
+                                </button>
+
+                                {isMenuOpen && (
+                                    <div
+                                        className={`${styles.menuOpen} ${
+                                            showTopBar ? styles.withShadow : ""
+                                        }`}
+                                        role="menu"
                                     >
-                                        <span aria-hidden>👤</span>
-                                    </button>
-
-                                    {isMenuOpen && (
-                                        <div
-                                            className={`${styles.menuOpen} ${
-                                                showTopBar
-                                                    ? styles.withShadow
-                                                    : ""
-                                            }`}
-                                            role="menu"
-                                        >
-                                            {menuItems.map((item, idx) => (
-                                                <div key={item.to}>
-                                                    <Link
-                                                        className={
-                                                            styles.menuLink
-                                                        }
-                                                        to={item.to}
-                                                        onClick={closeAllMenus}
-                                                        role="menuitem"
-                                                    >
-                                                        {item.label}
-                                                    </Link>
-
-                                                    {idx !==
-                                                        menuItems.length -
-                                                            1 && (
-                                                        <hr
+                                        {/* ▼▼▼ ここでログイン状態による出しわけを行う ▼▼▼ */}
+                                        {user ? (
+                                            // === ログインしている場合 ===
+                                            <>
+                                                {menuItems.map((item, idx) => (
+                                                    <div key={item.to}>
+                                                        <Link
                                                             className={
-                                                                styles.divider
+                                                                styles.menuLink
                                                             }
-                                                        />
-                                                    )}
-                                                </div>
-                                            ))}
+                                                            to={item.to}
+                                                            onClick={
+                                                                closeAllMenus
+                                                            }
+                                                            role="menuitem"
+                                                        >
+                                                            {item.label}
+                                                        </Link>
+                                                        {idx !==
+                                                            menuItems.length -
+                                                                1 && (
+                                                            <hr
+                                                                className={
+                                                                    styles.divider
+                                                                }
+                                                            />
+                                                        )}
+                                                    </div>
+                                                ))}
+                                                <hr
+                                                    className={styles.divider}
+                                                />
+                                                <button
+                                                    className={
+                                                        styles.logoutButton
+                                                    }
+                                                    type="button"
+                                                    onClick={onLogout}
+                                                    role="menuitem"
+                                                >
+                                                    ログアウト
+                                                </button>
+                                            </>
+                                        ) : (
+                                            // === ログインしていない場合 ===
+                                            <>
+                                                <Link
+                                                    className={styles.menuLink}
+                                                    to="/login"
+                                                    onClick={closeAllMenus}
+                                                    role="menuitem"
+                                                >
+                                                    ログイン
+                                                </Link>
 
-                                            <hr className={styles.divider} />
+                                                <hr
+                                                    className={styles.divider}
+                                                />
 
-                                            <button
-                                                className={styles.logoutButton}
-                                                type="button"
-                                                onClick={onLogout}
-                                                role="menuitem"
-                                            >
-                                                ログアウト
-                                            </button>
-                                        </div>
-                                    )}
-                                </div>
-                            )}
+                                                <Link
+                                                    className={styles.menuLink}
+                                                    to="/register"
+                                                    onClick={closeAllMenus}
+                                                    role="menuitem"
+                                                >
+                                                    新規登録
+                                                </Link>
+                                            </>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </header>
 
