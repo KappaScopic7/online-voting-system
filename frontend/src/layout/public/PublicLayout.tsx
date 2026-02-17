@@ -196,7 +196,7 @@ export function PublicLayout() {
                                 src={logo}
                                 alt="OVS"
                             />
-                            <span className={styles.brandText}>B team</span>
+                            <span className={styles.brandText}>町田校OVS</span>
                         </Link>
 
                         <div className={styles.headerRight}>
