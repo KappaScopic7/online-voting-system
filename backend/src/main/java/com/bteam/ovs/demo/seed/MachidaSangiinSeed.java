@@ -375,10 +375,17 @@ public class MachidaSangiinSeed {
                         LocalDate.of(1990, 3, 3), "町田市1-1-1", "F", "4567"),
 
                 citizenMachida(uuid("55555555-5555-5555-5555-555555555555"), "山内", "政和",
-                        LocalDate.of(2014, 9, 5), "町田市3-4-5", "M", "5678"),
+                        LocalDate.of(2000, 9, 5), "町田市3-4-5", "M", "5678"),
 
                 citizenMachida(uuid("66666666-6666-6666-6666-666666666666"), "生田目", "凌輔",
-                        LocalDate.of(2022, 12, 25), "町田市1-1-1", "M", "6789"));
+                        LocalDate.of(1999, 12, 25), "町田市1-1-1", "M", "6789")
+
+        // citizenMachida(uuid("55555555-5555-5555-5555-555555555555"), "山内", "政和",
+        // LocalDate.of(2014, 9, 5), "町田市3-4-5", "M", "5678"),
+
+        // citizenMachida(uuid("66666666-6666-6666-6666-666666666666"), "生田目", "凌輔",
+        // LocalDate.of(2022, 12, 25), "町田市1-1-1", "M", "6789")
+        );
 
         var all = new ArrayList<CitizenJson>(base.size() + PAST_DUMMY_CITIZENS);
         all.addAll(base);
