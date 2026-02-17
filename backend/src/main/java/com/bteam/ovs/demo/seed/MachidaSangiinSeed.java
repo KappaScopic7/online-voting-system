@@ -430,11 +430,15 @@ public class MachidaSangiinSeed {
         var out = new ArrayList<VoteJson>();
 
         // ✅ 東京都選挙区（6人）なので idx は 0..5
-        out.addAll(List.of(
-                new VoteJson(EID_TOKYO_DISTRICT, uuid("11111111-1111-1111-1111-111111111111"), 0, -120),
-                new VoteJson(EID_TOKYO_DISTRICT, uuid("22222222-2222-2222-2222-222222222222"), 1, -240),
-                new VoteJson(EID_TOKYO_DISTRICT, uuid("33333333-3333-3333-3333-333333333333"), 3, -360),
-                new VoteJson(EID_TOKYO_DISTRICT, uuid("44444444-4444-4444-4444-444444444444"), 2, -480)));
+        // out.addAll(List.of(
+        // new VoteJson(EID_TOKYO_DISTRICT,
+        // uuid("11111111-1111-1111-1111-111111111111"), 0, -120),
+        // new VoteJson(EID_TOKYO_DISTRICT,
+        // uuid("22222222-2222-2222-2222-222222222222"), 1, -240),
+        // new VoteJson(EID_TOKYO_DISTRICT,
+        // uuid("33333333-3333-3333-3333-333333333333"), 3, -360),
+        // new VoteJson(EID_TOKYO_DISTRICT,
+        // uuid("44444444-4444-4444-4444-444444444444"), 2, -480)));
 
         // ✅ 2024はそのまま
         out.addAll(tokyoGov2024DummyVotes(PAST_TG2024_TOTAL_VOTES, PAST_DUMMY_CITIZENS));
@@ -445,34 +449,38 @@ public class MachidaSangiinSeed {
     public List<AllocVoteJson> allocVoteCasts() {
         // ✅ 2026比例：6党しかないので idx は 0..5（= PR候補の並びに合わせる）
         return List.of(
-                alloc(EID_TOKYO_PR, uuid("11111111-1111-1111-1111-111111111111"), -300,
-                        List.of(ai("CANDIDATE", 0, 60), ai("CANDIDATE", 1, 40))),
-                alloc(EID_TOKYO_PR, uuid("22222222-2222-2222-2222-222222222222"), -320,
-                        List.of(ai("CANDIDATE", 2, 50), ai("CANDIDATE", 3, 50))),
-                alloc(EID_TOKYO_PR, uuid("33333333-3333-3333-3333-333333333333"), -340,
-                        List.of(ai("CANDIDATE", 4, 100))),
-                alloc(EID_TOKYO_PR, uuid("44444444-4444-4444-4444-444444444444"), -360,
-                        List.of(ai("CANDIDATE", 5, 70), ai("CANDIDATE", 0, 30))));
+        // alloc(EID_TOKYO_PR, uuid("11111111-1111-1111-1111-111111111111"), -300,
+        // List.of(ai("CANDIDATE", 0, 60), ai("CANDIDATE", 1, 40))),
+        // alloc(EID_TOKYO_PR, uuid("22222222-2222-2222-2222-222222222222"), -320,
+        // List.of(ai("CANDIDATE", 2, 50), ai("CANDIDATE", 3, 50))),
+        // alloc(EID_TOKYO_PR, uuid("33333333-3333-3333-3333-333333333333"), -340,
+        // List.of(ai("CANDIDATE", 4, 100))),
+        // alloc(EID_TOKYO_PR, uuid("44444444-4444-4444-4444-444444444444"), -360,
+        // List.of(ai("CANDIDATE", 5, 70), ai("CANDIDATE", 0, 30)))
+        );
     }
 
     public List<JudgeReviewVoteJson> judgeReviewVoteCasts() {
         return List.of(
-                new JudgeReviewVoteJson(
-                        EID_JUDGE_REVIEW,
-                        uuid("11111111-1111-1111-1111-111111111111"),
-                        -180,
-                        List.of(
-                                new JudgeReviewVoteJson.ItemJson(0, "OK"),
-                                new JudgeReviewVoteJson.ItemJson(1, "NO"))));
+        // new JudgeReviewVoteJson(
+        // EID_JUDGE_REVIEW,
+        // uuid("11111111-1111-1111-1111-111111111111"),
+        // -180,
+        // List.of(
+        // new JudgeReviewVoteJson.ItemJson(0, "OK"),
+        // new JudgeReviewVoteJson.ItemJson(1, "NO")))
+        );
     }
 
-    private AllocVoteJson alloc(String eid, UUID cid, long off, List<AllocVoteJson.AllocItemJson> items) {
-        return new AllocVoteJson(eid, cid, off, items);
-    }
+    // private AllocVoteJson alloc(String eid, UUID cid, long off,
+    // List<AllocVoteJson.AllocItemJson> items) {
+    // return new AllocVoteJson(eid, cid, off, items);
+    // }
 
-    private AllocVoteJson.AllocItemJson ai(String type, Integer idx, Integer pts) {
-        return new AllocVoteJson.AllocItemJson(type, idx, pts);
-    }
+    // private AllocVoteJson.AllocItemJson ai(String type, Integer idx, Integer pts)
+    // {
+    // return new AllocVoteJson.AllocItemJson(type, idx, pts);
+    // }
 
     private List<CitizenJson> dummyTokyoCitizensForPast(int n) {
         var out = new ArrayList<CitizenJson>(n);
