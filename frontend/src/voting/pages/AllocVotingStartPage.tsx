@@ -429,6 +429,30 @@ export function AllocVotingStartPage() {
         return true;
     }, [data, busy, lastTouchedIdx, total]);
 
+    // ★残りptを「誰も支持しない（NONE_SUPPORT）」へ入れる
+    const applyRestToNoneSupport = useCallback((): boolean => {
+        if (!data || busy) return false;
+
+        let applied = false;
+
+        setRows((prev) => {
+            const next = prev.map((r) => ({ ...r }));
+
+            const nIdx = next.findIndex((r) => isNone(r));
+            if (nIdx < 0) return prev;
+
+            const s = next.reduce((a, r) => a + (Number(r.points) || 0), 0);
+            const r = Math.max(0, total - s);
+            if (r <= 0) return next;
+
+            next[nIdx].points = (Number(next[nIdx].points) || 0) + r;
+            applied = true;
+            return next;
+        });
+
+        return applied;
+    }, [data, busy, total]);
+
     const onGoConfirm = useCallback(() => {
         if (!data || busy || loading || err) return;
         if (!hasAnyPoints) return;
@@ -436,21 +460,28 @@ export function AllocVotingStartPage() {
         if (sum < total) {
             const r = total - sum;
             const ok = window.confirm(
-                `残り ${r}pt あります。\n最後に操作した項目へ残りを追加して続行しますか？`,
+                `残り ${r}pt あります。\n「誰も支持しない」に残りを入れて続行しますか？`,
             );
             if (!ok) {
                 setErr("合計が一致しないと確認へ進めません");
                 return;
             }
 
-            const applied = applyRestToLastTouched();
-            if (!applied) {
-                setErr(
-                    "最後に操作した項目がありません。どれかを操作してから再度お試しください。",
-                );
-                return;
+            // ✅ 残りは NONE_SUPPORT に入れる
+            const hasNone = rows.some((x) => isNone(x));
+            if (hasNone) {
+                applyRestToNoneSupport();
+            } else {
+                // 保険：NONE_SUPPORTが無い時だけ従来挙動
+                const applied = applyRestToLastTouched();
+                if (!applied) {
+                    setErr(
+                        "最後に操作した項目がありません。どれかを操作してから再度お試しください。",
+                    );
+                    return;
+                }
             }
-            // そのまま確認へ（次レンダーで sum が揃う）
+            // このまま確認へ（次レンダーで sum が揃う）
         }
 
         if (sum > total) {
@@ -469,6 +500,8 @@ export function AllocVotingStartPage() {
         hasAnyPoints,
         sum,
         total,
+        rows,
+        applyRestToNoneSupport,
         applyRestToLastTouched,
     ]);
 

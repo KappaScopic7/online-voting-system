@@ -306,7 +306,7 @@ public class MachidaSangiinSeed {
 
                 new ElectionJson(
                         EID_TOKYO_DISTRICT,
-                        "参議院議員通常選挙 2026",
+                        "参議院議員選挙 2026（通常投票）",
                         "町田市の有権者が東京都選挙区の候補者から1名を選ぶ。",
                         "UPPER_HOUSE",
                         new ElectionJson.DistrictJson(PREF_TOKYO, CITY_MACHIDA, "東京都（町田市）"),
@@ -317,7 +317,7 @@ public class MachidaSangiinSeed {
 
                 new ElectionJson(
                         EID_TOKYO_PR,
-                        "参議院議員通常選挙 2026（比例代表）",
+                        "比例代表 参議院選挙（ポイント投票） 2026",
                         "比例代表をポイント配分で表現。",
                         "UPPER_HOUSE",
                         new ElectionJson.DistrictJson(PREF_TOKYO, CITY_MACHIDA, "比例（東京/町田）"),
