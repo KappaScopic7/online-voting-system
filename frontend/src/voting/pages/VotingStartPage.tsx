@@ -141,12 +141,10 @@ export function VotingStartPage() {
 
     const self = loc.pathname + loc.search;
 
-    // ✅ 戻り先
     const backTo = normalizeFrom(
         state?.from ?? (publicMode ? "/elections" : "/me/elections"),
     );
 
-    // ✅ Done へ引き継ぐ query
     const doneQS = publicMode ? "?session=public" : "";
 
     const [data, setData] = useState<VoteStartResponse | null>(null);
