@@ -1,6 +1,6 @@
 package com.bteam.ovs.publicapi.announcement;
 
-import com.bteam.ovs.announcement.controller.dto.SystemAnnouncementResponse;
+import com.bteam.ovs.announcement.dto.response.SystemAnnouncementResponse;
 import com.bteam.ovs.announcement.service.SystemAnnouncementService;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;

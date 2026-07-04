@@ -1,6 +1,6 @@
 package com.bteam.ovs.eligibility.controller;
 
-import com.bteam.ovs.eligibility.controller.dto.MeEligibilityResponse;
+import com.bteam.ovs.eligibility.dto.response.MeEligibilityResponse;
 import com.bteam.ovs.eligibility.service.EligibilityProfileResolver;
 // import com.bteam.ovs.shared.errors.ApiException;
 // import org.springframework.http.HttpStatus;

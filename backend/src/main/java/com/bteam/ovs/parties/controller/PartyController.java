@@ -1,10 +1,10 @@
 // backend/src/main/java/com/bteam/ovs/elections/controller/PartyController.java
 package com.bteam.ovs.parties.controller;
 
+import com.bteam.ovs.parties.dto.response.PartyCandidateItem;
+import com.bteam.ovs.parties.dto.response.PartyDetailResponse;
+import com.bteam.ovs.parties.dto.response.PartyListItem;
 import com.bteam.ovs.parties.service.PartyService;
-import com.bteam.ovs.parties.controller.dto.PartyCandidateItem;
-import com.bteam.ovs.parties.controller.dto.PartyDetailResponse;
-import com.bteam.ovs.parties.controller.dto.PartyListItem;
 
 import org.springframework.web.bind.annotation.*;
 

@@ -1,8 +1,8 @@
 // backend/src/main/java/com/bteam/ovs/identity/controller/IdentityNfcController.java
 package com.bteam.ovs.identity.controller;
 
-import com.bteam.ovs.identity.controller.dto.CitizenNfcResolveResponse;
-import com.bteam.ovs.identity.controller.dto.NfcResolveRequest;
+import com.bteam.ovs.identity.dto.request.NfcResolveRequest;
+import com.bteam.ovs.identity.dto.response.CitizenNfcResolveResponse;
 import com.bteam.ovs.identity.service.NfcResolveService;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;

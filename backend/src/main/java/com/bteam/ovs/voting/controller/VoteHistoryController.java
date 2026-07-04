@@ -1,7 +1,7 @@
 package com.bteam.ovs.voting.controller;
 
 import com.bteam.ovs.shared.security.PrincipalExtractor;
-import com.bteam.ovs.voting.controller.dto.VoteHistoryItem;
+import com.bteam.ovs.voting.dto.response.VoteHistoryItem;
 import com.bteam.ovs.voting.service.VotingService;
 
 import org.springframework.security.core.Authentication;

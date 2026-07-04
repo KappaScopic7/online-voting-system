@@ -1,9 +1,9 @@
 package com.bteam.ovs.identity.controller;
 
-import com.bteam.ovs.auth.controller.dto.TokenResponse;
+import com.bteam.ovs.auth.dto.response.TokenResponse;
 import com.bteam.ovs.auth.entity.AccountKind;
 import com.bteam.ovs.config.security.JwtService;
-import com.bteam.ovs.identity.controller.dto.IdentityLinkByNfcRequest;
+import com.bteam.ovs.identity.dto.request.IdentityLinkByNfcRequest;
 import com.bteam.ovs.identity.service.IdentityLinkService;
 import com.bteam.ovs.identity.service.NfcResolveService;
 import com.bteam.ovs.shared.security.PrincipalExtractor;

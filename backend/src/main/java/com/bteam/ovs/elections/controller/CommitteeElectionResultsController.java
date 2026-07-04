@@ -1,6 +1,6 @@
 package com.bteam.ovs.elections.controller;
 
-import com.bteam.ovs.elections.controller.dto.ElectionResultBundleResponse;
+import com.bteam.ovs.elections.dto.response.ElectionResultBundleResponse;
 import com.bteam.ovs.elections.entity.BallotType;
 import com.bteam.ovs.elections.entity.ElectionStatus;
 import com.bteam.ovs.elections.repository.ElectionRepository;

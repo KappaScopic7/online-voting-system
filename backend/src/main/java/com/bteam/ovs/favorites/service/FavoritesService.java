@@ -1,6 +1,10 @@
 package com.bteam.ovs.favorites.service;
 
-import com.bteam.ovs.favorites.controller.dto.*;
+import com.bteam.ovs.favorites.dto.request.FavoriteAddRequest;
+import com.bteam.ovs.favorites.dto.request.FavoriteBulkStateRequest;
+import com.bteam.ovs.favorites.dto.response.FavoriteBulkStateResponse;
+import com.bteam.ovs.favorites.dto.response.FavoriteItem;
+import com.bteam.ovs.favorites.dto.response.FavoriteStateResponse;
 import com.bteam.ovs.favorites.entity.FavoriteTargetType;
 import com.bteam.ovs.favorites.entity.PortalFavorite;
 import com.bteam.ovs.favorites.repository.PortalFavoriteRepository;

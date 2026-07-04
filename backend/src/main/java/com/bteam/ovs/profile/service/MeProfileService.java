@@ -2,8 +2,8 @@ package com.bteam.ovs.profile.service;
 
 import com.bteam.ovs.auth.repository.UserAccountRepository;
 import com.bteam.ovs.citizen.repository.CitizenRepository;
-import com.bteam.ovs.profile.controller.dto.MeProfileResponse;
-import com.bteam.ovs.profile.controller.dto.MeProfileUpdateRequest;
+import com.bteam.ovs.profile.dto.request.MeProfileUpdateRequest;
+import com.bteam.ovs.profile.dto.response.MeProfileResponse;
 import com.bteam.ovs.profile.entity.VoterProfileSelf;
 import com.bteam.ovs.profile.repository.VoterProfileSelfRepository;
 import com.bteam.ovs.shared.errors.ApiException;

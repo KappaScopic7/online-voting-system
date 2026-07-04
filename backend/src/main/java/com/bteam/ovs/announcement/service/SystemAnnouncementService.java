@@ -1,7 +1,7 @@
 package com.bteam.ovs.announcement.service;
 
-import com.bteam.ovs.announcement.controller.dto.SystemAnnouncementResponse;
-import com.bteam.ovs.announcement.controller.dto.SystemAnnouncementUpdateRequest;
+import com.bteam.ovs.announcement.dto.request.SystemAnnouncementUpdateRequest;
+import com.bteam.ovs.announcement.dto.response.SystemAnnouncementResponse;
 import com.bteam.ovs.announcement.entity.SystemAnnouncement;
 import com.bteam.ovs.announcement.repository.SystemAnnouncementRepository;
 import com.bteam.ovs.shared.errors.ApiException;

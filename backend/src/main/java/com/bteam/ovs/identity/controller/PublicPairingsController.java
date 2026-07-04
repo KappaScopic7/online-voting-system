@@ -1,6 +1,6 @@
 package com.bteam.ovs.identity.controller;
 
-import com.bteam.ovs.identity.controller.dto.VotePairingDtos;
+import com.bteam.ovs.identity.dto.response.VotePairingDtos;
 import com.bteam.ovs.identity.entity.VotePairing;
 import com.bteam.ovs.identity.service.VotePairingService;
 import org.springframework.http.ResponseEntity;

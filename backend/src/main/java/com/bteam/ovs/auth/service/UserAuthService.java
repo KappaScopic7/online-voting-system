@@ -1,13 +1,13 @@
 package com.bteam.ovs.auth.service;
 
-import com.bteam.ovs.auth.controller.dto.TokenResponse;
-import com.bteam.ovs.auth.controller.dto.UserLoginRequest;
-import com.bteam.ovs.auth.controller.dto.UserRegisterRequest;
 import com.bteam.ovs.auth.entity.Role;
 import com.bteam.ovs.auth.entity.UserAccount;
 import com.bteam.ovs.auth.repository.UserAccountRepository;
 import com.bteam.ovs.config.security.JwtService;
 import com.bteam.ovs.shared.errors.ApiException;
+import com.bteam.ovs.auth.dto.request.UserLoginRequest;
+import com.bteam.ovs.auth.dto.request.UserRegisterRequest;
+import com.bteam.ovs.auth.dto.response.TokenResponse;
 import com.bteam.ovs.auth.entity.AccountKind;
 
 import org.springframework.http.HttpStatus;

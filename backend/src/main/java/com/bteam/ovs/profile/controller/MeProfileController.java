@@ -1,7 +1,7 @@
 package com.bteam.ovs.profile.controller;
 
-import com.bteam.ovs.profile.controller.dto.MeProfileResponse;
-import com.bteam.ovs.profile.controller.dto.MeProfileUpdateRequest;
+import com.bteam.ovs.profile.dto.request.MeProfileUpdateRequest;
+import com.bteam.ovs.profile.dto.response.MeProfileResponse;
 import com.bteam.ovs.profile.service.MeProfileService;
 import com.bteam.ovs.shared.security.PrincipalExtractor;
 import jakarta.validation.Valid;

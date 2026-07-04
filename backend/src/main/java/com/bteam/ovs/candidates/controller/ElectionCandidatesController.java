@@ -1,8 +1,8 @@
 // backend/src/main/java/com/bteam/ovs/candidates/controller/ElectionCandidatesController.java
 package com.bteam.ovs.candidates.controller;
 
-import com.bteam.ovs.candidates.controller.dto.CandidateDetailResponse;
-import com.bteam.ovs.candidates.controller.dto.CandidateItem;
+import com.bteam.ovs.candidates.dto.response.CandidateDetailResponse;
+import com.bteam.ovs.candidates.dto.response.CandidateListItem;
 import com.bteam.ovs.candidates.service.CandidateService;
 import org.springframework.web.bind.annotation.*;
 
@@ -20,7 +20,7 @@ public class ElectionCandidatesController {
     }
 
     @GetMapping
-    public List<CandidateItem> list(@PathVariable("electionId") UUID electionId) {
+    public List<CandidateListItem> list(@PathVariable("electionId") UUID electionId) {
         return candidateService.listByElection(electionId);
     }
 

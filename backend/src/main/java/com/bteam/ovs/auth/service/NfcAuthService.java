@@ -1,6 +1,13 @@
 package com.bteam.ovs.auth.service;
 
-import com.bteam.ovs.auth.controller.dto.*;
+import com.bteam.ovs.auth.dto.request.NfcExchangeRequest;
+import com.bteam.ovs.auth.dto.request.NfcLinkExchangeRequest;
+import com.bteam.ovs.auth.dto.request.NfcLinkLoginRequest;
+import com.bteam.ovs.auth.dto.request.NfcLoginRequest;
+import com.bteam.ovs.auth.dto.response.NfcLinkExchangeResponse;
+import com.bteam.ovs.auth.dto.response.NfcLinkLoginResponse;
+import com.bteam.ovs.auth.dto.response.NfcLoginResponse;
+import com.bteam.ovs.auth.dto.response.TokenResponse;
 import com.bteam.ovs.config.security.JwtService;
 import com.bteam.ovs.identity.service.NfcResolveService;
 import com.bteam.ovs.shared.errors.ApiException;

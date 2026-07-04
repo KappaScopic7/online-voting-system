@@ -1,5 +1,0 @@
-package com.bteam.ovs.auth.controller.dto;
-
-public record NfcLinkExchangeResponse(
-        String citizenId) {
-}

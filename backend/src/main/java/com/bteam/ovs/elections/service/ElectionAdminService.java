@@ -1,11 +1,12 @@
 package com.bteam.ovs.elections.service;
 
-import com.bteam.ovs.candidates.controller.dto.CandidateCreateRequest;
-import com.bteam.ovs.candidates.controller.dto.CandidateResponse;
+import com.bteam.ovs.candidates.dto.request.CandidateCreateRequest;
+import com.bteam.ovs.candidates.dto.response.CandidateResponse;
 import com.bteam.ovs.candidates.entity.Candidate;
 import com.bteam.ovs.candidates.repository.CandidateRepository;
-import com.bteam.ovs.elections.controller.dto.ElectionCreateRequest;
-import com.bteam.ovs.elections.controller.dto.ElectionResponse;
+import com.bteam.ovs.elections.dto.request.ElectionCreateRequest;
+import com.bteam.ovs.elections.dto.request.ElectionUpdateRequest;
+import com.bteam.ovs.elections.dto.response.ElectionResponse;
 import com.bteam.ovs.elections.entity.Election;
 import com.bteam.ovs.elections.repository.ElectionRepository;
 import com.bteam.ovs.shared.errors.ApiException;
@@ -14,7 +15,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import com.bteam.ovs.elections.controller.dto.ElectionUpdateRequest;
+
 import com.bteam.ovs.elections.entity.ElectionStatus;
 
 import java.time.Instant;

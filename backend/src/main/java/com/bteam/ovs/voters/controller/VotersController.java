@@ -1,6 +1,6 @@
 package com.bteam.ovs.voters.controller;
 
-import com.bteam.ovs.elections.controller.dto.ElectionListItem;
+import com.bteam.ovs.elections.dto.response.ElectionListItem;
 import com.bteam.ovs.shared.security.PrincipalExtractor;
 import com.bteam.ovs.voters.service.VoterElectionsService;
 import org.springframework.security.core.Authentication;

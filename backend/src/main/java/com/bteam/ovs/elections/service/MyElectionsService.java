@@ -2,7 +2,7 @@ package com.bteam.ovs.elections.service;
 
 import com.bteam.ovs.eligibility.service.EligibilityProfileResolver;
 import com.bteam.ovs.candidates.service.CandidateService;
-import com.bteam.ovs.elections.controller.dto.ElectionListItem;
+import com.bteam.ovs.elections.dto.response.ElectionListItem;
 import com.bteam.ovs.elections.entity.BallotType;
 import com.bteam.ovs.elections.entity.Election;
 import com.bteam.ovs.elections.entity.ElectionStatus;
@@ -62,7 +62,7 @@ public class MyElectionsService {
     public List<ElectionListItem> listMyElections(UUID accountId) {
 
         var snap = resolver.resolve(accountId);
-        if (snap.source() == com.bteam.ovs.eligibility.service.entity.EligibilitySnapshot.Source.NONE) {
+        if (snap.source() == com.bteam.ovs.eligibility.entity.EligibilitySnapshot.Source.NONE) {
             return List.of();
         }
         if (snap.cityCode() == null || snap.cityCode().isBlank()) {

@@ -1,7 +1,7 @@
 package com.bteam.ovs.announcement.service;
 
-import com.bteam.ovs.announcement.controller.dto.PublicNoticeResponse;
-import com.bteam.ovs.announcement.controller.dto.PublicNoticeUpsertRequest;
+import com.bteam.ovs.announcement.dto.request.PublicNoticeUpsertRequest;
+import com.bteam.ovs.announcement.dto.response.PublicNoticeResponse;
 import com.bteam.ovs.announcement.entity.PublicNotice;
 import com.bteam.ovs.announcement.repository.PublicNoticeRepository;
 import com.bteam.ovs.shared.errors.ApiException;

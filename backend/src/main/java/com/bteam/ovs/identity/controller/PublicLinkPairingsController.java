@@ -1,6 +1,6 @@
 package com.bteam.ovs.identity.controller;
 
-import com.bteam.ovs.identity.controller.dto.LinkPairingDtos;
+import com.bteam.ovs.identity.dto.response.LinkPairingDtos;
 import com.bteam.ovs.identity.service.LinkPairingService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
