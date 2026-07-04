@@ -1,8 +1,8 @@
 package com.bteam.ovs.master.service;
 
-import com.bteam.ovs.master.controller.dto.CityItem;
-import com.bteam.ovs.master.controller.dto.PrefItem;
-import com.bteam.ovs.master.controller.dto.ZipAddressCandidate;
+import com.bteam.ovs.master.dto.response.CityItem;
+import com.bteam.ovs.master.dto.response.PrefItem;
+import com.bteam.ovs.master.dto.response.ZipAddressCandidate;
 import com.bteam.ovs.master.seed.MachidaMasterSeed;
 import org.springframework.stereotype.Service;
 

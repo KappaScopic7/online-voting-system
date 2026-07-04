@@ -3,9 +3,9 @@ package com.bteam.ovs.voting.controller;
 import com.bteam.ovs.shared.errors.ApiException;
 import com.bteam.ovs.shared.security.PrincipalExtractor;
 import com.bteam.ovs.shared.validation.UuidParsers;
-import com.bteam.ovs.voting.controller.dto.VoteConfirmRequest;
-import com.bteam.ovs.voting.controller.dto.VoteHistoryItem;
-import com.bteam.ovs.voting.controller.dto.VoteStartResponse;
+import com.bteam.ovs.voting.dto.request.VoteConfirmRequest;
+import com.bteam.ovs.voting.dto.response.VoteHistoryItem;
+import com.bteam.ovs.voting.dto.response.VoteStartResponse;
 import com.bteam.ovs.voting.service.VotingService;
 
 import jakarta.validation.Valid;

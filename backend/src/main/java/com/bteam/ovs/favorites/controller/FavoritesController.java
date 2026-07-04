@@ -1,6 +1,11 @@
 package com.bteam.ovs.favorites.controller;
 
-import com.bteam.ovs.favorites.controller.dto.*;
+import com.bteam.ovs.favorites.dto.request.FavoriteAddRequest;
+import com.bteam.ovs.favorites.dto.request.FavoriteBulkStateRequest;
+import com.bteam.ovs.favorites.dto.response.FavoriteBulkStateResponse;
+import com.bteam.ovs.favorites.dto.response.FavoriteItem;
+import com.bteam.ovs.favorites.dto.response.FavoriteStateResponse;
+import com.bteam.ovs.favorites.dto.response.ResolvedFavoritesResponse;
 import com.bteam.ovs.favorites.entity.FavoriteTargetType;
 import com.bteam.ovs.favorites.service.FavoritesService;
 import com.bteam.ovs.shared.security.PrincipalExtractor;

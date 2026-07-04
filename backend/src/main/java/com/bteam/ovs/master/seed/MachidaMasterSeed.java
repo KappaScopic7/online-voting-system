@@ -1,11 +1,11 @@
 package com.bteam.ovs.master.seed;
 
-import com.bteam.ovs.master.controller.dto.CityItem;
-import com.bteam.ovs.master.controller.dto.PrefItem;
-import com.bteam.ovs.master.controller.dto.ZipAddressCandidate;
-
 import java.util.List;
 import java.util.Map;
+
+import com.bteam.ovs.master.dto.response.CityItem;
+import com.bteam.ovs.master.dto.response.PrefItem;
+import com.bteam.ovs.master.dto.response.ZipAddressCandidate;
 
 public class MachidaMasterSeed {
 

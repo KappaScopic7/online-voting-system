@@ -1,7 +1,7 @@
 package com.bteam.ovs.parties.service;
 
-import com.bteam.ovs.candidates.controller.dto.CandidateDetailResponse;
-import com.bteam.ovs.candidates.controller.dto.CandidateItem;
+import com.bteam.ovs.candidates.dto.response.CandidateDetailResponse;
+import com.bteam.ovs.candidates.dto.response.CandidateListItem;
 import com.bteam.ovs.parties.entity.Party;
 import com.bteam.ovs.parties.repository.PartyRepository;
 import com.bteam.ovs.shared.errors.ApiException;
@@ -59,10 +59,10 @@ public class PartyLookupService {
                         Function.identity()));
     }
 
-    public CandidateItem.PartyEmbed toCandidateItemEmbed(Party p) {
+    public CandidateListItem.PartyEmbed toCandidateListItemEmbed(Party p) {
         if (p == null)
             return null;
-        return new CandidateItem.PartyEmbed(
+        return new CandidateListItem.PartyEmbed(
                 p.getPartyKey(),
                 p.getShortName(),
                 p.getName(),

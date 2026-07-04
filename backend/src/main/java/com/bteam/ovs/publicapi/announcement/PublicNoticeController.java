@@ -1,6 +1,6 @@
 package com.bteam.ovs.publicapi.announcement;
 
-import com.bteam.ovs.announcement.controller.dto.PublicNoticeResponse;
+import com.bteam.ovs.announcement.dto.response.PublicNoticeResponse;
 import com.bteam.ovs.announcement.service.PublicNoticeService;
 import org.springframework.web.bind.annotation.*;
 

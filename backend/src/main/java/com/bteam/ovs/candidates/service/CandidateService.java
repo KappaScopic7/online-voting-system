@@ -1,8 +1,8 @@
 // backend/src/main/java/com/bteam/ovs/candidates/service/CandidateService.java
 package com.bteam.ovs.candidates.service;
 
-import com.bteam.ovs.candidates.controller.dto.CandidateDetailResponse;
-import com.bteam.ovs.candidates.controller.dto.CandidateItem;
+import com.bteam.ovs.candidates.dto.response.CandidateDetailResponse;
+import com.bteam.ovs.candidates.dto.response.CandidateListItem;
 import com.bteam.ovs.candidates.entity.Candidate;
 import com.bteam.ovs.candidates.repository.CandidateRepository;
 import com.bteam.ovs.elections.repository.ElectionRepository;
@@ -55,7 +55,7 @@ public class CandidateService {
                 .map(c -> {
                     String partyKey = partyLookupService.blankToNull(c.getPartyKey());
                     var party = (partyKey == null) ? null : partyMap.get(partyKey);
-                    return toCandidateItem(c, party);
+                    return toCandidateListItem(c, party);
                 })
                 .toList();
 
@@ -63,12 +63,12 @@ public class CandidateService {
     }
 
     /** /api/elections/{electionId}/candidates 用 */
-    public List<CandidateItem> listByElection(UUID electionId) {
+    public List<CandidateListItem> listByElection(UUID electionId) {
         return bundleByElection(electionId).items();
     }
 
     /** /api/candidates 用（electionId or partyKey で絞る） */
-    public List<CandidateItem> listAll(UUID electionIdOrNull, String partyKeyOrNull) {
+    public List<CandidateListItem> listAll(UUID electionIdOrNull, String partyKeyOrNull) {
 
         List<com.bteam.ovs.candidates.entity.Candidate> candidateEntities;
 
@@ -88,7 +88,7 @@ public class CandidateService {
                 candidateEntities.stream().map(c -> c.getPartyKey()).toList());
 
         return candidateEntities.stream()
-                .map(c -> toCandidateItem(
+                .map(c -> toCandidateListItem(
                         c,
                         partyMap.get(partyLookupService.blankToNull(c.getPartyKey()))))
                 .toList();
@@ -155,14 +155,14 @@ public class CandidateService {
         }
     }
 
-    private CandidateItem toCandidateItem(
+    private CandidateListItem toCandidateListItem(
             com.bteam.ovs.candidates.entity.Candidate c,
             com.bteam.ovs.parties.entity.Party pOrNull) {
-        CandidateItem.PartyEmbed party = (pOrNull == null)
+        CandidateListItem.PartyEmbed party = (pOrNull == null)
                 ? null
-                : partyLookupService.toCandidateItemEmbed(pOrNull);
+                : partyLookupService.toCandidateListItemEmbed(pOrNull);
 
-        return new CandidateItem(
+        return new CandidateListItem(
                 c.getId(),
                 c.getElectionId(),
                 c.getCandidateKey(),
@@ -197,7 +197,7 @@ public class CandidateService {
     }
 
     public record ElectionCandidatesBundle(
-            List<CandidateItem> items,
+            List<CandidateListItem> items,
             Map<UUID, String> candidateNameById) {
     }
 

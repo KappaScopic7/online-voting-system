@@ -2,8 +2,8 @@ package com.bteam.ovs.voting.controller;
 
 import com.bteam.ovs.shared.security.PrincipalExtractor;
 import com.bteam.ovs.shared.validation.UuidParsers;
-import com.bteam.ovs.voting.controller.dto.JudgeReviewConfirmRequest;
-import com.bteam.ovs.voting.controller.dto.JudgeReviewStartResponse;
+import com.bteam.ovs.voting.dto.request.JudgeReviewConfirmRequest;
+import com.bteam.ovs.voting.dto.response.JudgeReviewStartResponse;
 import com.bteam.ovs.voting.service.VotingService;
 import jakarta.validation.Valid;
 import org.springframework.security.core.Authentication;

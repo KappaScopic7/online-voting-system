@@ -2,9 +2,9 @@ package com.bteam.ovs.voting.controller;
 
 import com.bteam.ovs.shared.security.PrincipalExtractor;
 import com.bteam.ovs.shared.validation.UuidParsers;
-import com.bteam.ovs.voting.controller.dto.AllocVoteConfirmRequest;
-import com.bteam.ovs.voting.controller.dto.AllocVoteHistoryItem;
-import com.bteam.ovs.voting.controller.dto.AllocVoteStartResponse;
+import com.bteam.ovs.voting.dto.request.AllocVoteConfirmRequest;
+import com.bteam.ovs.voting.dto.response.AllocVoteHistoryItem;
+import com.bteam.ovs.voting.dto.response.AllocVoteStartResponse;
 import com.bteam.ovs.voting.service.AllocationVotingService;
 import jakarta.validation.Valid;
 import org.springframework.security.core.Authentication;

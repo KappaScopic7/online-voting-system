@@ -1,7 +1,7 @@
 package com.bteam.ovs.eligibility.service;
 
 import com.bteam.ovs.citizen.repository.CitizenRepository;
-import com.bteam.ovs.eligibility.service.entity.EligibilitySnapshot;
+import com.bteam.ovs.eligibility.entity.EligibilitySnapshot;
 import com.bteam.ovs.profile.repository.VoterProfileSelfRepository;
 import com.bteam.ovs.shared.auth.AccountResolver;
 

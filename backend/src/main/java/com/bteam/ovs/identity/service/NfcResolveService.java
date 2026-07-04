@@ -1,7 +1,7 @@
 package com.bteam.ovs.identity.service;
 
 import com.bteam.ovs.citizen.repository.CitizenRepository;
-import com.bteam.ovs.identity.controller.dto.CitizenNfcResolveResponse;
+import com.bteam.ovs.identity.dto.response.CitizenNfcResolveResponse;
 import com.bteam.ovs.shared.errors.ApiException;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;

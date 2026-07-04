@@ -1,8 +1,8 @@
 // backend/src/main/java/com/bteam/ovs/elections/controller/CommitteeElectionsController.java
 package com.bteam.ovs.elections.controller;
 
-import com.bteam.ovs.elections.controller.dto.CommitteeElectionListItem;
-import com.bteam.ovs.elections.controller.dto.ElectionDetailResponse;
+import com.bteam.ovs.elections.dto.response.CommitteeElectionListItem;
+import com.bteam.ovs.elections.dto.response.ElectionDetailResponse;
 import com.bteam.ovs.elections.service.CommitteeElectionAdminService;
 import com.bteam.ovs.elections.service.CommitteeElectionService;
 import com.bteam.ovs.shared.security.Authz;

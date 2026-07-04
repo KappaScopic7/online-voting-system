@@ -1,9 +1,9 @@
 // backend/src/main/java/com/bteam/ovs/master/controller/MasterController.java
 package com.bteam.ovs.master.controller;
 
-import com.bteam.ovs.master.controller.dto.CityItem;
-import com.bteam.ovs.master.controller.dto.PrefItem;
-import com.bteam.ovs.master.controller.dto.ZipAddressCandidate;
+import com.bteam.ovs.master.dto.response.CityItem;
+import com.bteam.ovs.master.dto.response.PrefItem;
+import com.bteam.ovs.master.dto.response.ZipAddressCandidate;
 import com.bteam.ovs.master.service.MasterService;
 import jakarta.validation.constraints.Pattern;
 

@@ -1,7 +1,7 @@
 // backend/src/main/java/com/bteam/ovs/elections/service/CommitteeElectionAdminService.java
 package com.bteam.ovs.elections.service;
 
-import com.bteam.ovs.elections.controller.dto.ElectionDetailResponse;
+import com.bteam.ovs.elections.dto.response.ElectionDetailResponse;
 import com.bteam.ovs.elections.entity.Election;
 import com.bteam.ovs.elections.entity.ElectionStatus;
 import com.bteam.ovs.elections.repository.ElectionRepository;

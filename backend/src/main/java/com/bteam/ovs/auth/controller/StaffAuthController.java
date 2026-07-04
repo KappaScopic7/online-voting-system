@@ -1,9 +1,8 @@
 package com.bteam.ovs.auth.controller;
 
-//import com.bteam.ovs.auth.controller.dto.MeDetailResponse;生田目追記
-import com.bteam.ovs.auth.controller.dto.StaffLoginRequest;
-import com.bteam.ovs.auth.controller.dto.StaffMeResponse;
-import com.bteam.ovs.auth.controller.dto.TokenResponse;
+import com.bteam.ovs.auth.dto.request.StaffLoginRequest;
+import com.bteam.ovs.auth.dto.response.StaffMeResponse;
+import com.bteam.ovs.auth.dto.response.TokenResponse;
 //import com.bteam.ovs.auth.entity.IdentityStatus; 生田目追記
 import com.bteam.ovs.auth.entity.StaffAccount;
 import com.bteam.ovs.auth.repository.StaffAccountRepository;

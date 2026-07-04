@@ -1,9 +1,9 @@
 package com.bteam.ovs.parties.service;
 
 import com.bteam.ovs.candidates.repository.CandidateRepository;
-import com.bteam.ovs.parties.controller.dto.PartyCandidateItem;
-import com.bteam.ovs.parties.controller.dto.PartyDetailResponse;
-import com.bteam.ovs.parties.controller.dto.PartyListItem;
+import com.bteam.ovs.parties.dto.response.PartyCandidateItem;
+import com.bteam.ovs.parties.dto.response.PartyDetailResponse;
+import com.bteam.ovs.parties.dto.response.PartyListItem;
 import com.bteam.ovs.parties.entity.Party;
 import com.bteam.ovs.parties.repository.PartyRepository;
 import com.bteam.ovs.shared.errors.ApiException;

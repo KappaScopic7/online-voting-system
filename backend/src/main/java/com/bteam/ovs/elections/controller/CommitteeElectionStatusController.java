@@ -1,7 +1,7 @@
 // backend/src/main/java/com/bteam/ovs/elections/controller/CommitteeElectionStatusController.java
 package com.bteam.ovs.elections.controller;
 
-import com.bteam.ovs.elections.controller.dto.SetElectionStatusRequest;
+import com.bteam.ovs.elections.dto.request.SetElectionStatusRequest;
 import com.bteam.ovs.elections.service.CommitteeElectionAdminService;
 import org.springframework.web.bind.annotation.*;
 import com.bteam.ovs.shared.security.Authz;

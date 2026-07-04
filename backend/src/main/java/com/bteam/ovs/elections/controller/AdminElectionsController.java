@@ -1,10 +1,10 @@
 package com.bteam.ovs.elections.controller;
 
-import com.bteam.ovs.candidates.controller.dto.CandidateCreateRequest;
-import com.bteam.ovs.candidates.controller.dto.CandidateResponse;
-import com.bteam.ovs.elections.controller.dto.ElectionCreateRequest;
-import com.bteam.ovs.elections.controller.dto.ElectionResponse;
-import com.bteam.ovs.elections.controller.dto.ElectionUpdateRequest;
+import com.bteam.ovs.candidates.dto.request.CandidateCreateRequest;
+import com.bteam.ovs.candidates.dto.response.CandidateResponse;
+import com.bteam.ovs.elections.dto.request.ElectionCreateRequest;
+import com.bteam.ovs.elections.dto.request.ElectionUpdateRequest;
+import com.bteam.ovs.elections.dto.response.ElectionResponse;
 import com.bteam.ovs.elections.service.ElectionAdminService;
 
 import jakarta.validation.Valid;
