@@ -2,7 +2,6 @@ package com.bteam.ovs.auth.dto.response;
 
 import java.time.Instant;
 import java.util.UUID;
-
 import com.bteam.ovs.auth.entity.IdentityStatus;
 
 public record MeDetailResponse(

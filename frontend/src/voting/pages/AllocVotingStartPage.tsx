@@ -17,15 +17,12 @@ import { normalizeFrom } from "../../shared/normalizeFrom";
 import { Card, DevDebug, Page } from "../../shared/ui/page";
 import { CandidateAvatar } from "../../shared/ui/CandidateAvatar";
 import { publicToken } from "../../shared/tokenStorage";
-
 import { CandidateCardFrame } from "../../candidates/ui/CandidateCardFrame";
 import { PartyPill } from "../../parties/ui/PartyPill";
 import { resolveCandidateImageUrl } from "../../elections/ui/candidateImages";
-
 import { fetchElectionCandidates } from "../../candidates/api/candidates";
 import { fetchParties } from "../../parties/api/parties";
 import type { PartyListItem } from "../../parties/model/partyTypes";
-
 import type {
     PublicLayoutOutletContext,
     FooterAction,

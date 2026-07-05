@@ -7,7 +7,6 @@ import { useAuth } from "../../user/UserAuthContext";
 import { Card, DevDebug, Page } from "../../shared/ui/page";
 import { ErrorCard } from "../../shared/ui/ErrorCard";
 import { useFromBackTo } from "../../shared/routes/useFromBackTo";
-
 import { ElectionMetaCard } from "../ui/ElectionMetaCard";
 import { CurrentVoteCard } from "../ui/CurrentVoteCard";
 import { ElectionCandidatesListCard } from "../ui/ElectionCandidatesListCard";

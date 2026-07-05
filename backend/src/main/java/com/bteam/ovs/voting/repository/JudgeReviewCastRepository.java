@@ -2,7 +2,6 @@ package com.bteam.ovs.voting.repository;
 
 import com.bteam.ovs.voting.entity.JudgeReviewCast;
 import org.springframework.data.jpa.repository.JpaRepository;
-
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;

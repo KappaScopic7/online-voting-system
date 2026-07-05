@@ -7,11 +7,8 @@ import com.bteam.ovs.elections.repository.ElectionRepository;
 import com.bteam.ovs.shared.identity.CitizenIdResolver;
 import com.bteam.ovs.voting.entity.VoteCurrent;
 import com.bteam.ovs.voting.repository.VoteCurrentRepository;
-
 import lombok.RequiredArgsConstructor;
-
 import org.springframework.stereotype.Service;
-
 import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;

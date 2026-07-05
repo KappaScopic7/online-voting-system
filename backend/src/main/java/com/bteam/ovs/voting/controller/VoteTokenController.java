@@ -6,12 +6,9 @@ import com.bteam.ovs.shared.validation.UuidParsers;
 import com.bteam.ovs.voting.dto.request.VoteTokenIssueRequest;
 import com.bteam.ovs.voting.dto.response.VoteTokenIssueResponse;
 import com.bteam.ovs.voting.service.VoteTokenService;
-
 import org.springframework.web.bind.annotation.*;
-
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-
 import java.util.UUID;
 
 @RequiredArgsConstructor

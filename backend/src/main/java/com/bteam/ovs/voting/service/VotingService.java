@@ -24,14 +24,11 @@ import com.bteam.ovs.voting.repository.VoteAllocCastRepository;
 import com.bteam.ovs.voting.repository.VoteAllocItemRepository;
 import com.bteam.ovs.voting.repository.VoteCastRepository;
 import com.bteam.ovs.voting.repository.VoteCurrentRepository;
-
 import lombok.RequiredArgsConstructor;
-
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.bteam.ovs.elections.entity.BallotType;
-
 import java.time.Instant;
 import java.util.*;
 import java.util.function.Function;

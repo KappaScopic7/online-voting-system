@@ -7,13 +7,10 @@ import com.bteam.ovs.profile.dto.response.MeProfileResponse;
 import com.bteam.ovs.profile.entity.VoterProfileSelf;
 import com.bteam.ovs.profile.repository.VoterProfileSelfRepository;
 import com.bteam.ovs.shared.errors.ApiException;
-
 import lombok.RequiredArgsConstructor;
-
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
 import java.time.LocalDate;
 import java.util.UUID;
 

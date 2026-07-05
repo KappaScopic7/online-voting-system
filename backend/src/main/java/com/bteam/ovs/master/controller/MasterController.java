@@ -7,10 +7,8 @@ import com.bteam.ovs.master.dto.response.ZipAddressCandidate;
 import com.bteam.ovs.master.service.MasterService;
 import jakarta.validation.constraints.Pattern;
 import lombok.RequiredArgsConstructor;
-
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-
 import java.util.List;
 
 @RequiredArgsConstructor

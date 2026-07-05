@@ -3,7 +3,6 @@ package com.bteam.ovs.elections.dto.response;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
-
 import com.bteam.ovs.candidates.dto.response.CandidateListItem;
 
 public record ElectionDetailResponse(

@@ -6,7 +6,6 @@ import com.bteam.ovs.elections.service.ElectionService;
 import com.bteam.ovs.shared.errors.ApiException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.UUID;

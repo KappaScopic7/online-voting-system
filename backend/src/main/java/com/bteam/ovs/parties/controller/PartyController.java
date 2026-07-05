@@ -5,11 +5,8 @@ import com.bteam.ovs.parties.dto.response.PartyCandidateItem;
 import com.bteam.ovs.parties.dto.response.PartyDetailResponse;
 import com.bteam.ovs.parties.dto.response.PartyListItem;
 import com.bteam.ovs.parties.service.PartyService;
-
 import lombok.RequiredArgsConstructor;
-
 import org.springframework.web.bind.annotation.*;
-
 import java.util.List;
 
 @RequiredArgsConstructor

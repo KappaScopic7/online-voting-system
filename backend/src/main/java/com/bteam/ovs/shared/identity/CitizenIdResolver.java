@@ -3,12 +3,9 @@ package com.bteam.ovs.shared.identity;
 
 import com.bteam.ovs.shared.auth.AccountResolver;
 import com.bteam.ovs.shared.errors.ApiException;
-
 import lombok.RequiredArgsConstructor;
-
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
-
 import java.util.UUID;
 
 @RequiredArgsConstructor

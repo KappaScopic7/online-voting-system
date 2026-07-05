@@ -10,16 +10,13 @@ import com.bteam.ovs.favorites.entity.PortalFavorite;
 import com.bteam.ovs.favorites.repository.PortalFavoriteRepository;
 import com.bteam.ovs.shared.auth.AccountResolver;
 import com.bteam.ovs.shared.errors.ApiException;
-
 import lombok.RequiredArgsConstructor;
-
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
 import java.util.*;
 
 @Service

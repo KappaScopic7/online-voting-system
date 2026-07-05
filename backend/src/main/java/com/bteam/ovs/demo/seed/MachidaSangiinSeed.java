@@ -2,7 +2,6 @@ package com.bteam.ovs.demo.seed;
 
 import com.bteam.ovs.auth.entity.Role;
 import com.bteam.ovs.demo.json.*;
-
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.util.*;

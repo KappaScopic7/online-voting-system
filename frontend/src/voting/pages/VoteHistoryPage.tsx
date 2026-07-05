@@ -1,9 +1,7 @@
 import { useMemo } from "react";
 import { Link } from "react-router-dom";
-
 import { Card, DevDebug, Page } from "../../shared/ui/page";
 import { FilterBar } from "../../shared/ui/FilterBar";
-
 import { VoteRow } from "../ui/voteHistory/VoteRow";
 import { AllocRow } from "../ui/voteHistory/AllocRow";
 import { formatJST } from "../ui/voteHistory/formatJST";
@@ -12,12 +10,9 @@ import {
     normalChangeLink,
     normalSectionTitle,
 } from "../domain/voteHistory/voteHistoryLogic";
-
 import { useVoteHistoryPageState } from "./hooks/useVoteHistoryPageState";
-
 import { buildVoteHistoryGroups } from "../domain/voteHistory/buildVoteHistoryGroups";
 import { filterVoteHistoryGroups } from "../domain/voteHistory/filterVoteHistoryGroups";
-
 import {
     EmailGuideCard,
     IdentityGuideCard,

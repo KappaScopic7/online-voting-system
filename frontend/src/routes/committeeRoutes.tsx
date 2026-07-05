@@ -2,7 +2,6 @@
 import { Routes, Route } from "react-router-dom";
 import { RequireStaff } from "../auth/routes/RequireStaff";
 import { CommitteeLayout } from "../layout/committee/CommitteeLayout";
-
 import { CommitteeLoginPage } from "../committee/pages/CommitteeLoginPage";
 import { CommitteeHomePage } from "../committee/pages/CommitteeHomePage";
 import { CommitteeElectionsPage } from "../committee/pages/CommitteeElectionsPage";

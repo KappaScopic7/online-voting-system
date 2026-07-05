@@ -11,7 +11,6 @@ import com.bteam.ovs.auth.dto.response.TokenResponse;
 import com.bteam.ovs.auth.service.NfcAuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-
 import org.springframework.web.bind.annotation.*;
 
 @RequiredArgsConstructor

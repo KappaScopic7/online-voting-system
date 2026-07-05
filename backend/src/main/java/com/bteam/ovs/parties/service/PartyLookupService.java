@@ -5,12 +5,9 @@ import com.bteam.ovs.candidates.dto.response.CandidateListItem;
 import com.bteam.ovs.parties.entity.Party;
 import com.bteam.ovs.parties.repository.PartyRepository;
 import com.bteam.ovs.shared.errors.ApiException;
-
 import lombok.RequiredArgsConstructor;
-
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;

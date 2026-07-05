@@ -9,18 +9,14 @@ import com.bteam.ovs.favorites.dto.response.ResolvedFavoritesResponse;
 import com.bteam.ovs.favorites.entity.FavoriteTargetType;
 import com.bteam.ovs.favorites.service.FavoritesService;
 import com.bteam.ovs.shared.security.PrincipalExtractor;
-
 import lombok.RequiredArgsConstructor;
-
 import com.bteam.ovs.shared.errors.ApiException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
-
 import com.bteam.ovs.favorites.service.FavoritesResolveService;
-
 import java.util.UUID;
 
 @RequiredArgsConstructor

@@ -6,7 +6,6 @@ import com.bteam.ovs.identity.dto.response.CitizenNfcResolveResponse;
 import com.bteam.ovs.identity.service.NfcResolveService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-
 import org.springframework.web.bind.annotation.*;
 
 @RequiredArgsConstructor

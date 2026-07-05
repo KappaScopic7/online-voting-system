@@ -7,14 +7,11 @@ import com.bteam.ovs.voting.dto.request.VoteConfirmRequest;
 import com.bteam.ovs.voting.dto.response.VoteHistoryItem;
 import com.bteam.ovs.voting.dto.response.VoteStartResponse;
 import com.bteam.ovs.voting.service.VotingService;
-
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
-
 import java.util.List;
 import java.util.UUID;
 

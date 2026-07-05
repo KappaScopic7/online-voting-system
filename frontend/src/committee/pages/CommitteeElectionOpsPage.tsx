@@ -1,13 +1,10 @@
 // frontend/src/committee/pages/CommitteeElectionOpsPage.tsx
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-
 import { Card, Page, DevDebug } from "../../shared/ui/page";
 import { createHttpClient } from "../../shared/httpClientFactory";
 import { staffToken } from "../../shared/tokenStorage";
-
 import type { CommitteeElectionDetail } from "../api/elections";
-
 import {
     committeeMarkReady,
     committeeStart,

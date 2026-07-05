@@ -5,13 +5,10 @@ import com.bteam.ovs.auth.dto.response.StaffMeResponse;
 import com.bteam.ovs.auth.dto.response.TokenResponse;
 import com.bteam.ovs.auth.service.StaffAuthService;
 import com.bteam.ovs.shared.security.PrincipalExtractor;
-
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
-
 import java.util.UUID;
 
 @RequiredArgsConstructor

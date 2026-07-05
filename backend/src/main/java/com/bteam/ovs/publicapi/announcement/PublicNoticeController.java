@@ -2,11 +2,8 @@ package com.bteam.ovs.publicapi.announcement;
 
 import com.bteam.ovs.announcement.dto.response.PublicNoticeResponse;
 import com.bteam.ovs.announcement.service.PublicNoticeService;
-
 import lombok.RequiredArgsConstructor;
-
 import org.springframework.web.bind.annotation.*;
-
 import java.util.List;
 
 @RequiredArgsConstructor

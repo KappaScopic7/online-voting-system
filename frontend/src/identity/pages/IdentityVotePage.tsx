@@ -15,7 +15,6 @@ import {
 } from "../components/IdentityMethodTabs";
 import { IdentityManualForm } from "../components/IdentityManualForm";
 import { createVotePairing } from "../api/identity";
-
 import { useIdentityDevice } from "../hooks/useIdentityDevice";
 import { useIdentityNav } from "../hooks/useIdentityNav";
 import { IdentityErrorCard } from "../ui/IdentityErrorCard";

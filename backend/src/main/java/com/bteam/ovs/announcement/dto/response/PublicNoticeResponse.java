@@ -1,7 +1,6 @@
 package com.bteam.ovs.announcement.dto.response;
 
 import com.bteam.ovs.announcement.entity.PublicNotice;
-
 import java.time.Instant;
 import java.util.UUID;
 

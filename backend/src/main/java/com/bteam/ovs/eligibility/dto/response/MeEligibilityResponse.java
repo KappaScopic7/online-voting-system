@@ -1,7 +1,6 @@
 package com.bteam.ovs.eligibility.dto.response;
 
 import java.time.LocalDate;
-
 import com.bteam.ovs.eligibility.entity.EligibilitySnapshot;
 
 public record MeEligibilityResponse(

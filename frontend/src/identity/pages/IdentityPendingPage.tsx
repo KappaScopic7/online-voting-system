@@ -7,7 +7,6 @@ import {
 } from "react-router-dom";
 import { Card, Page, DevDebug } from "../../shared/ui/page";
 import { QRCodeSVG } from "qrcode.react";
-
 import { useAuth } from "../../user/UserAuthContext";
 import { getVotePairing } from "../api/identity";
 import { useIdentityNav } from "../hooks/useIdentityNav";

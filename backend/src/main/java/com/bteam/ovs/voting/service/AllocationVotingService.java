@@ -17,15 +17,12 @@ import com.bteam.ovs.voting.entity.VoteAllocItem;
 import com.bteam.ovs.voting.repository.VoteAllocCastRepository;
 import com.bteam.ovs.voting.repository.VoteAllocCurrentRepository;
 import com.bteam.ovs.voting.repository.VoteAllocItemRepository;
-
 import lombok.RequiredArgsConstructor;
-
 import com.bteam.ovs.shared.validation.UuidParsers;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
 import java.time.Instant;
 import java.util.*;
 import java.util.function.Function;

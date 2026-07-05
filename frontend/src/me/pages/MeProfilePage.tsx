@@ -1,17 +1,14 @@
 // frontend/src/me/pages/MeProfilePage.tsx
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-
 import { Page, Card, DevDebug } from "../../shared/ui/page";
 import { ErrorCard } from "../../shared/ui/ErrorCard";
 import { useFromBackTo } from "../../shared/routes/useFromBackTo";
-
 import { getMeProfileOrNull, putMeProfile } from "../api/profile";
 import type {
     MeProfileResponse,
     MeProfileUpdateRequest,
 } from "../model/profileTypes";
-
 import { AddressInput } from "../ui/AddressInput";
 import { Badge } from "../ui/me/Badge";
 

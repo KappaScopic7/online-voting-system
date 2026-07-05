@@ -2,12 +2,9 @@ package com.bteam.ovs.identity.service;
 
 import com.bteam.ovs.identity.entity.LinkPairing;
 import com.bteam.ovs.identity.repository.LinkPairingRepository;
-
 import lombok.RequiredArgsConstructor;
-
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
 import java.time.Duration;
 import java.time.Instant;
 import java.util.UUID;

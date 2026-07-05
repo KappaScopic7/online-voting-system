@@ -1,24 +1,19 @@
 // frontend/src/me/pages/MePage.tsx
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-
 import { fetchMeDetail, login } from "../../user/api/userAuthApi";
 import type { MeDetailResponse } from "../../user/model/userAuthTypes";
 import { useAuth } from "../../user/UserAuthContext";
-
 import { getMeProfileOrNull } from "../api/profile";
 import type { MeProfileResponse } from "../model/profileTypes";
-
 import { Page, Card, DevDebug } from "../../shared/ui/page";
 import { ErrorCard } from "../../shared/ui/ErrorCard";
 import { useAsyncLoad } from "../../shared/hooks/useAsyncLoad";
 import { useFromBackTo } from "../../shared/routes/useFromBackTo";
-
 import { MeHeaderActions } from "../ui/me/MeHeaderActions";
 import { QuickOverviewCard } from "../ui/me/QuickOverviewCard";
 import { IdentityCard } from "../ui/me/IdentityCard";
 import { Badge } from "../ui/me/Badge";
-
 import {
     fetchDemoPersonas,
     type DemoPersonaDto,

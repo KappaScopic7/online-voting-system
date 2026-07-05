@@ -11,12 +11,9 @@ import com.bteam.ovs.auth.dto.response.TokenResponse;
 import com.bteam.ovs.config.security.JwtService;
 import com.bteam.ovs.identity.service.NfcResolveService;
 import com.bteam.ovs.shared.errors.ApiException;
-
 import lombok.RequiredArgsConstructor;
-
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-
 import java.time.Instant;
 import java.util.Map;
 import java.util.UUID;

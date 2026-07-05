@@ -2,14 +2,12 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { fetchParties } from "../api/parties";
 import type { PartyListItem } from "../model/partyTypes";
-
 import { Page, Card, DevDebug } from "../../shared/ui/page";
 import { FilterBar } from "../../shared/ui/FilterBar";
 import { ErrorCard } from "../../shared/ui/ErrorCard";
 import { useAsyncLoad } from "../../shared/hooks/useAsyncLoad";
 import { useFromBackTo } from "../../shared/routes/useFromBackTo";
 import { CollapsibleFilter } from "../../shared/ui/CollapsibleFilter";
-
 import { PartyCard } from "../ui/PartyCard";
 
 export function PartiesPage() {

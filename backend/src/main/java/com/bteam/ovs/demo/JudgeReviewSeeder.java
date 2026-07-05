@@ -5,7 +5,6 @@ import com.bteam.ovs.voting.entity.JudgeReviewCast;
 import com.bteam.ovs.voting.entity.JudgeReviewItem;
 import com.bteam.ovs.voting.repository.JudgeReviewCastRepository;
 import com.bteam.ovs.voting.repository.JudgeReviewItemRepository;
-
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
