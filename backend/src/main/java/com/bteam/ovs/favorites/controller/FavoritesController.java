@@ -9,6 +9,9 @@ import com.bteam.ovs.favorites.dto.response.ResolvedFavoritesResponse;
 import com.bteam.ovs.favorites.entity.FavoriteTargetType;
 import com.bteam.ovs.favorites.service.FavoritesService;
 import com.bteam.ovs.shared.security.PrincipalExtractor;
+
+import lombok.AllArgsConstructor;
+
 import com.bteam.ovs.shared.errors.ApiException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -20,17 +23,13 @@ import com.bteam.ovs.favorites.service.FavoritesResolveService;
 
 import java.util.UUID;
 
+@AllArgsConstructor
 @RestController
 @RequestMapping("/api/favorites")
 public class FavoritesController {
 
     private final FavoritesService favoritesService;
     private final FavoritesResolveService resolveService;
-
-    public FavoritesController(FavoritesService favoritesService, FavoritesResolveService resolveService) {
-        this.favoritesService = favoritesService;
-        this.resolveService = resolveService;
-    }
 
     @PostMapping
     @ResponseStatus(HttpStatus.NO_CONTENT)

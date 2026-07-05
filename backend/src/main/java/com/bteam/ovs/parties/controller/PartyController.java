@@ -6,19 +6,18 @@ import com.bteam.ovs.parties.dto.response.PartyDetailResponse;
 import com.bteam.ovs.parties.dto.response.PartyListItem;
 import com.bteam.ovs.parties.service.PartyService;
 
+import lombok.AllArgsConstructor;
+
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+@AllArgsConstructor
 @RestController
 @RequestMapping("/api/parties")
 public class PartyController {
 
     private final PartyService partyService;
-
-    public PartyController(PartyService partyService) {
-        this.partyService = partyService;
-    }
 
     @GetMapping
     public List<PartyListItem> list() {

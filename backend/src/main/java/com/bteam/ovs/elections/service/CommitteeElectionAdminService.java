@@ -7,6 +7,9 @@ import com.bteam.ovs.elections.entity.ElectionStatus;
 import com.bteam.ovs.elections.repository.ElectionRepository;
 import com.bteam.ovs.elections.service.tally.ElectionTallyJobService;
 import com.bteam.ovs.shared.errors.ApiException;
+
+import lombok.AllArgsConstructor;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -14,21 +17,13 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.util.UUID;
 
+@AllArgsConstructor
 @Service
 public class CommitteeElectionAdminService {
 
     private final ElectionRepository electionRepo;
     private final ElectionService electionService;
     private final ElectionTallyJobService tallyJobService;
-
-    public CommitteeElectionAdminService(
-            ElectionRepository electionRepo,
-            ElectionService electionService,
-            ElectionTallyJobService tallyJobService) {
-        this.electionRepo = electionRepo;
-        this.electionService = electionService;
-        this.tallyJobService = tallyJobService;
-    }
 
     @Transactional
     public ElectionDetailResponse markReady(UUID electionId) {

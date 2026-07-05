@@ -5,6 +5,9 @@ import com.bteam.ovs.announcement.dto.response.PublicNoticeResponse;
 import com.bteam.ovs.announcement.entity.PublicNotice;
 import com.bteam.ovs.announcement.repository.PublicNoticeRepository;
 import com.bteam.ovs.shared.errors.ApiException;
+
+import lombok.AllArgsConstructor;
+
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -14,14 +17,11 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
+@AllArgsConstructor
 @Service
 public class PublicNoticeService {
 
     private final PublicNoticeRepository repo;
-
-    public PublicNoticeService(PublicNoticeRepository repo) {
-        this.repo = repo;
-    }
 
     @Transactional(readOnly = true)
     public List<PublicNoticeResponse> listPublic(int limit) {

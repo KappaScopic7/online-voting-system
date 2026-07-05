@@ -13,6 +13,9 @@ import com.bteam.ovs.voting.entity.VoteAllocCast;
 import com.bteam.ovs.voting.repository.JudgeReviewCastRepository;
 import com.bteam.ovs.voting.repository.VoteAllocCastRepository;
 import com.bteam.ovs.voting.repository.VoteCurrentRepository;
+
+import lombok.AllArgsConstructor;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,6 +25,7 @@ import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+@AllArgsConstructor
 @Service
 public class MyElectionsService {
 
@@ -36,27 +40,6 @@ public class MyElectionsService {
 
     private final AccountResolver accountResolver;
     private final ElectionEligibilityService electionEligibilityService;
-
-    public MyElectionsService(
-            EligibilityProfileResolver resolver,
-            ElectionEligibilityRuleRepository ruleRepo,
-            ElectionRepository electionRepo,
-            CandidateService candidateService,
-            VoteCurrentRepository voteCurrentRepo,
-            VoteAllocCastRepository voteAllocCastRepo,
-            JudgeReviewCastRepository judgeReviewCastRepo,
-            AccountResolver accountResolver,
-            ElectionEligibilityService electionEligibilityService) {
-        this.resolver = resolver;
-        this.ruleRepo = ruleRepo;
-        this.electionRepo = electionRepo;
-        this.candidateService = candidateService;
-        this.voteCurrentRepo = voteCurrentRepo;
-        this.voteAllocCastRepo = voteAllocCastRepo;
-        this.judgeReviewCastRepo = judgeReviewCastRepo;
-        this.accountResolver = accountResolver;
-        this.electionEligibilityService = electionEligibilityService;
-    }
 
     @Transactional(readOnly = true)
     public List<ElectionListItem> listMyElections(UUID accountId) {

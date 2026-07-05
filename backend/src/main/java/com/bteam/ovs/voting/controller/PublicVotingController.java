@@ -8,21 +8,20 @@ import com.bteam.ovs.voting.dto.response.VoteHistoryItem;
 import com.bteam.ovs.voting.dto.response.VoteStartResponse;
 import com.bteam.ovs.voting.service.VotingService;
 import jakarta.validation.Valid;
+import lombok.AllArgsConstructor;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
 
+@AllArgsConstructor
 @RestController
 @RequestMapping("/api/public/voting")
 public class PublicVotingController {
 
     private final VotingService votingService;
-
-    public PublicVotingController(VotingService votingService) {
-        this.votingService = votingService;
-    }
 
     @GetMapping("/start")
     public VoteStartResponse start(

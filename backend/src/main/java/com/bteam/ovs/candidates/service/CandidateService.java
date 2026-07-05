@@ -9,27 +9,21 @@ import com.bteam.ovs.elections.repository.ElectionRepository;
 import com.bteam.ovs.parties.service.PartyLookupService;
 import com.bteam.ovs.shared.errors.ApiException;
 
+import lombok.AllArgsConstructor;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
 import java.util.stream.Collectors;
 
+@AllArgsConstructor
 @Service
 public class CandidateService {
 
     private final ElectionRepository electionRepo;
     private final CandidateRepository candidateRepo;
     private final PartyLookupService partyLookupService;
-
-    public CandidateService(
-            ElectionRepository electionRepo,
-            CandidateRepository candidateRepo,
-            PartyLookupService partyLookupService) {
-        this.electionRepo = electionRepo;
-        this.candidateRepo = candidateRepo;
-        this.partyLookupService = partyLookupService;
-    }
 
     public ElectionCandidatesBundle bundleByElection(UUID electionId) {
         requireElectionExists(electionId);

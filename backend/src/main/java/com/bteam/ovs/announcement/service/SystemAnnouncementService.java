@@ -5,6 +5,9 @@ import com.bteam.ovs.announcement.dto.response.SystemAnnouncementResponse;
 import com.bteam.ovs.announcement.entity.SystemAnnouncement;
 import com.bteam.ovs.announcement.repository.SystemAnnouncementRepository;
 import com.bteam.ovs.shared.errors.ApiException;
+
+import lombok.AllArgsConstructor;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -12,16 +15,13 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.util.UUID;
 
+@AllArgsConstructor
 @Service
 public class SystemAnnouncementService {
 
     private static final UUID SINGLETON_ID = UUID.fromString("00000000-0000-0000-0000-000000000001");
 
     private final SystemAnnouncementRepository repo;
-
-    public SystemAnnouncementService(SystemAnnouncementRepository repo) {
-        this.repo = repo;
-    }
 
     @Transactional(readOnly = true)
     public SystemAnnouncementResponse getForCommittee() {

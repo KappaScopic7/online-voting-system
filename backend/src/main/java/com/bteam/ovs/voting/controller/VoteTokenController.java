@@ -10,19 +10,17 @@ import com.bteam.ovs.voting.service.VoteTokenService;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
+import lombok.AllArgsConstructor;
+
 import java.util.UUID;
 
+@AllArgsConstructor
 @RestController
 @RequestMapping("/api/public/vote-token")
 public class VoteTokenController {
 
     private final NfcResolveService nfcResolveService;
     private final VoteTokenService voteTokenService;
-
-    public VoteTokenController(NfcResolveService nfcResolveService, VoteTokenService voteTokenService) {
-        this.nfcResolveService = nfcResolveService;
-        this.voteTokenService = voteTokenService;
-    }
 
     @PostMapping("/issue")
     public VoteTokenIssueResponse issue(@Valid @RequestBody VoteTokenIssueRequest req) {

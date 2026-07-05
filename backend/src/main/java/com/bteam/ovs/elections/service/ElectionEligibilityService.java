@@ -3,6 +3,9 @@ package com.bteam.ovs.elections.service;
 import com.bteam.ovs.elections.repository.ElectionRepository;
 import com.bteam.ovs.eligibility.service.EligibilityProfileResolver;
 import com.bteam.ovs.shared.errors.ApiException;
+
+import lombok.AllArgsConstructor;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
@@ -10,18 +13,12 @@ import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.UUID;
 
+@AllArgsConstructor
 @Service
 public class ElectionEligibilityService {
 
     private final ElectionRepository electionRepo;
     private final EligibilityProfileResolver profileResolver;
-
-    public ElectionEligibilityService(
-            ElectionRepository electionRepo,
-            EligibilityProfileResolver profileResolver) {
-        this.electionRepo = electionRepo;
-        this.profileResolver = profileResolver;
-    }
 
     /** 例：18歳以上ならOK（卒制デモの最小） */
     public boolean isEligible(UUID accountId, UUID electionId) {

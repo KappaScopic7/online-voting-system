@@ -7,6 +7,9 @@ import com.bteam.ovs.profile.dto.response.MeProfileResponse;
 import com.bteam.ovs.profile.entity.VoterProfileSelf;
 import com.bteam.ovs.profile.repository.VoterProfileSelfRepository;
 import com.bteam.ovs.shared.errors.ApiException;
+
+import lombok.AllArgsConstructor;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -14,22 +17,13 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.util.UUID;
 
+@AllArgsConstructor
 @Service
 public class MeProfileService {
 
     private final UserAccountRepository userRepo;
     private final VoterProfileSelfRepository profileRepo;
     private final CitizenRepository citizenRepo;
-
-    public MeProfileService(
-            UserAccountRepository userRepo,
-            VoterProfileSelfRepository profileRepo,
-            CitizenRepository citizenRepo // ★追加
-    ) {
-        this.userRepo = userRepo;
-        this.profileRepo = profileRepo;
-        this.citizenRepo = citizenRepo;
-    }
 
     @Transactional(readOnly = true)
     public MeProfileResponse find(UUID accountId) {

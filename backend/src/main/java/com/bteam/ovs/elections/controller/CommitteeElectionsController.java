@@ -6,12 +6,16 @@ import com.bteam.ovs.elections.dto.response.ElectionDetailResponse;
 import com.bteam.ovs.elections.service.CommitteeElectionAdminService;
 import com.bteam.ovs.elections.service.CommitteeElectionService;
 import com.bteam.ovs.shared.security.Authz;
+
+import lombok.AllArgsConstructor;
+
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.UUID;
 
+@AllArgsConstructor
 @RestController
 @RequestMapping("/api/committee/elections")
 @PreAuthorize(Authz.STAFF)
@@ -19,13 +23,6 @@ public class CommitteeElectionsController {
 
     private final CommitteeElectionService queryService;
     private final CommitteeElectionAdminService adminService;
-
-    public CommitteeElectionsController(
-            CommitteeElectionService queryService,
-            CommitteeElectionAdminService adminService) {
-        this.queryService = queryService;
-        this.adminService = adminService;
-    }
 
     @PostMapping("/{electionId}/actions/ready")
     public ElectionDetailResponse markReady(@PathVariable("electionId") UUID electionId) {

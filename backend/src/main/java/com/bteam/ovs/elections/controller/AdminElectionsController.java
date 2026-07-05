@@ -8,21 +8,20 @@ import com.bteam.ovs.elections.dto.response.ElectionResponse;
 import com.bteam.ovs.elections.service.ElectionAdminService;
 
 import jakarta.validation.Valid;
+import lombok.AllArgsConstructor;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.UUID;
 
+@AllArgsConstructor
 @RestController
 @RequestMapping("/api/admin/elections")
 public class AdminElectionsController {
 
     private final ElectionAdminService adminService;
-
-    public AdminElectionsController(ElectionAdminService adminService) {
-        this.adminService = adminService;
-    }
 
     @GetMapping
     public List<ElectionResponse> list() {

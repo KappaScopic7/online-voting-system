@@ -1,9 +1,10 @@
-package com.bteam.ovs.demo;
+package com.bteam.ovs.demo.service;
 
 import com.bteam.ovs.auth.repository.StaffAccountRepository;
 import com.bteam.ovs.auth.repository.UserAccountRepository;
 import com.bteam.ovs.candidates.repository.CandidateRepository;
 import com.bteam.ovs.citizen.repository.CitizenRepository;
+import com.bteam.ovs.demo.DemoDataInitializer;
 import com.bteam.ovs.elections.repository.ElectionEligibilityRuleRepository;
 import com.bteam.ovs.elections.repository.ElectionRepository;
 import com.bteam.ovs.parties.repository.PartyRepository;

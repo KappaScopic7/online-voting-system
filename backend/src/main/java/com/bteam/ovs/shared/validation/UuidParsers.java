@@ -2,13 +2,15 @@
 package com.bteam.ovs.shared.validation;
 
 import com.bteam.ovs.shared.errors.ApiException;
+
+import lombok.NoArgsConstructor;
+
 import org.springframework.http.HttpStatus;
 
 import java.util.UUID;
 
+@NoArgsConstructor
 public final class UuidParsers {
-    private UuidParsers() {
-    }
 
     public static UUID parseOr400(String value, String code, String message) {
         try {

@@ -1,6 +1,9 @@
 package com.bteam.ovs.elections.controller;
 
 import com.bteam.ovs.shared.security.Authz;
+
+import lombok.AllArgsConstructor;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
@@ -13,6 +16,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.UUID;
 
+@AllArgsConstructor
 @RestController
 @RequestMapping("/api/committee/elections")
 public class CommitteeElectionChartController {

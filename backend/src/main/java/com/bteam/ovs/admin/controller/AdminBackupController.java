@@ -1,6 +1,9 @@
 package com.bteam.ovs.admin.controller;
 
 import com.bteam.ovs.admin.service.AdminBackupService;
+
+import lombok.AllArgsConstructor;
+
 // import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.*;
@@ -12,19 +15,15 @@ import org.springframework.web.multipart.MultipartFile;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
+@AllArgsConstructor
 @RestController
 @RequestMapping("/api/admin/backup")
 public class AdminBackupController {
 
     private final AdminBackupService service;
 
-    public AdminBackupController(AdminBackupService service) {
-        this.service = service;
-    }
-
-    /** 管理者のみ：DBバックアップ(sql) */
     @GetMapping
-    @PreAuthorize("hasRole('ADMIN')") // ← あなたのロールに合わせて ROLE_STAFF 等に変えてOK
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ByteArrayResource> backup() {
         byte[] sql = service.dumpSql();
 
@@ -40,7 +39,6 @@ public class AdminBackupController {
                 .body(res);
     }
 
-    /** 管理者のみ：DBリストア(sql投入) */
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<String> restore(@RequestPart("file") MultipartFile file) {

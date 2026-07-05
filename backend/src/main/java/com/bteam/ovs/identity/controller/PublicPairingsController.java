@@ -3,22 +3,21 @@ package com.bteam.ovs.identity.controller;
 import com.bteam.ovs.identity.dto.response.VotePairingDtos;
 import com.bteam.ovs.identity.entity.VotePairing;
 import com.bteam.ovs.identity.service.VotePairingService;
+
+import lombok.AllArgsConstructor;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
 
+@AllArgsConstructor
 @RestController
 @RequestMapping("/api/public/pairings")
 public class PublicPairingsController {
 
     private final VotePairingService service;
 
-    public PublicPairingsController(VotePairingService service) {
-        this.service = service;
-    }
-
-    // PC: pairId 発行
     @PostMapping
     public ResponseEntity<?> create(@RequestBody VotePairingDtos.CreateRequest req) {
         if (req == null || req.electionId() == null) {
@@ -28,7 +27,6 @@ public class PublicPairingsController {
         return ResponseEntity.ok(new VotePairingDtos.CreateResponse(p.getPairId(), p.getExpiresAt()));
     }
 
-    // PC: poll
     @GetMapping("/{pairId}")
     public ResponseEntity<?> get(@PathVariable("pairId") UUID pairId) {
         VotePairing p = service.getAndTouchExpire(pairId);

@@ -4,20 +4,20 @@ package com.bteam.ovs.candidates.controller;
 import com.bteam.ovs.candidates.dto.response.CandidateDetailResponse;
 import com.bteam.ovs.candidates.dto.response.CandidateListItem;
 import com.bteam.ovs.candidates.service.CandidateService;
+
+import lombok.AllArgsConstructor;
+
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.UUID;
 
+@AllArgsConstructor
 @RestController
 @RequestMapping("/api/elections/{electionId}/candidates")
 public class ElectionCandidatesController {
 
     private final CandidateService candidateService;
-
-    public ElectionCandidatesController(CandidateService candidateService) {
-        this.candidateService = candidateService;
-    }
 
     @GetMapping
     public List<CandidateListItem> list(@PathVariable("electionId") UUID electionId) {

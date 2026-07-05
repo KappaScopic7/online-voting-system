@@ -1,6 +1,6 @@
 package com.bteam.ovs.demo.controller;
 
-import com.bteam.ovs.demo.controller.dto.DemoPersonaDto;
+import com.bteam.ovs.demo.dto.DemoPersonaDto;
 import com.bteam.ovs.demo.seed.MachidaSangiinSeed;
 import com.bteam.ovs.demo.seed.MachidaSangiinSeed.Mode;
 import org.springframework.context.annotation.Profile;

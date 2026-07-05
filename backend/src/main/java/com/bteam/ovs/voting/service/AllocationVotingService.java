@@ -17,6 +17,9 @@ import com.bteam.ovs.voting.entity.VoteAllocItem;
 import com.bteam.ovs.voting.repository.VoteAllocCastRepository;
 import com.bteam.ovs.voting.repository.VoteAllocCurrentRepository;
 import com.bteam.ovs.voting.repository.VoteAllocItemRepository;
+
+import lombok.AllArgsConstructor;
+
 import com.bteam.ovs.shared.validation.UuidParsers;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
@@ -28,6 +31,7 @@ import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+@AllArgsConstructor
 @Service
 public class AllocationVotingService {
 
@@ -48,28 +52,6 @@ public class AllocationVotingService {
     private final VoteAllocItemRepository itemRepo;
     private final VoteAllocCurrentRepository voteAllocCurrentRepo;
 
-    public AllocationVotingService(
-            CitizenIdResolver citizenIdResolver,
-            ElectionEligibilityService electionEligibilityService,
-            ElectionRepository electionRepo,
-            CandidateRepository candidateRepo,
-            PartyRepository partyRepo,
-            VoteAllocCastRepository castRepo,
-            VoteAllocItemRepository itemRepo,
-            VoteAllocCurrentRepository currentRepo) {
-        this.citizenIdResolver = citizenIdResolver;
-        this.electionEligibilityService = electionEligibilityService;
-        this.electionRepo = electionRepo;
-        this.candidateRepo = candidateRepo;
-        this.partyRepo = partyRepo;
-        this.castRepo = castRepo;
-        this.itemRepo = itemRepo;
-        this.voteAllocCurrentRepo = currentRepo;
-    }
-
-    // =========================================
-    // Login (accountId) -> citizenId -> delegate
-    // =========================================
     public AllocVoteStartResponse start(UUID accountId, UUID electionId) {
         electionEligibilityService.requireEligible(accountId, electionId);
         UUID citizenId = citizenIdResolver.requireCitizenId(accountId);
@@ -83,9 +65,6 @@ public class AllocationVotingService {
         return confirmByCitizen(citizenId, electionId, req);
     }
 
-    // =========================================
-    // Public (vote token) entry points
-    // =========================================
     public AllocVoteStartResponse startByCitizen(UUID citizenId, UUID electionId) {
         electionEligibilityService.requireEligibleCitizen(citizenId, electionId);
 

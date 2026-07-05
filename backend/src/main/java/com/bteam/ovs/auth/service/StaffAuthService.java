@@ -7,25 +7,19 @@ import com.bteam.ovs.auth.dto.response.TokenResponse;
 import com.bteam.ovs.auth.entity.AccountKind;
 import com.bteam.ovs.shared.errors.ApiException;
 
+import lombok.AllArgsConstructor;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+@AllArgsConstructor
 @Service
 public class StaffAuthService {
 
     private final StaffAccountRepository staffRepo;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
-
-    public StaffAuthService(
-            StaffAccountRepository staffRepo,
-            PasswordEncoder passwordEncoder,
-            JwtService jwtService) {
-        this.staffRepo = staffRepo;
-        this.passwordEncoder = passwordEncoder;
-        this.jwtService = jwtService;
-    }
 
     public TokenResponse login(StaffLoginRequest req) {
         String loginId = normalize(req.loginId());
