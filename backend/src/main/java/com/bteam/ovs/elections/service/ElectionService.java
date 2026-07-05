@@ -432,4 +432,33 @@ public class ElectionService {
         return resultInternal(electionId);
     }
 
+    public ElectionResultBundleResponse committeeResultBundle(UUID electionId) {
+        var election = electionRepo.findById(electionId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "ELECTION_NOT_FOUND", "選挙が存在しません"));
+
+        var st = election.getStatus();
+
+        if (st == ElectionStatus.TALLYING) {
+            throw new ApiException(HttpStatus.CONFLICT, "TALLY_IN_PROGRESS", "集計中です");
+        }
+
+        if (st != ElectionStatus.TALLIED && st != ElectionStatus.PUBLISHED) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "RESULT_NOT_AVAILABLE", "結果は集計後に閲覧できます");
+        }
+
+        if (election.getBallotType() == BallotType.ALLOCATION) {
+            return new ElectionResultBundleResponse(
+                    election.getId(),
+                    election.getBallotType().name(),
+                    null,
+                    allocResultInternal(electionId));
+        }
+
+        return new ElectionResultBundleResponse(
+                election.getId(),
+                election.getBallotType().name(),
+                resultInternal(electionId),
+                null);
+    }
+
 }
