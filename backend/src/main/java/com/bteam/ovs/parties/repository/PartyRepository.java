@@ -2,9 +2,7 @@
 package com.bteam.ovs.parties.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
-
 import com.bteam.ovs.parties.entity.Party;
-
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;

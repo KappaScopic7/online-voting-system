@@ -3,13 +3,10 @@ package com.bteam.ovs.identity.service;
 import com.bteam.ovs.citizen.repository.CitizenRepository;
 import com.bteam.ovs.identity.dto.response.CitizenNfcResolveResponse;
 import com.bteam.ovs.shared.errors.ApiException;
-
 import lombok.RequiredArgsConstructor;
-
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-
 import java.util.UUID;
 import java.util.regex.Pattern;
 

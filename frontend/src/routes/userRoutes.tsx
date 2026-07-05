@@ -1,16 +1,12 @@
 import { Routes, Route } from "react-router-dom";
-
 import { RequireAuth } from "../auth/routes/RequireAuth";
 import { RequireVerifiedEmail } from "../auth/routes/RequireVerifiedEmail";
-
 import { MePage } from "../me/pages/MePage";
 import { MeProfilePage } from "../me/pages/MeProfilePage";
 import { FavoritesPage } from "../me/pages/FavoritesPage";
 import { IdentityLinkPage } from "../identity/pages/IdentityLinkPage";
 import { IdentityPendingPage } from "../identity/pages/IdentityPendingPage";
-
 import { MyElectionsPage } from "../elections/pages/MyElectionsPage";
-
 import { VoteHistoryPage } from "../voting/pages/VoteHistoryPage";
 import { AllocVoteHistoryPage } from "../voting/pages/AllocVoteHistoryPage";
 

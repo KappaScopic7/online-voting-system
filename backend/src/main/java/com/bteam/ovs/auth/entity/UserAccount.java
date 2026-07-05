@@ -4,20 +4,13 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.NoArgsConstructor;
-
 import java.time.Instant;
 import java.util.UUID;
 
 @Entity
-@Table(
-    name = "user_account",
-    uniqueConstraints = {
-        @UniqueConstraint(
-            name = "uk_user_account_email",
-            columnNames = {"email"}
-        )
-    }
-)
+@Table(name = "user_account", uniqueConstraints = {
+        @UniqueConstraint(name = "uk_user_account_email", columnNames = { "email" })
+})
 @Getter
 @Setter
 @NoArgsConstructor
@@ -57,9 +50,11 @@ public class UserAccount {
 
     @PrePersist
     void onCreate() {
-        if (id == null) id = UUID.randomUUID();
+        if (id == null)
+            id = UUID.randomUUID();
         var now = Instant.now();
-        if (createdAt == null) createdAt = now;
+        if (createdAt == null)
+            createdAt = now;
         updatedAt = now;
     }
 

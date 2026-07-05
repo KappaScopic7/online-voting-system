@@ -7,7 +7,6 @@ import com.bteam.ovs.voting.entity.VoteAllocItem;
 import com.bteam.ovs.voting.repository.VoteAllocCastRepository;
 import com.bteam.ovs.voting.repository.VoteAllocCurrentRepository;
 import com.bteam.ovs.voting.repository.VoteAllocItemRepository;
-
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;

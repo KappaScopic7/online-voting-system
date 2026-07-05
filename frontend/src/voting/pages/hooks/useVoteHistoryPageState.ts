@@ -1,10 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
-
 import { fetchVoteHistory, type VoteHistoryItem } from "../../api/votes";
 import { allocHistory } from "../../api/allocVoting";
 import type { AllocVoteHistoryItem } from "../../model/allocVotingTypes";
-
 import { normalizeFrom } from "../../../shared/normalizeFrom";
 import { fetchMeDetail } from "../../../user/api/userAuthApi";
 import type { MeDetailResponse } from "../../../user/model/userAuthTypes";

@@ -17,13 +17,10 @@ import com.bteam.ovs.voting.entity.VoteAllocCast;
 import com.bteam.ovs.voting.repository.VoteAllocCastRepository;
 import com.bteam.ovs.voting.repository.VoteAllocItemRepository;
 import com.bteam.ovs.voting.repository.VoteCurrentRepository;
-
 import lombok.RequiredArgsConstructor;
-
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import com.bteam.ovs.voting.repository.JudgeReviewCastRepository;
-
 import java.time.Instant;
 import java.util.*;
 import java.util.function.Function;

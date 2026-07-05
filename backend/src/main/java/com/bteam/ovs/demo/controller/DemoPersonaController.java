@@ -5,7 +5,6 @@ import com.bteam.ovs.demo.seed.MachidaSangiinSeed;
 import com.bteam.ovs.demo.seed.MachidaSangiinSeed.Mode;
 import org.springframework.context.annotation.Profile;
 import org.springframework.web.bind.annotation.*;
-
 import java.util.List;
 
 @Profile({ "dev", "prodlike" })

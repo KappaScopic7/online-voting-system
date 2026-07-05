@@ -1,18 +1,15 @@
 // frontend/src/me/pages/ProfilePage.tsx
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-
 import { Page, Card, DevDebug } from "../../shared/ui/page";
 import { ErrorCard } from "../../shared/ui/ErrorCard";
 import { useFromBackTo } from "../../shared/routes/useFromBackTo";
 import { useAsyncLoad } from "../../shared/hooks/useAsyncLoad";
-
 import { getMeProfile, putMeProfile } from "../api/profile";
 import type {
     MeProfileResponse,
     MeProfileUpdateRequest,
 } from "../model/profileTypes";
-
 import { ProfileCard } from "../ui/me/ProfileCard";
 
 export function ProfilePage() {

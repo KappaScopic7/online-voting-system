@@ -3,12 +3,9 @@ package com.bteam.ovs.identity.service;
 import com.bteam.ovs.auth.service.NfcAuthService; // ★追加
 import com.bteam.ovs.identity.entity.VotePairing;
 import com.bteam.ovs.identity.repository.VotePairingRepository;
-
 import lombok.RequiredArgsConstructor;
-
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
 import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.Instant;

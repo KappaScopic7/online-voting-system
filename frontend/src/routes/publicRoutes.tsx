@@ -1,24 +1,18 @@
 // frontend/src/routes/publicRoutes.tsx
 import { Routes, Route, Navigate } from "react-router-dom";
-
 import { PublicHomePage } from "../public/pages/PublicHomePage";
-
 import { ElectionsPage } from "../elections/pages/ElectionsPage";
 import { ElectionDetailPage } from "../elections/pages/ElectionDetailPage";
 import { ElectionCandidatesPage } from "../candidates/pages/ElectionCandidatesPage";
 import { CandidateDetailPage } from "../candidates/pages/CandidateDetailPage";
-
 import { ResultEntryPage } from "../elections/pages/ResultEntryPage";
 import { ResultPage } from "../elections/pages/ResultPage";
-
 import { CandidatesPage } from "../candidates/pages/CandidatesPage";
 import { PartiesPage } from "../parties/pages/PartiesPage";
 import { PartyDetailPage } from "../parties/pages/PartyDetailPage";
-
 import { RegisterPage } from "../user/pages/RegisterPage";
 import { LoginPage } from "../user/pages/LoginPage";
 import { VerifyEmailPage } from "../user/pages/VerifyEmailPage";
-
 import { VotingEntryPage } from "../voting/pages/VotingEntryPage";
 import { VotingStartPage } from "../voting/pages/VotingStartPage";
 import { VotingDonePage } from "../voting/pages/VotingDonePage";

@@ -1,17 +1,14 @@
 import { useEffect, useMemo } from "react";
 import { Link, useLocation } from "react-router-dom";
-
 import { fetchMyElections } from "../api/meElections";
 import type { ElectionListItem } from "../model/electionTypes";
 import {
     fetchMeEligibility,
     type MeEligibilityResponse,
 } from "../../me/api/eligibility";
-
 import { Card, DevDebug, Page } from "../../shared/ui/page";
 import { ErrorCard } from "../../shared/ui/ErrorCard";
 import { useAsyncLoad } from "../../shared/hooks/useAsyncLoad";
-
 import { ElectionListFilterBar } from "../ui/ElectionListFilterBar";
 import { ElectionCardFrame } from "../ui/ElectionCardFrame";
 import { useElectionListControls } from "../hooks/useElectionListControls";

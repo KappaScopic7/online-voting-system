@@ -8,7 +8,6 @@ import { ErrorCard } from "../../shared/ui/ErrorCard";
 import { useAsyncLoad } from "../../shared/hooks/useAsyncLoad";
 import { CollapsibleFilter } from "../../shared/ui/CollapsibleFilter";
 import { FilterBar } from "../../shared/ui/FilterBar";
-
 import {
     clamp,
     percent,

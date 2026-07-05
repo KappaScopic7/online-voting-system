@@ -14,11 +14,9 @@ import { Card, DevDebug, Page } from "../../shared/ui/page";
 import { normalizeFrom } from "../../shared/normalizeFrom";
 import { CandidateAvatar } from "../../shared/ui/CandidateAvatar";
 import { publicToken } from "../../shared/tokenStorage";
-
 import { CandidateCardFrame } from "../../candidates/ui/CandidateCardFrame";
 import { PartyPill } from "../../parties/ui/PartyPill";
 import { resolveCandidateImageUrl } from "../../elections/ui/candidateImages";
-
 import { fetchElectionCandidates } from "../../candidates/api/candidates";
 import type {
     PublicLayoutOutletContext,

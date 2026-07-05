@@ -4,12 +4,9 @@ package com.bteam.ovs.shared.security;
 import com.bteam.ovs.auth.entity.AccountKind;
 import com.bteam.ovs.auth.entity.Role;
 import com.bteam.ovs.shared.errors.ApiException;
-
 import lombok.NoArgsConstructor;
-
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
-
 import java.util.UUID;
 
 @NoArgsConstructor

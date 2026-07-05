@@ -6,11 +6,9 @@ import com.bteam.ovs.profile.service.MeProfileService;
 import com.bteam.ovs.shared.security.PrincipalExtractor;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
-
 import java.util.UUID;
 
 @RequiredArgsConstructor

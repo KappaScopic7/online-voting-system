@@ -2,7 +2,6 @@ package com.bteam.ovs.master.seed;
 
 import java.util.List;
 import java.util.Map;
-
 import com.bteam.ovs.master.dto.response.CityItem;
 import com.bteam.ovs.master.dto.response.PrefItem;
 import com.bteam.ovs.master.dto.response.ZipAddressCandidate;

@@ -4,12 +4,9 @@ import com.bteam.ovs.citizen.repository.CitizenRepository;
 import com.bteam.ovs.eligibility.entity.EligibilitySnapshot;
 import com.bteam.ovs.profile.repository.VoterProfileSelfRepository;
 import com.bteam.ovs.shared.auth.AccountResolver;
-
 import lombok.RequiredArgsConstructor;
-
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
 import java.util.UUID;
 
 @RequiredArgsConstructor

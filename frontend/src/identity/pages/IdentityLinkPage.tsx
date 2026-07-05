@@ -2,7 +2,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Card, DevDebug, Page } from "../../shared/ui/page";
-
 import {
     IdentityMethodTabs,
     type IdentityMethod,
@@ -10,12 +9,10 @@ import {
 import { IdentityManualForm } from "../components/IdentityManualForm";
 import { IdentityNfcScanner } from "../components/IdentityNfcScanner";
 import { IdentityNfcKeyboardReader } from "../components/IdentityNfcKeyboardReader";
-
 import {
     fetchDemoPersonas,
     type DemoPersonaDto,
 } from "../../demo/api/demoPersonas";
-
 import { useIdentityDevice } from "../hooks/useIdentityDevice";
 import { useIdentityNav } from "../hooks/useIdentityNav";
 import { IdentityErrorCard } from "../ui/IdentityErrorCard";

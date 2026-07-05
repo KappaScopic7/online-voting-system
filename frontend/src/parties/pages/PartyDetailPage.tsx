@@ -5,12 +5,10 @@ import type {
     PartyCandidateItem,
     PartyDetailResponse,
 } from "../model/partyTypes";
-
 import { Page, Card, DevDebug } from "../../shared/ui/page";
 import { ErrorCard } from "../../shared/ui/ErrorCard";
 import { useAsyncLoad } from "../../shared/hooks/useAsyncLoad";
 import { useFromBackTo } from "../../shared/routes/useFromBackTo";
-
 import { PartyPill } from "../ui/PartyPill";
 import { FavoriteButton } from "../../me/ui/FavoriteButton";
 import { CandidateCard } from "../../candidates/ui/CandidateCard";

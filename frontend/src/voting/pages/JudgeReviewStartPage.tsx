@@ -20,7 +20,6 @@ import {
     publicStartJudgeReview,
     publicConfirmJudgeReview,
 } from "../api/publicJudgeReview";
-
 import type {
     PublicLayoutOutletContext,
     FooterAction,

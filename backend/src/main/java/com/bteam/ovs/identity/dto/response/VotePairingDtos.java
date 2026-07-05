@@ -1,7 +1,6 @@
 package com.bteam.ovs.identity.dto.response;
 
 import com.bteam.ovs.identity.entity.VotePairing;
-
 import java.time.Instant;
 import java.util.UUID;
 

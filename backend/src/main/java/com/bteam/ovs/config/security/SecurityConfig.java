@@ -3,7 +3,6 @@ package com.bteam.ovs.config.security;
 
 import java.util.Arrays;
 import java.util.List;
-
 import com.bteam.ovs.auth.entity.AccountKind;
 import com.bteam.ovs.auth.entity.Role;
 import org.springframework.context.annotation.Bean;
@@ -19,7 +18,6 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-
 import static org.springframework.security.config.Customizer.withDefaults;
 import static com.bteam.ovs.shared.security.Authz.*;
 

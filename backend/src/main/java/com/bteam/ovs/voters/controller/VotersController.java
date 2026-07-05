@@ -3,12 +3,9 @@ package com.bteam.ovs.voters.controller;
 import com.bteam.ovs.elections.dto.response.ElectionListItem;
 import com.bteam.ovs.shared.security.PrincipalExtractor;
 import com.bteam.ovs.voters.service.VoterElectionsService;
-
 import lombok.RequiredArgsConstructor;
-
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
-
 import java.util.List;
 import java.util.UUID;
 

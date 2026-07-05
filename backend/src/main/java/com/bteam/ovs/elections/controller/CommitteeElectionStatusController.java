@@ -5,11 +5,8 @@ import com.bteam.ovs.elections.dto.request.SetElectionStatusRequest;
 import com.bteam.ovs.elections.service.CommitteeElectionAdminService;
 import org.springframework.web.bind.annotation.*;
 import com.bteam.ovs.shared.security.Authz;
-
 import lombok.RequiredArgsConstructor;
-
 import org.springframework.security.access.prepost.PreAuthorize;
-
 import java.util.UUID;
 
 @RequiredArgsConstructor

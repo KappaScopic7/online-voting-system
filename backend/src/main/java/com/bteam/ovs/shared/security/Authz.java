@@ -2,9 +2,7 @@ package com.bteam.ovs.shared.security;
 
 import com.bteam.ovs.auth.entity.AccountKind;
 import com.bteam.ovs.auth.entity.Role;
-
 import lombok.NoArgsConstructor;
-
 import org.springframework.security.core.Authentication;
 import org.springframework.security.authorization.AuthorizationDecision;
 

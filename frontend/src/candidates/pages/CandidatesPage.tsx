@@ -11,7 +11,6 @@ import { Card, DevDebug, Page } from "../../shared/ui/page";
 import { useFromBackTo } from "../../shared/routes/useFromBackTo";
 import { ErrorCard } from "../../shared/ui/ErrorCard";
 import { CollapsibleFilter } from "../../shared/ui/CollapsibleFilter";
-
 import {
     CandidatesFilterPanel,
     type DisplayMode,

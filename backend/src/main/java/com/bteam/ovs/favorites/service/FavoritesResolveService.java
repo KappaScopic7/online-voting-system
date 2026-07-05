@@ -15,12 +15,9 @@ import com.bteam.ovs.favorites.repository.PortalFavoriteRepository;
 import com.bteam.ovs.parties.entity.Party;
 import com.bteam.ovs.parties.repository.PartyRepository;
 import com.bteam.ovs.shared.auth.AccountResolver;
-
 import lombok.RequiredArgsConstructor;
-
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;

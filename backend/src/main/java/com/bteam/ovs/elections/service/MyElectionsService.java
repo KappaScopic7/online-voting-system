@@ -13,12 +13,9 @@ import com.bteam.ovs.voting.entity.VoteAllocCast;
 import com.bteam.ovs.voting.repository.JudgeReviewCastRepository;
 import com.bteam.ovs.voting.repository.VoteAllocCastRepository;
 import com.bteam.ovs.voting.repository.VoteCurrentRepository;
-
 import lombok.RequiredArgsConstructor;
-
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
 import java.time.LocalDate;
 import java.time.Period;
 import java.util.*;

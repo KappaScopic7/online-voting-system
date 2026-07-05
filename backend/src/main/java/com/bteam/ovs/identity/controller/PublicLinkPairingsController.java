@@ -2,12 +2,9 @@ package com.bteam.ovs.identity.controller;
 
 import com.bteam.ovs.identity.dto.response.LinkPairingDtos;
 import com.bteam.ovs.identity.service.LinkPairingService;
-
 import lombok.RequiredArgsConstructor;
-
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
 import java.util.UUID;
 
 @RequiredArgsConstructor
