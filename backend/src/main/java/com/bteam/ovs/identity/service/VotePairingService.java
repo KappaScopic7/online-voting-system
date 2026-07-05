@@ -3,6 +3,9 @@ package com.bteam.ovs.identity.service;
 import com.bteam.ovs.auth.service.NfcAuthService; // ★追加
 import com.bteam.ovs.identity.entity.VotePairing;
 import com.bteam.ovs.identity.repository.VotePairingRepository;
+
+import lombok.AllArgsConstructor;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -13,28 +16,18 @@ import java.util.Base64;
 import java.util.UUID;
 
 @Service
+@AllArgsConstructor
 public class VotePairingService {
 
     private final VotePairingRepository repo;
     private final NfcResolveService nfcResolveService;
-    private final NfcAuthService nfcAuthService; // ★追加: 金庫番
+    private final NfcAuthService nfcAuthService;
 
     private static final Duration TTL = Duration.ofMinutes(5);
 
     // 推測されにくい ticket（URL-safe）
     private static final SecureRandom RNG = new SecureRandom();
     private static final int TICKET_BYTES = 32;
-
-    // ★コンストラクタ修正
-    public VotePairingService(
-            VotePairingRepository repo,
-            NfcResolveService nfcResolveService,
-            NfcAuthService nfcAuthService // ★追加
-    ) {
-        this.repo = repo;
-        this.nfcResolveService = nfcResolveService;
-        this.nfcAuthService = nfcAuthService; // ★追加
-    }
 
     @Transactional
     public VotePairing create(UUID electionId) {
@@ -58,7 +51,6 @@ public class VotePairingService {
         return p;
     }
 
-    // 既存：ticket を外から渡す版（残してもOK）
     @Transactional
     public boolean complete(UUID pairId, String ticket) {
         VotePairing p = repo.findById(pairId).orElse(null);

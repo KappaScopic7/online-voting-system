@@ -2,19 +2,19 @@ package com.bteam.ovs.auth.service;
 
 import com.bteam.ovs.auth.repository.UserAccountRepository;
 import com.bteam.ovs.shared.errors.ApiException;
+
+import lombok.AllArgsConstructor;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import java.util.UUID;
 
+@AllArgsConstructor
 @Service
 public class VoterEligibilityService {
 
     private final UserAccountRepository userRepo;
-
-    public VoterEligibilityService(UserAccountRepository userRepo) {
-        this.userRepo = userRepo;
-    }
 
     public void assertIdentityLinked(UUID accountId) {
         var acc = userRepo.findById(accountId)

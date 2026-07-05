@@ -11,23 +11,21 @@ import com.bteam.ovs.shared.errors.ApiException;
 import com.bteam.ovs.shared.security.PrincipalExtractor;
 
 import jakarta.validation.Valid;
+import lombok.AllArgsConstructor;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
 
+@AllArgsConstructor
 @RestController
 @RequestMapping("/api/staff/auth")
 public class StaffAuthController {
 
     private final StaffAuthService staffAuthService;
     private final StaffAccountRepository staffRepo;
-
-    public StaffAuthController(StaffAuthService staffAuthService, StaffAccountRepository staffRepo) {
-        this.staffAuthService = staffAuthService;
-        this.staffRepo = staffRepo;
-    }
 
     @PostMapping("/login")
     public TokenResponse staffLogin(@Valid @RequestBody StaffLoginRequest req) {

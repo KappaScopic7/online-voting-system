@@ -5,17 +5,16 @@ import com.bteam.ovs.identity.dto.request.NfcResolveRequest;
 import com.bteam.ovs.identity.dto.response.CitizenNfcResolveResponse;
 import com.bteam.ovs.identity.service.NfcResolveService;
 import jakarta.validation.Valid;
+import lombok.AllArgsConstructor;
+
 import org.springframework.web.bind.annotation.*;
 
+@AllArgsConstructor
 @RestController
 @RequestMapping("/api/identity/nfc")
 public class IdentityNfcController {
 
     private final NfcResolveService service;
-
-    public IdentityNfcController(NfcResolveService service) {
-        this.service = service;
-    }
 
     @PostMapping(value = "/resolve", produces = "application/json; charset=UTF-8")
     public CitizenNfcResolveResponse resolve(@RequestBody @Valid NfcResolveRequest req) {

@@ -2,17 +2,17 @@ package com.bteam.ovs.shared.security;
 
 import com.bteam.ovs.auth.entity.AccountKind;
 import com.bteam.ovs.auth.entity.Role;
+
+import lombok.NoArgsConstructor;
+
 import org.springframework.security.core.Authentication;
 import org.springframework.security.authorization.AuthorizationDecision;
 
+@NoArgsConstructor
 public final class Authz {
-    private Authz() {
-    }
 
-    // ★ PreAuthorize 用（committee）
     public static final String STAFF = "@authz.isKind(authentication, T(com.bteam.ovs.auth.entity.AccountKind).STAFF)";
 
-    // 使うなら
     public static final String USER = "@authz.isKind(authentication, T(com.bteam.ovs.auth.entity.AccountKind).USER)";
 
     public static boolean isKind(Authentication auth, AccountKind kind) {

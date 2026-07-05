@@ -6,20 +6,19 @@ import com.bteam.ovs.voting.dto.request.JudgeReviewConfirmRequest;
 import com.bteam.ovs.voting.dto.response.JudgeReviewStartResponse;
 import com.bteam.ovs.voting.service.VotingService;
 import jakarta.validation.Valid;
+import lombok.AllArgsConstructor;
+
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
 
+@AllArgsConstructor
 @RestController
 @RequestMapping("/api/judge-review")
 public class JudgeReviewController {
 
     private final VotingService votingService;
-
-    public JudgeReviewController(VotingService votingService) {
-        this.votingService = votingService;
-    }
 
     @GetMapping("/start")
     public JudgeReviewStartResponse start(

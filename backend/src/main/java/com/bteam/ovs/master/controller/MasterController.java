@@ -6,22 +6,20 @@ import com.bteam.ovs.master.dto.response.PrefItem;
 import com.bteam.ovs.master.dto.response.ZipAddressCandidate;
 import com.bteam.ovs.master.service.MasterService;
 import jakarta.validation.constraints.Pattern;
+import lombok.AllArgsConstructor;
 
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+@AllArgsConstructor
 @RestController
 @RequestMapping("/api/master")
 @Validated
 public class MasterController {
 
     private final MasterService masterService;
-
-    public MasterController(MasterService masterService) {
-        this.masterService = masterService;
-    }
 
     @GetMapping("/prefs")
     public List<PrefItem> prefs() {

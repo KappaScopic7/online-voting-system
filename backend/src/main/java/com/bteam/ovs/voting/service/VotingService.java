@@ -24,6 +24,9 @@ import com.bteam.ovs.voting.repository.VoteAllocCastRepository;
 import com.bteam.ovs.voting.repository.VoteAllocItemRepository;
 import com.bteam.ovs.voting.repository.VoteCastRepository;
 import com.bteam.ovs.voting.repository.VoteCurrentRepository;
+
+import lombok.AllArgsConstructor;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,6 +37,7 @@ import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+@AllArgsConstructor
 @Service
 public class VotingService {
 
@@ -49,29 +53,6 @@ public class VotingService {
 
     private final JudgeReviewCastRepository judgeReviewCastRepo;
     private final JudgeReviewItemRepository judgeReviewItemRepo;
-
-    public VotingService(
-            CitizenIdResolver citizenIdResolver,
-            ElectionEligibilityService electionEligibilityService,
-            ElectionRepository electionRepo,
-            CandidateRepository candidateRepo,
-            VoteCastRepository voteCastRepo,
-            VoteCurrentRepository voteCurrentRepo,
-            VoteAllocCastRepository voteAllocCastRepo,
-            VoteAllocItemRepository voteAllocItemRepo,
-            JudgeReviewCastRepository judgeReviewCastRepo,
-            JudgeReviewItemRepository judgeReviewItemRepo) {
-        this.citizenIdResolver = citizenIdResolver;
-        this.electionEligibilityService = electionEligibilityService;
-        this.electionRepo = electionRepo;
-        this.candidateRepo = candidateRepo;
-        this.voteCastRepo = voteCastRepo;
-        this.voteCurrentRepo = voteCurrentRepo;
-        this.voteAllocCastRepo = voteAllocCastRepo;
-        this.voteAllocItemRepo = voteAllocItemRepo;
-        this.judgeReviewCastRepo = judgeReviewCastRepo;
-        this.judgeReviewItemRepo = judgeReviewItemRepo;
-    }
 
     public VoteStartResponse start(UUID accountId, UUID electionId) {
         electionEligibilityService.requireEligible(accountId, electionId);

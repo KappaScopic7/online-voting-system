@@ -5,26 +5,20 @@ import com.bteam.ovs.eligibility.entity.EligibilitySnapshot;
 import com.bteam.ovs.profile.repository.VoterProfileSelfRepository;
 import com.bteam.ovs.shared.auth.AccountResolver;
 
+import lombok.AllArgsConstructor;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
 
+@AllArgsConstructor
 @Service
 public class EligibilityProfileResolver {
 
     private final AccountResolver accountResolver;
     private final CitizenRepository citizenRepo;
     private final VoterProfileSelfRepository selfRepo;
-
-    public EligibilityProfileResolver(
-            AccountResolver accountResolver,
-            CitizenRepository citizenRepo,
-            VoterProfileSelfRepository selfRepo) {
-        this.accountResolver = accountResolver;
-        this.citizenRepo = citizenRepo;
-        this.selfRepo = selfRepo;
-    }
 
     @Transactional(readOnly = true)
     public EligibilitySnapshot resolve(UUID accountId) {

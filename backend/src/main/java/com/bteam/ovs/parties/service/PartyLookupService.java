@@ -6,6 +6,8 @@ import com.bteam.ovs.parties.entity.Party;
 import com.bteam.ovs.parties.repository.PartyRepository;
 import com.bteam.ovs.shared.errors.ApiException;
 
+import lombok.AllArgsConstructor;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
@@ -13,14 +15,11 @@ import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+@AllArgsConstructor
 @Service
 public class PartyLookupService {
 
     private final PartyRepository partyRepo;
-
-    public PartyLookupService(PartyRepository partyRepo) {
-        this.partyRepo = partyRepo;
-    }
 
     public Optional<Party> findByPartyKey(String partyKey) {
         String key = blankToNull(partyKey);

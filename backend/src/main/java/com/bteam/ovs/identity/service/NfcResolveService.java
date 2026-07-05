@@ -3,6 +3,9 @@ package com.bteam.ovs.identity.service;
 import com.bteam.ovs.citizen.repository.CitizenRepository;
 import com.bteam.ovs.identity.dto.response.CitizenNfcResolveResponse;
 import com.bteam.ovs.shared.errors.ApiException;
+
+import lombok.AllArgsConstructor;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -10,6 +13,7 @@ import org.springframework.stereotype.Service;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
+@AllArgsConstructor
 @Service
 public class NfcResolveService {
 
@@ -18,11 +22,6 @@ public class NfcResolveService {
 
     private final CitizenRepository citizenRepo;
     private final PasswordEncoder passwordEncoder;
-
-    public NfcResolveService(CitizenRepository citizenRepo, PasswordEncoder passwordEncoder) {
-        this.citizenRepo = citizenRepo;
-        this.passwordEncoder = passwordEncoder;
-    }
 
     public CitizenNfcResolveResponse resolve(String payload, String pin) {
         UUID citizenId = extractCitizenId(payload);

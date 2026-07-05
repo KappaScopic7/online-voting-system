@@ -4,11 +4,15 @@ import com.bteam.ovs.master.dto.response.CityItem;
 import com.bteam.ovs.master.dto.response.PrefItem;
 import com.bteam.ovs.master.dto.response.ZipAddressCandidate;
 import com.bteam.ovs.master.seed.MachidaMasterSeed;
+
+import lombok.AllArgsConstructor;
+
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Map;
 
+@AllArgsConstructor
 @Service
 public class MasterService {
 

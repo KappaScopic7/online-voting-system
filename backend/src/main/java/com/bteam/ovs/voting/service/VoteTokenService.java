@@ -3,20 +3,20 @@ package com.bteam.ovs.voting.service;
 
 import com.bteam.ovs.config.security.JwtService;
 import com.bteam.ovs.shared.errors.ApiException;
+
+import lombok.AllArgsConstructor;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
 import java.util.UUID;
 
+@AllArgsConstructor
 @Service
 public class VoteTokenService {
 
     private final JwtService jwtService;
-
-    public VoteTokenService(JwtService jwtService) {
-        this.jwtService = jwtService;
-    }
 
     public String issue(UUID citizenId, UUID electionId) {
         if (citizenId == null || electionId == null) {

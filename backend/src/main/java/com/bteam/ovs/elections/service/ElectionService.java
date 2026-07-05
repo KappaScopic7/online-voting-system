@@ -17,6 +17,9 @@ import com.bteam.ovs.voting.entity.VoteAllocCast;
 import com.bteam.ovs.voting.repository.VoteAllocCastRepository;
 import com.bteam.ovs.voting.repository.VoteAllocItemRepository;
 import com.bteam.ovs.voting.repository.VoteCurrentRepository;
+
+import lombok.AllArgsConstructor;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import com.bteam.ovs.voting.repository.JudgeReviewCastRepository;
@@ -26,6 +29,7 @@ import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+@AllArgsConstructor
 @Service
 public class ElectionService {
 
@@ -38,27 +42,6 @@ public class ElectionService {
     private final PartyRepository partyRepo;
     private final VoteAllocCastRepository voteAllocCastRepo;
     private final JudgeReviewCastRepository judgeReviewCastRepo;
-
-    public ElectionService(
-            ElectionRepository electionRepo,
-            VoteCurrentRepository voteCurrentRepo,
-            AccountResolver accountResolver,
-            ElectionEligibilityService electionEligibilityService,
-            CandidateService candidateService,
-            VoteAllocItemRepository voteAllocItemRepo,
-            PartyRepository partyRepo,
-            VoteAllocCastRepository voteAllocCastRepo,
-            JudgeReviewCastRepository judgeReviewCastRepo) {
-        this.electionRepo = electionRepo;
-        this.voteCurrentRepo = voteCurrentRepo;
-        this.accountResolver = accountResolver;
-        this.electionEligibilityService = electionEligibilityService;
-        this.candidateService = candidateService;
-        this.voteAllocItemRepo = voteAllocItemRepo;
-        this.partyRepo = partyRepo;
-        this.voteAllocCastRepo = voteAllocCastRepo;
-        this.judgeReviewCastRepo = judgeReviewCastRepo;
-    }
 
     public List<ElectionListItem> list(UUID accountIdOrNull) {
         var elections = electionRepo.findAllByOrderByStartsAtDesc();

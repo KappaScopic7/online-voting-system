@@ -8,18 +8,17 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import com.bteam.ovs.shared.security.PrincipalExtractor;
 
+import lombok.AllArgsConstructor;
+
 // import java.util.Map;
 import java.util.UUID;
 
+@AllArgsConstructor
 @RestController
 @RequestMapping("/api/me/eligibility")
 public class MeEligibilityController {
 
     private final EligibilityProfileResolver resolver;
-
-    public MeEligibilityController(EligibilityProfileResolver resolver) {
-        this.resolver = resolver;
-    }
 
     @GetMapping
     public MeEligibilityResponse get(Authentication auth) {

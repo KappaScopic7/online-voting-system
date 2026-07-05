@@ -11,6 +11,9 @@ import com.bteam.ovs.auth.dto.response.TokenResponse;
 import com.bteam.ovs.config.security.JwtService;
 import com.bteam.ovs.identity.service.NfcResolveService;
 import com.bteam.ovs.shared.errors.ApiException;
+
+import lombok.AllArgsConstructor;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
@@ -19,6 +22,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
+@AllArgsConstructor
 @Service
 public class NfcAuthService {
 
@@ -36,11 +40,6 @@ public class NfcAuthService {
 
     private final NfcResolveService nfcResolveService;
     private final JwtService jwtService;
-
-    public NfcAuthService(NfcResolveService nfcResolveService, JwtService jwtService) {
-        this.nfcResolveService = nfcResolveService;
-        this.jwtService = jwtService;
-    }
 
     public NfcLoginResponse login(NfcLoginRequest req) {
         try {

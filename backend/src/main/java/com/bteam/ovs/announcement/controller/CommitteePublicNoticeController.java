@@ -5,6 +5,8 @@ import com.bteam.ovs.announcement.dto.response.PublicNoticeResponse;
 import com.bteam.ovs.announcement.service.PublicNoticeService;
 import com.bteam.ovs.shared.errors.ApiException;
 import jakarta.validation.Valid;
+import lombok.AllArgsConstructor;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -12,15 +14,12 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.UUID;
 
+@AllArgsConstructor
 @RestController
 @RequestMapping("/api/committee/notices")
 public class CommitteePublicNoticeController {
 
     private final PublicNoticeService service;
-
-    public CommitteePublicNoticeController(PublicNoticeService service) {
-        this.service = service;
-    }
 
     @GetMapping
     @PreAuthorize("hasAuthority('KIND_STAFF')")

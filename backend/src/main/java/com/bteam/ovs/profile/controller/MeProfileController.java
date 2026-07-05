@@ -5,21 +5,20 @@ import com.bteam.ovs.profile.dto.response.MeProfileResponse;
 import com.bteam.ovs.profile.service.MeProfileService;
 import com.bteam.ovs.shared.security.PrincipalExtractor;
 import jakarta.validation.Valid;
+import lombok.AllArgsConstructor;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
 
+@AllArgsConstructor
 @RestController
 @RequestMapping("/api/me/profile")
 public class MeProfileController {
 
     private final MeProfileService meProfileService;
-
-    public MeProfileController(MeProfileService meProfileService) {
-        this.meProfileService = meProfileService;
-    }
 
     @GetMapping
     public ResponseEntity<MeProfileResponse> get(Authentication auth) {

@@ -3,19 +3,19 @@ package com.bteam.ovs.shared.identity;
 
 import com.bteam.ovs.shared.auth.AccountResolver;
 import com.bteam.ovs.shared.errors.ApiException;
+
+import lombok.AllArgsConstructor;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 
 import java.util.UUID;
 
+@AllArgsConstructor
 @Component
 public class CitizenIdResolver {
 
     private final AccountResolver accountResolver;
-
-    public CitizenIdResolver(AccountResolver accountResolver) {
-        this.accountResolver = accountResolver;
-    }
 
     public UUID requireCitizenId(UUID accountId) {
         var acc = accountResolver.requireActiveAccount(accountId);

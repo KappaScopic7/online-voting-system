@@ -8,12 +8,15 @@ import com.bteam.ovs.shared.identity.CitizenIdResolver;
 import com.bteam.ovs.voting.entity.VoteCurrent;
 import com.bteam.ovs.voting.repository.VoteCurrentRepository;
 
+import lombok.AllArgsConstructor;
+
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
 
+@AllArgsConstructor
 @Service
 public class VoterElectionsService {
 
@@ -21,17 +24,6 @@ public class VoterElectionsService {
     private final ElectionRepository electionRepo;
     private final CandidateRepository candidateRepo;
     private final VoteCurrentRepository voteCurrentRepo;
-
-    public VoterElectionsService(
-            CitizenIdResolver citizenIdResolver,
-            ElectionRepository electionRepo,
-            CandidateRepository candidateRepo,
-            VoteCurrentRepository voteCurrentRepo) {
-        this.citizenIdResolver = citizenIdResolver;
-        this.electionRepo = electionRepo;
-        this.candidateRepo = candidateRepo;
-        this.voteCurrentRepo = voteCurrentRepo;
-    }
 
     // accountId版：Controllerはこれだけ呼べばいい
     public List<ElectionListItem> listMyElectionsByAccount(UUID accountId) {

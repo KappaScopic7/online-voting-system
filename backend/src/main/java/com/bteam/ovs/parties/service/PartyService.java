@@ -8,22 +8,20 @@ import com.bteam.ovs.parties.entity.Party;
 import com.bteam.ovs.parties.repository.PartyRepository;
 import com.bteam.ovs.shared.errors.ApiException;
 
+import lombok.AllArgsConstructor;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import java.util.Comparator;
 import java.util.List;
 
+@AllArgsConstructor
 @Service
 public class PartyService {
 
     private final PartyRepository partyRepo;
     private final CandidateRepository candidateRepo;
-
-    public PartyService(PartyRepository partyRepo, CandidateRepository candidateRepo) {
-        this.partyRepo = partyRepo;
-        this.candidateRepo = candidateRepo;
-    }
 
     public List<PartyListItem> list() {
         return partyRepo.findAll().stream()

@@ -2,6 +2,9 @@ package com.bteam.ovs.identity.service;
 
 import com.bteam.ovs.identity.entity.LinkPairing;
 import com.bteam.ovs.identity.repository.LinkPairingRepository;
+
+import lombok.AllArgsConstructor;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -9,6 +12,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.UUID;
 
+@AllArgsConstructor
 @Service
 public class LinkPairingService {
 
@@ -17,15 +21,6 @@ public class LinkPairingService {
     private final IdentityLinkService identityLinkService;
 
     private static final Duration TTL = Duration.ofMinutes(5);
-
-    public LinkPairingService(
-            LinkPairingRepository repo,
-            NfcResolveService nfcResolveService,
-            IdentityLinkService identityLinkService) {
-        this.repo = repo;
-        this.nfcResolveService = nfcResolveService;
-        this.identityLinkService = identityLinkService;
-    }
 
     @Transactional
     public LinkPairing create(UUID accountId) {

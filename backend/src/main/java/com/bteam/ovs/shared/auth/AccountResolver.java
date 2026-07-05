@@ -4,20 +4,20 @@ package com.bteam.ovs.shared.auth;
 import com.bteam.ovs.auth.entity.UserAccount;
 import com.bteam.ovs.auth.repository.UserAccountRepository;
 import com.bteam.ovs.shared.errors.ApiException;
+
+import lombok.AllArgsConstructor;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 
 import java.util.Optional;
 import java.util.UUID;
 
+@AllArgsConstructor
 @Component
 public class AccountResolver {
 
     private final UserAccountRepository userRepo;
-
-    public AccountResolver(UserAccountRepository userRepo) {
-        this.userRepo = userRepo;
-    }
 
     public UserAccount requireAccount(UUID accountId) {
         if (accountId == null) {

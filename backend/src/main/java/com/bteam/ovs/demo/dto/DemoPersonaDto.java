@@ -1,4 +1,4 @@
-package com.bteam.ovs.demo.controller.dto;
+package com.bteam.ovs.demo.dto;
 
 public record DemoPersonaDto(
         String key,

@@ -5,19 +5,19 @@ import com.bteam.ovs.elections.dto.request.SetElectionStatusRequest;
 import com.bteam.ovs.elections.service.CommitteeElectionAdminService;
 import org.springframework.web.bind.annotation.*;
 import com.bteam.ovs.shared.security.Authz;
+
+import lombok.AllArgsConstructor;
+
 import org.springframework.security.access.prepost.PreAuthorize;
 
 import java.util.UUID;
 
+@AllArgsConstructor
 @RestController
 @RequestMapping("/api/committee/elections")
 public class CommitteeElectionStatusController {
 
     private final CommitteeElectionAdminService adminService;
-
-    public CommitteeElectionStatusController(CommitteeElectionAdminService adminService) {
-        this.adminService = adminService;
-    }
 
     @PostMapping("/{electionId}/status")
     @PreAuthorize(Authz.STAFF)

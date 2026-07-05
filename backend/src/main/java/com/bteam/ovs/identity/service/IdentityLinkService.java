@@ -4,12 +4,16 @@ import com.bteam.ovs.auth.entity.Role;
 import com.bteam.ovs.auth.repository.UserAccountRepository;
 import com.bteam.ovs.citizen.repository.CitizenRepository;
 import com.bteam.ovs.shared.errors.ApiException;
+
+import lombok.AllArgsConstructor;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
 
+@AllArgsConstructor
 @Service
 public class IdentityLinkService {
 
@@ -18,11 +22,6 @@ public class IdentityLinkService {
 
     private final UserAccountRepository userRepo;
     private final CitizenRepository citizenRepo;
-
-    public IdentityLinkService(UserAccountRepository userRepo, CitizenRepository citizenRepo) {
-        this.userRepo = userRepo;
-        this.citizenRepo = citizenRepo;
-    }
 
     @Transactional
     public LinkedAccount link(UUID accountId, UUID citizenId) {

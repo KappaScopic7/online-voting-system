@@ -11,6 +11,8 @@ import com.bteam.ovs.favorites.repository.PortalFavoriteRepository;
 import com.bteam.ovs.shared.auth.AccountResolver;
 import com.bteam.ovs.shared.errors.ApiException;
 
+import lombok.AllArgsConstructor;
+
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -21,20 +23,12 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.*;
 
 @Service
+@AllArgsConstructor
 public class FavoritesService {
 
     private final PortalFavoriteRepository favoriteRepository;
     private final FavoriteTargetExistenceService existenceService;
     private final AccountResolver accountResolver;
-
-    public FavoritesService(
-            PortalFavoriteRepository favoriteRepository,
-            FavoriteTargetExistenceService existenceService,
-            AccountResolver accountResolver) {
-        this.favoriteRepository = favoriteRepository;
-        this.existenceService = existenceService;
-        this.accountResolver = accountResolver;
-    }
 
     @Transactional
     public void add(UUID accountId, FavoriteAddRequest req) {

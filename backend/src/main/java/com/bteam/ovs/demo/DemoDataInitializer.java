@@ -13,6 +13,7 @@ import com.bteam.ovs.citizen.repository.CitizenRepository;
 import com.bteam.ovs.demo.json.*;
 import com.bteam.ovs.demo.seed.MachidaSangiinSeed;
 import com.bteam.ovs.demo.seed.MachidaSangiinSeed.Mode;
+import com.bteam.ovs.demo.service.DemoDataService;
 import com.bteam.ovs.elections.entity.*;
 import com.bteam.ovs.elections.repository.ElectionEligibilityRuleRepository;
 import com.bteam.ovs.elections.repository.ElectionRepository;
@@ -46,7 +47,7 @@ public class DemoDataInitializer {
      *
      * JSONをやめて Java Seeder からデータ生成する版。
      */
-    void init(
+    public void init(
             UserAccountRepository userRepo,
             StaffAccountRepository staffRepo,
 

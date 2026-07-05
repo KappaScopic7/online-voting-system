@@ -15,6 +15,9 @@ import com.bteam.ovs.favorites.repository.PortalFavoriteRepository;
 import com.bteam.ovs.parties.entity.Party;
 import com.bteam.ovs.parties.repository.PartyRepository;
 import com.bteam.ovs.shared.auth.AccountResolver;
+
+import lombok.AllArgsConstructor;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,6 +25,7 @@ import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+@AllArgsConstructor
 @Service
 public class FavoritesResolveService {
 
@@ -30,19 +34,6 @@ public class FavoritesResolveService {
     private final CandidateRepository candidateRepository;
     private final PartyRepository partyRepository;
     private final AccountResolver accountResolver;
-
-    public FavoritesResolveService(
-            PortalFavoriteRepository favoriteRepository,
-            ElectionRepository electionRepository,
-            CandidateRepository candidateRepository,
-            PartyRepository partyRepository,
-            AccountResolver accountResolver) {
-        this.favoriteRepository = favoriteRepository;
-        this.electionRepository = electionRepository;
-        this.candidateRepository = candidateRepository;
-        this.partyRepository = partyRepository;
-        this.accountResolver = accountResolver;
-    }
 
     @Transactional(readOnly = true)
     public List<ResolvedFavoriteItem> listResolved(UUID accountId) {
