@@ -3,11 +3,14 @@ package com.bteam.ovs.auth.service;
 import com.bteam.ovs.auth.repository.StaffAccountRepository;
 import com.bteam.ovs.config.security.JwtService;
 import com.bteam.ovs.auth.dto.request.StaffLoginRequest;
+import com.bteam.ovs.auth.dto.response.StaffMeResponse;
 import com.bteam.ovs.auth.dto.response.TokenResponse;
 import com.bteam.ovs.auth.entity.AccountKind;
 import com.bteam.ovs.shared.errors.ApiException;
 
 import lombok.AllArgsConstructor;
+
+import java.util.UUID;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -45,5 +48,17 @@ public class StaffAuthService {
 
     private String normalize(String s) {
         return s == null ? null : s.trim();
+    }
+
+    public StaffMeResponse me(UUID accountId) {
+        var acc = staffRepo.findById(accountId)
+                .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "未ログインです"));
+
+        return new StaffMeResponse(
+                acc.getId(),
+                acc.getLoginId(),
+                acc.getRole(),
+                acc.isEnabled(),
+                acc.isLocked());
     }
 }

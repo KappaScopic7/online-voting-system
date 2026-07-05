@@ -10,8 +10,13 @@ import lombok.AllArgsConstructor;
 
 import com.bteam.ovs.auth.dto.request.UserLoginRequest;
 import com.bteam.ovs.auth.dto.request.UserRegisterRequest;
+import com.bteam.ovs.auth.dto.response.MeDetailResponse;
+import com.bteam.ovs.auth.dto.response.MeResponse;
 import com.bteam.ovs.auth.dto.response.TokenResponse;
 import com.bteam.ovs.auth.entity.AccountKind;
+import com.bteam.ovs.auth.entity.IdentityStatus;
+
+import java.util.UUID;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -115,4 +120,43 @@ public class UserAuthService {
     private String normalize(String s) {
         return s == null ? null : s.trim();
     }
+
+    public MeResponse me(UUID accountId) {
+        var acc = findByIdOrUnauthorized(accountId);
+        var identityStatus = (acc.getCitizenId() == null)
+                ? IdentityStatus.NONE
+                : IdentityStatus.LINKED;
+
+        return new MeResponse(
+                acc.getId(),
+                acc.getEmail(),
+                acc.getRole() == null ? null : acc.getRole().name(),
+                acc.isEmailVerified(),
+                identityStatus);
+    }
+
+    public MeDetailResponse meDetail(UUID accountId) {
+        var acc = findByIdOrUnauthorized(accountId);
+        var identityStatus = (acc.getCitizenId() == null)
+                ? IdentityStatus.NONE
+                : IdentityStatus.LINKED;
+
+        return new MeDetailResponse(
+                acc.getId(),
+                acc.getEmail(),
+                acc.getRole() == null ? null : acc.getRole().name(),
+                acc.isEmailVerified(),
+                acc.isEnabled(),
+                acc.isLocked(),
+                acc.getCitizenId(),
+                identityStatus,
+                acc.getCreatedAt(),
+                acc.getUpdatedAt());
+    }
+
+    private UserAccount findByIdOrUnauthorized(UUID accountId) {
+        return userRepo.findById(accountId)
+                .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "未ログインです"));
+    }
+
 }
