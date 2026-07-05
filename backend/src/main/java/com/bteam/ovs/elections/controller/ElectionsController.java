@@ -6,7 +6,7 @@ import com.bteam.ovs.elections.dto.response.ElectionResultBundleResponse;
 import com.bteam.ovs.elections.service.ElectionService;
 import com.bteam.ovs.shared.security.PrincipalExtractor;
 
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.UUID;
 
-@AllArgsConstructor
+@RequiredArgsConstructor
 @RestController
 @RequestMapping("/api/elections")
 public class ElectionsController {

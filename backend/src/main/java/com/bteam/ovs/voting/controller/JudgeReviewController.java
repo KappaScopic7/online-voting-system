@@ -6,14 +6,14 @@ import com.bteam.ovs.voting.dto.request.JudgeReviewConfirmRequest;
 import com.bteam.ovs.voting.dto.response.JudgeReviewStartResponse;
 import com.bteam.ovs.voting.service.VotingService;
 import jakarta.validation.Valid;
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
 
-@AllArgsConstructor
+@RequiredArgsConstructor
 @RestController
 @RequestMapping("/api/judge-review")
 public class JudgeReviewController {

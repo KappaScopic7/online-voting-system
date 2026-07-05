@@ -7,14 +7,14 @@ import com.bteam.ovs.auth.service.StaffAuthService;
 import com.bteam.ovs.shared.security.PrincipalExtractor;
 
 import jakarta.validation.Valid;
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
 
-@AllArgsConstructor
+@RequiredArgsConstructor
 @RestController
 @RequestMapping("/api/staff/auth")
 public class StaffAuthController {

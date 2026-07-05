@@ -3,14 +3,14 @@ package com.bteam.ovs.auth.service;
 import com.bteam.ovs.auth.repository.UserAccountRepository;
 import com.bteam.ovs.shared.errors.ApiException;
 
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import java.util.UUID;
 
-@AllArgsConstructor
+@RequiredArgsConstructor
 @Service
 public class VoterEligibilityService {
 

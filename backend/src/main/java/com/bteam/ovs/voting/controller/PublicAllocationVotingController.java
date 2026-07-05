@@ -7,14 +7,14 @@ import com.bteam.ovs.voting.dto.response.AllocVoteHistoryItem;
 import com.bteam.ovs.voting.dto.response.AllocVoteStartResponse;
 import com.bteam.ovs.voting.service.AllocationVotingService;
 import jakarta.validation.Valid;
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
 
-@AllArgsConstructor
+@RequiredArgsConstructor
 @RestController
 @RequestMapping("/api/public/alloc-voting")
 public class PublicAllocationVotingController {

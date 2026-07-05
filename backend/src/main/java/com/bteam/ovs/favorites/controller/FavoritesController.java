@@ -10,7 +10,7 @@ import com.bteam.ovs.favorites.entity.FavoriteTargetType;
 import com.bteam.ovs.favorites.service.FavoritesService;
 import com.bteam.ovs.shared.security.PrincipalExtractor;
 
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 
 import com.bteam.ovs.shared.errors.ApiException;
 import org.springframework.data.domain.Page;
@@ -23,7 +23,7 @@ import com.bteam.ovs.favorites.service.FavoritesResolveService;
 
 import java.util.UUID;
 
-@AllArgsConstructor
+@RequiredArgsConstructor
 @RestController
 @RequestMapping("/api/favorites")
 public class FavoritesController {

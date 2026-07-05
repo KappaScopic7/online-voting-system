@@ -8,17 +8,15 @@ import com.bteam.ovs.auth.dto.response.MeResponse;
 import com.bteam.ovs.auth.dto.response.TokenResponse;
 import com.bteam.ovs.auth.service.UserAuthService;
 import com.bteam.ovs.shared.security.PrincipalExtractor;
-
 import jakarta.validation.Valid;
-import lombok.AllArgsConstructor;
-
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
 
-@AllArgsConstructor
+@RequiredArgsConstructor
 @RestController
 @RequestMapping("/api/auth")
 public class UserAuthController {

@@ -6,13 +6,13 @@ import com.bteam.ovs.parties.dto.response.PartyDetailResponse;
 import com.bteam.ovs.parties.dto.response.PartyListItem;
 import com.bteam.ovs.parties.service.PartyService;
 
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-@AllArgsConstructor
+@RequiredArgsConstructor
 @RestController
 @RequestMapping("/api/parties")
 public class PartyController {

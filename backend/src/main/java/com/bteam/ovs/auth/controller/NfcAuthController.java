@@ -10,11 +10,11 @@ import com.bteam.ovs.auth.dto.response.NfcLoginResponse;
 import com.bteam.ovs.auth.dto.response.TokenResponse;
 import com.bteam.ovs.auth.service.NfcAuthService;
 import jakarta.validation.Valid;
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 
 import org.springframework.web.bind.annotation.*;
 
-@AllArgsConstructor
+@RequiredArgsConstructor
 @RestController
 @RequestMapping("/api/auth/nfc")
 public class NfcAuthController {

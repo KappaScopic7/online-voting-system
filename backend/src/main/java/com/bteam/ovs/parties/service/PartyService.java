@@ -8,7 +8,7 @@ import com.bteam.ovs.parties.entity.Party;
 import com.bteam.ovs.parties.repository.PartyRepository;
 import com.bteam.ovs.shared.errors.ApiException;
 
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -16,7 +16,7 @@ import org.springframework.stereotype.Service;
 import java.util.Comparator;
 import java.util.List;
 
-@AllArgsConstructor
+@RequiredArgsConstructor
 @Service
 public class PartyService {
 

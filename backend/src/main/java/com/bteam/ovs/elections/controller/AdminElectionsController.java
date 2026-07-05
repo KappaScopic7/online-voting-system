@@ -8,7 +8,7 @@ import com.bteam.ovs.elections.dto.response.ElectionResponse;
 import com.bteam.ovs.elections.service.ElectionAdminService;
 
 import jakarta.validation.Valid;
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.UUID;
 
-@AllArgsConstructor
+@RequiredArgsConstructor
 @RestController
 @RequestMapping("/api/admin/elections")
 public class AdminElectionsController {

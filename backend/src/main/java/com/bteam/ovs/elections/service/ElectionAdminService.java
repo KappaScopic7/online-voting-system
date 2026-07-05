@@ -11,7 +11,7 @@ import com.bteam.ovs.elections.entity.Election;
 import com.bteam.ovs.elections.repository.ElectionRepository;
 import com.bteam.ovs.shared.errors.ApiException;
 
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
@@ -25,7 +25,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.UUID;
 
-@AllArgsConstructor
+@RequiredArgsConstructor
 @Service
 public class ElectionAdminService {
 

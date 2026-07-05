@@ -18,7 +18,7 @@ import com.bteam.ovs.voting.repository.VoteAllocCastRepository;
 import com.bteam.ovs.voting.repository.VoteAllocCurrentRepository;
 import com.bteam.ovs.voting.repository.VoteAllocItemRepository;
 
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 
 import com.bteam.ovs.shared.validation.UuidParsers;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -31,7 +31,7 @@ import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-@AllArgsConstructor
+@RequiredArgsConstructor
 @Service
 public class AllocationVotingService {
 

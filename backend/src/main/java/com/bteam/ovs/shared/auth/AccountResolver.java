@@ -5,7 +5,7 @@ import com.bteam.ovs.auth.entity.UserAccount;
 import com.bteam.ovs.auth.repository.UserAccountRepository;
 import com.bteam.ovs.shared.errors.ApiException;
 
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
@@ -13,7 +13,7 @@ import org.springframework.stereotype.Component;
 import java.util.Optional;
 import java.util.UUID;
 
-@AllArgsConstructor
+@RequiredArgsConstructor
 @Component
 public class AccountResolver {
 

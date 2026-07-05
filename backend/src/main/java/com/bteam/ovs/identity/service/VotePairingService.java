@@ -4,7 +4,7 @@ import com.bteam.ovs.auth.service.NfcAuthService; // ★追加
 import com.bteam.ovs.identity.entity.VotePairing;
 import com.bteam.ovs.identity.repository.VotePairingRepository;
 
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,7 +16,7 @@ import java.util.Base64;
 import java.util.UUID;
 
 @Service
-@AllArgsConstructor
+@RequiredArgsConstructor
 public class VotePairingService {
 
     private final VotePairingRepository repo;

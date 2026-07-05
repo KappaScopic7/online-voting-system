@@ -4,7 +4,7 @@ import com.bteam.ovs.shared.security.PrincipalExtractor;
 import com.bteam.ovs.voting.dto.response.VoteHistoryItem;
 import com.bteam.ovs.voting.service.VotingService;
 
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.UUID;
 
-@AllArgsConstructor
+@RequiredArgsConstructor
 @RestController
 @RequestMapping("/api/votes")
 public class VoteHistoryController {

@@ -4,14 +4,14 @@ import com.bteam.ovs.elections.dto.response.ElectionResultBundleResponse;
 import com.bteam.ovs.elections.service.ElectionService;
 import com.bteam.ovs.shared.security.Authz;
 
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
 
-@AllArgsConstructor
+@RequiredArgsConstructor
 @RestController
 @RequestMapping("/api/committee/elections")
 @PreAuthorize(Authz.STAFF)

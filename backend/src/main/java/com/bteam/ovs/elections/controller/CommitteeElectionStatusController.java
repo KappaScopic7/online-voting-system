@@ -6,13 +6,13 @@ import com.bteam.ovs.elections.service.CommitteeElectionAdminService;
 import org.springframework.web.bind.annotation.*;
 import com.bteam.ovs.shared.security.Authz;
 
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 
 import org.springframework.security.access.prepost.PreAuthorize;
 
 import java.util.UUID;
 
-@AllArgsConstructor
+@RequiredArgsConstructor
 @RestController
 @RequestMapping("/api/committee/elections")
 public class CommitteeElectionStatusController {

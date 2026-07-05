@@ -11,9 +11,9 @@ import com.bteam.ovs.elections.repository.ElectionRepository;
 import com.bteam.ovs.candidates.repository.CandidateRepository;
 import com.bteam.ovs.parties.repository.PartyRepository;
 
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 
-@AllArgsConstructor
+@RequiredArgsConstructor
 @Component
 @Service
 public class FavoriteTargetExistenceService {

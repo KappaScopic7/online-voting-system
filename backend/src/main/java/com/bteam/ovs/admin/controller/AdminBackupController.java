@@ -2,7 +2,7 @@ package com.bteam.ovs.admin.controller;
 
 import com.bteam.ovs.admin.service.AdminBackupService;
 
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 
 // import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.core.io.ByteArrayResource;
@@ -15,7 +15,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
-@AllArgsConstructor
+@RequiredArgsConstructor
 @RestController
 @RequestMapping("/api/admin/backup")
 public class AdminBackupController {
