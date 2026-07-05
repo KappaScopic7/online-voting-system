@@ -4,12 +4,13 @@ import com.bteam.ovs.announcement.dto.request.SystemAnnouncementUpdateRequest;
 import com.bteam.ovs.announcement.dto.response.SystemAnnouncementResponse;
 import com.bteam.ovs.announcement.service.SystemAnnouncementService;
 import jakarta.validation.Valid;
-import lombok.AllArgsConstructor;
+
+import lombok.RequiredArgsConstructor;
 
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-@AllArgsConstructor
+@RequiredArgsConstructor
 @RestController
 @RequestMapping("/api/committee/announcement")
 public class CommitteeSystemAnnouncementController {

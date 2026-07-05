@@ -9,14 +9,14 @@ import com.bteam.ovs.identity.service.NfcResolveService;
 import com.bteam.ovs.shared.security.PrincipalExtractor;
 
 import jakarta.validation.Valid;
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
 
-@AllArgsConstructor
+@RequiredArgsConstructor
 @RestController
 @RequestMapping("/api/identity")
 public class IdentityController {

@@ -10,11 +10,11 @@ import com.bteam.ovs.voting.service.VoteTokenService;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 
 import java.util.UUID;
 
-@AllArgsConstructor
+@RequiredArgsConstructor
 @RestController
 @RequestMapping("/api/public/vote-token")
 public class VoteTokenController {

@@ -6,14 +6,14 @@ import com.bteam.ovs.master.dto.response.PrefItem;
 import com.bteam.ovs.master.dto.response.ZipAddressCandidate;
 import com.bteam.ovs.master.service.MasterService;
 import jakarta.validation.constraints.Pattern;
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-@AllArgsConstructor
+@RequiredArgsConstructor
 @RestController
 @RequestMapping("/api/master")
 @Validated

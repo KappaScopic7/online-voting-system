@@ -6,7 +6,7 @@ import com.bteam.ovs.auth.repository.UserAccountRepository;
 import com.bteam.ovs.config.security.JwtService;
 import com.bteam.ovs.shared.errors.ApiException;
 
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 
 import com.bteam.ovs.auth.dto.request.UserLoginRequest;
 import com.bteam.ovs.auth.dto.request.UserRegisterRequest;
@@ -23,7 +23,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-@AllArgsConstructor
+@RequiredArgsConstructor
 @Service
 public class UserAuthService {
 

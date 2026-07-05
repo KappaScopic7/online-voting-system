@@ -4,7 +4,7 @@ import com.bteam.ovs.elections.repository.ElectionRepository;
 import com.bteam.ovs.eligibility.service.EligibilityProfileResolver;
 import com.bteam.ovs.shared.errors.ApiException;
 
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -13,7 +13,7 @@ import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.UUID;
 
-@AllArgsConstructor
+@RequiredArgsConstructor
 @Service
 public class ElectionEligibilityService {
 

@@ -8,7 +8,7 @@ import com.bteam.ovs.auth.dto.response.TokenResponse;
 import com.bteam.ovs.auth.entity.AccountKind;
 import com.bteam.ovs.shared.errors.ApiException;
 
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 
 import java.util.UUID;
 
@@ -16,7 +16,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-@AllArgsConstructor
+@RequiredArgsConstructor
 @Service
 public class StaffAuthService {
 

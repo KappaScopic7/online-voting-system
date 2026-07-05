@@ -5,14 +5,14 @@ import com.bteam.ovs.candidates.dto.response.CandidateDetailResponse;
 import com.bteam.ovs.candidates.dto.response.CandidateListItem;
 import com.bteam.ovs.candidates.service.CandidateService;
 
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.UUID;
 
-@AllArgsConstructor
+@RequiredArgsConstructor
 @RestController
 @RequestMapping("/api/candidates")
 public class CandidatesController {

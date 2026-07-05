@@ -4,14 +4,14 @@ import com.bteam.ovs.identity.dto.response.LinkPairingDtos;
 import com.bteam.ovs.identity.service.LinkPairingService;
 import com.bteam.ovs.shared.security.PrincipalExtractor;
 
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
 
-@AllArgsConstructor
+@RequiredArgsConstructor
 @RestController
 @RequestMapping("/api/identity/link-pairings")
 public class IdentityLinkPairingsController {

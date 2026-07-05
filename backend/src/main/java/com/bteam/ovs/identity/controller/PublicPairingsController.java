@@ -4,14 +4,14 @@ import com.bteam.ovs.identity.dto.response.VotePairingDtos;
 import com.bteam.ovs.identity.entity.VotePairing;
 import com.bteam.ovs.identity.service.VotePairingService;
 
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
 
-@AllArgsConstructor
+@RequiredArgsConstructor
 @RestController
 @RequestMapping("/api/public/pairings")
 public class PublicPairingsController {

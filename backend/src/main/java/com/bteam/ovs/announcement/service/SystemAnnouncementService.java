@@ -5,9 +5,7 @@ import com.bteam.ovs.announcement.dto.response.SystemAnnouncementResponse;
 import com.bteam.ovs.announcement.entity.SystemAnnouncement;
 import com.bteam.ovs.announcement.repository.SystemAnnouncementRepository;
 import com.bteam.ovs.shared.errors.ApiException;
-
-import lombok.AllArgsConstructor;
-
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,7 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.util.UUID;
 
-@AllArgsConstructor
+@RequiredArgsConstructor
 @Service
 public class SystemAnnouncementService {
 
